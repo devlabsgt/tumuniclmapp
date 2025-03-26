@@ -47,6 +47,18 @@ export default function Signup() {
 
       <form className="flex flex-col gap-4">
         <div>
+          <Label htmlFor="nombre" className="text-lg mb-1 block">
+            Nombre completo
+          </Label>
+          <Input
+            name="nombre"
+            placeholder="Nombres y Apellidos"
+            required
+            className="h-12 text-lg"
+          />
+        </div>
+
+        <div>
           <Label htmlFor="email" className="text-lg mb-1 block">
             Correo electrónico
           </Label>
@@ -70,6 +82,22 @@ export default function Signup() {
             required
             className="h-12 text-lg"
           />
+        </div>
+
+        <div>
+          <Label htmlFor="rol" className="text-lg mb-1 block">
+            Rol
+          </Label>
+          <select
+            name="rol"
+            required
+            className="h-12 text-lg border border-input rounded px-3 w-full"
+          >
+            <option value="">Seleccione un rol</option>
+            <option value="admin">Admin</option>
+            <option value="editor">Editor</option>
+            <option value="lector">Lector</option>
+          </select>
         </div>
 
         <SubmitButton

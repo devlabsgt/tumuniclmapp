@@ -39,11 +39,22 @@ export const updateSession = async (request: NextRequest) => {
     // https://supabase.com/docs/guides/auth/server-side/nextjs
     const user = await supabase.auth.getUser();
 
-    // protected routes
+
+
+    // 🚫 Si intenta entrar a /protected y no hay sesión
     if (request.nextUrl.pathname.startsWith("/protected") && user.error) {
       return NextResponse.redirect(new URL("/sign-in", request.url));
     }
 
+    // 🔐 Si entra a /protected/admin y no es admin
+    if (
+      request.nextUrl.pathname.startsWith("/protected/admin") &&
+      user.data?.user?.user_metadata?.rol !== "admin"
+    ) {
+      return NextResponse.redirect(new URL("/sign-in", request.url));
+    }
+
+    // ✅ Redirección si ya inició sesión y está en /
     if (request.nextUrl.pathname === "/" && !user.error) {
       return NextResponse.redirect(new URL("/protected", request.url));
     }

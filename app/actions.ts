@@ -8,14 +8,17 @@ import { redirect } from "next/navigation";
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();
+  const rol = formData.get("rol")?.toString(); // ✅ NUEVO
+  const nombre = formData.get("nombre")?.toString();
+
   const supabase = await createClient();
   const origin = (await headers()).get("origin");
 
-  if (!email || !password) {
+  if (!email || !password || !rol) {
     return encodedRedirect(
       "error",
       "/protected/sign-up",
-      "El correo y la contraseña son requeridos"
+      "El correo, la contraseña y el rol son requeridos"
     );
   }
 
@@ -42,13 +45,19 @@ export const signUpAction = async (formData: FormData) => {
   }
 
   // 🚀 Crear usuario
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: `${origin}/auth/callback`,
+const { data, error } = await supabase.auth.signUp({
+  email,
+  password,
+  options: {
+    emailRedirectTo: `${origin}/auth/callback`,
+    data: {
+      nombre, // ✅ nuevo campo
+      rol,
     },
-  });
+  },
+});
+
+
 
   if (error) {
     return encodedRedirect("error", "/protected/sign-up", error.message);
@@ -74,16 +83,33 @@ export const signInAction = async (formData: FormData) => {
   const password = formData.get("password") as string;
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
   if (error) {
-    return encodedRedirect("error", "/sign-in", error.message);
+    const traduccionErrores: Record<string, string> = {
+      "Invalid login credentials": "Correo o contraseña incorrectos.",
+      "Email not confirmed": "Debe confirmar su correo antes de iniciar sesión.",
+      "User is banned": "Este usuario ha sido suspendido.",
+    };
+
+    const mensaje = traduccionErrores[error.message] || error.message;
+
+    return encodedRedirect("error", "/sign-in", mensaje);
   }
 
-  return redirect("/protected");
+  // ✅ Validar el rol
+  const user = data?.user;
+  const meta = user?.user_metadata;
+
+  // ✅ Redirigir según rol
+  if (meta?.rol === "admin") {
+    return redirect("/protected/admin");
+  } else {
+    return redirect("/protected/user");
+  }
 };
 
 export const forgotPasswordAction = async (formData: FormData) => {
