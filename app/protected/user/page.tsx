@@ -31,18 +31,18 @@ export default function AdminDashboard() {
       <div className="flex flex-wrap justify-center gap-4 mb-12 relative">
         <div className="relative" ref={opcionesRef}>
           <Button onClick={() => setMostrarOpciones(!mostrarOpciones)}>
-            Gestionar Usuarios
+            Mi Perfil
           </Button>
           {mostrarOpciones && (
             <div className="absolute top-12 left-0 z-10 w-48 bg-white dark:bg-gray-900 shadow-lg rounded border border-gray-200 dark:border-gray-700 p-2 flex flex-col gap-2">
-              <Link href="/protected/admin/sign-up">
+              <Link href="sign-up">
                 <Button variant="ghost" className="w-full justify-start">
-                  Crear Usuario
+                  Ver Mis datos de usuario
                 </Button>
               </Link>
-              <Link href="/protected/admin/users">
+              <Link href="users">
                 <Button variant="ghost" className="w-full justify-start">
-                  Ver Usuarios
+                  Ver mis datos de empleado
                 </Button>
               </Link>
             </div>
@@ -50,15 +50,15 @@ export default function AdminDashboard() {
         </div>
 
         {/* Otros botones de ejemplo */}
-        <Button variant="outline">Gestión de Proyectos</Button>
-        <Button variant="outline">Reportes</Button>
-        <Button variant="outline">Configuraciones</Button>
+        <Button variant="outline">Mi equipo</Button>
+        <Button variant="outline">Mis Proyectos</Button>
+        <Button variant="outline">Configuración</Button>
       </div>
       <h1 className="text-4xl font-bold text-center text-foreground mb-8">
-        Bienvenido al Dashboard de Administrador
+        Bienvenido al Dashboard de Usuario
       </h1>
       <p className="text-center text-muted-foreground text-lg mb-8">
-        Desde aquí podrá gestionar el sistema interno de la municipalidad.
+        Desde aquí podrá gestionar su perfil de la municipalidad.
       </p>
 
     </section>

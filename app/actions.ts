@@ -17,7 +17,7 @@ export const signUpAction = async (formData: FormData) => {
   if (!email || !password || !rol) {
     return encodedRedirect(
       "error",
-      "/protected/sign-up",
+      "/protected/admin/sign-up",
       "El correo, la contraseña y el rol son requeridos"
     );
   }
@@ -31,7 +31,7 @@ export const signUpAction = async (formData: FormData) => {
   if (errorVerificacion) {
     return encodedRedirect(
       "error",
-      "/protected/sign-up",
+      "/protected/admin/sign-up",
       "No se pudo verificar si el usuario ya existe"
     );
   }
@@ -39,7 +39,7 @@ export const signUpAction = async (formData: FormData) => {
   if (yaExiste) {
     return encodedRedirect(
       "error",
-      "/protected/sign-up",
+      "/protected/admin/sign-up",
       "El usuario ya está registrado. Intente iniciar sesión, si el error persiste, comuniquése con soporte técnico."
     );
   }
@@ -60,20 +60,20 @@ const { data, error } = await supabase.auth.signUp({
 
 
   if (error) {
-    return encodedRedirect("error", "/protected/sign-up", error.message);
+    return encodedRedirect("error", "/protected/admin/sign-up", error.message);
   }
 
   if (!data?.user) {
     return encodedRedirect(
       "error",
-      "/protected/sign-up",
+      "/protected/admin/sign-up",
       "No se pudo crear el usuario. Intente de nuevo."
     );
   }
 
   return encodedRedirect(
     "success",
-    "/protected/sign-up",
+    "/protected/admin/sign-up",
     "Usuario creado. Pide al usuario que confirme su cuenta"
   );
 };
@@ -122,13 +122,16 @@ export const forgotPasswordAction = async (formData: FormData) => {
     return encodedRedirect("error", "/forgot-password", "El correo es requerido");
   }
 
+  // 🔁 AQUÍ VA LA MODIFICACIÓN
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/callback?redirect_to=/protected/reset-password`,
+    redirectTo: `${origin}/reset-password`,
   });
 
   if (error) {
-    return encodedRedirect("error", "/forgot-password", "No se pudo enviar el correo de recuperación");
+    console.error("Error al enviar correo de recuperación:", error); // 👈 añade esto para depurar
+    return encodedRedirect("error", "/forgot-password", error.message || "No se pudo enviar el correo de recuperación");
   }
+
 
   if (callbackUrl) {
     return redirect(callbackUrl);
@@ -140,6 +143,7 @@ export const forgotPasswordAction = async (formData: FormData) => {
     "Revisa tu correo electrónico para cambiar tu contraseña"
   );
 };
+
 
 export const resetPasswordAction = async (formData: FormData) => {
   const supabase = await createClient();

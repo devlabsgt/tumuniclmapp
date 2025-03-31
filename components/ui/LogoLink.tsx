@@ -1,29 +1,35 @@
 'use client';
 
 import { useTheme } from 'next-themes';
-import Link from 'next/link';
-import { ArrowLeft } from "lucide-react";
-import Image from "next/image";
+import { ArrowLeft } from 'lucide-react';
+import Image from 'next/image';
+import { useRouter, usePathname } from 'next/navigation';
 
 export default function LogoLink() {
   const { theme } = useTheme();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const isBaseRoute = pathname === '/' || pathname === '/admin' || pathname === '/user';
 
   return (
-    <Link
-      href="/"
-      className="flex items-center gap-3 font-semibold"
-      style={{ color: theme === "dark" ? "#ffffff" : "#06c" }}
+    <div
+      className="flex items-center gap-1 font-semibold cursor-pointer"
+      onClick={() => !isBaseRoute && router.back()}
+      style={{ color: theme === 'dark' ? '#ffffff' : '#06c' }}
     >
-      <ArrowLeft size={24} color="#06c" />
+      {!isBaseRoute && (
+        <ArrowLeft size={40} color={theme === 'dark' ? '#fff' : '#06c'} />
+      )}
       <Image
         src="/images/logo.webp"
         alt="Logo Municipalidad de Concepción Las Minas"
-        height={150}
-        width={150}
+        height={250}
+        width={250}
       />
-      <span className="hidden md:inline-block">
-        Municipalidad de <br />Concepción Las Minas
+      <span className="hidden md:inline-block text-xl font-semibold">
+        Municipalidad de <br /> Concepción Las Minas
       </span>
-    </Link>
+    </div>
   );
 }

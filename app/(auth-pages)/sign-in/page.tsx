@@ -52,12 +52,12 @@ export default function Login() {
         <Input name="email" placeholder="correo@ejemplo.com" required />
 
         <div className="flex justify-between items-center">
-          <Label htmlFor="password">Contraseña</Label>
+          <Label htmlFor="password">Contraseña&nbsp;</Label>
           <Link
             className="text-xs text-foreground underline"
             href="/forgot-password"
           >
-            ¿Se te olvidó la contraseña?
+          ¿Se te olvidó la contraseña?
           </Link>
         </div>
 

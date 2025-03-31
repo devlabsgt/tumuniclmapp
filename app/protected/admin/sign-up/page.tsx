@@ -95,8 +95,7 @@ export default function Signup() {
           >
             <option value="">Seleccione un rol</option>
             <option value="admin">Admin</option>
-            <option value="editor">Editor</option>
-            <option value="lector">Lector</option>
+            <option value="user">Usuario</option>
           </select>
         </div>
 

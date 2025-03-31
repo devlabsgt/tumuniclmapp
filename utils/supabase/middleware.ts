@@ -1,11 +1,9 @@
+// utils/supabase/middleware.ts
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 export const updateSession = async (request: NextRequest) => {
-  // This `try/catch` block is only here for the interactive tutorial.
-  // Feel free to remove once you have Supabase connected.
   try {
-    // Create an unmodified response
     let response = NextResponse.next({
       request: {
         headers: request.headers,
@@ -17,53 +15,46 @@ export const updateSession = async (request: NextRequest) => {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll(cookiesToSet) {
+          getAll: () => request.cookies.getAll(),
+          setAll: (cookiesToSet) => {
             cookiesToSet.forEach(({ name, value }) =>
-              request.cookies.set(name, value),
+              request.cookies.set(name, value)
             );
-            response = NextResponse.next({
-              request,
-            });
+            response = NextResponse.next({ request });
             cookiesToSet.forEach(({ name, value, options }) =>
-              response.cookies.set(name, value, options),
+              response.cookies.set(name, value, options)
             );
           },
         },
-      },
+      }
     );
 
-    // This will refresh session if expired - required for Server Components
-    // https://supabase.com/docs/guides/auth/server-side/nextjs
     const user = await supabase.auth.getUser();
 
-
-
-    // 🚫 Si intenta entrar a /protected y no hay sesión
+    // 🚫 Redirección si intenta entrar a /protected sin sesión
     if (request.nextUrl.pathname.startsWith("/protected") && user.error) {
       return NextResponse.redirect(new URL("/sign-in", request.url));
     }
 
-    // 🔐 Si entra a /protected/admin y no es admin
+    // 🔐 Si intenta entrar a /protected/admin y no es admin
     if (
       request.nextUrl.pathname.startsWith("/protected/admin") &&
       user.data?.user?.user_metadata?.rol !== "admin"
     ) {
-      return NextResponse.redirect(new URL("/sign-in", request.url));
+      return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
 
-    // ✅ Redirección si ya inició sesión y está en /
-    if (request.nextUrl.pathname === "/" && !user.error) {
-      return NextResponse.redirect(new URL("/protected", request.url));
+    // ✅ Redirige desde / según el rol
+    if (request.nextUrl.pathname === "/") {
+      if (user.error) return response;
+
+      const rol = user.data?.user?.user_metadata?.rol;
+      const destino = rol === "admin" ? "/protected/admin" : "/protected";
+      return NextResponse.redirect(new URL(destino, request.url));
     }
 
     return response;
   } catch (e) {
-    // If you are here, a Supabase client could not be created!
-    // This is likely because you have not set up environment variables.
-    // Check out http://localhost:3000 for Next Steps.
     return NextResponse.next({
       request: {
         headers: request.headers,

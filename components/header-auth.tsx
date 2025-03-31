@@ -42,7 +42,7 @@ export default async function AuthButton() {
   }
 return user ? (
   <div className="flex items-center gap-4">
-    <span className="hidden lg:inline">Hola, {user.email}!</span>
+    <span className=" text-xl hidden lg:inline ">Hola, <strong>{user.email}</strong>!</span>
     <form action={signOutAction}>
       <Button type="submit" variant={"outline"}>
         Cerrar Sesión
