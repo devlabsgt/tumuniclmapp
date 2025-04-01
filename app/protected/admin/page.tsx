@@ -30,16 +30,23 @@ export default function AdminDashboard() {
       {/* Barra de acciones */}
       <div className="flex flex-wrap justify-center gap-4 mb-12 relative">
         <div className="relative" ref={opcionesRef}>
-          <Button onClick={() => setMostrarOpciones(!mostrarOpciones)}>
-            Gestionar Usuarios
-          </Button>
+
+
+          <Link href="/protected/admin/users">
+            <Button>
+              Ver Usuarios
+            </Button>
+          </Link>
+
           {mostrarOpciones && (
             <div className="absolute top-12 left-0 z-10 w-48 bg-white dark:bg-gray-900 shadow-lg rounded border border-gray-200 dark:border-gray-700 p-2 flex flex-col gap-2">
+              
               <Link href="/protected/admin/sign-up">
                 <Button variant="ghost" className="w-full justify-start">
                   Crear Usuario
                 </Button>
               </Link>
+
               <Link href="/protected/admin/users">
                 <Button variant="ghost" className="w-full justify-start">
                   Ver Usuarios

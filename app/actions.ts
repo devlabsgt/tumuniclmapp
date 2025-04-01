@@ -57,8 +57,6 @@ const { data, error } = await supabase.auth.signUp({
   },
 });
 
-
-
   if (error) {
     return encodedRedirect("error", "/protected/admin/sign-up", error.message);
   }
