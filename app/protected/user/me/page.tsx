@@ -35,14 +35,12 @@ export default function UsuarioPage() {
   if (!id) return <p>No se proporcionó un ID.</p>;
   if (isLoading) return <p>Cargando usuario...</p>;
   if (error) {
-    console.error(error);
     router.push('/protected/admin/users');
     return null;
   }
 
   if (!data) return null;
   const { usuario, empleado } = data;
-
 
   return (
     <div className="max-w-2xl mx-auto mt-10 p-6 border rounded shadow bg-white text-sm">
@@ -58,7 +56,6 @@ export default function UsuarioPage() {
           
           <span className="w-2/3 flex items-center gap-2">
             {usuario.email}                    
-
           </span>
         </div>
 
@@ -92,9 +89,7 @@ export default function UsuarioPage() {
           </div>
         ) : (
           <div className="flex justify-center mt-8">
-           
               Aún no se ha ingresado información adicional
-            
           </div>
         )}
       </div>
