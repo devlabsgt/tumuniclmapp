@@ -3,16 +3,22 @@ import supabaseAdmin from '@/lib/supabaseAdmin';
 
 export async function POST(req: Request) {
   try {
-    const { id, email, nombre, rol } = await req.json();
+    const { id, email, nombre, rol, password, activo } = await req.json(); // ✅ incluye activo
 
     if (!id || !email || !nombre || !rol) {
       return NextResponse.json({ error: 'Faltan datos' }, { status: 400 });
     }
 
-    const { data, error } = await supabaseAdmin.auth.admin.updateUserById(id, {
+    const updateData: any = {
       email,
-      user_metadata: { nombre, rol },
-    });
+      user_metadata: { nombre, rol, activo }, // ✅ agrega activo al metadata
+    };
+
+    if (password) {
+      updateData.password = password;
+    }
+
+    const { data, error } = await supabaseAdmin.auth.admin.updateUserById(id, updateData);
 
     if (error) {
       console.error('Error Supabase:', error);

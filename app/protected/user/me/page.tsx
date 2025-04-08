@@ -3,7 +3,6 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { createBrowserClient } from '@supabase/ssr';
-import { Button } from '@/components/ui/button';
 
 const fetchUsuario = async (id: string) => {
   const supabase = createBrowserClient(
@@ -49,35 +48,16 @@ export default function UsuarioPage() {
     <div className="max-w-2xl mx-auto mt-10 p-6 border rounded shadow bg-white text-sm">
       <h1 className="text-xl font-bold text-center mb-6">
         <span>Informe de Datos de Empleado Municipal</span>
-
-          <Button
-          className="ml-5 text-center"
-          onClick={() => router.push(`/protected/admin/users/editar?id=${usuario.id}`)}
-        >
-          Editar usuario
-      </Button>
       </h1>
 
       <div className="border-t border-b divide-y">
         <div className="flex justify-between py-3 items-center">
           <strong className="w-1/3">
           USUARIO
-
           </strong>
-
-
           
           <span className="w-2/3 flex items-center gap-2">
             {usuario.email}                    
-            {usuario.activo === 'true' || usuario.activo === true ? (
-            <>
-              <span className="text-green-600">🟢 Activo</span>
-            </>
-          ) : (
-            <>
-              <span className="text-red-600">🔴 Inactivo</span>
-            </>
-          )}
 
           </span>
         </div>
@@ -86,14 +66,6 @@ export default function UsuarioPage() {
           <strong className="w-1/3">NOMBRE</strong>
           <span className="w-2/3">{usuario.nombre}</span>
         </div>
-        <div className="flex justify-between py-3">
-          <strong className="w-1/3">ROL</strong>
-          <span className="w-2/3">
-              <span className="w-2/3">{usuario.rol}</span>
-          </span>
-        </div>
-        
-
       </div>
 
       {/* Datos del empleado o botón para crear */}
@@ -120,14 +92,9 @@ export default function UsuarioPage() {
           </div>
         ) : (
           <div className="flex justify-center mt-8">
-            <Button
-              className="bg-green-600 hover:bg-green-700 text-white"
-              onClick={() =>
-                router.push(`/protected/admin/users/empleado/crear?user_id=${usuario.id}`)
-              }
-            >
-              Ingresar datos del empleado
-            </Button>
+           
+              Aún no se ha ingresado información adicional
+            
           </div>
         )}
       </div>

@@ -51,8 +51,10 @@ const { data, error } = await supabase.auth.signUp({
   options: {
     emailRedirectTo: `${origin}/auth/callback`,
     data: {
-      nombre, // ✅ nuevo campo
+      nombre,
       rol,
+      activo: true, 
+
     },
   },
 });
@@ -94,13 +96,17 @@ export const signInAction = async (formData: FormData) => {
     };
 
     const mensaje = traduccionErrores[error.message] || error.message;
-
     return encodedRedirect("error", "/sign-in", mensaje);
   }
 
-  // ✅ Validar el rol
   const user = data?.user;
   const meta = user?.user_metadata;
+
+  // ✅ Verificar si el usuario está activo
+  if (!meta?.activo) {
+    await supabase.auth.signOut(); // Cerrar sesión si fue creado pero inactivo
+    return encodedRedirect("error", "/sign-in", "Tu cuenta está desactivada. Contacta con Soporte Técnico.");
+  }
 
   // ✅ Redirigir según rol
   if (meta?.rol === "admin") {
@@ -109,6 +115,7 @@ export const signInAction = async (formData: FormData) => {
     return redirect("/protected/user");
   }
 };
+
 
 export const forgotPasswordAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();

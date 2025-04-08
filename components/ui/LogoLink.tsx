@@ -13,23 +13,30 @@ export default function LogoLink() {
   const isBaseRoute = pathname === '/' || pathname === '/admin' || pathname === '/user';
 
   return (
-    <div
-      className="flex items-center gap-1 font-semibold cursor-pointer"
-      onClick={() => !isBaseRoute && router.back()}
-      style={{ color: theme === 'dark' ? '#ffffff' : '#06c' }}
-    >
+    <div className="flex items-center gap-1 font-semibold">
       {!isBaseRoute && (
-        <ArrowLeft size={40} color={theme === 'dark' ? '#fff' : '#06c'} />
+        <div
+          className="cursor-pointer"
+          onClick={() => router.back()}
+        >
+          <ArrowLeft size={40} color={theme === 'dark' ? '#fff' : '#06c'} />
+        </div>
       )}
-      <Image
-        src="/images/logo.webp"
-        alt="Logo Municipalidad de Concepción Las Minas"
-        height={250}
-        width={250}
-      />
-      <span className="hidden md:inline-block text-xl font-semibold">
-        Municipalidad de <br /> Concepción Las Minas
-      </span>
+      <div
+        className="flex items-center gap-2 cursor-pointer"
+        onClick={() => router.push('/protected')}
+        style={{ color: theme === 'dark' ? '#ffffff' : '#06c' }}
+      >
+        <Image
+          src="/images/logo.webp"
+          alt="Logo Municipalidad de Concepción Las Minas"
+          height={250}
+          width={250}
+        />
+        <span className="hidden md:inline-block text-xl font-semibold">
+          Municipalidad de <br /> Concepción Las Minas
+        </span>
+      </div>
     </div>
   );
 }
