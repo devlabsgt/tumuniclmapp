@@ -20,8 +20,19 @@ type Empleado = {
 export function EmpleadoDatos({ empleado }: { empleado: Empleado }) {
   if (!empleado) return null;
 
-  const formatoFecha = (fecha: string | null | undefined) =>
-    fecha ? new Date(fecha).toLocaleDateString('es-GT') : '—';
+  const formatoFecha = (fecha: string | null | undefined) => {
+    if (!fecha) return '—';
+
+    const partes = fecha.split('-');
+    if (partes.length !== 3) return '—';
+
+    const año = partes[0];
+    const mes = partes[1];
+    const dia = partes[2];
+
+    return `${dia}/${mes}/${año}`;
+  };
+
 
   const formatoMoneda = (valor: number | null | undefined) =>
     typeof valor === 'number' ? `Q ${valor.toLocaleString('es-GT', { minimumFractionDigits: 2 })}` : '—';

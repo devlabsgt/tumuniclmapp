@@ -49,12 +49,11 @@ export function UsuarioPageContent() {
   return (
     <div className="max-w-2xl mx-auto mt-0 p-6 border rounded shadow bg-white text-sm">
       <div className="flex items-center justify-between mb-5">
-        <h1 className="text-2xl font-bold">Informe de Datos de Empleado Municipal</h1>
-        
-        {/* Menú desplegable */}
+        <h1 className="text-xl font-bold">Informe de Datos de Empleado Municipal</h1>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button className="h-12 text-white text-lg">
+            <Button className="h-12 text-white text-lg ml-5">
               Opciones
             </Button>
           </DropdownMenuTrigger>
@@ -68,7 +67,7 @@ export function UsuarioPageContent() {
             </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer text-base hover:bg-gray-100 w-fit px-2 py-1 rounded"
-              onClick={() => router.push(`/protected/admin/empleado/editar?user_id=${usuario.id}`)}
+                onClick={() => router.push(`/protected/admin/empleado/editar?user_id=${usuario.id}`)}
             >
               Editar Datos<br />de Empleado
             </DropdownMenuItem>
@@ -103,16 +102,27 @@ export function UsuarioPageContent() {
       <div className="mt-4">
         {empleado ? (
           <>
-            <h2 className="text-xl font-bold mb-2">Datos de empleado</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">
+                Datos de empleado
+              </h2>
+              <Button
+                className="h-10 text-white text-sm"
+                onClick={() => router.push(`/protected/admin/empleado/editar?user_id=${usuario.id}`)}
+              >
+                Editar
+              </Button>
+            </div>
+
             <EmpleadoDatos empleado={empleado} />
           </>
         ) : (
-          <div className="flex justify-center mt-8">
+          <div className="flex justify-center mt-2">
             <Button
               className="bg-green-600 hover:bg-green-700 text-white"
               onClick={() => router.push(`/protected/admin/empleado/crear?user_id=${usuario.id}`)}
             >
-              Ingresar datos<br/>del empleado
+              Ingresar datos<br />del empleado
             </Button>
           </div>
         )}
