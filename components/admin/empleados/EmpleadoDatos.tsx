@@ -22,23 +22,17 @@ export function EmpleadoDatos({ empleado }: { empleado: Empleado }) {
 
   const formatoFecha = (fecha: string | null | undefined) => {
     if (!fecha) return '—';
-
     const partes = fecha.split('-');
     if (partes.length !== 3) return '—';
-
-    const año = partes[0];
-    const mes = partes[1];
-    const dia = partes[2];
-
+    const [año, mes, dia] = partes;
     return `${dia}/${mes}/${año}`;
   };
-
 
   const formatoMoneda = (valor: number | null | undefined) =>
     typeof valor === 'number' ? `Q ${valor.toLocaleString('es-GT', { minimumFractionDigits: 2 })}` : '—';
 
   return (
-    <div className="overflow-x-auto border rounded">
+    <div className="overflow-x-auto border border-border rounded bg-background text-foreground">
       <table className="w-full text-left border-collapse">
         <tbody>
           <Fila label="Dirección" valor={empleado.direccion ?? '—'} />
@@ -63,7 +57,7 @@ export function EmpleadoDatos({ empleado }: { empleado: Empleado }) {
 
 function Fila({ label, valor }: { label: string; valor: string | number }) {
   return (
-    <tr className="border-b">
+    <tr className="border-b border-border hover:bg-muted">
       <td className="p-3 font-semibold w-1/3">{label}</td>
       <td className="p-3">{valor}</td>
     </tr>

@@ -6,6 +6,8 @@ import { signUpAction } from '@/app/actions';
 import { SubmitButton } from '@/components/submit-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@headlessui/react';
+import Link from 'next/link';
 import Swal from 'sweetalert2';
 import RolSelector from '@/components/ui/RolSelector';
 import PasswordSection from '@/components/admin/sign-up/PasswordSection';
@@ -58,7 +60,17 @@ export function SignupForm() {
   }, [error, success]);
 
   return (
-    <div className="flex flex-col w-full max-w-md mx-auto p-8 gap-6">
+    <div className="flex flex-col w-full max-w-md mx-auto gap-6">
+      <div className="flex justify-start">
+        <Link href="/protected/admin/users" className="w-auto">
+          <Button
+            type="button"
+            className="h-10 bg-blue-600 hover:bg-blue-500 text-white text-sm w-auto px-4 rounded"
+          >
+            Volver a usuarios
+          </Button>
+        </Link>
+      </div>
       <h1 className="text-3xl font-semibold mb-6">Nuevo Usuario</h1>
 
       <form className="flex flex-col gap-4">

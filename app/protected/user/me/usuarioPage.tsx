@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { EmpleadoDatos } from '@/components/admin/empleados/EmpleadoDatos'; // ✅ Importar el mismo
 import { Button } from '@/components/ui/button'; // por si necesita botones después
+import { useRouter } from 'next/navigation';
 
 const fetchUsuarioActual = async () => {
   const supabase = createBrowserClient(
@@ -34,6 +35,8 @@ const fetchUsuarioActual = async () => {
 };
 
 export function UsuarioPageContent() {
+    const router = useRouter();
+
   const [data, setData] = useState<{ usuario: any; empleado: any } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,11 +63,21 @@ export function UsuarioPageContent() {
   const { usuario, empleado } = data;
 
   return (
-    <div className="max-w-2xl mx-auto mt-10 p-6 border rounded shadow bg-white text-sm">
+    <div className="max-w-2xl mx-auto  p-6 border rounded shadow bg-white text-sm">
       {/* Título de Perfil */}
-      <h1 className="text-2xl font-bold text-left mb-6">
+    <div className="flex items-center justify-start mb-6">
+      <Button
+        type="button"
+        onClick={() => router.back()}
+        className="h-10 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm w-auto px-4"
+      >
+        Volver
+      </Button>
+
+      <h1 className="text-2xl font-bold text-left ml-4">
         Mi Perfil
       </h1>
+    </div>
 
       {/* Datos de Usuario */}
       <div className="border-t border-b divide-y mb-8">

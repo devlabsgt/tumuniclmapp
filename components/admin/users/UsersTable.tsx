@@ -1,6 +1,6 @@
-// components/admin/users/UsersTable.tsx
 'use client';
-import { Usuario } from './types'
+
+import { Usuario } from './types';
 import { useRouter } from 'next/navigation';
 
 type Props = {
@@ -11,8 +11,8 @@ export default function UsersTable({ usuarios }: Props) {
   const router = useRouter();
 
   return (
-    <table className="min-w-full bg-white text-sm border rounded shadow">
-      <thead className="bg-gray-100 text-left">
+    <table className="min-w-full border rounded shadow bg-background text-foreground text-sm">
+      <thead className="bg-muted text-left">
         <tr>
           <th className="p-3 border-b">Correo</th>
           <th className="p-3 border-b">Nombre</th>
@@ -24,7 +24,7 @@ export default function UsersTable({ usuarios }: Props) {
             <tr
               key={usuario.id}
               onClick={() => router.push(`/protected/admin/users/ver?id=${usuario.id}`)}
-              className="border-b hover:bg-gray-100 cursor-pointer transition"
+              className="border-b hover:bg-muted cursor-pointer transition"
             >
               <td className="p-3">{usuario.email}</td>
               <td className="p-3">{usuario.nombre || '—'}</td>
@@ -34,7 +34,7 @@ export default function UsersTable({ usuarios }: Props) {
 
         {usuarios.length === 0 && (
           <tr>
-            <td colSpan={2} className="p-3 text-center text-gray-500">
+            <td colSpan={2} className="p-3 text-center text-muted-foreground">
               No hay resultados
             </td>
           </tr>
