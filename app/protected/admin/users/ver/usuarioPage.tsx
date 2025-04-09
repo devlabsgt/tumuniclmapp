@@ -110,7 +110,7 @@ export function UsuarioPageContent() {
           <div className="flex justify-center mt-8">
             <Button
               className="bg-green-600 hover:bg-green-700 text-white"
-              onClick={() => router.push(`/protected/admin/empleado/crear?user_id=${usuario.id}`)}
+              onClick={() => router.push(`/protected/admin/empleado/editar?user_id=${usuario.id}`)}
             >
               Ingresar datos<br/>del empleado
             </Button>
