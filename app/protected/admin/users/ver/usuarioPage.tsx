@@ -5,6 +5,7 @@ import useSWR from 'swr';
 import { createBrowserClient } from '@supabase/ssr';
 import { Button } from '@/components/ui/button';
 import { EmpleadoDatos } from '@/components/admin/empleados/EmpleadoDatos';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const fetchUsuario = async (id: string) => {
   const supabase = createBrowserClient(
@@ -22,7 +23,7 @@ const fetchUsuario = async (id: string) => {
     .from('empleados_municipales')
     .select('*')
     .eq('user_id', id)
-    .maybeSingle(); // 👈 Usa maybeSingle para que no truene si no hay
+    .maybeSingle();
 
   return { usuario, empleado };
 };
@@ -44,20 +45,39 @@ export function UsuarioPageContent() {
 
   if (!data) return null;
   const { usuario, empleado } = data;
-  
+
   return (
     <div className="max-w-2xl mx-auto mt-10 p-6 border rounded shadow bg-white text-sm">
-      <h1 className="text-xl font-bold text-center mb-6">
-        Informe de Datos de Empleado Municipal
-        <Button
-          className="ml-5 text-center"
-          onClick={() => router.push(`/protected/admin/users/editar?id=${usuario.id}`)}
-        >
-          Editar usuario
-        </Button>
-      </h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Informe de Datos de Empleado Municipal</h1>
+        
+        {/* Menú desplegable */}
+<DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button className="h-12 text-white text-lg">
+      Opciones
+    </Button>
+  </DropdownMenuTrigger>
+
+  <DropdownMenuContent align="center" className="py-2 px-1 space-y-2 bg-white shadow-md rounded-md">
+    <DropdownMenuItem
+      className="cursor-pointer text-base hover:bg-gray-100 w-fit px-2 py-1 rounded"
+      onClick={() => router.push(`/protected/admin/users/editar?id=${usuario.id}`)}
+    >
+      Editar Usuario
+    </DropdownMenuItem>
+
+    <DropdownMenuItem
+      className="cursor-pointer text-base hover:bg-gray-100 w-fit px-2 py-1 rounded"
+      onClick={() => router.push(`/protected/admin/empleado/editar?user_id=${usuario.id}`)}
+    >
+      Editar Datos<br />de Empleado
+    </DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>
 
 
+      </div>
 
       {/* Datos de usuario */}
       <div className="border-t border-b divide-y">
@@ -72,12 +92,10 @@ export function UsuarioPageContent() {
             )}
           </span>
         </div>
-
         <div className="flex justify-between py-3">
           <strong className="w-1/3">NOMBRE</strong>
           <span className="w-2/3">{usuario.nombre}</span>
         </div>
-
         <div className="flex justify-between py-3">
           <strong className="w-1/3">ROL</strong>
           <span className="w-2/3">{usuario.rol}</span>
@@ -88,19 +106,7 @@ export function UsuarioPageContent() {
       <div className="mt-8">
         {empleado ? (
           <>
-            {/* Título y botón de datos de empleado */}
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">
-                Datos de empleado
-              </h2>
-              <Button
-                onClick={() => router.push(`/protected/admin/empleado/editar?user_id=${usuario.id}`)}
-              >
-                Editar datos de Empleado
-              </Button>
-            </div>
-
-            {/* Datos del empleado */}
+            <h2 className="text-xl font-bold mb-4">Datos de empleado</h2>
             <EmpleadoDatos empleado={empleado} />
           </>
         ) : (
@@ -109,11 +115,10 @@ export function UsuarioPageContent() {
               className="bg-green-600 hover:bg-green-700 text-white"
               onClick={() => router.push(`/protected/admin/empleado/crear?user_id=${usuario.id}`)}
             >
-              Ingresar datos del empleado
+              Ingresar datos<br/>del empleado
             </Button>
           </div>
         )}
-
       </div>
     </div>
   );
