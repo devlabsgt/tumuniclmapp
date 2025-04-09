@@ -47,36 +47,33 @@ export function UsuarioPageContent() {
   const { usuario, empleado } = data;
 
   return (
-    <div className="max-w-2xl mx-auto mt-10 p-6 border rounded shadow bg-white text-sm">
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-2xl mx-auto mt-0 p-6 border rounded shadow bg-white text-sm">
+      <div className="flex items-center justify-between mb-5">
         <h1 className="text-2xl font-bold">Informe de Datos de Empleado Municipal</h1>
         
         {/* Menú desplegable */}
-<DropdownMenu>
-  <DropdownMenuTrigger asChild>
-    <Button className="h-12 text-white text-lg">
-      Opciones
-    </Button>
-  </DropdownMenuTrigger>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="h-12 text-white text-lg">
+              Opciones
+            </Button>
+          </DropdownMenuTrigger>
 
-  <DropdownMenuContent align="center" className="py-2 px-1 space-y-2 bg-white shadow-md rounded-md">
-    <DropdownMenuItem
-      className="cursor-pointer text-base hover:bg-gray-100 w-fit px-2 py-1 rounded"
-      onClick={() => router.push(`/protected/admin/users/editar?id=${usuario.id}`)}
-    >
-      Editar Usuario
-    </DropdownMenuItem>
-
-    <DropdownMenuItem
-      className="cursor-pointer text-base hover:bg-gray-100 w-fit px-2 py-1 rounded"
-      onClick={() => router.push(`/protected/admin/empleado/editar?user_id=${usuario.id}`)}
-    >
-      Editar Datos<br />de Empleado
-    </DropdownMenuItem>
-  </DropdownMenuContent>
-</DropdownMenu>
-
-
+          <DropdownMenuContent align="center" className="py-2 px-1 space-y-2 bg-white shadow-md rounded-md">
+            <DropdownMenuItem
+              className="cursor-pointer text-base hover:bg-gray-100 w-fit px-2 py-1 rounded"
+              onClick={() => router.push(`/protected/admin/users/editar?id=${usuario.id}`)}
+            >
+              Editar Usuario
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer text-base hover:bg-gray-100 w-fit px-2 py-1 rounded"
+              onClick={() => router.push(`/protected/admin/empleado/editar?user_id=${usuario.id}`)}
+            >
+              Editar Datos<br />de Empleado
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Datos de usuario */}
@@ -103,10 +100,10 @@ export function UsuarioPageContent() {
       </div>
 
       {/* Datos del empleado */}
-      <div className="mt-8">
+      <div className="mt-4">
         {empleado ? (
           <>
-            <h2 className="text-xl font-bold mb-4">Datos de empleado</h2>
+            <h2 className="text-xl font-bold mb-2">Datos de empleado</h2>
             <EmpleadoDatos empleado={empleado} />
           </>
         ) : (
