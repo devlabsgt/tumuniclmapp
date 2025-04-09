@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
-import { CrearEmpleado } from './crearEmpleado'; // ⬅️ Ajuste si su ruta es diferente
+import { CrearEmpleado } from '@/components/admin/empleados/crear/crearEmpleado'; // ⬅️ Ajuste si su ruta es diferente
 
 export default function CrearEmpleadoPage() {
   return (

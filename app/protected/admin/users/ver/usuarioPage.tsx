@@ -47,7 +47,21 @@ export function UsuarioPageContent() {
   const { usuario, empleado } = data;
 
   return (
+    <>
+      <div className="flex justify-start">
+        <Button
+          type="button"
+          className="h-10 text-white text-sm w-auto px-4"
+          onClick={() => router.push(`/protected/admin/users`)}
+        >
+          Volver a usuarios
+        </Button>
+      </div>
+
+
+
     <div className="max-w-2xl mx-auto mt-0 p-6 border rounded shadow bg-white text-sm">
+
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-xl font-bold">Informe de Datos de Empleado Municipal</h1>
 
@@ -106,12 +120,7 @@ export function UsuarioPageContent() {
               <h2 className="text-xl font-bold">
                 Datos de empleado
               </h2>
-              <Button
-                className="h-10 text-white text-sm"
-                onClick={() => router.push(`/protected/admin/empleado/editar?user_id=${usuario.id}`)}
-              >
-                Editar
-              </Button>
+
             </div>
 
             <EmpleadoDatos empleado={empleado} />
@@ -128,5 +137,6 @@ export function UsuarioPageContent() {
         )}
       </div>
     </div>
+    </>
   );
 }
