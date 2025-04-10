@@ -25,15 +25,17 @@ const ThemeSwitcher = () => {
 
   return (
     <div className="flex items-center gap-3">
-      <span className="text-sm text-muted-foreground">Haz click para cambiar el tema</span>
+                    <span className="text-sm text-muted-foreground">Haz click en el icono<br/>para cambiar el tema</span>
+
       <Button
         variant="ghost"
         size="lg"
         className="h-12 w-12 p-0 flex items-center justify-center"
         onClick={toggleTheme}
       >
+
         {theme === "light" ? (
-          <Sun size={ICON_SIZE} className="text-black" />
+        <Sun size={ICON_SIZE} className="text-yellow-500" />
         ) : (
           <Moon size={ICON_SIZE} className="text-blue-400" />
         )}

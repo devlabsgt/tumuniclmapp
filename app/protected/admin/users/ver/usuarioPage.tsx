@@ -6,6 +6,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { Button } from '@/components/ui/button';
 import { EmpleadoDatos } from '@/components/admin/empleados/EmpleadoDatos';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { generarPdfEmpleado } from '@/components/utils/PdfEmpleados'; // ✅ Importar
 
 const fetchUsuario = async (id: string) => {
   const supabase = createBrowserClient(
@@ -46,6 +47,10 @@ export function UsuarioPageContent() {
   if (!data) return null;
   const { usuario, empleado } = data;
 
+  const handleGenerarPDF = () => {
+    generarPdfEmpleado(usuario, empleado);
+  };
+
   return (
     <>
       <div className="flex justify-start mb-4">
@@ -64,9 +69,9 @@ export function UsuarioPageContent() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-             <Button className="h-12 text-white text-lg ml-5 bg-blue-600 hover:bg-blue-700">
-            Opciones
-          </Button>
+              <Button className="h-12 text-white text-lg ml-5 bg-blue-600 hover:bg-blue-700">
+                Opciones
+              </Button>
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="center" className="py-2 px-1 space-y-2 bg-background shadow-md rounded-md border border-border">
@@ -81,6 +86,12 @@ export function UsuarioPageContent() {
                 onClick={() => router.push(`/protected/admin/empleado/editar?user_id=${usuario.id}`)}
               >
                 Editar Datos<br />de Empleado
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer text-base hover:bg-red-600 w-full px-2 py-1 rounded text-white font-bold"
+                onClick={handleGenerarPDF}
+              >
+                Generar PDF
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
