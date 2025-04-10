@@ -1,5 +1,3 @@
-// File: components/admin/empleados/editar/EditarEmpleadoForm.tsx
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -14,6 +12,7 @@ export default function EditarEmpleadoForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const userId = searchParams.get('user_id');
+  const anio = searchParams.get('anio') ? parseInt(searchParams.get('anio')!, 10) : null;
 
   const [formulario, setFormulario] = useState({
     direccion: '',
@@ -36,40 +35,52 @@ export default function EditarEmpleadoForm() {
   const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !anio) return;
     const supabase = createClient();
 
     const cargarEmpleado = async () => {
       const { data, error } = await supabase
         .from('empleados_municipales')
         .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
+        .eq('user_id', userId);
 
-      if (!error && data) {
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      const empleadoDelAnio = data?.find((empleado: any) => {
+        if (!empleado.fecha_inicio) return false;
+        const anioEmpleado = new Date(empleado.fecha_inicio).getFullYear();
+        return anioEmpleado === anio;
+      });
+
+      if (empleadoDelAnio) {
         const datos = {
-          direccion: data.direccion || '',
-          telefono: data.telefono || '',
-          dpi: data.dpi || '',
-          nit: data.nit || '',
-          igss: data.igss || '',
-          cargo: data.cargo || '',
-          banco: data.banco || '',
-          cuenta: data.cuenta || '',
-          sueldo: data.sueldo?.toString() || '',
-          bonificacion: data.bonificacion?.toString() || '',
-          fecha_inicio: data.fecha_inicio || '',
-          fecha_finalizacion: data.fecha_finalizacion || '',
-          contrato_no: data.contrato_no || '',
-          renglon: data.renglon || '',
+          direccion: empleadoDelAnio.direccion || '',
+          telefono: empleadoDelAnio.telefono || '',
+          dpi: empleadoDelAnio.dpi || '',
+          nit: empleadoDelAnio.nit || '',
+          igss: empleadoDelAnio.igss || '',
+          cargo: empleadoDelAnio.cargo || '',
+          banco: empleadoDelAnio.banco || '',
+          cuenta: empleadoDelAnio.cuenta || '',
+          sueldo: empleadoDelAnio.sueldo?.toString() || '',
+          bonificacion: empleadoDelAnio.bonificacion?.toString() || '',
+          fecha_inicio: empleadoDelAnio.fecha_inicio || '',
+          fecha_finalizacion: empleadoDelAnio.fecha_finalizacion || '',
+          contrato_no: empleadoDelAnio.contrato_no || '',
+          renglon: empleadoDelAnio.renglon || '',
         };
         setFormulario(datos);
         setOriginal(datos);
+      } else {
+        Swal.fire('Error', `No se encontró un registro para el año ${anio}.`, 'error');
       }
     };
 
     cargarEmpleado();
-  }, [userId]);
+  }, [userId, anio]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -98,6 +109,7 @@ export default function EditarEmpleadoForm() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         user_id: userId,
+        fecha_inicio: formulario.fecha_inicio, // Para identificar el registro exacto
         data: {
           ...formulario,
           sueldo: formulario.sueldo ? parseFloat(formulario.sueldo) : null,
@@ -124,11 +136,11 @@ export default function EditarEmpleadoForm() {
     }).then(() => router.push(`/protected/admin/users/ver?id=${userId}`));
   };
 
-  if (!userId) return <p className="p-4 text-center">ID no proporcionado.</p>;
+  if (!userId || !anio) return <p className="p-4 text-center">ID o Año no proporcionado.</p>;
 
   return (
     <div className="flex flex-col gap-4">
-      {[
+      {[ 
         { label: 'Dirección', name: 'direccion' },
         { label: 'Teléfono', name: 'telefono' },
         { label: 'DPI', name: 'dpi' },

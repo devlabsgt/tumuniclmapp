@@ -30,14 +30,11 @@ export default function AdminDashboard() {
       {/* Barra de acciones */}
       <div className="flex flex-wrap justify-center gap-4 mb-12 relative">
         <div className="relative" ref={opcionesRef}>
-
-
           <Link href="/protected/admin/users">
             <Button>
               Ver Usuarios
             </Button>
           </Link>
-
           {mostrarOpciones && (
             <div className="absolute top-12 left-0 z-10 w-48 bg-white dark:bg-gray-900 shadow-lg rounded border border-gray-200 dark:border-gray-700 p-2 flex flex-col gap-2">
               
@@ -55,7 +52,6 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
-
         {/* Otros botones de ejemplo */}
         <Button variant="outline">Gestión de Proyectos</Button>
         <Button variant="outline">Reportes</Button>
@@ -67,7 +63,6 @@ export default function AdminDashboard() {
       <p className="text-center text-muted-foreground text-lg mb-8">
         Desde aquí podrá gestionar el sistema interno de la municipalidad.
       </p>
-
     </section>
   );
 }
