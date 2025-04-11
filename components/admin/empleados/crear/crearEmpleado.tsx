@@ -74,8 +74,8 @@ export function CrearEmpleado() {
 
     const existente = data?.find((empleado: any) => {
       if (!empleado.fecha_inicio) return false;
-      const anioEmpleado = new Date(empleado.fecha_inicio).getFullYear();
-      return anioEmpleado === anio;
+      const anioEmpleadoUTC = new Date(empleado.fecha_inicio).getUTCFullYear();
+      return anioEmpleadoUTC === anio;
     });
 
     if (existente) {
@@ -134,7 +134,7 @@ export function CrearEmpleado() {
       Swal.fire('Error', 'Debe seleccionar una fecha de inicio.', 'error');
       return;
     }
-    const anioNuevo = new Date(formulario.fecha_inicio).getFullYear();
+    const anioNuevo = new Date(formulario.fecha_inicio).getUTCFullYear();
     const { data, error } = await supabase
       .from('empleados_municipales')
       .select('fecha_inicio')
@@ -148,8 +148,8 @@ export function CrearEmpleado() {
 
     const existeMismoAnio = data?.some((empleado: any) => {
       if (!empleado.fecha_inicio) return false;
-      const anioEmpleado = new Date(empleado.fecha_inicio).getFullYear();
-      return anioEmpleado === anioNuevo;
+      const anioEmpleadoUTC = new Date(empleado.fecha_inicio).getUTCFullYear();
+      return anioEmpleadoUTC === anioNuevo;
     });
 
     if (existeMismoAnio) {

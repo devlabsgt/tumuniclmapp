@@ -47,16 +47,15 @@ export function UsuarioPageContent() {
     return null;
   }
 
-    if (!data) return null;
-    const { usuario, empleados } = data;
-      
-  const empleadosFiltrados = empleados?.filter((empleado: any) => {
-    if (!empleado.fecha_inicio) return false;
-    const anioEmpleado = new Date(empleado.fecha_inicio).getFullYear();
-    return anioEmpleado === anioSeleccionado;
-  });
+  if (!data) return null;
+  const { usuario, empleados } = data;
 
-  const empleadoDelAnio = empleadosFiltrados?.[0] || null;
+  const empleadoDelAnio = empleados?.find((empleado: any) => {
+    if (!empleado.fecha_inicio) return false;
+    const fechaInicio = new Date(empleado.fecha_inicio);
+    return fechaInicio.getUTCFullYear() === anioSeleccionado;
+  }) || null;
+
 
   const handleGenerarPDF = () => {
     if (!empleadoDelAnio) {

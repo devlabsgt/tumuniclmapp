@@ -49,11 +49,11 @@ export default function EditarEmpleadoForm() {
         return;
       }
 
-      const empleadoDelAnio = data?.find((empleado: any) => {
-        if (!empleado.fecha_inicio) return false;
-        const anioEmpleado = new Date(empleado.fecha_inicio).getFullYear();
-        return anioEmpleado === anio;
-      });
+const empleadoDelAnio = data?.find((empleado: any) => {
+  if (!empleado.fecha_inicio) return false;
+  const anioEmpleadoUTC = new Date(empleado.fecha_inicio).getUTCFullYear();
+  return anioEmpleadoUTC === anio;
+});
 
       if (empleadoDelAnio) {
         const datos = {
