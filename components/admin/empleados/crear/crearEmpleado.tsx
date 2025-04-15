@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Swal from 'sweetalert2';
+import { EmpleadoForm } from '../EmpleadoForm';
+import { camposFormulario } from '../EmpleadoCampos';
 
 export function CrearEmpleado() {
   const supabase = createBrowserClient(
@@ -18,156 +18,117 @@ export function CrearEmpleado() {
   const searchParams = useSearchParams();
   const userId = searchParams.get('user_id');
 
-  const [nombreUsuario, setNombreUsuario] = useState<string>('');
-  const [anioParaCopiar, setAnioParaCopiar] = useState(new Date().getFullYear());
-  const [formulario, setFormulario] = useState({
-    direccion: '',
-    telefono: '',
-    dpi: '',
-    nit: '',
-    igss: '',
-    cargo: '',
-    banco: '',
-    cuenta: '',
-    sueldo: '',
-    bonificacion: '',
-    fecha_inicio: '',
-    fecha_finalizacion: '',
-    contrato_no: '',
-    renglon: '',
-  });
+  const [nombreUsuario, setNombreUsuario] = useState('');
+  const [formulario, setFormulario] = useState(() =>
+    camposFormulario.reduce((acc, campo) => ({ ...acc, [campo.name]: '' }), {} as any)
+  );
+  const [contratos, setContratos] = useState<any[]>([]);
+  const [contratoSeleccionadoId, setContratoSeleccionadoId] = useState('');
 
   useEffect(() => {
-    const obtenerNombre = async () => {
-      if (!userId) return;
-      const { data, error } = await supabase.rpc('obtener_usuarios');
-      if (!error && data) {
-        const usuario = data.find((u: any) => u.id === userId);
-        if (usuario) {
-          setNombreUsuario(usuario.nombre);
-        }
+    if (!userId) return;
+
+    const cargarDatos = async () => {
+      const { data: usuarios } = await supabase.rpc('obtener_usuarios');
+      const usuario = usuarios?.find((u: any) => u.id === userId);
+      if (usuario) setNombreUsuario(usuario.nombre);
+
+      const { data: empleados } = await supabase
+        .from('empleados_municipales')
+        .select('*')
+        .eq('user_id', userId)
+        .order('fecha_ini', { ascending: true });
+
+      if (empleados) {
+        setContratos(empleados);
       }
     };
-    obtenerNombre();
-  }, [userId, supabase]);
 
-  const generarOpcionesAnios = () => {
-    const actual = new Date().getFullYear();
-    const anios = [];
-    for (let anio = 2008; anio <= actual; anio++) {
-      anios.push(anio);
-    }
-    return anios;
-  };
+    cargarDatos();
+  }, [userId]);
 
-  const copiarDatosDeAnio = async (anio: number) => {
-    if (!userId) return;
-    const { data, error } = await supabase
-      .from('empleados_municipales')
-      .select('*')
-      .eq('user_id', userId);
-
-    if (error) {
-      console.error(error);
+  const copiarDatosContrato = async () => {
+    const contrato = contratos.find((c) => c.id === contratoSeleccionadoId);
+    if (!contrato) {
+      Swal.fire('Error', 'Seleccione un contrato válido para copiar.', 'error');
       return;
     }
 
-    const existente = data?.find((empleado: any) => {
-      if (!empleado.fecha_inicio) return false;
-      const anioEmpleadoUTC = new Date(empleado.fecha_inicio).getUTCFullYear();
-      return anioEmpleadoUTC === anio;
+    const resultado = await Swal.fire({
+      title: 'Copiar datos',
+      text: '¿Desea copiar los datos del contrato seleccionado?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, copiar',
+      cancelButtonText: 'No',
     });
 
-    if (existente) {
-      const resultado = await Swal.fire({
-        title: 'Copiar datos',
-        text: '¿Desea copiar los datos del año seleccionado?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, copiar',
-        cancelButtonText: 'No',
+    if (resultado.isConfirmed) {
+      const nuevoFormulario = {} as any;
+      camposFormulario.forEach((campo) => {
+        nuevoFormulario[campo.name] = contrato[campo.name] ?? '';
       });
-
-      if (resultado.isConfirmed) {
-        setFormulario({
-          direccion: existente.direccion ?? '',
-          telefono: existente.telefono ?? '',
-          dpi: existente.dpi ?? '',
-          nit: existente.nit ?? '',
-          igss: existente.igss ?? '',
-          cargo: existente.cargo ?? '',
-          banco: existente.banco ?? '',
-          cuenta: existente.cuenta ?? '',
-          sueldo: existente.sueldo?.toString() ?? '',
-          bonificacion: existente.bonificacion?.toString() ?? '',
-          fecha_inicio: '',
-          fecha_finalizacion: '',
-          contrato_no: existente.contrato_no ?? '',
-          renglon: existente.renglon ?? '',
-        });
-      }
+      setFormulario(nuevoFormulario);
     }
   };
 
-  useEffect(() => {
-    if (userId) {
-      copiarDatosDeAnio(anioParaCopiar);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anioParaCopiar]);
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormulario((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormulario((prev: any) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) {
-      alert('No se encontró el ID de usuario.');
+      Swal.fire('Error', 'ID de usuario no encontrado.', 'error');
       return;
     }
-    if (!formulario.fecha_inicio) {
-      Swal.fire('Error', 'Debe seleccionar una fecha de inicio.', 'error');
+
+    const { fecha_ini, fecha_fin } = formulario;
+
+    if (!fecha_ini || !fecha_fin) {
+      Swal.fire('Error', 'Debe seleccionar fecha de inicio y finalización.', 'error');
       return;
     }
-    const anioNuevo = new Date(formulario.fecha_inicio).getUTCFullYear();
-    const { data, error } = await supabase
+
+    const fechaInicio = new Date(fecha_ini);
+    const fechaFin = new Date(fecha_fin);
+
+    if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
+      Swal.fire('Error', 'Formato de fecha inválido.', 'error');
+      return;
+    }
+
+    if (fechaInicio > fechaFin) {
+      Swal.fire('Error', 'La fecha de inicio no puede ser posterior a la de finalización.', 'error');
+      return;
+    }
+
+    const { data: existentes } = await supabase
       .from('empleados_municipales')
-      .select('fecha_inicio')
+      .select('fecha_ini, fecha_fin')
       .eq('user_id', userId);
 
-    if (error) {
-      console.error('Error verificando años:', error);
-      Swal.fire('Error', 'Error verificando registros existentes.', 'error');
-      return;
-    }
-
-    const existeMismoAnio = data?.some((empleado: any) => {
-      if (!empleado.fecha_inicio) return false;
-      const anioEmpleadoUTC = new Date(empleado.fecha_inicio).getUTCFullYear();
-      return anioEmpleadoUTC === anioNuevo;
+    const seCruzan = existentes?.some((emp: any) => {
+      const ini = new Date(emp.fecha_ini);
+      const fin = new Date(emp.fecha_fin);
+      return fechaInicio <= fin && fechaFin >= ini;
     });
 
-    if (existeMismoAnio) {
-      Swal.fire('Error', `Ya existe un registro para el año ${anioNuevo}.`, 'error');
+    if (seCruzan) {
+      Swal.fire('Error', 'Las fechas se cruzan con un contrato existente.', 'error');
       return;
     }
 
-    const { error: errorGuardar } = await supabase.from('empleados_municipales').insert([
-      {
-        user_id: userId,
-        ...formulario,
-        sueldo: parseFloat(formulario.sueldo) || null,
-        bonificacion: parseFloat(formulario.bonificacion) || null,
-      },
-    ]);
+    const { error } = await supabase.from('empleados_municipales').insert([{
+      user_id: userId,
+      ...formulario,
+      salario: parseFloat(formulario.salario) || null,
+      bonificación: parseFloat(formulario.bonificación) || null,
+    }]);
 
-    if (errorGuardar) {
-      console.error('Error al crear empleado:', errorGuardar);
+    if (error) {
+      console.error('Error al guardar:', error);
       Swal.fire('Error', 'No se pudo guardar el empleado.', 'error');
     } else {
       Swal.fire('Éxito', 'Empleado creado exitosamente.', 'success').then(() => {
@@ -178,7 +139,6 @@ export function CrearEmpleado() {
 
   return (
     <div className="px-4">
-      {/* ✅ Botón Volver arriba */}
       <div className="flex mb-6">
         <Button
           type="button"
@@ -189,60 +149,52 @@ export function CrearEmpleado() {
         </Button>
       </div>
 
-      {/* ✅ Card del formulario */}
       <div className="max-w-2xl mx-auto p-8 bg-white shadow-md rounded">
         <h1 className="text-2xl font-bold mb-6 text-center">
           Ingresar datos para {nombreUsuario || '...'}
         </h1>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* Selector de año solo para copiar */}
-          <div>
-            <Label htmlFor="anio">Copiar datos de un año anterior (opcional)</Label>
+        {/* Selector de contratos existentes */}
+        <div className="mb-6">
+          <label className="font-semibold block mb-2">Copiar datos de contrato existente (opcional)</label>
+          <div className="flex gap-2">
             <select
-              id="anio"
-              className="border p-2 rounded w-full mt-1"
-              value={anioParaCopiar}
-              onChange={(e) => setAnioParaCopiar(Number(e.target.value))}
+              className="border rounded p-2 flex-1"
+              value={contratoSeleccionadoId}
+              onChange={(e) => setContratoSeleccionadoId(e.target.value)}
             >
-              {generarOpcionesAnios().map((anio) => (
-                <option key={anio} value={anio}>
-                  {anio}
-                </option>
-              ))}
+              {contratos.length > 0 ? (
+                <>
+                  <option value="">Seleccione un contrato...</option>
+                  {contratos.map((contrato) => {
+                    const fechaIni = new Date(contrato.fecha_ini);
+                    const fechaFin = new Date(contrato.fecha_fin);
+                    return (
+                      <option key={contrato.id} value={contrato.id}>
+                        {fechaIni.toLocaleDateString()} - {fechaFin.toLocaleDateString()}
+                      </option>
+                    );
+                  })}
+                </>
+              ) : (
+                <option value="">No hay contratos previos ingresados</option>
+              )}
             </select>
-          </div>
 
-          {/* Campos dinámicos */}
-          {[
-            { label: 'Dirección', name: 'direccion' },
-            { label: 'Teléfono', name: 'telefono' },
-            { label: 'DPI', name: 'dpi' },
-            { label: 'NIT', name: 'nit' },
-            { label: 'IGSS', name: 'igss' },
-            { label: 'Cargo', name: 'cargo' },
-            { label: 'Banco', name: 'banco' },
-            { label: 'Cuenta', name: 'cuenta' },
-            { label: 'Sueldo', name: 'sueldo' },
-            { label: 'Bonificación', name: 'bonificacion' },
-            { label: 'Fecha de Inicio', name: 'fecha_inicio', type: 'date' },
-            { label: 'Fecha de Finalización', name: 'fecha_finalizacion', type: 'date' },
-            { label: 'Contrato No.', name: 'contrato_no' },
-            { label: 'Renglón', name: 'renglon' },
-          ].map((campo) => (
-            <div key={campo.name}>
-              <Label htmlFor={campo.name}>{campo.label}</Label>
-              <Input
-                type={campo.type || 'text'}
-                id={campo.name}
-                name={campo.name}
-                value={formulario[campo.name as keyof typeof formulario]}
-                onChange={handleChange}
-                className="mt-1"
-                required={campo.name !== 'fecha_finalizacion'}
-              />
-            </div>
-          ))}
+            <Button
+              type="button"
+              className="bg-green-600 hover:bg-green-700 text-white"
+              onClick={copiarDatosContrato}
+              disabled={!contratoSeleccionadoId}
+            >
+              Copiar datos
+            </Button>
+          </div>
+        </div>
+
+        {/* Formulario de ingreso */}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <EmpleadoForm formulario={formulario} handleChange={handleChange} />
 
           <Button type="submit" className="mt-6 h-12 text-lg">
             Crear Empleado

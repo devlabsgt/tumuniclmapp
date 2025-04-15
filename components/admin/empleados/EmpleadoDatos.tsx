@@ -1,20 +1,9 @@
 'use client';
 
+import { camposFormulario } from './EmpleadoCampos';
+
 type Empleado = {
-  direccion?: string;
-  telefono?: string;
-  dpi?: string;
-  nit?: string;
-  igss?: string;
-  cargo?: string;
-  banco?: string;
-  cuenta?: string;
-  sueldo?: number;
-  bonificacion?: number;
-  fecha_inicio?: string;
-  fecha_finalizacion?: string;
-  contrato_no?: string;
-  renglon?: string;
+  [key: string]: any;
 };
 
 export function EmpleadoDatos({ empleado }: { empleado: Empleado }) {
@@ -31,24 +20,27 @@ export function EmpleadoDatos({ empleado }: { empleado: Empleado }) {
   const formatoMoneda = (valor: number | null | undefined) =>
     typeof valor === 'number' ? `Q ${valor.toLocaleString('es-GT', { minimumFractionDigits: 2 })}` : '—';
 
+  const formatearValor = (campo: any, valor: any) => {
+    if (campo.name === 'salario' || campo.name === 'bonificación') {
+      return formatoMoneda(valor);
+    }
+    if (campo.type === 'date') {
+      return formatoFecha(valor);
+    }
+    return valor ?? '—';
+  };
+
   return (
     <div className="overflow-x-auto border border-border rounded bg-background text-foreground">
       <table className="w-full text-left border-collapse">
         <tbody>
-          <Fila label="Dirección" valor={empleado.direccion ?? '—'} />
-          <Fila label="Teléfono" valor={empleado.telefono ?? '—'} />
-          <Fila label="DPI" valor={empleado.dpi ?? '—'} />
-          <Fila label="NIT" valor={empleado.nit ?? '—'} />
-          <Fila label="IGSS" valor={empleado.igss ?? '—'} />
-          <Fila label="Cargo" valor={empleado.cargo ?? '—'} />
-          <Fila label="Banco" valor={empleado.banco ?? '—'} />
-          <Fila label="Cuenta" valor={empleado.cuenta ?? '—'} />
-          <Fila label="Sueldo" valor={formatoMoneda(empleado.sueldo)} />
-          <Fila label="Bonificación" valor={formatoMoneda(empleado.bonificacion)} />
-          <Fila label="Fecha Inicio" valor={formatoFecha(empleado.fecha_inicio)} />
-          <Fila label="Fecha Finalización" valor={formatoFecha(empleado.fecha_finalizacion)} />
-          <Fila label="Contrato No." valor={empleado.contrato_no ?? '—'} />
-          <Fila label="Renglón" valor={empleado.renglon ?? '—'} />
+          {camposFormulario.map((campo) => (
+            <Fila
+              key={campo.name}
+              label={campo.label}
+              valor={formatearValor(campo, empleado[campo.name])}
+            />
+          ))}
         </tbody>
       </table>
     </div>

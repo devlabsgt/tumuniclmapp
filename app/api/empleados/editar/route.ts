@@ -5,23 +5,27 @@ import supabaseAdmin from '@/lib/supabaseAdmin';
 
 export async function POST(req: Request) {
   try {
-    const { user_id, data } = await req.json();
+    const { id, data } = await req.json();
 
-    if (!user_id || !data) {
+    if (!id || !data) {
       return NextResponse.json({ error: 'Faltan datos' }, { status: 400 });
     }
 
-    const { error } = await supabaseAdmin
+    const { error, data: updated } = await supabaseAdmin
       .from('empleados_municipales')
       .update(data)
-      .eq('user_id', user_id);
+      .eq('id', id) // ✅ Aquí solo usamos id
+      .select();
 
     if (error) {
       console.error('Error Supabase:', error);
       return NextResponse.json({ error: 'No se pudo actualizar empleado' }, { status: 500 });
     }
 
-    // 🔥🔥🔥 AQUI le devolvemos algo aunque sea un mensaje para que no truene el res.json()
+    if (!updated || updated.length === 0) {
+      return NextResponse.json({ error: 'No se encontró el registro para actualizar' }, { status: 404 });
+    }
+
     return NextResponse.json({ success: true });
   } catch (e) {
     console.error('Error interno:', e);
