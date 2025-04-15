@@ -33,8 +33,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <main className="min-h-screen flex flex-col items-center">
-            <div className="flex-1 w-full flex flex-col gap-4 items-center">
+          {/* Layout principal en columna */}
+          <main className="min-h-screen flex flex-col">
+            {/* Encabezado y contenido principal */}
+            <div className="flex-1 flex flex-col items-center">
               <nav className="w-full flex border-b border-b-foreground/10 h-40">
                 <div className="w-full flex items-center justify-between px-5 py-3 text-sm">
                   <div className="flex items-center gap-3">
@@ -46,23 +48,33 @@ export default function RootLayout({
                 </div>
               </nav>
 
-              <div className="flex flex-col gap-5 max-w-5xl p-5">{children}</div>
-
-              <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16 text-xl">
-                <p>
-                  Powered by{" "}
-                  <a
-                    href="https://www.oscar27jimenez.com"
-                    target="_blank"
-                    className="font-bold hover:underline"
-                    rel="noreferrer"
-                  >
-                    Ing. Oscar Jiménez
-                  </a>
-                </p>
-                <ThemeSwitcher />
-              </footer>
+              {/* Contenido con flex-grow para empujar el footer */}
+              <div className="flex flex-col gap-5 max-w-5xl p-5 flex-grow w-full">
+                {children}
+              </div>
             </div>
+
+            {/* Footer fijo al fondo */}
+
+            <footer className="w-full flex items-center justify-between border-t text-lg px-8 py-8 text-black dark:text-white">
+              <p className="text-left">
+                Powered by{" "}
+                <a
+                  href="https://www.oscar27jimenez.com"
+                  target="_blank"
+                  className="font-bold hover:underline"
+                  rel="noreferrer"
+                >
+                  Ing. Oscar Jiménez
+                </a>
+              </p>
+              <div className="text-right">
+                <ThemeSwitcher />
+              </div>
+            </footer>
+
+
+
           </main>
         </ThemeProvider>
       </body>

@@ -25,7 +25,7 @@ const ThemeSwitcher = () => {
 
   return (
     <div className="flex items-center gap-3">
-                    <span className="text-sm text-muted-foreground">Haz click en el icono<br/>para cambiar el tema</span>
+        <span className="text-lg ">Haz click en el icono<br/>para cambiar el tema</span>
 
       <Button
         variant="ghost"
