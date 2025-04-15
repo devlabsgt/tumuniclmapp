@@ -9,14 +9,14 @@ interface Empleado {
   dpi?: string;
   nit?: string;
   igss?: string;
-  cargo?: string;
-  banco?: string;
-  cuenta?: string;
-  sueldo?: number;
-  bonificacion?: number;
-  fecha_inicio?: string;
-  fecha_finalizacion?: string;
+  cuenta_no?: string;
   contrato_no?: string;
+  dependencia?: string;
+  cargo?: string;
+  salario?: number;
+  bonificación?: number;
+  fecha_ini?: string;
+  fecha_fin?: string;
   renglon?: string;
 }
 
@@ -58,14 +58,14 @@ export async function generarPdfEmpleado(usuario: Usuario, empleado?: Empleado) 
           ['DPI', empleado.dpi ?? '—'],
           ['NIT', empleado.nit ?? '—'],
           ['IGSS', empleado.igss ?? '—'],
-          ['Cargo', empleado.cargo ?? '—'],
-          ['Banco', empleado.banco ?? '—'],
-          ['Cuenta', empleado.cuenta ?? '—'],
-          ['Sueldo', empleado.sueldo ? `Q ${empleado.sueldo.toFixed(2)}` : '—'],
-          ['Bonificación', empleado.bonificacion ? `Q ${empleado.bonificacion.toFixed(2)}` : '—'],
-          ['Fecha de Inicio', empleado.fecha_inicio ?? '—'],
-          ['Fecha de Finalización', empleado.fecha_finalizacion ?? '—'],
+          ['Cuenta No. (Banrural)', empleado.cuenta_no ?? '—'],
           ['Contrato No.', empleado.contrato_no ?? '—'],
+          ['Dependencia', empleado.dependencia ?? '—'],
+          ['Cargo', empleado.cargo ?? '—'],
+          ['Salario', empleado.salario ? `Q ${empleado.salario.toFixed(2)}` : '—'],
+          ['Bonificación', empleado.bonificación ? `Q ${empleado.bonificación.toFixed(2)}` : '—'],
+          ['Fecha de Inicio', empleado.fecha_ini ?? '—'],
+          ['Fecha de Finalización', empleado.fecha_fin ?? '—'],
           ['Renglón', empleado.renglon ?? '—'],
         ]
       : []),
@@ -99,23 +99,21 @@ export async function generarPdfEmpleado(usuario: Usuario, empleado?: Empleado) 
     alternateRowStyles: { fillColor: [255, 255, 255] },
   });
 
-  // Agregar línea para firma
-  const finalY = (doc as any).lastAutoTable.finalY + 30; // posición final de la tabla
+  // Firma
+  const finalY = (doc as any).lastAutoTable.finalY + 30;
   const lineWidth = 100;
   const lineX = (pageWidth - lineWidth) / 2;
 
   doc.setDrawColor(0);
-  doc.line(lineX, finalY, lineX + lineWidth, finalY); // Línea horizontal
+  doc.line(lineX, finalY, lineX + lineWidth, finalY);
 
-  // Nombre de la persona
   doc.setFontSize(12);
   doc.text('Licda. Katty Anabelli Martínez López', pageWidth / 2, finalY + 10, { align: 'center' });
 
-  // Cargo
   doc.setFontSize(10);
   doc.text('Coordinador(a) de la Oficina Municipal de Recursos Humanos', pageWidth / 2, finalY + 16, { align: 'center' });
 
-  // Abrir en una nueva pestaña
+  // Abrir en nueva pestaña
   const pdfBlob = doc.output('blob');
   const blobUrl = URL.createObjectURL(pdfBlob);
   window.open(blobUrl, '_blank');

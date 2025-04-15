@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
-import { UsuarioPageContent } from './usuarioPage';
+import { UsuarioPageContent } from '@/components/admin/users/ver/usuarioPage';
 
 export default function VerUsuarioPage() {
   return (

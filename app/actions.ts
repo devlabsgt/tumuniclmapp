@@ -4,6 +4,7 @@ import { encodedRedirect } from "@/utils/utils";
 import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import supabaseAdmin from '@/utils/supabase/admin';
 
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
@@ -45,19 +46,17 @@ export const signUpAction = async (formData: FormData) => {
   }
 
   // 🚀 Crear usuario
-const { data, error } = await supabase.auth.signUp({
-  email,
-  password,
-  options: {
-    emailRedirectTo: `${origin}/auth/callback`,
-    data: {
-      nombre,
-      rol,
-      activo: true, 
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true, // ✅ Se salta el correo
+      user_metadata: {
+        nombre,
+        rol,
+        activo: true,
+      },
+    });
 
-    },
-  },
-});
 
   if (error) {
     return encodedRedirect("error", "/protected/admin/sign-up", error.message);

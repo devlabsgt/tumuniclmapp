@@ -1,6 +1,6 @@
 export const camposFormulario = [
     
-  { label: 'Dirección', name: 'dirección' },
+  { label: 'Dirección', name: 'direccion' },
   { label: 'Teléfono', name: 'telefono' },
   { label: 'DPI', name: 'dpi' },
   { label: 'NIT', name: 'nit' },
