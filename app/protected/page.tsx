@@ -39,7 +39,7 @@ export default function ProtectedPage() {
       router.push('/protected/user');
     }
   };
-
+  
   return (
     <div className="flex-1 w-full flex flex-col gap-12 items-center justify-center">
       <div className="text-center">
