@@ -6,7 +6,6 @@ export default function Header() {
     <p className="text-3xl lg:text-4xl !leading-tight mx-auto max-w-3xl text-center">
         Bienvenido a la Aplicación Web{" "}de la<br/>
         <a
-          href="https://supabase.com/?utm_source=create-next-app&utm_medium=template&utm_term=nextjs"
           target="_blank"
           className="font-bold hover:underline"
           rel="noreferrer"
