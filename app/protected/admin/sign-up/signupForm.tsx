@@ -65,13 +65,15 @@ export function SignupForm() {
         <Link href="/protected/admin/users" className="w-auto">
           <Button
             type="button"
-            className="h-10 bg-blue-600 hover:bg-blue-500 text-white text-sm w-auto px-4 rounded"
+            className="h-10 bg-blue-600 hover:bg-blue-500 text-white text-xl w-auto px-2 mr-5 rounded"
           >
-            Volver a usuarios
+            Volver
           </Button>
         </Link>
+              <h1 className="text-3xl font-semibold mb-6">Nuevo Usuario</h1>
+
       </div>
-      <h1 className="text-3xl font-semibold mb-6">Nuevo Usuario</h1>
+              <span className=" text-gray-600 ">Ingresa los datos del nuevo usuario</span>
 
       <form className="flex flex-col gap-4">
         <div>

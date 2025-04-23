@@ -84,12 +84,11 @@ export function UsuarioPageContent() {
   return (
     <>
       {/* Botones principales */}
-{/* Botones principales */}
       <div className="flex justify-between items-center mb-4">
         {/* Botón izquierdo */}
         <Button
           type="button"
-          className="h-10 text-white text-2xl w-auto p-4 bg-blue-600 hover:bg-blue-700"
+          className="h-10 text-white text-xl w-auto p-4 bg-blue-600 hover:bg-blue-700"
           onClick={() => router.push(`/protected/admin/users`)}
         >
           Volver
@@ -106,7 +105,7 @@ export function UsuarioPageContent() {
       {/* Card principal */}
       <div className="max-w-4xl mx-auto p-6 border rounded shadow bg-background text-foreground text-sm">
         <div className="flex items-center justify-between mb-5">
-          <h1 className="text-2xl font-bold">Informe de Datos de Empleado Municipal</h1>
+          <h1 className="text-xl font-bold">Informe de Datos de Empleado Municipal</h1>
         </div>
 
         {/* Datos de Usuario */}

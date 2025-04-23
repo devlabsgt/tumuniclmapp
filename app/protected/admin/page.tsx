@@ -53,8 +53,11 @@ export default function AdminDashboard() {
           )}
         </div>
         {/* Otros botones de ejemplo */}
-        <Button variant="outline">Gestión de Proyectos</Button>
-        <Button variant="outline">Reportes</Button>
+              <Link href="/protected/fertilizante/beneficiarios">
+                <Button variant="outline" className="w-full justify-start">
+                  Entrega de Fertilizante
+                </Button>
+              </Link>        <Button variant="outline">Reportes</Button>
         <Button variant="outline">Configuraciones</Button>
       </div>
       <h1 className="text-4xl font-bold text-center text-foreground mb-8">

@@ -47,7 +47,16 @@ export default function UsersPage() {
 
   return (
     <div className="p-6">
+            {/* Botón de regreso */}
+
       <div className="flex items-center justify-between mb-4">
+              <div className="mb-4">
+        <Link href="/protected/">
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+            Volver
+          </Button>
+        </Link>
+      </div>
         <h1 className="text-2xl font-bold">Usuarios del sistema</h1>
         <Link href="/protected/admin/sign-up">
           <Button>Crear Usuario</Button>
