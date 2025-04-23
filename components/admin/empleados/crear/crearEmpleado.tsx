@@ -150,8 +150,8 @@ export function CrearEmpleado() {
       </div>
 
       <div className="max-w-2xl mx-auto p-8 bg-white shadow-md rounded">
-        <h1 className="text-2xl font-bold mb-6 text-center">
-          Ingresar datos para {nombreUsuario || '...'}
+        <h1 className="text-2xl mb-6 text-center">
+          Ingresar datos para: <br/><strong>{nombreUsuario || '...'}</strong>
         </h1>
 
         {/* Selector de contratos existentes */}

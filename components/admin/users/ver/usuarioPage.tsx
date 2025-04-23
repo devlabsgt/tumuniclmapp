@@ -8,6 +8,12 @@ import { EmpleadoDatos } from '@/components/admin/empleados/EmpleadoDatos';
 import { generarPdfEmpleado } from '@/components/utils/PdfEmpleados';
 import { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 
 const fetchUsuario = async (id: string): Promise<{ usuario: any; empleados: any[] }> => {
   const supabase = createBrowserClient(
@@ -83,29 +89,49 @@ export function UsuarioPageContent() {
 
   return (
     <>
-      {/* Botones principales */}
-      <div className="flex justify-between items-center mb-4">
-        {/* Botón izquierdo */}
+      {/* Card principal */}
+      <div className="max-w-4xl mx-auto p-6 border rounded shadow bg-background text-foreground text-sm">
+
+                <div className="flex items-center justify-between mb-2">
+
         <Button
           type="button"
-          className="h-10 text-white text-xl w-auto p-4 bg-blue-600 hover:bg-blue-700"
+          className="h-10 text-white text-xl w-auto p-4 bg-blue-600 hover:bg-blue-700 mb-5"
           onClick={() => router.push(`/protected/admin/users`)}
         >
           Volver
         </Button>
 
-        {/* Botón derecho */}
-        <Button
-          onClick={handleGenerarPDF}
-          className="h-10 text-white text-2xl w-auto p-4 bg-green-600 hover:bg-green-700"
-        >
-          Imprimir/guardar
-        </Button>
-      </div>
-      {/* Card principal */}
-      <div className="max-w-4xl mx-auto p-6 border rounded shadow bg-background text-foreground text-sm">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="h-10 text-white text-xl w-auto p-4 bg-blue-600 hover:bg-blue-700">
+              Acciones
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="py-2 px-2 bg-background shadow-md rounded-md border border-border">
+            <DropdownMenuItem
+              className="cursor-pointer text-lg hover:bg-muted px-2 py-2 rounded"
+              onClick={() => router.push(`/protected/admin/users/editar?id=${usuario.id}`)}
+            >
+              Editar usuario
+            </DropdownMenuItem>
+
+                <DropdownMenuItem
+              className="cursor-pointer text-lg hover:bg-muted px-2 py-2 rounded"
+              onClick={handleGenerarPDF}
+            >
+              Generar PDF
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+</div>
         <div className="flex items-center justify-between mb-5">
+          
           <h1 className="text-xl font-bold">Informe de Datos de Empleado Municipal</h1>
+
+
+
         </div>
 
         {/* Datos de Usuario */}
