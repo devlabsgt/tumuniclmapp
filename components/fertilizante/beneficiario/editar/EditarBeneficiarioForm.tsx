@@ -72,6 +72,37 @@ export default function EditarBeneficiarioForm() {
     setCargando(true);
     const supabase = createClient();
 
+    // Verificar si DPI o código ya existen en otro registro
+    const { data: duplicados, error: errorCheck } = await supabase
+      .from('beneficiarios_fertilizante')
+      .select('id, dpi, codigo');
+
+    if (errorCheck || !duplicados) {
+      setCargando(false);
+      Swal.fire('Error', 'No se pudo verificar duplicados.', 'error');
+      return;
+    }
+
+    const existeDPI = duplicados.find(
+      (b) => b.dpi === formulario.dpi && b.id !== id
+    );
+    const existeCodigo = duplicados.find(
+      (b) => b.codigo === formulario.codigo && b.id !== id
+    );
+
+    if (existeDPI) {
+      setCargando(false);
+      Swal.fire('Error', 'El DPI ingresado ya existe para otro beneficiario.', 'warning');
+      return;
+    }
+
+    if (existeCodigo) {
+      setCargando(false);
+      Swal.fire('Error', 'El código ingresado ya existe para otro beneficiario.', 'warning');
+      return;
+    }
+
+    // Si no hay conflictos, actualizar
     const { error } = await supabase
       .from('beneficiarios_fertilizante')
       .update(formulario)

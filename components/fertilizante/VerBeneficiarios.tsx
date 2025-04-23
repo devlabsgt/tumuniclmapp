@@ -5,8 +5,8 @@ import { createBrowserClient } from '@supabase/ssr';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { FiltroBeneficiarios } from './FiltroBeneficiarios';
-import { GraficaBeneficiarios } from './GraficaBeneficiarios';
 import { TablaBeneficiarios } from './TablaBeneficiarios';
+import Link from 'next/link';
 
 interface Beneficiario {
   id: string;
@@ -16,13 +16,23 @@ interface Beneficiario {
   fecha: string;
   codigo: string;
 }
-// ... tus imports
-import Link from 'next/link'; // necesario para navegación con <Link>
+
+type CampoFiltro = 'nombre_completo' | 'dpi' | 'codigo';
 
 export default function VerBeneficiarios() {
   const [beneficiarios, setBeneficiarios] = useState<Beneficiario[]>([]);
   const [paginaActual, setPaginaActual] = useState(1);
-  const [filtros, setFiltros] = useState({ nombre: '', dpi: '', lugar: '' });
+
+const [filtros, setFiltros] = useState<{
+  campo: 'nombre_completo' | 'dpi' | 'codigo';
+  valor: string;
+  lugar: string;
+}>({
+  campo: 'nombre_completo',
+  valor: '',
+  lugar: '',
+});
+
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -47,8 +57,7 @@ export default function VerBeneficiarios() {
 
   const beneficiariosFiltrados = beneficiarios.filter((b) => {
     return (
-      b.nombre_completo.toLowerCase().includes(filtros.nombre.toLowerCase()) &&
-      b.dpi.toLowerCase().includes(filtros.dpi.toLowerCase()) &&
+      b[filtros.campo].toLowerCase().includes(filtros.valor.toLowerCase()) &&
       (filtros.lugar === '' || b.lugar === filtros.lugar)
     );
   });
@@ -60,19 +69,15 @@ export default function VerBeneficiarios() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
-
-
-      {/* Encabezado y botón nuevo */}
       <div className="flex justify-between items-center mb-6">
-              {/* Botón de regreso */}
-      <div className="mb-4">
-        <Link href="/protected/">
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-            Volver
-          </Button>
-        </Link>
-      </div>
+        <div className="mb-4">
+          <Link href="/protected/">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white">Volver</Button>
+          </Link>
+        </div>
+
         <h1 className="text-2xl font-bold">Lista de Beneficiarios</h1>
+
         <Button
           onClick={() => router.push('/protected/fertilizante/beneficiarios/crear')}
           className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -84,7 +89,6 @@ export default function VerBeneficiarios() {
       <FiltroBeneficiarios filtros={filtros} setFiltros={setFiltros} />
       <TablaBeneficiarios data={beneficiariosPaginados} />
 
-      {/* Paginación */}
       <div className="flex justify-center mt-4 gap-2">
         {Array.from({ length: totalPaginas }, (_, i) => (
           <button

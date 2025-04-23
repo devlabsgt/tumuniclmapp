@@ -2,13 +2,15 @@
 
 import { Input } from '@/components/ui/input';
 
+type CampoFiltro = 'nombre_completo' | 'dpi' | 'codigo';
+
 interface Props {
   filtros: {
-    nombre: string;
-    dpi: string;
+    campo: CampoFiltro;
+    valor: string;
     lugar: string;
   };
-  setFiltros: (filtros: { nombre: string; dpi: string; lugar: string }) => void;
+  setFiltros: (filtros: { campo: CampoFiltro; valor: string; lugar: string }) => void;
 }
 
 export function FiltroBeneficiarios({ filtros, setFiltros }: Props) {
@@ -19,18 +21,27 @@ export function FiltroBeneficiarios({ filtros, setFiltros }: Props) {
 
   return (
     <div className="flex flex-col md:flex-row gap-4 mb-6">
-      <Input
-        name="nombre"
-        value={filtros.nombre}
-        onChange={handleChange}
-        placeholder="Buscar por nombre"
-      />
-      <Input
-        name="dpi"
-        value={filtros.dpi}
-        onChange={handleChange}
-        placeholder="Buscar por DPI"
-      />
+      <div className="flex gap-2 items-center flex-1">
+        <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Buscar por: </span>
+        <select
+          name="campo"
+          value={filtros.campo}
+          onChange={handleChange}
+          className="border border-gray-300 rounded px-3 py-2"
+        >
+          <option value="nombre_completo">Nombre</option>
+          <option value="dpi">DPI</option>
+          <option value="codigo">Código</option>
+        </select>
+
+        <Input
+          name="valor"
+          value={filtros.valor}
+          onChange={handleChange}
+          className="w-full"
+        />
+      </div>
+
       <select
         name="lugar"
         value={filtros.lugar}
