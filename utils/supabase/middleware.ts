@@ -39,7 +39,7 @@ export const updateSession = async (request: NextRequest) => {
     // 🔐 Si intenta entrar a /protected/admin y no es admin
     if (
       request.nextUrl.pathname.startsWith("/protected/admin") &&
-      user.data?.user?.user_metadata?.rol !== "admin"
+      user.data?.user?.user_metadata?.rol !== "Admin"
     ) {
       return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
@@ -49,7 +49,7 @@ export const updateSession = async (request: NextRequest) => {
       if (user.error) return response;
 
       const rol = user.data?.user?.user_metadata?.rol;
-      const destino = rol === "admin" ? "/protected/admin" : "/protected";
+      const destino = rol === "Admin" ? "/protected/admin" : "/protected";
       return NextResponse.redirect(new URL(destino, request.url));
     }
 
