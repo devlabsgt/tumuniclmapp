@@ -33,7 +33,7 @@ export default function ProtectedPage() {
 
   const irAlDashboard = () => {
     const rol = user.user_metadata?.rol;
-    if (rol === 'admin') {
+    if (rol === 'Admin') {
       router.push('/protected/admin');
     } else {
       router.push('/protected/user');
