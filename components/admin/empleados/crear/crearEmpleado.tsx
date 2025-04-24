@@ -72,10 +72,11 @@ export function CrearEmpleado() {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormulario((prev: any) => ({ ...prev, [name]: value }));
-  };
+const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const { name, value } = e.target;
+  setFormulario((prev: any) => ({ ...prev, [name]: value }));
+};
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

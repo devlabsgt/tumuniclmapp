@@ -18,21 +18,22 @@ interface Beneficiario {
 }
 
 type CampoFiltro = 'nombre_completo' | 'dpi' | 'codigo';
+type OrdenFiltro = 'created_at' | 'nombre_completo' | 'fecha' | 'codigo';
 
 export default function VerBeneficiarios() {
   const [beneficiarios, setBeneficiarios] = useState<Beneficiario[]>([]);
   const [paginaActual, setPaginaActual] = useState(1);
+  const [orden, setOrden] = useState<OrdenFiltro>('created_at');
 
-const [filtros, setFiltros] = useState<{
-  campo: 'nombre_completo' | 'dpi' | 'codigo';
-  valor: string;
-  lugar: string;
-}>({
-  campo: 'nombre_completo',
-  valor: '',
-  lugar: '',
-});
-
+  const [filtros, setFiltros] = useState<{
+    campo: CampoFiltro;
+    valor: string;
+    lugar: string;
+  }>({
+    campo: 'nombre_completo',
+    valor: '',
+    lugar: '',
+  });
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -45,8 +46,7 @@ const [filtros, setFiltros] = useState<{
     const cargarDatos = async () => {
       const { data, error } = await supabase
         .from('beneficiarios_fertilizante')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
 
       if (data) setBeneficiarios(data);
       if (error) console.error(error);
@@ -55,12 +55,18 @@ const [filtros, setFiltros] = useState<{
     cargarDatos();
   }, []);
 
-  const beneficiariosFiltrados = beneficiarios.filter((b) => {
-    return (
-      b[filtros.campo].toLowerCase().includes(filtros.valor.toLowerCase()) &&
-      (filtros.lugar === '' || b.lugar === filtros.lugar)
-    );
-  });
+  const beneficiariosFiltrados = beneficiarios
+    .filter((b) => {
+      return (
+        b[filtros.campo].toLowerCase().includes(filtros.valor.toLowerCase()) &&
+        (filtros.lugar === '' || b.lugar === filtros.lugar)
+      );
+    })
+    .sort((a, b) => {
+      if (orden === 'created_at') return 0;
+      if (orden === 'fecha') return new Date(a.fecha).getTime() - new Date(b.fecha).getTime();
+      return a[orden].localeCompare(b[orden]);
+    });
 
   const beneficiariosPorPagina = 10;
   const totalPaginas = Math.ceil(beneficiariosFiltrados.length / beneficiariosPorPagina);
@@ -69,24 +75,48 @@ const [filtros, setFiltros] = useState<{
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
-      <div className="flex justify-between items-center mb-6">
-        <div className="mb-4">
-          <Link href="/protected/">
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white">Volver</Button>
-          </Link>
-        </div>
+<div className="flex items-center justify-between mb-6 h-12">
+  <div className="flex items-center h-full">
+    <Button
+      onClick={() => router.push('/protected/')}
+      className="h-full bg-blue-600 hover:bg-blue-700 text-white px-4"
+    >
+      Volver
+    </Button>
+  </div>
 
-        <h1 className="text-2xl font-bold">Lista de Beneficiarios</h1>
+  <h1 className="text-2xl font-bold text-center flex-1">Lista de Beneficiarios</h1>
 
-        <Button
-          onClick={() => router.push('/protected/fertilizante/beneficiarios/crear')}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
+  <div className="flex items-center h-full">
+    <Button
+      onClick={() => router.push('/protected/fertilizante/beneficiarios/crear')}
+      className="h-full bg-blue-600 hover:bg-blue-700 text-white px-4"
+    >
+      Nuevo Beneficiario
+    </Button>
+  </div>
+</div>
+
+
+
+      {/* Filtros en una fila */}
+      <FiltroBeneficiarios filtros={filtros} setFiltros={setFiltros} />
+
+      {/* Filtro de orden abajo */}
+      <div className="mb-4">
+        <span className="text-sm font-medium text-gray-700 whitespace-nowrap font-semibold">Ordenar por:  </span>
+        <select
+          value={orden}
+          onChange={(e) => setOrden(e.target.value as OrdenFiltro)}
+          className="border border-gray-300 rounded px-3 py-2"
         >
-          Nuevo Beneficiario
-        </Button>
+          <option value="created_at">Orden de ingreso</option>
+          <option value="nombre_completo">Nombre</option>
+          <option value="fecha">Fecha</option>
+          <option value="codigo">Código</option>
+        </select>
       </div>
 
-      <FiltroBeneficiarios filtros={filtros} setFiltros={setFiltros} />
       <TablaBeneficiarios data={beneficiariosPaginados} />
 
       <div className="flex justify-center mt-4 gap-2">

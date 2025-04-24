@@ -19,10 +19,23 @@ export function FiltroBeneficiarios({ filtros, setFiltros }: Props) {
     setFiltros({ ...filtros, [name]: value });
   };
 
+  const lugares = [
+    'Agua Caliente', 'Aguajal', 'Alambrados', 'Anonas', 'Anguiatú', 'Apantes',
+    'Cabildo', 'Cañada', 'Casco Urbano', 'Caserío Los Planes', 'Conacastes', 'Cruz Calle',
+    'Dolores', 'El Capulín', 'El Jícaro', 'El Límite', 'El Obispo', 'El Obraje',
+    'El Pinal', 'El Pinito', 'Guacamayas', 'Hornito', 'La Ermita', 'La Leona',
+    'La Loma', 'La Quesera', 'Las Burras', 'Limones', 'Liquidámbar', 'Monte Barroso',
+    'Puebnlo Nuevo', 'Platanar', 'Rodeíto', 'Rodeo El Espino', 'Rodeo Las Lajas',
+    'Roble Gacho', 'Sacramento', 'San Antonio', 'San José', 'San Vicente',
+    'Santa Anita', 'Socorro', 'Tisizón', 'Valeriano', 'Valle Arriba'
+  ].sort();
+
   return (
     <div className="flex flex-col md:flex-row gap-4 mb-6">
       <div className="flex gap-2 items-center flex-1">
-        <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Buscar por: </span>
+
+        <span className="text-sm font-medium text-gray-700 whitespace-nowrap font-semibold">Buscar por:</span>
+
         <select
           name="campo"
           value={filtros.campo}
@@ -49,16 +62,7 @@ export function FiltroBeneficiarios({ filtros, setFiltros }: Props) {
         className="border border-gray-300 rounded px-3 py-2"
       >
         <option value="">Todos los lugares</option>
-        {[
-          'Apantes', 'Liquidámbar', 'Rodeo El Espino', 'Dolores', 'Sacramento', 'Platanar',
-          'Caserío Los Planes', 'El Jícaro', 'La Loma', 'Monte Barroso', 'Agua Caliente',
-          'Roble Gacho', 'El Pinal', 'San Vicente', 'Guacamayas', 'La Ermita', 'Conacastes',
-          'Cañada', 'Santa Anita', 'Valeriano', 'Alambrados', 'Anguiatú', 'Las Burras',
-          'El Pinito', 'La Leona', 'Limones', 'Cruz Calle', 'Cabildo', 'El Obraje',
-          'San Antonio', 'La Quesera', 'Rodeo Las Lajas', 'Tisizón', 'Hornito', 'Anonas',
-          'Socorro', 'Aguajal', 'San José', 'Valle Arriba', 'El Capulín', 'Rodeíto',
-          'El Límite', 'El Obispo', 'Puebnlo Nuevo', 'Casco Urbano'
-        ].map((lugar) => (
+        {lugares.map((lugar) => (
           <option key={lugar} value={lugar}>{lugar}</option>
         ))}
       </select>

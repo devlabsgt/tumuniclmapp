@@ -1,5 +1,4 @@
 export const camposFormulario = [
-    
   { label: 'Dirección', name: 'direccion' },
   { label: 'Teléfono', name: 'telefono' },
   { label: 'DPI', name: 'dpi' },
@@ -13,5 +12,9 @@ export const camposFormulario = [
   { label: 'Bonificación', name: 'bonificación' },
   { label: 'Fecha de Inicio', name: 'fecha_ini', type: 'date' },
   { label: 'Fecha de Finalización', name: 'fecha_fin', type: 'date' },
-  { label: 'Renglón', name: 'renglon' },
+  {
+    label: 'Renglón',
+    name: 'renglon',
+    options: ['011', '022', '029', '031', '035', '183', '184', '189'],
+  },
 ];
