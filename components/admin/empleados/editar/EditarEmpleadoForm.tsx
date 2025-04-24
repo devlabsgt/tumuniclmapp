@@ -53,10 +53,13 @@ export default function EditarEmpleadoForm() {
     cargarContrato();
   }, [contratoId]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormulario((prev: any) => ({ ...prev, [name]: value }));
-  };
+const handleChange = (
+  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+) => {
+  const { name, value } = e.target;
+  setFormulario((prev: Record<string, string>) => ({ ...prev, [name]: value }));
+};
+
 
   const hayCambios = useMemo(() => {
     return JSON.stringify(formulario) !== JSON.stringify(original);
