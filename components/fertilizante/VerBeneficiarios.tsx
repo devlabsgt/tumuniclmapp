@@ -81,7 +81,7 @@ export default function VerBeneficiarios() {
       onClick={() => router.push('/protected/')}
       className="h-full bg-blue-600 hover:bg-blue-700 text-white px-4"
     >
-      Volver
+      Atrás
     </Button>
   </div>
 

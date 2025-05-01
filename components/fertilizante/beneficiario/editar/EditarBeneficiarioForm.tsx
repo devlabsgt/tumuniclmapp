@@ -19,6 +19,7 @@ export default function EditarBeneficiarioForm() {
     lugar: '',
     fecha: '',
     codigo: '',
+    telefono: '',
   });
   const [original, setOriginal] = useState(formulario);
   const [cargando, setCargando] = useState(false);
@@ -45,6 +46,7 @@ export default function EditarBeneficiarioForm() {
         lugar: data.lugar || '',
         fecha: data.fecha?.split('T')[0] || '',
         codigo: data.codigo || '',
+        telefono: data.telefono || '',
       };
 
       setFormulario(datos);
@@ -72,10 +74,19 @@ export default function EditarBeneficiarioForm() {
     setCargando(true);
     const supabase = createClient();
 
-    // Verificar si DPI o código ya existen en otro registro
+    formulario.dpi = formulario.dpi.replace(/\s+/g, '');
+    formulario.codigo = formulario.codigo.replace(/\s+/g, '');
+    formulario.telefono = formulario.telefono.replace(/\s+/g, '');
+
+    if (!/^\d+$/.test(formulario.dpi) || !/^\d+$/.test(formulario.codigo) || !/^\d{8}$/.test(formulario.telefono)) {
+      setCargando(false);
+      Swal.fire('Error', 'DPI, Código y Teléfono deben contener solo números. Teléfono debe tener 8 dígitos.', 'warning');
+      return;
+    }
+
     const { data: duplicados, error: errorCheck } = await supabase
       .from('beneficiarios_fertilizante')
-      .select('id, dpi, codigo');
+      .select('id, dpi, codigo, telefono');
 
     if (errorCheck || !duplicados) {
       setCargando(false);
@@ -83,26 +94,16 @@ export default function EditarBeneficiarioForm() {
       return;
     }
 
-    const existeDPI = duplicados.find(
-      (b) => b.dpi === formulario.dpi && b.id !== id
-    );
-    const existeCodigo = duplicados.find(
-      (b) => b.codigo === formulario.codigo && b.id !== id
-    );
+    const existeDPI = duplicados.find((b) => b.dpi === formulario.dpi && b.id !== id);
+    const existeCodigo = duplicados.find((b) => b.codigo === formulario.codigo && b.id !== id);
+    const existeTelefono = duplicados.find((b) => b.telefono === formulario.telefono && b.id !== id);
 
-    if (existeDPI) {
+    if (existeDPI || existeCodigo || existeTelefono) {
       setCargando(false);
-      Swal.fire('Error', 'El DPI ingresado ya existe para otro beneficiario.', 'warning');
+      Swal.fire('Error', 'DPI, Código o Teléfono ya existen para otro beneficiario.', 'warning');
       return;
     }
 
-    if (existeCodigo) {
-      setCargando(false);
-      Swal.fire('Error', 'El código ingresado ya existe para otro beneficiario.', 'warning');
-      return;
-    }
-
-    // Si no hay conflictos, actualizar
     const { error } = await supabase
       .from('beneficiarios_fertilizante')
       .update(formulario)
@@ -126,24 +127,14 @@ export default function EditarBeneficiarioForm() {
     <div className="flex flex-col gap-4">
       <CampoTexto label="Nombre completo" name="nombre_completo" value={formulario.nombre_completo} onChange={handleChange} />
       <CampoTexto label="DPI" name="dpi" value={formulario.dpi} onChange={handleChange} />
+      <CampoTexto label="Teléfono" name="telefono" value={formulario.telefono} onChange={handleChange} />
+      <CampoTexto label="Código" name="codigo" value={formulario.codigo} onChange={handleChange} />
       <CampoLugar value={formulario.lugar} onChange={handleChange} />
       <div>
         <label className="font-semibold block mb-1">Fecha</label>
-        <input
-          type="date"
-          name="fecha"
-          value={formulario.fecha}
-          onChange={handleChange}
-          className="w-full border border-gray-300 rounded px-3 py-2"
-        />
+        <input type="date" name="fecha" value={formulario.fecha} onChange={handleChange} className="w-full border border-gray-300 rounded px-3 py-2" />
       </div>
-      <CampoTexto label="Código" name="codigo" value={formulario.codigo} onChange={handleChange} />
-
-      <Button
-        onClick={actualizar}
-        disabled={!hayCambios || cargando}
-        className="h-12 text-lg bg-blue-600 hover:bg-blue-700 text-white mt-4"
-      >
+      <Button onClick={actualizar} disabled={!hayCambios || cargando} className="h-12 text-lg bg-blue-600 hover:bg-blue-700 text-white mt-4">
         {cargando ? 'Guardando...' : 'Guardar Cambios'}
       </Button>
     </div>

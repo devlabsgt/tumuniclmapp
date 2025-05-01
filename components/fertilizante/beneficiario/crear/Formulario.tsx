@@ -10,7 +10,7 @@ interface Props {
     lugar: string;
     fecha: string;
     codigo: string;
-    // img: string;
+    telefono: string;
   };
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
 }
@@ -48,14 +48,15 @@ export function Formulario({ formulario, onChange }: Props) {
         value={formulario.codigo}
         onChange={onChange}
       />
-      {/*
       <CampoTexto
-        label="Imagen (URL)"
-        name="img"
-        value={formulario.img}
+        label="Teléfono"
+        name="telefono"
+        value={formulario.telefono}
         onChange={onChange}
+        type="tel"
+        pattern="\\d{8}"
+        placeholder="Ingrese 8 dígitos"
       />
-      */}
     </>
   );
 }

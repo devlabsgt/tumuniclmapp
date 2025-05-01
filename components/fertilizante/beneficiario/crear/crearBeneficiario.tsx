@@ -26,7 +26,9 @@ export function CrearBeneficiario() {
     lugar: '',
     fecha: '',
     codigo: '',
+    telefono: '',  // agregar este campo
   });
+
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -56,10 +58,12 @@ const verificarDPI = async () => {
     Swal.fire({
       title: 'Beneficiario ya existe',
       html: `
-        <strong>Nombre:</strong> ${data.nombre_completo}<br/>
-        <strong>Lugar:</strong> ${data.lugar}<br/>
-        <strong>Fecha:</strong> ${data.fecha}<br/>
-        <strong>Código:</strong> ${data.codigo}
+        <strong>Nombre:</strong> ${data.nombre_completo}<br/><br/>
+        <strong>DPI:</strong> ${data.dpi}<br/><br/>
+        <strong>Telefono:</strong> ${data.telefono}<br/><br/>
+        <strong>Código:</strong> ${data.codigo}<br/><br/>
+        <strong>Lugar:</strong> ${data.lugar}<br/><br/>
+        <strong>Fecha:</strong> ${data.fecha}
       `,
       icon: 'info',
     });
@@ -98,6 +102,14 @@ const verificarDPI = async () => {
 
   return (
     <div className="max-w-xl mx-auto p-6 bg-white rounded shadow">
+            <div className="flex items-center h-full">
+              <Button
+                onClick={() => router.push('/protected/fertilizante/beneficiarios/')}
+                className="h-full bg-blue-600 hover:bg-blue-700 text-white px-4 mb-5"
+              >
+                Atrás
+              </Button>
+            </div>
       <h1 className="text-2xl font-bold text-center mb-4">
         Registrar Beneficiario de Fertilizante
       </h1>
