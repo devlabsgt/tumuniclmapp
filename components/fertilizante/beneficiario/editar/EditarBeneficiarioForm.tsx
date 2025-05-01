@@ -127,7 +127,14 @@ export default function EditarBeneficiarioForm() {
     <div className="flex flex-col gap-4">
       <CampoTexto label="Nombre completo" name="nombre_completo" value={formulario.nombre_completo} onChange={handleChange} />
       <CampoTexto label="DPI" name="dpi" value={formulario.dpi} onChange={handleChange} />
-      <CampoTexto label="Teléfono" name="telefono" value={formulario.telefono} onChange={handleChange} />
+      <CampoTexto
+        label="Teléfono"
+        name="telefono"
+        value={formulario.telefono}
+        onChange={handleChange}
+        type="text"
+        placeholder="8 dígitos numéricos"
+      />
       <CampoTexto label="Código" name="codigo" value={formulario.codigo} onChange={handleChange} />
       <CampoLugar value={formulario.lugar} onChange={handleChange} />
       <div>

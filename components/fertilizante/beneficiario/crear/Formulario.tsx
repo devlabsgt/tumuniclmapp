@@ -54,7 +54,6 @@ export function Formulario({ formulario, onChange }: Props) {
         value={formulario.telefono}
         onChange={onChange}
         type="tel"
-        pattern="\\d{8}"
         placeholder="Ingrese 8 dígitos"
       />
     </>

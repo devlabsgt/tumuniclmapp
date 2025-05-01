@@ -8,11 +8,10 @@ interface Props {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   type?: string;
-  pattern?: string;
   placeholder?: string;
 }
 
-export function CampoTexto({ label, name, value, onChange, type = 'text', pattern, placeholder }: Props) {
+export function CampoTexto({ label, name, value, onChange, type = 'text', placeholder }: Props) {
   return (
     <div>
       <label className="font-semibold block mb-1">{label}</label>
@@ -21,10 +20,8 @@ export function CampoTexto({ label, name, value, onChange, type = 'text', patter
         name={name}
         value={value}
         onChange={onChange}
-        pattern={pattern}
         placeholder={placeholder}
         className="w-full border border-gray-300 rounded px-3 py-2"
-        required
       />
     </div>
   );

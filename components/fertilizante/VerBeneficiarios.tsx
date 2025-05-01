@@ -75,27 +75,27 @@ export default function VerBeneficiarios() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
-<div className="flex items-center justify-between mb-6 h-12">
-  <div className="flex items-center h-full">
-    <Button
-      onClick={() => router.push('/protected/')}
-      className="h-full bg-blue-600 hover:bg-blue-700 text-white px-4"
-    >
-      Atrás
-    </Button>
-  </div>
+    <div className="flex items-center justify-between mb-6 h-12">
+      <div className="flex items-center h-full">
+        <Button
+          onClick={() => router.push('/protected/')}
+          className="h-full bg-blue-600 hover:bg-blue-700 text-white px-4"
+        >
+          Atrás
+        </Button>
+      </div>
 
-  <h1 className="text-2xl font-bold text-center flex-1">Lista de Beneficiarios</h1>
+      <h1 className="text-2xl font-bold text-center flex-1">Lista de Beneficiarios</h1>
 
-  <div className="flex items-center h-full">
-    <Button
-      onClick={() => router.push('/protected/fertilizante/beneficiarios/crear')}
-      className="h-full bg-blue-600 hover:bg-blue-700 text-white px-4"
-    >
-      Nuevo Beneficiario
-    </Button>
-  </div>
-</div>
+      <div className="flex items-center h-full">
+        <Button
+          onClick={() => router.push('/protected/fertilizante/beneficiarios/crear')}
+          className="h-full bg-blue-600 hover:bg-blue-700 text-white px-4"
+        >
+          Nuevo Beneficiario
+        </Button>
+      </div>
+    </div>
 
 
 
@@ -113,7 +113,7 @@ export default function VerBeneficiarios() {
           <option value="created_at">Orden de ingreso</option>
           <option value="nombre_completo">Nombre</option>
           <option value="fecha">Fecha</option>
-          <option value="codigo">Código</option>
+          <option value="codigo">Formulario</option>
         </select>
       </div>
 

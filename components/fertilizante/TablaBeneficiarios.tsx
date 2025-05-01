@@ -36,7 +36,7 @@ export function TablaBeneficiarios({ data }: { data: Beneficiario[] }) {
               <th className="p-2 border">Nombre</th>
               <th className="p-2 border">DPI</th>
               <th className="p-2 border">Teléfono</th>
-              <th className="p-2 border">Código</th>
+              <th className="p-2 border">Formulario</th>
               <th className="p-2 border">Lugar</th>
               <th className="p-2 border">Fecha</th>
               <th className="p-2 border">Acciones</th>

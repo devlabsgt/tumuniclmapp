@@ -44,7 +44,7 @@ export function FiltroBeneficiarios({ filtros, setFiltros }: Props) {
         >
           <option value="nombre_completo">Nombre</option>
           <option value="dpi">DPI</option>
-          <option value="codigo">Código</option>
+          <option value="codigo">Formulario</option>
         </select>
 
         <Input
