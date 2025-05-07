@@ -41,9 +41,21 @@ export default function UserDashboard() {
   }, [mostrarOpciones]);
 
   return (
-    <section className="w-full max-w-5xl mx-auto py-8 px-4 md:px-8 relative">
+    <section className="w-full max-w-5xl mx-auto pt-12 px-4 md:px-8 relative">
+      {/* Botón Volver + Título alineado */}
+      <div className="relative mb-8">
+        <Button
+          type="button"
+          onClick={() => router.back()}
+          className="absolute left-0 top-1/2 -translate-y-1/2 h-10 bg-blue-600 hover:bg-blue-500 text-white rounded text-xl px-4"
+        >
+          Volver
+        </Button>
+        <h1 className="text-4xl font-bold text-center">Dashboard de Usuario</h1>
+      </div>
+
       {/* Barra de acciones */}
-      <div className="flex flex-wrap justify-center gap-4 mb-12 relative">
+      <div className="flex flex-wrap justify-center gap-4 mb-12">
         <div className="relative" ref={opcionesRef}>
           <Button
             onClick={() => {
@@ -58,9 +70,6 @@ export default function UserDashboard() {
         </div>
       </div>
 
-      <h1 className="text-4xl font-bold text-center text-foreground mb-8">
-        Bienvenido al Dashboard de Usuario
-      </h1>
       <p className="text-center text-muted-foreground text-lg mb-8">
         Desde aquí podrá gestionar su perfil de la municipalidad.
       </p>

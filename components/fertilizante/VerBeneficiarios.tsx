@@ -6,7 +6,15 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { FiltroBeneficiarios } from './FiltroBeneficiarios';
 import { TablaBeneficiarios } from './TablaBeneficiarios';
-import Link from 'next/link';
+import { generarPdfBeneficiarios } from '@/components/utils/PdfBeneficiarios';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { MoreHorizontal } from 'lucide-react';
+
 
 interface Beneficiario {
   id: string;
@@ -75,7 +83,7 @@ export default function VerBeneficiarios() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
-    <div className="flex items-center justify-between mb-6 h-12">
+    <div className="flex items-center justify-between mb-6 h-12 gap-2 flex-wrap">
       <div className="flex items-center h-full">
         <Button
           onClick={() => router.push('/protected/')}
@@ -87,7 +95,13 @@ export default function VerBeneficiarios() {
 
       <h1 className="text-2xl font-bold text-center flex-1">Lista de Beneficiarios</h1>
 
-      <div className="flex items-center h-full">
+      <div className="flex gap-2 h-full">
+        <Button
+          onClick={() => generarPdfBeneficiarios(beneficiariosFiltrados)}
+          className="h-full bg-green-600 hover:bg-green-700 text-white px-4"
+        >
+          Generar Reporte PDF
+        </Button>
         <Button
           onClick={() => router.push('/protected/fertilizante/beneficiarios/crear')}
           className="h-full bg-blue-600 hover:bg-blue-700 text-white px-4"
@@ -99,8 +113,10 @@ export default function VerBeneficiarios() {
 
 
 
+
       {/* Filtros en una fila */}
       <FiltroBeneficiarios filtros={filtros} setFiltros={setFiltros} />
+
 
       {/* Filtro de orden abajo */}
       <div className="mb-4">
@@ -116,7 +132,7 @@ export default function VerBeneficiarios() {
           <option value="codigo">Formulario</option>
         </select>
       </div>
-
+      
       <TablaBeneficiarios data={beneficiariosPaginados} />
 
       <div className="flex justify-center mt-4 gap-2">

@@ -109,9 +109,9 @@ export const signInAction = async (formData: FormData) => {
 
   // ✅ Redirigir según rol
   if (meta?.rol === "Admin") {
-    return redirect("/protected/admin");
+    return redirect("/protected");
   } else {
-    return redirect("/protected/user");
+    return redirect("/protected");
   }
 };
 
