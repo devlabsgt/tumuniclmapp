@@ -10,6 +10,7 @@ interface Beneficiario {
   fecha: string;
   codigo: string;
   telefono?: string;
+  sexo?: string;
 }
 
 export function TablaBeneficiarios({ data }: { data: Beneficiario[] }) {
@@ -38,6 +39,7 @@ export function TablaBeneficiarios({ data }: { data: Beneficiario[] }) {
               <th className="p-2 border">Teléfono</th>
               <th className="p-2 border">Formulario</th>
               <th className="p-2 border">Lugar</th>
+              <th className="p-2 border">Sexo</th>
               <th className="p-2 border">Fecha</th>
               <th className="p-2 border">Acciones</th>
             </tr>
@@ -50,6 +52,7 @@ export function TablaBeneficiarios({ data }: { data: Beneficiario[] }) {
                 <td className="p-2 border">{mostrar(b.telefono)}</td>
                 <td className="p-2 border">{mostrar(b.codigo)}</td>
                 <td className="p-2 border">{mostrar(b.lugar)}</td>
+                <td className="p-2 border">{mostrar(b.sexo)}</td>
                 <td className="p-2 border">{b.fecha ? new Date(b.fecha).toLocaleDateString() : 'N/A'}</td>
                 <td className="p-2 border">
                   <button

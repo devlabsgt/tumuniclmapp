@@ -9,6 +9,7 @@ interface Beneficiario {
   lugar: string;
   fecha: string;
   codigo: string;
+  sexo?: string;
 }
 
 export async function generarPdfBeneficiarios(beneficiarios: Beneficiario[]) {
@@ -44,13 +45,14 @@ export async function generarPdfBeneficiarios(beneficiarios: Beneficiario[]) {
     b.lugar,
     b.fecha,
     b.codigo,
+    b.sexo === 'M' ? 'Masculino' : b.sexo === 'F' ? 'Femenino' : 'N/A',
   ]);
 
   const tableStartY = imgHeight + 20;
 
   autoTable(doc, {
     startY: tableStartY,
-    head: [['Nombre Completo', 'DPI', 'Lugar', 'Fecha', 'Código']],
+    head: [['Nombre Completo', 'DPI', 'Lugar', 'Fecha', 'Código', 'Sexo']],
     body,
     theme: 'grid',
     styles: {
