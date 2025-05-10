@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 import UsersTable from '@/components/admin/users/UsersTable';
 import SearchBar from '@/components/admin/users/SearchBar';
@@ -20,6 +21,7 @@ export default function UsersPage() {
   const [orden, setOrden] = useState<'alfabetico' | 'creacion'>('alfabetico');
   const [paginaActual, setPaginaActual] = useState(1);
   const usuariosPorPagina = 5;
+  const router = useRouter();
 
   const totalPaginas = Math.ceil(usuariosFiltrados.length / usuariosPorPagina);
 
@@ -62,15 +64,15 @@ export default function UsersPage() {
   );
 
   return (
-    <div className="p-6">
+    <div className="px-6">
+           {/* Botón Volver */}
+
+        <Button variant="link" onClick={() => router.back()} className="text-blue-600 text-base px-0 underline">
+          Volver
+        </Button>
       <div className="flex items-center justify-between mb-4">
-        <div className="mb-4">
-          <Link href="/protected/">
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-              Volver
-            </Button>
-          </Link>
-        </div>
+
+
         <h1 className="text-2xl font-bold">Usuarios del sistema</h1>
         <Link href="/protected/admin/sign-up">
           <Button>Crear Usuario</Button>

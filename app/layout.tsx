@@ -56,9 +56,9 @@ export default function RootLayout({
 
             {/* Footer fijo al fondo */}
 
-            <footer className="w-full flex items-center justify-between border-t text-lg px-8 py-8 text-black dark:text-white">
+            <footer className="w-full flex items-center justify-between border-t text-xs md:text-lg px-8 py-8 text-black dark:text-white">
               <p className="text-left">
-                Powered by{" "}
+                Powered by{" "} <br/>
                 <a
                   href="https://www.oscar27jimenez.com"
                   target="_blank"

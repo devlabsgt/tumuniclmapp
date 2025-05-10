@@ -82,20 +82,15 @@ export default function VerBeneficiarios() {
   const beneficiariosPaginados = beneficiariosFiltrados.slice(inicio, inicio + beneficiariosPorPagina);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
-    <div className="flex items-center justify-between mb-6 h-12 gap-2 flex-wrap">
-      <div className="flex items-center h-full">
-        <Button
-          onClick={() => router.push('/protected/')}
-          className="h-full bg-blue-600 hover:bg-blue-700 text-white px-4"
-        >
-          Atrás
+<div className="w-full max-w-6xl mx-auto px-4 py-6 overflow-hidden">
+        <Button variant="link" onClick={() => router.back()} className="text-blue-600 text-base px-0 underline">
+          Volver
         </Button>
-      </div>
 
+    <div className="flex items-center justify-between mb-6 h-12 gap-2 flex-wrap">
       <h1 className="text-2xl font-bold text-center flex-1">Lista de Beneficiarios</h1>
 
-      <div className="flex gap-2 h-full">
+      <div className="flex gap-2 h-full ">
         <Button
           onClick={() => generarPdfBeneficiarios(beneficiariosFiltrados)}
           className="h-full bg-green-600 hover:bg-green-700 text-white px-4"

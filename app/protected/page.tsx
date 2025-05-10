@@ -43,22 +43,12 @@ export default function ProtectedPage() {
   return (
     <div className="flex-1 w-full flex flex-col items-center pt-12 px-4">
       <div className="text-center w-full max-w-xl">
-        <h1 className="text-4xl font-bold mb-4">Bienvenido al sistema de Gestión Municipal</h1>
-        <p className="text-4xl text-gray-600 mb-6">Selecciona una opción.</p>
+        <h1 className="text-xl md:text-4xl font-bold mb-4">Bienvenido al sistema de Gestión Municipal</h1>
+        <p className="text-xl md:text-4xl text-gray-600 mb-6">Selecciona una opción.</p>
 
-        <Button onClick={irAlDashboard} className="text-2xl px-6 h-16 w-full">
+        <Button onClick={irAlDashboard} className="text-xl md:text-2xl px-6 h-16 w-full">
           Entrar al Sistema
         </Button>
-
-        <div className="mt-5">
-          <Button
-            variant="outline"
-            onClick={() => router.push('/protected/fertilizante/beneficiarios/verificar')}
-            className="text-2xl px-6 h-16 w-full"
-          >
-            Verificar Beneficiario de Abono
-          </Button>
-        </div>
       </div>
     </div>
   );

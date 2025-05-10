@@ -30,7 +30,7 @@ export function TablaBeneficiarios({ data }: { data: Beneficiario[] }) {
       </div>
 
       {/* Tabla de datos */}
-      <div className="overflow-x-auto">
+<div className="w-full overflow-x-auto max-w-full">
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-gray-100 text-left">

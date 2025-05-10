@@ -24,8 +24,9 @@ const ThemeSwitcher = () => {
   const ICON_SIZE = 24; // Tamaño de ícono grande
 
   return (
-    <div className="flex items-center gap-3">
-        <span className="text-lg ">Haz click en el icono<br/>para cambiar el tema</span>
+    <div className="flex items-center gap-3 ">
+     
+        <span className="text-xs md:text-lg">Haz click en el icono<br/>para cambiar el tema</span>
 
       <Button
         variant="ghost"

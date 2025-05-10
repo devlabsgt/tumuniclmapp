@@ -1,11 +1,12 @@
 'use client';
 
 import VerificarBeneficiario from '@/components/fertilizante/beneficiario/verificar/verificarBeneficiario';
+import { Button } from '@/components/ui/button';
 
 export default function Header() {
   return (
-    <div className="flex flex-col gap-16 items-center pt-12 px-4 w-full">
-      <p className="text-3xl lg:text-4xl !leading-tight mx-auto max-w-3xl text-center">
+    <div className="flex flex-col gap-16 items-center pt-12 w-full">
+      <p className="text-xl md:text-4xl !leading-tight mx-auto max-w-3xl text-center">
         Bienvenido a la Aplicación Web de la<br />
         <a
           target="_blank"
@@ -20,10 +21,17 @@ export default function Header() {
       <div className="w-full p-[1px] bg-gradient-to-r from-transparent via-foreground/10 to-transparent my-4" />
 
       {/* Input de búsqueda de beneficiario */}
-      <div className="w-full max-w-xl">
-                <h1 className="text-4xl font-bold text-center">Verificar Entrega de Abono</h1>
-
+      <div className="w-full max-w-xl flex flex-col items-center gap-6">
+        <h1 className="text-4xl font-bold text-center">Verificar Entrega de Abono</h1>
         <VerificarBeneficiario />
+
+        <Button
+          variant="outline"
+          onClick={() => window.location.href = 'https://www.tumuniclm.com'}
+          className="mt-4 text-lg"
+        >
+          Salir
+        </Button>
       </div>
     </div>
   );

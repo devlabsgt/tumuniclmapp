@@ -28,18 +28,19 @@ export default function AdminDashboard() {
   }, [mostrarOpciones]);
 
   return (
-    <section className="w-full max-w-5xl mx-auto pt-12 px-4 md:px-8 relative">
+    <section className="w-full max-w-5xl mx-auto pt-0 px-4 md:px-8 relative">
+    <div className="flex flex-col items-center gap-4 mb-6 md:flex-row md:justify-between md:items-center">
       {/* Botón Volver */}
-      <div className="relative mb-6">
-        <Button
-          type="button"
-          onClick={() => router.back()}
-          className="absolute left-0 top-1/2 -translate-y-1/2 h-10 bg-blue-600 hover:bg-blue-500 text-white rounded text-xl px-4"
-        >
+
+        <Button variant="link" onClick={() => router.back()} className="text-blue-600 text-base px-0 underline">
           Volver
         </Button>
-        <h1 className="text-4xl font-bold text-center">Dashboard de Administrador</h1>
-      </div>
+
+      <h1 className="text-3xl md:text-4xl font-bold text-center md:text-left">
+        Dashboard de Administrador
+      </h1>
+    </div>
+
 
       {/* Barra de acciones */}
       <div className="flex flex-wrap justify-center gap-4 mb-12">
@@ -65,6 +66,7 @@ export default function AdminDashboard() {
 
         {/* Otros botones */}
         <Link href="/protected/fertilizante/beneficiarios">
+          
           <Button variant="outline" className="w-full justify-start">
             Entrega de Fertilizante
           </Button>
