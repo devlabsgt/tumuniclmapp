@@ -106,7 +106,7 @@ export function CrearBeneficiario() {
     }
 
     if (!/^\d{4}$/.test(codigo)) {
-      Swal.fire('Error', 'El Código debe tener 4 números.', 'warning');
+      Swal.fire('Error', 'El Formulario debe tener 4 números.', 'warning');
       return;
     }
 
@@ -135,7 +135,7 @@ if (duplicados && duplicados.length > 0) {
   let b: any = null;
 
   if (duplicadoCodigo) {
-    campo = 'Código';
+    campo = 'Formulario';
     valor = codigo;
     b = duplicadoCodigo;
   } else if (duplicadoDPI) {

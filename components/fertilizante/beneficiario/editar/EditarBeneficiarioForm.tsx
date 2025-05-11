@@ -84,7 +84,7 @@ export default function EditarBeneficiarioForm() {
 
     if (!/^\d+$/.test(formulario.dpi) || !/^\d+$/.test(formulario.codigo) || !/^\d{8}$/.test(formulario.telefono)) {
       setCargando(false);
-      Swal.fire('Error', 'DPI, Código y Teléfono deben contener solo números. Teléfono debe tener 8 dígitos.', 'warning');
+      Swal.fire('Error', 'DPI, Formulario y Teléfono deben contener solo números. Teléfono debe tener 8 dígitos.', 'warning');
       return;
     }
 
@@ -104,7 +104,7 @@ export default function EditarBeneficiarioForm() {
 
     if (existeDPI || existeCodigo || existeTelefono) {
       setCargando(false);
-      Swal.fire('Error', 'DPI, Código o Teléfono ya existen para otro beneficiario.', 'warning');
+      Swal.fire('Error', 'DPI, Formulario o Teléfono ya existen para otro beneficiario.', 'warning');
       return;
     }
 
@@ -139,7 +139,7 @@ export default function EditarBeneficiarioForm() {
         type="text"
         placeholder="8 dígitos numéricos"
       />
-      <CampoTexto label="Código" name="codigo" value={formulario.codigo} onChange={handleChange} />
+      <CampoTexto label="Formulario" name="codigo" value={formulario.codigo} onChange={handleChange} />
       <CampoLugar value={formulario.lugar} onChange={handleChange} />
       <div>
         <label className="font-semibold block mb-1">Fecha</label>

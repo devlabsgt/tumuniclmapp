@@ -100,10 +100,11 @@ export default function VerBeneficiarios() {
   const beneficiariosPaginados = beneficiariosFiltrados.slice(inicio, inicio + beneficiariosPorPagina);
 
   const resumen = {
-    total: beneficiarios.length,
-    hombres: beneficiarios.filter(b => b.sexo?.toUpperCase() === 'M').length,
-    mujeres: beneficiarios.filter(b => b.sexo?.toUpperCase() === 'F').length,
+    total: beneficiariosFiltrados.length,
+    hombres: beneficiariosFiltrados.filter(b => b.sexo?.toUpperCase() === 'M').length,
+    mujeres: beneficiariosFiltrados.filter(b => b.sexo?.toUpperCase() === 'F').length,
   };
+  
 
   const manejarVolver = () => {
     if (userRole === 'admin') {

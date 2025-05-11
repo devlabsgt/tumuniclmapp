@@ -43,7 +43,7 @@ export function Formulario({ formulario, onChange }: Props) {
         />
       </div>
       <CampoTexto
-        label="Código"
+        label="Formulario"
         name="codigo"
         value={formulario.codigo}
         onChange={onChange}
