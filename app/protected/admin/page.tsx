@@ -29,17 +29,22 @@ export default function AdminDashboard() {
 
   return (
     <section className="w-full max-w-5xl mx-auto pt-0 px-4 md:px-8 relative">
-    <div className="flex flex-col items-center gap-4 mb-6 md:flex-row md:justify-between md:items-center">
-      {/* Botón Volver */}
+<div className="relative flex items-center justify-center mb-6">
+  {/* Botón Volver */}
+  <Button
+    variant="link"
+    onClick={() => router.back()}
+    className="absolute left-0 text-blue-600 text-base px-0 underline"
+  >
+    Volver
+  </Button>
 
-        <Button variant="link" onClick={() => router.back()} className="text-blue-600 text-base px-0 underline">
-          Volver
-        </Button>
+  {/* Título */}
+  <h1 className="text-2xl md:text-4xl font-bold text-center">
+    Dashboard de Administrador
+  </h1>
+</div>
 
-      <h1 className="text-3xl md:text-4xl font-bold text-center md:text-left">
-        Dashboard de Administrador
-      </h1>
-    </div>
 
 
       {/* Barra de acciones */}
@@ -71,8 +76,7 @@ export default function AdminDashboard() {
             Entrega de Fertilizante
           </Button>
         </Link>
-        <Button variant="outline">Reportes</Button>
-        <Button variant="outline">Configuraciones</Button>
+
       </div>
 
       <p className="text-center text-muted-foreground text-lg mb-8">

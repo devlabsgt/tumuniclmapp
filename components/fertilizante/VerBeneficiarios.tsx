@@ -7,14 +7,6 @@ import { Button } from '@/components/ui/button';
 import { FiltroBeneficiarios } from './FiltroBeneficiarios';
 import { TablaBeneficiarios } from './TablaBeneficiarios';
 import { generarPdfBeneficiarios } from '@/components/utils/PdfBeneficiarios';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { MoreHorizontal } from 'lucide-react';
-
 
 interface Beneficiario {
   id: string;
@@ -23,15 +15,21 @@ interface Beneficiario {
   lugar: string;
   fecha: string;
   codigo: string;
+  telefono?: string;
+  sexo?: string;
 }
 
 type CampoFiltro = 'nombre_completo' | 'dpi' | 'codigo';
-type OrdenFiltro = 'created_at' | 'nombre_completo' | 'fecha' | 'codigo';
+type OrdenFiltro = 
+  'nombre_completo_asc' | 'nombre_completo_desc' |
+  'fecha_asc' | 'fecha_desc' |
+  'codigo_asc' | 'codigo_desc';
 
 export default function VerBeneficiarios() {
   const [beneficiarios, setBeneficiarios] = useState<Beneficiario[]>([]);
   const [paginaActual, setPaginaActual] = useState(1);
-  const [orden, setOrden] = useState<OrdenFiltro>('created_at');
+  const [orden, setOrden] = useState<OrdenFiltro>('codigo_asc');
+  const [userRole, setUserRole] = useState<'admin' | 'user' | null>(null);
 
   const [filtros, setFiltros] = useState<{
     campo: CampoFiltro;
@@ -60,7 +58,14 @@ export default function VerBeneficiarios() {
       if (error) console.error(error);
     };
 
+    const obtenerUsuario = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const rol = user?.user_metadata?.rol || 'user'; // fallback a "user" si no tiene
+      setUserRole(rol);
+    };
+
     cargarDatos();
+    obtenerUsuario();
   }, []);
 
   const beneficiariosFiltrados = beneficiarios
@@ -71,9 +76,22 @@ export default function VerBeneficiarios() {
       );
     })
     .sort((a, b) => {
-      if (orden === 'created_at') return 0;
-      if (orden === 'fecha') return new Date(a.fecha).getTime() - new Date(b.fecha).getTime();
-      return a[orden].localeCompare(b[orden]);
+      switch (orden) {
+        case 'nombre_completo_asc':
+          return a.nombre_completo.localeCompare(b.nombre_completo);
+        case 'nombre_completo_desc':
+          return b.nombre_completo.localeCompare(a.nombre_completo);
+        case 'fecha_asc':
+          return new Date(a.fecha).getTime() - new Date(b.fecha).getTime();
+        case 'fecha_desc':
+          return new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
+        case 'codigo_asc':
+          return a.codigo.localeCompare(b.codigo);
+        case 'codigo_desc':
+          return b.codigo.localeCompare(a.codigo);
+        default:
+          return 0;
+      }
     });
 
   const beneficiariosPorPagina = 10;
@@ -81,32 +99,50 @@ export default function VerBeneficiarios() {
   const inicio = (paginaActual - 1) * beneficiariosPorPagina;
   const beneficiariosPaginados = beneficiariosFiltrados.slice(inicio, inicio + beneficiariosPorPagina);
 
+  const resumen = {
+    total: beneficiarios.length,
+    hombres: beneficiarios.filter(b => b.sexo?.toUpperCase() === 'M').length,
+    mujeres: beneficiarios.filter(b => b.sexo?.toUpperCase() === 'F').length,
+  };
+
+  const manejarVolver = () => {
+    if (userRole === 'admin') {
+      router.push('/protected/admin');
+    } else {
+      router.push('/protected/user');
+    }
+  };
+
+  
   return (
-<div className="w-full max-w-6xl mx-auto px-4 py-6 overflow-hidden">
-        <Button variant="link" onClick={() => router.back()} className="text-blue-600 text-base px-0 underline">
-          Volver
-        </Button>
+    <div className="w-full max-w-6xl mx-auto px-4 py-6 overflow-hidden">
+    <Button
+      variant="link"
+      onClick={manejarVolver}
+      className="text-blue-600 text-base px-0 underline"
+    >
+      Volver
+    </Button>
+    <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-2">
+  <h1 className="text-2xl font-bold text-left">
+    Lista de Beneficiarios
+  </h1>
 
-    <div className="flex items-center justify-between mb-6 h-12 gap-2 flex-wrap">
-      <h1 className="text-2xl font-bold text-center flex-1">Lista de Beneficiarios</h1>
-
-      <div className="flex gap-2 h-full ">
-        <Button
-          onClick={() => generarPdfBeneficiarios(beneficiariosFiltrados)}
-          className="h-full bg-green-600 hover:bg-green-700 text-white px-4"
-        >
-          Generar Reporte PDF
-        </Button>
-        <Button
-          onClick={() => router.push('/protected/fertilizante/beneficiarios/crear')}
-          className="h-full bg-blue-600 hover:bg-blue-700 text-white px-4"
-        >
-          Nuevo Beneficiario
-        </Button>
-      </div>
-    </div>
-
-
+  <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+    <Button
+      onClick={() => generarPdfBeneficiarios(beneficiariosFiltrados)}
+      className="h-12 bg-green-600 hover:bg-green-700 text-white px-4 w-full sm:w-auto"
+    >
+      Generar Reporte PDF
+    </Button>
+    <Button
+      onClick={() => router.push('/protected/fertilizante/beneficiarios/crear')}
+      className="h-12 bg-blue-600 hover:bg-blue-700 text-white px-4 w-full sm:w-auto"
+    >
+      Nuevo Beneficiario
+    </Button>
+  </div>
+</div>
 
 
       {/* Filtros en una fila */}
@@ -115,20 +151,26 @@ export default function VerBeneficiarios() {
 
       {/* Filtro de orden abajo */}
       <div className="mb-4">
-        <span className="text-sm font-medium text-gray-700 whitespace-nowrap font-semibold">Ordenar por:  </span>
-        <select
-          value={orden}
-          onChange={(e) => setOrden(e.target.value as OrdenFiltro)}
-          className="border border-gray-300 rounded px-3 py-2"
-        >
-          <option value="created_at">Orden de ingreso</option>
-          <option value="nombre_completo">Nombre</option>
-          <option value="fecha">Fecha</option>
-          <option value="codigo">Formulario</option>
-        </select>
-      </div>
+  <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">Ordenar por:</span>
+  <select
+    value={orden}
+    onChange={(e) => setOrden(e.target.value as OrdenFiltro)}
+    className="border border-gray-300 rounded px-3 py-2 ml-2"
+  >
+<option value="codigo_asc">Formulario (ascendente)</option>
+<option value="codigo_desc">Formulario (descendente)</option>
+
+ <option value="nombre_completo_asc">Nombre (A-Z)</option>
+<option value="nombre_completo_desc">Nombre (Z-A)</option>
+<option value="fecha_desc">Fecha (más reciente primero)</option>
+<option value="fecha_asc">Fecha (más antigua primero)</option>
+
+
+  </select>
+</div>
+
       
-      <TablaBeneficiarios data={beneficiariosPaginados} />
+<TablaBeneficiarios data={beneficiariosPaginados} resumen={resumen} />
 
       <div className="flex justify-center mt-4 gap-2">
         {Array.from({ length: totalPaginas }, (_, i) => (

@@ -1,14 +1,16 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { signInAction } from '@/app/actions';
 import { SubmitButton } from '@/components/submit-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { Eye, EyeOff } from 'lucide-react';
 
 export function LoginForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get('error');
   const success = searchParams.get('success');
@@ -33,7 +35,19 @@ export function LoginForm() {
 
   return (
     <form className="flex-1 flex flex-col min-w-64 max-w-md mx-auto p-8 gap-6">
-      <h1 className="text-2xl font-medium">Iniciar Sesión</h1>
+
+
+      {/* Volver y Título alineados */}
+      <div className="flex items-center justify-between mb-2">
+        <Button
+          variant="link"
+          onClick={() => router.back()}
+          className="text-blue-600 text-base px-0 underline"
+        >
+          Volver
+        </Button>
+        <h1 className="text-2xl font-medium text-right flex-1">Iniciar Sesión</h1>
+      </div>
 
       {error && (
         <div className="bg-red-100 text-red-800 p-3 text-base rounded mb-4 border border-red-300">

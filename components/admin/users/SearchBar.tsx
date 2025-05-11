@@ -11,9 +11,11 @@ type Props = {
 
 export default function SearchBar({ valor, campo, onBuscar, onCambiarCampo }: Props) {
   return (
-    <div className="mb-4 flex flex-col md:flex-row items-center gap-4 justify-center">
-      <div className="flex gap-2 items-center">
-        <label htmlFor="campo" className="text-sm font-medium">Buscar por:</label>
+    <div className="mb-4 flex flex-col md:flex-row items-center gap-4 w-full">
+      <div className="flex gap-2 items-center w-full md:w-auto">
+        <label htmlFor="campo" className="text-sm font-medium whitespace-nowrap">
+          Buscar por:
+        </label>
         <select
           id="campo"
           value={campo}

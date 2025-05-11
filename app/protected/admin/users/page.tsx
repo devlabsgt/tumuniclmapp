@@ -65,11 +65,14 @@ export default function UsersPage() {
 
   return (
     <div className="px-6">
-           {/* Botón Volver */}
+      <Button
+        variant="link"
+        onClick={() => router.push('/protected/admin')}
+        className="text-blue-600 text-base px-0 underline"
+      >
+        Volver
+      </Button>
 
-        <Button variant="link" onClick={() => router.back()} className="text-blue-600 text-base px-0 underline">
-          Volver
-        </Button>
       <div className="flex items-center justify-between mb-4">
 
 

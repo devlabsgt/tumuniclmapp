@@ -13,7 +13,19 @@ interface Beneficiario {
   sexo?: string;
 }
 
-export function TablaBeneficiarios({ data }: { data: Beneficiario[] }) {
+interface ResumenBeneficiarios {
+  total: number;
+  hombres: number;
+  mujeres: number;
+}
+
+export function TablaBeneficiarios({ 
+  data, 
+  resumen 
+}: { 
+  data: Beneficiario[]; 
+  resumen: ResumenBeneficiarios; 
+}) {
   const router = useRouter();
 
   const irAEditar = (id: string) => {
@@ -24,13 +36,17 @@ export function TablaBeneficiarios({ data }: { data: Beneficiario[] }) {
 
   return (
     <div>
-      {/* Resumen de total de beneficiarios */}
-      <div className="mb-4 text-lg font-semibold text-green-700">
-        🌱 Beneficiarios: {data.length}
+      {/* Resumen de beneficiarios */}
+      <div className="mb-4 text-green-700">
+        <div className="text-lg font-bold">
+          🌱 Beneficiarios: <span className="text-green-800">{resumen.total}</span> |
+          👨‍🌾 Hombres: <span className="text-green-700 font-semibold">{resumen.hombres}</span> | 
+          👩‍🌾 Mujeres: <span className="text-green-700 font-semibold">{resumen.mujeres}</span>
+        </div>
       </div>
 
-      {/* Tabla de datos */}
-<div className="w-full overflow-x-auto max-w-full">
+      {/* Tabla */}
+      <div className="w-full overflow-x-auto max-w-full">
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-gray-100 text-left">
