@@ -74,47 +74,59 @@ export default function EditarBeneficiarioForm() {
       Swal.fire('Sin cambios', 'No hiciste ninguna modificación.', 'info');
       return;
     }
-
+  
     setCargando(true);
     const supabase = createClient();
-
+  
     formulario.dpi = formulario.dpi.replace(/\s+/g, '');
     formulario.codigo = formulario.codigo.replace(/\s+/g, '');
     formulario.telefono = formulario.telefono.replace(/\s+/g, '');
-
-    if (!/^\d+$/.test(formulario.dpi) || !/^\d+$/.test(formulario.codigo) || !/^\d{8}$/.test(formulario.telefono)) {
+  
+    if (!/^\d+$/.test(formulario.dpi) || !/^\d+$/.test(formulario.codigo)) {
       setCargando(false);
-      Swal.fire('Error', 'DPI, Formulario y Teléfono deben contener solo números. Teléfono debe tener 8 dígitos.', 'warning');
+      Swal.fire('Error', 'DPI y Formulario deben contener solo números.', 'warning');
       return;
     }
-
+  
+    if (formulario.telefono !== '' && !/^\d{8}$/.test(formulario.telefono)) {
+      setCargando(false);
+      Swal.fire('Error', 'Si se ingresa Teléfono, debe tener exactamente 8 números.', 'warning');
+      return;
+    }
+  
     const { data: duplicados, error: errorCheck } = await supabase
       .from('beneficiarios_fertilizante')
       .select('id, dpi, codigo, telefono');
-
+  
     if (errorCheck || !duplicados) {
       setCargando(false);
       Swal.fire('Error', 'No se pudo verificar duplicados.', 'error');
       return;
     }
-
+  
     const existeDPI = duplicados.find((b) => b.dpi === formulario.dpi && b.id !== id);
     const existeCodigo = duplicados.find((b) => b.codigo === formulario.codigo && b.id !== id);
     const existeTelefono = duplicados.find((b) => b.telefono === formulario.telefono && b.id !== id);
-
-    if (existeDPI || existeCodigo || existeTelefono) {
+  
+    if (existeDPI || existeCodigo || (formulario.telefono !== 'N/A' && existeTelefono)) {
       setCargando(false);
       Swal.fire('Error', 'DPI, Formulario o Teléfono ya existen para otro beneficiario.', 'warning');
       return;
     }
-
+  
+    // Aquí corregimos el teléfono si viene vacío
+    const datosActualizar = {
+      ...formulario,
+      telefono: formulario.telefono === '' ? 'N/A' : formulario.telefono,
+    };
+  
     const { error } = await supabase
       .from('beneficiarios_fertilizante')
-      .update(formulario)
+      .update(datosActualizar)
       .eq('id', id);
-
+  
     setCargando(false);
-
+  
     if (error) {
       console.error(error);
       Swal.fire('Error', 'No se pudo actualizar el beneficiario.', 'error');
@@ -124,6 +136,8 @@ export default function EditarBeneficiarioForm() {
       });
     }
   };
+  
+  
 
   if (!id) return <p className="p-4 text-center">ID de beneficiario no proporcionado.</p>;
 
