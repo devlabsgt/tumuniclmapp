@@ -29,22 +29,25 @@ export default function AdminDashboard() {
 
   return (
     <section className="w-full max-w-5xl mx-auto pt-0 px-4 md:px-8 relative">
-<div className="relative flex items-center justify-center mb-6">
-  {/* Botón Volver */}
-  <Button
-    variant="link"
-    onClick={() => router.back()}
-    className="absolute left-0 text-blue-600 text-base px-0 underline"
-  >
-    Volver
-  </Button>
+      <div className="relative flex items-center justify-center mb-4">
+        {/* Botón Volver */}
+        <Button
+          variant="link"
+          onClick={() => router.back()}
+          className="absolute left-0 text-blue-600 text-base px-0 underline"
+        >
+          Volver
+        </Button>
 
-  {/* Título */}
-  <h1 className="text-2xl md:text-4xl font-bold text-center">
-    Dashboard de Administrador
-  </h1>
-</div>
 
+      </div>
+      <div className="relative flex items-center justify-center mb-6">
+
+      {/* Título */}
+        <h1 className="text-2xl md:text-4xl font-bold text-center">
+          Dashboard de Administrador
+        </h1>
+        </div>
 
 
       {/* Barra de acciones */}

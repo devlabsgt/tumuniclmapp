@@ -29,7 +29,7 @@ export default function VerBeneficiarios() {
   const [beneficiarios, setBeneficiarios] = useState<Beneficiario[]>([]);
   const [paginaActual, setPaginaActual] = useState(1);
   const [orden, setOrden] = useState<OrdenFiltro>('codigo_asc');
-  const [userRole, setUserRole] = useState<'admin' | 'user' | null>(null);
+  const [userRole, setUserRole] = useState<'Admin' | 'User' | null>(null);
 
   const [filtros, setFiltros] = useState<{
     campo: CampoFiltro;
@@ -60,7 +60,7 @@ export default function VerBeneficiarios() {
 
     const obtenerUsuario = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      const rol = user?.user_metadata?.rol || 'user'; // fallback a "user" si no tiene
+      const rol = user?.user_metadata?.rol || 'User'; // fallback a "user" si no tiene
       setUserRole(rol);
     };
 
@@ -107,7 +107,7 @@ export default function VerBeneficiarios() {
   
 
   const manejarVolver = () => {
-    if (userRole === 'admin') {
+    if (userRole === 'Admin') {
       router.push('/protected/admin');
     } else {
       router.push('/protected/user');
