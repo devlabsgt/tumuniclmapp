@@ -77,98 +77,102 @@ export function CrearBeneficiario() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     const camposRequeridos = [
       'nombre_completo',
       'dpi',
       'lugar',
       'fecha',
       'codigo',
-      'telefono',
       'sexo',
     ];
+    
     const vacios = camposRequeridos.some(
       (campo) => !formulario[campo as keyof typeof formulario]?.trim()
     );
-
+  
     if (vacios) {
       Swal.fire('Error', 'Complete todos los campos obligatorios.', 'error');
       return;
     }
-
+  
     const dpi = formulario.dpi.trim();
     const codigo = formulario.codigo.trim();
     const telefono = formulario.telefono.trim();
-
+  
     if (!/^\d{13}$/.test(dpi)) {
       Swal.fire('Error', 'El DPI debe tener 13 números.', 'warning');
       return;
     }
-
+  
     if (!/^\d{4}$/.test(codigo)) {
       Swal.fire('Error', 'El Formulario debe tener 4 números.', 'warning');
       return;
     }
-
-    if (!/^\d{8}$/.test(telefono)) {
-      Swal.fire('Error', 'El Teléfono debe tener 8 números.', 'warning');
+  
+    if (telefono !== '' && !/^\d{8}$/.test(telefono)) {
+      Swal.fire('Error', 'El Teléfono debe tener exactamente 8 números si se ingresa.', 'warning');
       return;
     }
-
+  
     const { data: duplicados, error: errorCheck } = await supabase
       .from('beneficiarios_fertilizante')
       .select('*')
       .or(`dpi.eq.${dpi},codigo.eq.${codigo},telefono.eq.${telefono}`);
-
+  
     if (errorCheck) {
       Swal.fire('Error', 'Error al verificar duplicados.', 'error');
       return;
     }
-
-if (duplicados && duplicados.length > 0) {
-  const duplicadoCodigo = duplicados.find((b) => b.codigo === codigo);
-  const duplicadoDPI = duplicados.find((b) => b.dpi === dpi);
-  const duplicadoTelefono = duplicados.find((b) => b.telefono === telefono);
-
-  let campo = '';
-  let valor = '';
-  let b: any = null;
-
-  if (duplicadoCodigo) {
-    campo = 'Formulario';
-    valor = codigo;
-    b = duplicadoCodigo;
-  } else if (duplicadoDPI) {
-    campo = 'DPI';
-    valor = dpi;
-    b = duplicadoDPI;
-  } else if (duplicadoTelefono) {
-    campo = 'Teléfono';
-    valor = telefono;
-    b = duplicadoTelefono;
-  }
-
-  Swal.fire({
-    title: `Ya existe un beneficiario con ${campo}: ${valor}`,
-    html: `
-      <strong>Nombre:</strong> ${b.nombre_completo}<br/><br/>
-      <strong>DPI:</strong> ${b.dpi}<br/><br/>
-      <strong>Teléfono:</strong> ${b.telefono}<br/><br/>
-      <strong>Formulario:</strong> ${b.codigo}<br/><br/>
-      <strong>Lugar:</strong> ${b.lugar}<br/><br/>
-      <strong>Fecha:</strong> ${b.fecha}
-    `,
-    icon: 'info',
-  });
-
-  return;
-}
-
-
+  
+    if (duplicados && duplicados.length > 0) {
+      const duplicadoCodigo = duplicados.find((b) => b.codigo === codigo);
+      const duplicadoDPI = duplicados.find((b) => b.dpi === dpi);
+      const duplicadoTelefono = duplicados.find((b) => b.telefono === telefono);
+  
+      let campo = '';
+      let valor = '';
+      let b: any = null;
+  
+      if (duplicadoCodigo) {
+        campo = 'Formulario';
+        valor = codigo;
+        b = duplicadoCodigo;
+      } else if (duplicadoDPI) {
+        campo = 'DPI';
+        valor = dpi;
+        b = duplicadoDPI;
+      } else if (duplicadoTelefono) {
+        campo = 'Teléfono';
+        valor = telefono;
+        b = duplicadoTelefono;
+      }
+  
+      Swal.fire({
+        title: `Ya existe un beneficiario con ${campo}: ${valor}`,
+        html: `
+          <strong>Nombre:</strong> ${b.nombre_completo}<br/><br/>
+          <strong>DPI:</strong> ${b.dpi}<br/><br/>
+          <strong>Teléfono:</strong> ${b.telefono}<br/><br/>
+          <strong>Formulario:</strong> ${b.codigo}<br/><br/>
+          <strong>Lugar:</strong> ${b.lugar}<br/><br/>
+          <strong>Fecha:</strong> ${b.fecha}
+        `,
+        icon: 'info',
+      });
+  
+      return;
+    }
+  
     const { error } = await supabase
       .from('beneficiarios_fertilizante')
-      .insert([{ ...formulario, dpi, codigo, telefono }]);
-
+      .insert([{ 
+        ...formulario, 
+        dpi, 
+        codigo, 
+        telefono: telefono === '' ? 'N/A' : telefono 
+      }]);
+  
     if (error) {
       Swal.fire('Error', 'No se pudo registrar el beneficiario.', 'error');
     } else {
@@ -177,6 +181,7 @@ if (duplicados && duplicados.length > 0) {
       });
     }
   };
+  
 
   return (
     <div className="max-w-xl mx-auto p-6 bg-white rounded shadow">
