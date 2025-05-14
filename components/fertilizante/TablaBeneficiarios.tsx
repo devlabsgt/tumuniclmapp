@@ -39,7 +39,7 @@ export function TablaBeneficiarios({
       {/* Resumen de beneficiarios */}
       <div className="mb-4 text-green-700">
         <div className="text-lg font-bold">
-          🌱 Beneficiarios: <span className="text-green-800">{resumen.total}</span> |
+          🌾 Beneficiarios: <span className="text-green-800">{resumen.total}</span> <br/>
           👨‍🌾 Hombres: <span className="text-green-700 font-semibold">{resumen.hombres}</span> | 
           👩‍🌾 Mujeres: <span className="text-green-700 font-semibold">{resumen.mujeres}</span>
         </div>
