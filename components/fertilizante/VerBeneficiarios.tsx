@@ -173,19 +173,46 @@ export default function VerBeneficiarios() {
       
 <TablaBeneficiarios data={beneficiariosPaginados} resumen={resumen} />
 
-      <div className="flex justify-center mt-4 gap-2">
-        {Array.from({ length: totalPaginas }, (_, i) => (
-          <button
-            key={i}
-            onClick={() => setPaginaActual(i + 1)}
-            className={`px-4 py-2 rounded border ${
-              paginaActual === i + 1 ? 'bg-blue-600 text-white' : 'bg-white'
-            }`}
-          >
-            {i + 1}
-          </button>
-        ))}
-      </div>
+<div className="flex justify-center mt-4 gap-2 flex-wrap">
+  {/* Flecha izquierda */}
+  <button
+    onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+    disabled={paginaActual === 1}
+    className={`px-3 py-2 rounded border ${paginaActual === 1 ? 'bg-gray-200 text-gray-500' : 'bg-white'}`}
+  >
+    ←
+  </button>
+
+  {/* Botones de página (dinámicos, máximo 14 números visibles) */}
+  {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+    .filter((numero) => {
+      if (totalPaginas <= 14) return true; // Si hay pocas páginas, mostrar todas
+      if (paginaActual <= 7) return numero <= 14;
+      if (paginaActual >= totalPaginas - 6) return numero > totalPaginas - 14;
+      return Math.abs(paginaActual - numero) <= 6;
+    })
+    .map((numero) => (
+      <button
+        key={numero}
+        onClick={() => setPaginaActual(numero)}
+        className={`px-4 py-2 rounded border ${
+          paginaActual === numero ? 'bg-blue-600 text-white' : 'bg-white'
+        }`}
+      >
+        {numero}
+      </button>
+    ))}
+
+  {/* Flecha derecha */}
+  <button
+    onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
+    disabled={paginaActual === totalPaginas}
+    className={`px-3 py-2 rounded border ${paginaActual === totalPaginas ? 'bg-gray-200 text-gray-500' : 'bg-white'}`}
+  >
+    →
+  </button>
+</div>
+
     </div>
   );
 }
