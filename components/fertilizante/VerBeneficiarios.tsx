@@ -94,6 +94,12 @@ export default function VerBeneficiarios() {
       }
     });
 
+    useEffect(() => {
+  setPaginaActual(1);
+}, [filtros, orden]);
+
+
+
   const beneficiariosPorPagina = 10;
   const totalPaginas = Math.ceil(beneficiariosFiltrados.length / beneficiariosPorPagina);
   const inicio = (paginaActual - 1) * beneficiariosPorPagina;
@@ -171,7 +177,15 @@ export default function VerBeneficiarios() {
 </div>
 
       
-<TablaBeneficiarios data={beneficiariosPaginados} resumen={resumen} />
+{beneficiariosPaginados.length === 0 ? (
+  <div className="text-center text-gray-600 my-8 text-2xl">
+    <strong >
+    No se encontraron beneficiarios que coincidan con su búsqueda.
+  </strong>
+  </div>
+) : (
+  <TablaBeneficiarios data={beneficiariosPaginados} resumen={resumen} />
+)}
 
 <div className="flex justify-center mt-4 gap-2 flex-wrap">
   {/* Flecha izquierda */}

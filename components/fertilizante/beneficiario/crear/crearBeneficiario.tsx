@@ -62,12 +62,11 @@ export function CrearBeneficiario() {
           <strong>Datos del beneficiario:</strong><br/><br/>
           <strong>Nombre:</strong> ${data.nombre_completo}<br/><br/>
           <strong>DPI:</strong> ${data.dpi}<br/><br/>
-          <strong>Teléfono:</strong> ${data.telefono}<br/><br/>
           <strong>Formulario:</strong> ${data.codigo}<br/><br/>
           <strong>Lugar:</strong> ${data.lugar}<br/><br/>
           <strong>Fecha:</strong> ${data.fecha}
         `,
-        icon: 'info',
+        icon: 'error',
       });
     } else {
       setFormulario((prev) => ({ ...prev, dpi }));
