@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Progress } from '@/components/ui/Progress';
-import { Button } from '@/components/ui/button';
 import MTopLugares from './MTopLugares';
 
 interface Beneficiario {
@@ -43,14 +42,16 @@ export default function EstadisticasBeneficiarios({ data }: Props) {
       <div className="text-lg font-bold text-green-700">
         <span className="text-green-800">{total}</span> de {totalMeta} entregados (
         {porcentaje.toFixed(2)}%) <br />
-        Hombres: <span className="text-green-700 font-semibold">{hombres}</span> | 
-        Mujeres: <span className="text-green-700 font-semibold">{mujeres}</span>
+        
       </div>
-
+     
       <div className="mt-2">
         <Progress value={porcentaje} className="h-3" />
       </div>
-
+        <div className="text-lg font-bold text-gray-700">
+            Hombres: <span className="text-gray-700 font-semibold">{hombres}</span> | 
+            Mujeres: <span className="text-gray-700 font-semibold">{mujeres}</span>
+        </div>
       <div className="mt-4">
         <div className="font-semibold mb-2">🏆 Top 3 lugares con más registros</div>
         <div className="flex gap-4">
