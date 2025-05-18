@@ -101,10 +101,10 @@ export function UsuarioPageContent() {
   return (
     <div className="max-w-4xl mx-auto p-6 border rounded shadow bg-background text-foreground text-sm">
       <div className="flex items-center justify-between mb-2">
-        <Button
-          type="button"
-          className="h-10 text-white text-xl w-auto p-4 bg-blue-600 hover:bg-blue-700 mb-5"
-          onClick={() => router.push(`/protected/admin/users`)}
+         <Button
+          variant="ghost"
+          onClick={() => router.push("/protected/admin/users")}
+          className="text-blue-600 text-base underline"
         >
           Volver
         </Button>
@@ -137,12 +137,16 @@ export function UsuarioPageContent() {
       </div>
 
       <div className="border-t border-b divide-y divide-border text-xl">
-        {[{ label: 'USUARIO', value: usuario.email }, { label: 'NOMBRE', value: usuario.nombre }, { label: 'ROL', value: usuario.rol }].map(({ label, value }) => (
-          <div key={label} className="flex py-3 items-center gap-4">
-            <strong className="min-w-[140px]">{label}</strong>
-            <span className="flex-1">{value}</span>
-          </div>
-        ))}
+  {[
+    { label: 'USUARIO', value: usuario.email },
+    { label: 'NOMBRE', value: usuario.nombre },
+    { label: 'ROL', value: typeof usuario.rol === 'string' ? usuario.rol : JSON.stringify(usuario.rol) }
+  ].map(({ label, value }) => (
+    <div key={label} className="flex py-3 items-center gap-4">
+      <strong className="min-w-[140px]">{label}</strong>
+      <span className="flex-1">{value}</span>
+    </div>
+  ))}
         <div className="flex py-3 items-center gap-4">
           <strong className="min-w-[140px]">ESTADO</strong>
           <span className="flex items-center gap-2 flex-1">

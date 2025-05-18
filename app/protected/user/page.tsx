@@ -12,9 +12,9 @@ export default function UserDashboard() {
       {/* Header con botón Volver */}
       <div className="relative flex items-center justify-center mb-6">
         <Button
-          variant="link"
+          variant="ghost"
           onClick={() => router.push('/protected')}
-          className="absolute left-0 text-blue-600 text-base px-0 underline"
+          className="text-blue-600 text-base underline"
         >
           Volver
         </Button>

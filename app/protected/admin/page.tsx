@@ -29,18 +29,13 @@ export default function AdminDashboard() {
 
   return (
     <section className="w-full max-w-5xl mx-auto pt-0 px-4 md:px-8 relative">
-      <div className="relative flex items-center justify-center mb-4">
-        {/* Botón Volver */}
         <Button
-          variant="link"
-          onClick={() => router.back()}
-          className="absolute left-0 text-blue-600 text-base px-0 underline"
+          variant="ghost"
+          onClick={() => router.push('/protected')}
+          className="text-blue-600 text-base underline"
         >
           Volver
         </Button>
-
-
-      </div>
       <div className="relative flex items-center justify-center mb-6">
 
       {/* Título */}

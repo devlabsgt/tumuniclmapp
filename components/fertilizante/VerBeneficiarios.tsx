@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { FiltroBeneficiarios } from './FiltroBeneficiarios';
 import { TablaBeneficiarios } from './TablaBeneficiarios';
 import { generarPdfBeneficiarios } from '@/components/utils/PdfBeneficiarios';
+import EstadisticasBeneficiarios from './EstadisticasBeneficiarios';
 
 interface Beneficiario {
   id: string;
@@ -123,13 +124,13 @@ export default function VerBeneficiarios() {
   
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-6 overflow-hidden">
-    <Button
-      variant="link"
-      onClick={manejarVolver}
-      className="text-blue-600 text-base px-0 underline"
-    >
-      Volver
-    </Button>
+        <Button
+          variant="ghost"
+          onClick={() => router.push('/')}
+          className="text-blue-600 text-base underline"
+        >
+          Volver
+        </Button>
     <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-2">
   <h1 className="text-2xl font-bold text-left">
     Lista de Beneficiarios
@@ -155,6 +156,7 @@ export default function VerBeneficiarios() {
       {/* Filtros en una fila */}
       <FiltroBeneficiarios filtros={filtros} setFiltros={setFiltros} />
 
+      <EstadisticasBeneficiarios data={beneficiariosFiltrados} />
 
       {/* Filtro de orden abajo */}
       <div className="mb-4">
@@ -176,14 +178,16 @@ export default function VerBeneficiarios() {
   </select>
 </div>
 
-      
+
 {beneficiariosPaginados.length === 0 ? (
+  
   <div className="text-center text-gray-600 my-8 text-2xl">
     <strong >
     No se encontraron beneficiarios que coincidan con su búsqueda.
   </strong>
   </div>
 ) : (
+  
   <TablaBeneficiarios data={beneficiariosPaginados} resumen={resumen} />
 )}
 

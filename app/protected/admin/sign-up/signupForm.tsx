@@ -1,18 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { signUpAction } from '@/app/actions';
 import { SubmitButton } from '@/components/submit-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@headlessui/react';
-import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 import Swal from 'sweetalert2';
 import RolSelector from '@/components/ui/RolSelector';
 import PasswordSection from '@/components/admin/sign-up/PasswordSection';
 
 export function SignupForm() {
+    const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get('error');
   const success = searchParams.get('success');
@@ -62,14 +62,14 @@ export function SignupForm() {
   return (
     <div className="flex flex-col w-full max-w-md mx-auto gap-6">
       <div className="flex justify-start">
-        <Link href="/protected/admin/users" className="w-auto">
-          <Button
-            type="button"
-            className="h-10 bg-blue-600 hover:bg-blue-500 text-white text-xl w-auto px-2 mr-5 rounded"
-          >
-            Volver
-          </Button>
-        </Link>
+        
+        <Button
+          variant="ghost"
+          onClick={() => router.push('/')}
+          className="text-blue-600 text-base underline"
+        >
+          Volver
+        </Button>
               <h1 className="text-3xl font-semibold mb-6">Nuevo Usuario</h1>
 
       </div>

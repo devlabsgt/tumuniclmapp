@@ -39,10 +39,11 @@ export function LoginForm() {
 
       {/* Volver y Título alineados */}
       <div className="flex items-center justify-between mb-2">
+        
         <Button
-          variant="link"
-          onClick={() => router.back()}
-          className="text-blue-600 text-base px-0 underline"
+          variant="ghost"
+          onClick={() => router.push('/')}
+          className="text-blue-600 text-base underline"
         >
           Volver
         </Button>

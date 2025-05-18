@@ -142,9 +142,9 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
     <div className="px-4">
       <div className="flex mb-6">
         <Button
-          type="button"
-          className="h-10 text-white text-lg w-auto px-6 bg-blue-600 hover:bg-blue-700"
+          variant="ghost"
           onClick={() => router.push(`/protected/admin/users/ver?id=${userId}`)}
+          className="text-blue-600 text-base underline"
         >
           Volver
         </Button>

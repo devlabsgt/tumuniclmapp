@@ -11,10 +11,10 @@ export default function EditarBeneficiarioPage() {
   return (
     <div className="flex flex-col w-full max-w-3xl mx-auto pt-12 px-4">
       <div className="relative mb-8">
-        <Button
-          type="button"
-          onClick={() => router.back()}
-          className="absolute left-0 top-1/2 -translate-y-1/2 h-15 bg-blue-600 hover:bg-blue-500 text-white rounded text-2xl px-4"
+          <Button
+          variant="ghost"
+          onClick={() => router.push('/protected/fertilizante/beneficiarios')}
+          className="text-blue-600 text-base underline"
         >
           Volver
         </Button>

@@ -32,6 +32,8 @@ export default function UsersPage() {
         console.error('Error al obtener usuarios:', error);
         return;
       }
+          console.log('🚨 usuarios raw:', data); // 👈 AÑADIR ESTO
+
       setTodosLosUsuarios(data || []);
     };
     obtenerUsuarios();
@@ -65,13 +67,13 @@ export default function UsersPage() {
 
   return (
     <div className="px-6">
-      <Button
-        variant="link"
-        onClick={() => router.push('/protected/admin')}
-        className="text-blue-600 text-base px-0 underline"
-      >
-        Volver
-      </Button>
+         <Button
+          variant="ghost"
+          onClick={() => router.push("/protected/admin/")}
+          className="text-blue-600 text-base underline"
+        >
+          Volver
+        </Button>
 
       <div className="flex items-center justify-between mb-4">
 

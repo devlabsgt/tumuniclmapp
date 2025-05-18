@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { Button } from '@/components/ui/button';
 
 export default function UnauthorizedPage() {
   const router = useRouter();
@@ -20,12 +21,14 @@ export default function UnauthorizedPage() {
       <p className="text-lg text-center text-muted-foreground mb-6">
         No tiene permisos para acceder a esta sección, comuníquese con soporte técnico.
       </p>
-      <button
-        onClick={() => router.back()}
-        className="px-5 py-2 rounded-md bg-red-500 text-white hover:bg-red-600 transition"
-      >
-        Volver a la página anterior
-      </button>
+        <Button
+          variant="ghost"
+          onClick={() => router.push('/')}
+          className="px-5 py-2 rounded-md bg-red-500 text-white hover:bg-red-600 transitionunderline"
+        >
+          Volver
+        </Button>
+        <h1 className="text-2xl font-medium text-right flex-1">Iniciar Sesión</h1>
     </div>
   );
 }

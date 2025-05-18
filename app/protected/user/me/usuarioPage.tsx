@@ -66,13 +66,13 @@ export function UsuarioPageContent() {
     <div className="max-w-2xl mx-auto  p-6 border rounded shadow bg-white text-sm">
       {/* Título de Perfil */}
     <div className="flex items-center justify-start mb-6">
-      <Button
-        type="button"
-        onClick={() => router.back()}
-        className="h-10 bg-blue-600 hover:bg-blue-500 text-white rounded text-sm w-auto px-4"
-      >
-        Volver
-      </Button>
+   <Button
+          variant="ghost"
+          onClick={() => router.push('/protected')}
+          className="text-blue-600 text-base underline"
+        >
+          Volver
+        </Button>
 
       <h1 className="text-2xl font-bold text-left ml-4">
         Mi Perfil
