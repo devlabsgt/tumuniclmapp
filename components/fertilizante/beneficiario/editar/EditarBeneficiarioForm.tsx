@@ -13,16 +13,17 @@ export default function EditarBeneficiarioForm() {
   const router = useRouter();
   const id = searchParams.get('id') || '';
 
-  const [formulario, setFormulario] = useState({
-    nombre_completo: '',
-    dpi: '',
-    lugar: '',
-    fecha: '',
-    codigo: '',
-    telefono: '',
-    sexo: '',
+const [formulario, setFormulario] = useState({
+  nombre_completo: '',
+  dpi: '',
+  lugar: '',
+  fecha: '',
+  fecha_nacimiento: '', // 👈 nuevo campo
+  codigo: '',
+  telefono: '',
+  sexo: '',
+});
 
-  });
   const [original, setOriginal] = useState(formulario);
   const [cargando, setCargando] = useState(false);
 
@@ -42,15 +43,17 @@ export default function EditarBeneficiarioForm() {
         return;
       }
 
-      const datos = {
+const datos = {
   nombre_completo: data.nombre_completo || '',
   dpi: data.dpi || '',
   lugar: data.lugar || '',
   fecha: data.fecha?.split('T')[0] || '',
+  fecha_nacimiento: data.fecha_nacimiento?.split('T')[0] || '', // 👈 nuevo campo
   codigo: data.codigo || '',
   telefono: data.telefono || '',
   sexo: data.sexo || 'M',
 };
+
 
 
       setFormulario(datos);
@@ -115,10 +118,11 @@ export default function EditarBeneficiarioForm() {
     }
   
     // Aquí corregimos el teléfono si viene vacío
-    const datosActualizar = {
-      ...formulario,
-      telefono: formulario.telefono === '' ? 'N/A' : formulario.telefono,
-    };
+const datosActualizar = {
+  ...formulario,
+  telefono: formulario.telefono === '' ? 'N/A' : formulario.telefono,
+};
+
   
     const { error } = await supabase
       .from('beneficiarios_fertilizante')
@@ -159,6 +163,17 @@ export default function EditarBeneficiarioForm() {
         <label className="font-semibold block mb-1">Fecha</label>
         <input type="date" name="fecha" value={formulario.fecha} onChange={handleChange} className="w-full border border-gray-300 rounded px-3 py-2" />
       </div>
+      <div>
+      <label className="font-semibold block mb-1">Fecha de nacimiento</label>
+      <input
+        type="date"
+        name="fecha_nacimiento"
+        value={formulario.fecha_nacimiento}
+        onChange={handleChange}
+        className="w-full border border-gray-300 rounded px-3 py-2"
+      />
+    </div>
+
       <div>
   <label className="font-semibold block mb-2">Sexo</label>
   <div className="flex gap-6">

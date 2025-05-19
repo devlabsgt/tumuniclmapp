@@ -95,13 +95,7 @@ export default function VerBeneficiarios() {
       }
     });
 
-    useEffect(() => {
-  setPaginaActual(1);
-}, [filtros, orden]);
-
-
-
-  const beneficiariosPorPagina = 10;
+  const [beneficiariosPorPagina, setBeneficiariosPorPagina] = useState(20);
   const totalPaginas = Math.ceil(beneficiariosFiltrados.length / beneficiariosPorPagina);
   const inicio = (paginaActual - 1) * beneficiariosPorPagina;
   const beneficiariosPaginados = beneficiariosFiltrados.slice(inicio, inicio + beneficiariosPorPagina);
@@ -112,6 +106,12 @@ export default function VerBeneficiarios() {
     mujeres: beneficiariosFiltrados.filter(b => b.sexo?.toUpperCase() === 'F').length,
   };
   
+
+useEffect(() => {
+  setPaginaActual(1);
+}, [filtros, orden, beneficiariosPorPagina]);
+
+
 
   const manejarVolver = () => {
     if (userRole === 'Admin') {
@@ -190,6 +190,21 @@ export default function VerBeneficiarios() {
   
   <TablaBeneficiarios data={beneficiariosPaginados} resumen={resumen} />
 )}
+
+<div className="flex justify-end mb-2 text-sm gap-2 items-center">
+  <span className="font-medium">Ver por:</span>
+  <select
+    value={beneficiariosPorPagina}
+    onChange={(e) => setBeneficiariosPorPagina(parseInt(e.target.value))}
+    className="border border-gray-300 rounded px-2 py-1"
+  >
+    <option value={10}>10</option>
+    <option value={20}>20</option>
+    <option value={50}>50</option>
+    <option value={100}>100</option>
+  </select>
+</div>
+
 
 <div className="flex justify-center mt-4 gap-2 flex-wrap">
   {/* Flecha izquierda */}

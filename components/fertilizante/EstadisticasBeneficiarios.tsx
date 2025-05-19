@@ -53,7 +53,7 @@ export default function EstadisticasBeneficiarios({ data }: Props) {
             Mujeres: <span className="text-gray-700 font-semibold">{mujeres}</span>
         </div>
       <div className="mt-4">
-        <div className="font-semibold mb-2">🏆 Top 3 lugares con más registros</div>
+        <div className="font-semibold mb-2">🏆 Top 3 lugares con más entregas</div>
         <div className="flex gap-4">
           {top3.map(([lugar, cantidad]) => (
             <div

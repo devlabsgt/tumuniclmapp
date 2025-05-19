@@ -4,14 +4,16 @@ import { CampoTexto } from './CampoTexto';
 import { CampoLugar } from './CampoLugar';
 
 interface Props {
-  formulario: {
-    nombre_completo: string;
-    dpi: string;
-    lugar: string;
-    fecha: string;
-    codigo: string;
-    telefono: string;
-  };
+ formulario: {
+  nombre_completo: string;
+  dpi: string;
+  lugar: string;
+  fecha: string;
+  codigo: string;
+  telefono: string;
+  fecha_nacimiento: string; // 👈 nuevo campo
+};
+
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
 }
 
@@ -37,6 +39,17 @@ export function Formulario({ formulario, onChange }: Props) {
           type="date"
           name="fecha"
           value={formulario.fecha}
+          onChange={onChange}
+          className="w-full border border-gray-300 rounded px-3 py-2"
+          required
+        />
+      </div>
+      <div>
+        <label className="font-semibold block mb-1">Fecha de nacimiento</label>
+        <input
+          type="date"
+          name="fecha_nacimiento"
+          value={formulario.fecha_nacimiento}
           onChange={onChange}
           className="w-full border border-gray-300 rounded px-3 py-2"
           required

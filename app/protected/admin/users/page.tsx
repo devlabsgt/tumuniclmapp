@@ -120,7 +120,7 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <div className="p-1 text-center text-gray-700">
+      <div className="p-1 text-xs text-center text-gray-700">
         <span>Haz click en un usuario para ver y editar</span>
       </div>
 

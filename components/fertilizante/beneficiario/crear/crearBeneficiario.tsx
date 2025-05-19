@@ -25,6 +25,7 @@ export function CrearBeneficiario() {
     dpi: '',
     lugar: '',
     fecha: '',
+    fecha_nacimiento: '',
     codigo: '',
     telefono: '',
     sexo: 'M', // valor por defecto
@@ -181,6 +182,7 @@ export function CrearBeneficiario() {
         dpi: '',
         lugar: '',
         fecha: '',
+        fecha_nacimiento: '',
         codigo: '',
         telefono: '',
         sexo: 'M',
