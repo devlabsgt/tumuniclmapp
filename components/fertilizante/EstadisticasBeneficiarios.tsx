@@ -67,7 +67,7 @@ export default function EstadisticasBeneficiarios({ data }: Props) {
           ))}
         </div>
         <div>
-          <span className="text-gray-700 text-sm"> Haz click en cualquier lugar para ver esrtadísticas</span>
+          <span className="text-gray-700 text-sm"> Haz click en cualquier lugar para ver estadísticas completas</span>
         </div>
       </div>
 
