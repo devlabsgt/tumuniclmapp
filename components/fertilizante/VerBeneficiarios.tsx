@@ -191,7 +191,7 @@ useEffect(() => {
   <TablaBeneficiarios data={beneficiariosPaginados} resumen={resumen} />
 )}
 
-<div className="flex justify-end mb-2 text-sm gap-2 items-center">
+<div className="flex justify-center mt-5 mb-2 text-sm gap-2 items-center">
   <span className="font-medium">Ver por:</span>
   <select
     value={beneficiariosPorPagina}
