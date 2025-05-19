@@ -29,7 +29,7 @@ export default function MTopLugares({ conteoPorLugar, onClose }: MTopLugaresProp
   return (
     <Dialog open={true} onClose={onClose} as={Fragment}>
       <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-        <Dialog.Panel className="bg-white rounded-lg max-w-6xl w-full p-6 shadow-lg">
+<Dialog.Panel className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-lg">
           <div className="flex justify-between items-center mb-4">
             <Dialog.Title className="text-2xl font-bold text-gray-800">
               Estadísticas
@@ -38,59 +38,66 @@ export default function MTopLugares({ conteoPorLugar, onClose }: MTopLugaresProp
           </div>
 
           {/* Gráfica de Barras */}
-          <div className="w-full h-[400px]">
-            <ResponsiveContainer>
-              <BarChart
-                data={datosGrafica}
-                margin={{ top: 30, right: 20, left: 20, bottom: 0 }}
-              >
-                <XAxis
-                  dataKey="name"
-                  interval={0}
-                  height={80}
-                  tick={({ x, y, payload }) => {
-                    const palabras = payload.value.split(' ');
-                    return (
-                      <g transform={`translate(${x},${y})`}>
-                        {palabras.map((word: string, index: number) => (
-                          <text
-                            key={index}
-                            x={0}
-                            y={(index + 1) * 12}
-                            textAnchor="middle"
-                            fontSize={10}
-                            fill="#333"
-                            fontWeight="bold"
-                          >
-                            {word}
-                          </text>
-                        ))}
-                      </g>
-                    );
-                  }}
-                />
-                <YAxis
-                  tick={{ fontSize: 10, fill: '#333' }}
-                  axisLine={true}
-                  tickLine={true}
-                  ticks={Array.from({ length: Math.ceil(Math.max(...datosGrafica.map(d => d.value)) / 50) + 1 }, (_, i) => i * 50)}
-                />
-                <Tooltip />
-                <Bar dataKey="value" fill="#06c" barSize={40}>
-                  <LabelList
-                    dataKey="value"
-                    position="top"
-                    offset={10} // Espacio entre barra y número
-                    style={{
-                      fill: '#333',
-                      fontSize: 10,
-                      fontWeight: 'bold',
-                    }}
-                  />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          {/* Gráfica de Barras con scroll horizontal en móviles */}
+<div className="w-full overflow-x-auto">
+  <div style={{ minWidth: '1000px', height: '400px' }}>
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart
+        data={datosGrafica}
+        margin={{ top: 30, right: 20, left: 20, bottom: 0 }}
+      >
+        <XAxis
+          dataKey="name"
+          interval={0}
+          height={80}
+          tick={({ x, y, payload }) => {
+            const palabras = payload.value.split(' ');
+            return (
+              <g transform={`translate(${x},${y})`}>
+                {palabras.map((word: string, index: number) => (
+                  <text
+                    key={index}
+                    x={0}
+                    y={(index + 1) * 12}
+                    textAnchor="middle"
+                    fontSize={10}
+                    fill="#333"
+                    fontWeight="bold"
+                  >
+                    {word}
+                  </text>
+                ))}
+              </g>
+            );
+          }}
+        />
+        <YAxis
+          tick={{ fontSize: 10, fill: '#333' }}
+          axisLine={true}
+          tickLine={true}
+          ticks={Array.from(
+            { length: Math.ceil(Math.max(...datosGrafica.map(d => d.value)) / 50) + 1 },
+            (_, i) => i * 50
+          )}
+        />
+        <Tooltip />
+        <Bar dataKey="value" fill="#06c" barSize={40}>
+          <LabelList
+            dataKey="value"
+            position="top"
+            offset={10}
+            style={{
+              fill: '#333',
+              fontSize: 10,
+              fontWeight: 'bold',
+            }}
+          />
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  </div>
+</div>
+
 
           {/* Tabla completa */}
           <div className="mt-6">
