@@ -20,7 +20,7 @@ interface Props {
 }
 
 export default function EstadisticasBeneficiarios({ data }: Props) {
-  const totalMeta = 5000;
+  const totalMeta = 7000;
   const total = data.length;
   const hombres = data.filter((b) => b.sexo === 'M').length;
   const mujeres = data.filter((b) => b.sexo === 'F').length;
@@ -40,7 +40,7 @@ export default function EstadisticasBeneficiarios({ data }: Props) {
   return (
     <div className="mb-4">
       <div className="text-lg font-bold text-green-700">
-        <span className="text-green-800">{total}</span> de {totalMeta} entregados (
+        <span className="text-green-800">Entregados: {total}</span> / {totalMeta} (
         {porcentaje.toFixed(2)}%) <br />
         
       </div>
@@ -65,6 +65,9 @@ export default function EstadisticasBeneficiarios({ data }: Props) {
               <div className="text-gray-700 text-sm">{cantidad} beneficiarios</div>
             </div>
           ))}
+        </div>
+        <div>
+          <span className="text-gray-700 text-sm"> Haz click en cualquier lugar para ver esrtadísticas</span>
         </div>
       </div>
 

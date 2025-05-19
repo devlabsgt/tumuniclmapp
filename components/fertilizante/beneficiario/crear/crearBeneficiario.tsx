@@ -176,8 +176,19 @@ export function CrearBeneficiario() {
       Swal.fire('Error', 'No se pudo registrar el beneficiario.', 'error');
     } else {
       Swal.fire('Éxito', 'Beneficiario registrado correctamente.', 'success').then(() => {
-        router.push('/protected/fertilizante/beneficiarios');
+      setFormulario({
+        nombre_completo: '',
+        dpi: '',
+        lugar: '',
+        fecha: '',
+        codigo: '',
+        telefono: '',
+        sexo: 'M',
       });
+      setDpi('');
+      setMostrarFormulario(false);
+    });
+
     }
   };
   
