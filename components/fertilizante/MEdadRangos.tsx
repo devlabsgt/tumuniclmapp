@@ -13,20 +13,21 @@ import {
 } from 'recharts';
 import { Button } from '@/components/ui/button';
 
-interface RangoEdadEstadistica {
-  rango: string;
-  total: number;
-}
-
 type RangoClave = 'jovenes' | 'adultoMenor' | 'adulto' | 'adultoMayor';
 
 interface MEdadRangosProps {
-  conteoPorEdad: RangoEdadEstadistica[];
-  detallePorLugar: Record<string, Record<RangoClave, {
-    total: number;
-    hombres: number;
-    mujeres: number;
-  }>>;
+  conteoPorEdad: { rango: string; total: number }[];
+  detallePorLugar: Record<
+    string,
+    Record<
+      RangoClave,
+      {
+        total: number;
+        hombres: number;
+        mujeres: number;
+      }
+    >
+  >;
   onClose: () => void;
 }
 
@@ -49,10 +50,54 @@ export default function MEdadRangos({ conteoPorEdad, detallePorLugar, onClose }:
       totalPorRango[rango].total += datos.total;
     }
   }
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+
+  return (
+    <div className="bg-white border rounded px-3 py-2 shadow text-2xl">
+      <p className="font-semibold mb-1">{label}</p>
+      {payload.map((entry: any, index: number) => {
+        const capital = entry.name.charAt(0).toUpperCase() + entry.name.slice(1);
+        return (
+          <p key={index} style={{ color: entry.color }}>
+            {capital}: <strong>{entry.value}</strong>
+          </p>
+        );
+      })}
+    </div>
+  );
+};
+
+
 
   const totalHombres = Object.values(totalPorRango).reduce((acc, curr) => acc + curr.hombres, 0);
   const totalMujeres = Object.values(totalPorRango).reduce((acc, curr) => acc + curr.mujeres, 0);
   const totalGeneral = Object.values(totalPorRango).reduce((acc, curr) => acc + curr.total, 0);
+
+  const datosGrafica = clavesRango.map((clave) => {
+    const hombres = totalPorRango[clave].hombres;
+    const mujeres = totalPorRango[clave].mujeres;
+    const total = hombres + mujeres;
+
+    const nombre =
+      clave === 'jovenes'
+        ? 'Jóvenes'
+        : clave === 'adultoMenor'
+        ? 'Adulto menor'
+        : clave === 'adulto'
+        ? 'Adultos'
+        : 'Adulto mayor';
+
+    const porcentajeTotal = totalGeneral
+      ? ((total / totalGeneral) * 100).toFixed(1)
+      : '0.0';
+
+    return {
+      etiqueta: `${nombre} (${porcentajeTotal}%)`,
+      hombres,
+      mujeres,
+    };
+  });
 
   return (
     <Dialog open={true} onClose={onClose} as={Fragment}>
@@ -60,38 +105,47 @@ export default function MEdadRangos({ conteoPorEdad, detallePorLugar, onClose }:
         <Dialog.Panel className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-lg">
           <div className="flex justify-between items-center mb-4">
             <Dialog.Title className="text-2xl text-gray-800">
-              Rangos de Edad <span className='font-bold'>({totalGeneral} Personas | Hombres: {totalHombres} | Mujeres: {totalMujeres})</span>
+              Rangos de Edad{' '}
+              <span className="font-bold">
+                ({totalGeneral} Personas |{' '}
+                <span style={{ color: '#06c' }}>Hombres: {totalHombres}</span> |{' '}
+                <span style={{ color: '#f87171' }}>Mujeres: {totalMujeres}</span>)
+              </span>
             </Dialog.Title>
-            <Button onClick={onClose} variant="ghost">Cerrar</Button>
+            <Button onClick={onClose} variant="ghost">
+              Cerrar
+            </Button>
           </div>
 
+          {/* Gráfica */}
           <div className="w-full overflow-x-auto">
             <div style={{ minWidth: '800px', height: '400px' }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={conteoPorEdad}
-                  margin={{ top: 30, right: 20, left: 20, bottom: 0 }}
-                >
-                  <XAxis dataKey="rango" tick={{ fontSize: 16 }} />
+                <BarChart data={datosGrafica} margin={{ top: 30, right: 20, left: 20, bottom: 0 }}>
+                  <XAxis dataKey="etiqueta" tick={{ fontSize: 20 }} />
                   <YAxis tick={{ fontSize: 16 }} />
-                  <Tooltip />
-                  <Bar dataKey="total" fill="#06c" barSize={100}>
-                    <LabelList dataKey="total" position="top" style={{ fill: '#000', fontSize: 20, fontWeight: 'bold' }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="hombres" fill="#06c" barSize={60}>
+                    <LabelList dataKey="hombres" position="top" />
+                  </Bar>
+                  <Bar dataKey="mujeres" fill="#f87171" barSize={60}>
+                    <LabelList dataKey="mujeres" position="top" />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
+          {/* Tabla */}
           <div className="mt-6">
             <table className="w-full border-collapse text-sm text-center border border-gray-400">
               <thead>
                 <tr className="bg-gray-50 text-xs text-gray-500">
                   <th rowSpan={2} className="p-2 border border-gray-400 align-middle">Lugar</th>
-                  <th colSpan={3} className="p-2 border border-gray-400">Jóvenes<br/><span className="text-[10px]">(18-25)</span></th>
-                  <th colSpan={3} className="p-2 border border-gray-400">Adulto menor<br/><span className="text-[10px]">(26-35)</span></th>
-                  <th colSpan={3} className="p-2 border border-gray-400">Adultos<br/><span className="text-[10px]">(36-59)</span></th>
-                  <th colSpan={3} className="p-2 border border-gray-400">Adulto mayor<br/><span className="text-[10px]">(60+)</span></th>
+                  <th colSpan={3} className="p-2 border border-gray-400">Jóvenes<br /><span className="text-[10px]">(18-25)</span></th>
+                  <th colSpan={3} className="p-2 border border-gray-400">Adulto menor<br /><span className="text-[10px]">(26-35)</span></th>
+                  <th colSpan={3} className="p-2 border border-gray-400">Adultos<br /><span className="text-[10px]">(36-59)</span></th>
+                  <th colSpan={3} className="p-2 border border-gray-400">Adulto mayor<br /><span className="text-[10px]">(60+)</span></th>
                 </tr>
                 <tr className="bg-gray-100">
                   {[...Array(4)].flatMap((_, i) => [

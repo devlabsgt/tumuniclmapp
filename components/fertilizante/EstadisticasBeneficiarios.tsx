@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Progress } from '@/components/ui/Progress';
 import MTopLugares from './MTopLugares';
 import MEdadRangos from './MEdadRangos';
+import { ClassNames } from '@emotion/react';
 
 interface Beneficiario {
   id: string;
@@ -92,51 +93,90 @@ export default function EstadisticasBeneficiarios({ data }: Props) {
   const [mostrarTopLugares, setMostrarTopLugares] = useState(false);
   const [mostrarEdadModal, setMostrarEdadModal] = useState(false);
 
-  return (
-    <div className="mb-4">
-      <div className="text-lg font-bold text-green-700">
-        <span className="text-green-800">Entregados: {total}</span> / {totalMeta} ({porcentaje.toFixed(2)}%)
-      </div>
-
-      <div className="mt-2">
-        <Progress value={porcentaje} className="h-3" />
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-        <div
-          className="cursor-pointer px-3 py-4 border rounded shadow hover:bg-gray-100"
-          onClick={() => setMostrarEdadModal(true)}
-        >
-          <div className="text-blue-600 font-bold text-lg">👥 Género y Edades</div>
-          <div className="text-sm text-gray-700 mt-1">Hombres: {hombres} | Mujeres: {mujeres}</div>
-          <div className="text-sm text-gray-700 mt-1">Jóvenes (18-25): {jovenes}</div>
-          <div className="text-sm text-gray-700">Adulto menor (26-35): {adultoMenor}</div>
-          <div className="text-sm text-gray-700">Adulto (36-59): {adulto}</div>
-          <div className="text-sm text-gray-700">Adulto mayor (60+): {adultoMayor}</div>
-          <div className="text-xs text-gray-500 mt-1">Haz clic para ver gráfico detallado</div>
-        </div>
-
-        <div
-          className="cursor-pointer px-3 py-4 border rounded shadow hover:bg-gray-100"
-          onClick={() => setMostrarTopLugares(true)}
-        >
-          <div className="text-blue-600 font-bold text-lg">🏆 Top 3 lugares</div>
-          {top3.map(([lugar, cantidad]) => (
-            <div key={lugar} className="text-sm text-gray-700">
-              {lugar}: {cantidad}
-            </div>
-          ))}
-          <div className="text-xs text-gray-500 mt-1">Haz clic para ver gráfico detallado</div>
-        </div>
-      </div>
-
-      {mostrarTopLugares && (
-        <MTopLugares conteoPorLugar={conteoPorLugar} onClose={() => setMostrarTopLugares(false)} />
-      )}
-
-      {mostrarEdadModal && (
-        <MEdadRangos conteoPorEdad={conteoPorEdad} detallePorLugar={detallePorLugar} onClose={() => setMostrarEdadModal(false)} />
-      )}
+return (
+  <div className="mb-4">
+    <div className="text-lg font-bold text-green-700">
+      <span className="text-green-800">Entregados: {total}</span> / {totalMeta} ({porcentaje.toFixed(2)}%)
     </div>
-  );
+
+    <div className="mt-2">
+      <Progress value={porcentaje} className="h-3" />
+    </div>
+      <div className="text-gray-500 ml-auto text-center text-sm mt-5">
+          Haz clic en las siguientes tarjetas para ver información detallada
+        </div>
+    <div className="flex flex-col gap-4 mt-2">
+      <div
+        className="cursor-pointer px-3 py-4 border rounded shadow hover:bg-gray-100"
+        onClick={() => setMostrarEdadModal(true)}
+      >
+      <div className="flex flex-wrap text-sm items-center gap-x-6 font-bold p-2">
+        <div className="text-blue-600">👥 Género y Edades:</div>
+        <div style={{ color: '#06c' }}>Hombres: {hombres}</div> |
+        <div style={{ color: '#f87171' }}>Mujeres: {mujeres}</div>
+  
+      </div>
+
+
+        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm p-2">
+          <div className="font-bold text-gray-600">
+            Jóvenes (18–25): <span className="text-black">{jovenes}</span>
+          </div>
+          <div className="font-bold text-gray-600">
+            Adulto menor (26–35): <span className="text-black">{adultoMenor}</span>
+          </div>
+          <div className="font-bold text-gray-600">
+            Adulto (36–59): <span className="text-black">{adulto}</span>
+          </div>
+          <div className="font-bold text-gray-600">
+            Adulto mayor (60+): <span className="text-black">{adultoMayor}</span>
+          </div>
+        </div>
+
+
+
+
+      </div>
+
+
+      <div
+        className="cursor-pointer px-3 py-4 border rounded shadow hover:bg-gray-100"
+        onClick={() => setMostrarTopLugares(true)}
+      >
+        <div className="flex flex-wrap items-center gap-x-4 text-md text-gray-700 mb-1 p-2">
+          <div className="text-blue-600 font-bold text-md">🏆 Top 3 lugares:</div>
+          {top3.map(([lugar, cantidad], index) => (
+            <div key={lugar} className="flex items-center gap-1">
+              <span>
+                {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+              </span>
+              <span className="font-medium">{lugar}: {cantidad}</span>
+              {index < top3.length - 1 }
+            </div>
+      
+          ))}
+        </div>
+
+      </div>
+
+
+    </div>
+
+    {mostrarTopLugares && (
+      <MTopLugares
+        conteoPorLugar={conteoPorLugar}
+        onClose={() => setMostrarTopLugares(false)}
+      />
+    )}
+
+    {mostrarEdadModal && (
+      <MEdadRangos
+        conteoPorEdad={conteoPorEdad}
+        detallePorLugar={detallePorLugar}
+        onClose={() => setMostrarEdadModal(false)}
+      />
+    )}
+  </div>
+);
+
 }
