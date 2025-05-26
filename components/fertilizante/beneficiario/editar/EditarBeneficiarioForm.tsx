@@ -118,10 +118,11 @@ const datos = {
     }
   
     // Aquí corregimos el teléfono si viene vacío
-const datosActualizar = {
-  ...formulario,
-  telefono: formulario.telefono === '' ? 'N/A' : formulario.telefono,
-};
+    const datosActualizar = {
+      ...formulario,
+      telefono: formulario.telefono === '' ? 'N/A' : formulario.telefono,
+      fecha_nacimiento: formulario.fecha_nacimiento?.trim() || null
+    };
 
   
     const { error } = await supabase

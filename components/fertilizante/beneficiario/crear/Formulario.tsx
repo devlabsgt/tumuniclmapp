@@ -52,7 +52,6 @@ export function Formulario({ formulario, onChange }: Props) {
           value={formulario.fecha_nacimiento}
           onChange={onChange}
           className="w-full border border-gray-300 rounded px-3 py-2"
-          required
         />
       </div>
       <CampoTexto

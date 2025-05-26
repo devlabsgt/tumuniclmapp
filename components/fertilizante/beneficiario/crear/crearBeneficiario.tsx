@@ -166,16 +166,19 @@ export function CrearBeneficiario() {
   
     const { error } = await supabase
       .from('beneficiarios_fertilizante')
+     
       .insert([{ 
-        ...formulario, 
-        dpi, 
-        codigo, 
-        telefono: telefono === '' ? 'N/A' : telefono 
+        ...formulario,
+        dpi,
+        codigo,
+        telefono: telefono === '' ? 'N/A' : telefono,
+        fecha_nacimiento: formulario.fecha_nacimiento?.trim() || null
       }]);
-  
-    if (error) {
-      Swal.fire('Error', 'No se pudo registrar el beneficiario.', 'error');
-    } else {
+        
+if (error) {
+  console.error('Error de Supabase:', error);
+  Swal.fire('Error', `No se pudo registrar el beneficiario.<br><br><small>${error.message}</small>`, 'error');
+} else {
       Swal.fire('Éxito', 'Beneficiario registrado correctamente.', 'success').then(() => {
       setFormulario({
         nombre_completo: '',
