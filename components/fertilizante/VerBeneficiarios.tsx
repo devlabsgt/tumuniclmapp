@@ -66,8 +66,6 @@ export default function VerBeneficiarios() {
         return;
       }
 
-      console.log('Años crudos recibidos:', data); // depuración
-
     const unicos = Array.from(
       new Set(
         data
@@ -94,16 +92,12 @@ export default function VerBeneficiarios() {
     return;
   }
 
-  console.log('Beneficiarios obtenidos:', data); // para verificar en consola
   setBeneficiarios(data || []);
 };
 
 useEffect(() => {
   cargarDatos();
-}, [filtros.anio]); // 👈 este es el que hace que se recargue si cambia el año
-
-
-
+}, [filtros.anio]); 
 
   const beneficiariosFiltrados = beneficiarios
     .filter((b) => {
@@ -147,8 +141,6 @@ useEffect(() => {
   setPaginaActual(1);
 }, [filtros, orden, beneficiariosPorPagina]);
 
-
-
   const manejarVolver = () => {
     if (userRole === 'Admin') {
       router.push('/protected/admin');
@@ -156,7 +148,6 @@ useEffect(() => {
       router.push('/protected/user');
     }
   };
-
   
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-6 overflow-hidden">

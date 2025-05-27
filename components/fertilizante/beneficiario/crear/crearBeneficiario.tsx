@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import Swal from 'sweetalert2';
@@ -16,6 +16,42 @@ export function CrearBeneficiario() {
   );
 
   const router = useRouter();
+  const [anio, setAnio] = useState(new Date().getFullYear().toString());
+  const [aniosDisponibles, setAniosDisponibles] = useState<string[]>([]);
+
+useEffect(() => {
+  const obtenerAnios = async () => {
+    const { data, error } = await supabase
+      .from('beneficiarios_fertilizante')
+      .select('anio')
+      .order('anio', { ascending: true });
+
+    if (error) {
+      console.error('Error al obtener años:', error.message);
+      return;
+    }
+
+    const actuales = data
+      .map((b: any) => (typeof b.anio === 'number' ? b.anio.toString() : null))
+      .filter((a): a is string => a !== null);
+
+    const anioActual = new Date().getFullYear().toString();
+
+    const todos = Array.from(
+      new Set([...actuales, anioActual])
+    ).sort();
+
+    setAniosDisponibles(todos);
+
+    // Establecer el año seleccionado solo si no está ya fijo
+    if (!todos.includes(anio)) setAnio(anioActual);
+  };
+
+  obtenerAnios();
+}, []);
+
+
+
 
   const [dpi, setDpi] = useState('');
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
@@ -48,7 +84,9 @@ export function CrearBeneficiario() {
       .from('beneficiarios_fertilizante')
       .select('*')
       .eq('dpi', dpi)
+      .eq('anio', anio)
       .maybeSingle();
+
 
     if (error) {
       Swal.fire('Error', 'Error al verificar el DPI.', 'error');
@@ -197,34 +235,52 @@ if (error) {
     }
   };
   
-
-  return (
-    <div className="max-w-xl mx-auto p-6 bg-white rounded shadow">
-      <div className="flex items-center h-full">
-        <Button
-          onClick={() => router.push('/protected/fertilizante/beneficiarios/')}
-          className="h-full bg-blue-600 hover:bg-blue-700 text-white px-4 mb-5"
-        >
-          Atrás
-        </Button>
-      </div>
-      <h1 className="text-2xl font-bold text-center mb-4">
-        Registrar Beneficiario de Fertilizante
-      </h1>
-
-      {!mostrarFormulario && (
-        <CampoDPI dpi={dpi} setDpi={setDpi} verificarDPI={verificarDPI} />
-      )}
-
-      {mostrarFormulario && (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Formulario formulario={formulario} onChange={handleChange} />
-          <CampoSexo sexo={formulario.sexo} onChange={handleChange} />
-          <Button type="submit" className="mt-4 h-11 text-lg">
-            Crear Beneficiario
-          </Button>
-        </form>
-      )}
+return (
+  <div className="max-w-xl mx-auto p-6 bg-white rounded shadow">
+    {/* Botón atrás */}
+    <div className="flex items-center h-full">
+      <Button
+        onClick={() => router.push('/protected/fertilizante/beneficiarios/')}
+        className="h-full bg-blue-600 hover:bg-blue-700 text-white px-4 mb-5"
+      >
+        Atrás
+      </Button>
     </div>
-  );
+
+    <h1 className="text-2xl font-bold text-center mb-4">
+      Registrar Beneficiario de Fertilizante
+    </h1>
+
+    {!mostrarFormulario && (
+      <>
+        {/* Año y DPI */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Año:</label>
+          <select
+            value={anio}
+            onChange={(e) => setAnio(e.target.value)}
+            className="border border-gray-300 rounded px-3 py-2 w-full"
+          >
+            {aniosDisponibles.map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
+          </select>
+        </div>
+
+        <CampoDPI dpi={dpi} setDpi={setDpi} verificarDPI={verificarDPI} />
+      </>
+    )}
+
+    {mostrarFormulario && (
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-4">
+        <Formulario formulario={formulario} onChange={handleChange} />
+        <CampoSexo sexo={formulario.sexo} onChange={handleChange} />
+        <Button type="submit" className="mt-4 h-11 text-lg">
+          Crear Beneficiario
+        </Button>
+      </form>
+    )}
+  </div>
+);
+
 }
