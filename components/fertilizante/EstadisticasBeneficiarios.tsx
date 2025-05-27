@@ -117,7 +117,6 @@ return (
   
       </div>
 
-
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm p-2">
           <div className="font-bold text-gray-600">
             Jóvenes (18–25): <span className="text-black">{jovenes}</span>

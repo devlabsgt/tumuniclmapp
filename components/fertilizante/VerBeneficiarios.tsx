@@ -31,16 +31,20 @@ export default function VerBeneficiarios() {
   const [paginaActual, setPaginaActual] = useState(1);
   const [orden, setOrden] = useState<OrdenFiltro>('codigo_asc');
   const [userRole, setUserRole] = useState<'Admin' | 'User' | null>(null);
+  const [aniosDisponibles, setAniosDisponibles] = useState<string[]>([]);
 
   const [filtros, setFiltros] = useState<{
     campo: CampoFiltro;
     valor: string;
     lugar: string;
+    anio: string;
   }>({
     campo: 'nombre_completo',
     valor: '',
     lugar: '',
+    anio: new Date().getFullYear().toString(), // ✅ año actual como string
   });
+
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -48,26 +52,58 @@ export default function VerBeneficiarios() {
   );
 
   const router = useRouter();
+  const anioSeleccionado = filtros.anio;
 
   useEffect(() => {
-    const cargarDatos = async () => {
+    const obtenerAnios = async () => {
       const { data, error } = await supabase
         .from('beneficiarios_fertilizante')
-        .select('*');
+        .select('anio')
+        .order('anio', { ascending: true });
 
-      if (data) setBeneficiarios(data);
-      if (error) console.error(error);
+      if (error) {
+        console.error('Error real al obtener años:', error.message || error);
+        return;
+      }
+
+      console.log('Años crudos recibidos:', data); // depuración
+
+    const unicos = Array.from(
+      new Set(
+        data
+          .map((b: any) => (typeof b.anio === 'number' ? b.anio.toString() : null))
+          .filter((anio): anio is string => anio !== null)
+      )
+    );
+
+    setAniosDisponibles(unicos);
+
     };
 
-    const obtenerUsuario = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      const rol = user?.user_metadata?.rol || 'User'; // fallback a "user" si no tiene
-      setUserRole(rol);
-    };
-
-    cargarDatos();
-    obtenerUsuario();
+    obtenerAnios();
   }, []);
+
+  const cargarDatos = async () => {
+  const { data, error } = await supabase
+    .from('beneficiarios_fertilizante')
+    .select('*')
+    .eq('anio', filtros.anio); // 👈 aplica el filtro por año
+
+  if (error) {
+    console.error('Error al obtener beneficiarios:', error.message || error);
+    return;
+  }
+
+  console.log('Beneficiarios obtenidos:', data); // para verificar en consola
+  setBeneficiarios(data || []);
+};
+
+useEffect(() => {
+  cargarDatos();
+}, [filtros.anio]); // 👈 este es el que hace que se recargue si cambia el año
+
+
+
 
   const beneficiariosFiltrados = beneficiarios
     .filter((b) => {
@@ -154,7 +190,8 @@ useEffect(() => {
 
 
       {/* Filtros en una fila */}
-      <FiltroBeneficiarios filtros={filtros} setFiltros={setFiltros} />
+      <FiltroBeneficiarios filtros={filtros} setFiltros={setFiltros} anios={aniosDisponibles}
+ />
 
       <EstadisticasBeneficiarios data={beneficiariosFiltrados} />
 
