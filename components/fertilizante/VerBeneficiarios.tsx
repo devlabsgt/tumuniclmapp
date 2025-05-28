@@ -159,9 +159,9 @@ useEffect(() => {
           Volver
         </Button>
     <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-2">
-  <h1 className="text-2xl font-bold text-left">
-    Lista de Beneficiarios
-  </h1>
+    <h1 className="text-2xl font-bold text-left">
+      Lista de Beneficiarios
+    </h1>
 
   <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
     <Button

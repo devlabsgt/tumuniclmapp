@@ -13,16 +13,16 @@ export default function EditarBeneficiarioForm() {
   const router = useRouter();
   const id = searchParams.get('id') || '';
 
-const [formulario, setFormulario] = useState({
-  nombre_completo: '',
-  dpi: '',
-  lugar: '',
-  fecha: '',
-  fecha_nacimiento: '', // 👈 nuevo campo
-  codigo: '',
-  telefono: '',
-  sexo: '',
-});
+  const [formulario, setFormulario] = useState({
+    nombre_completo: '',
+    dpi: '',
+    lugar: '',
+    fecha: '',
+    fecha_nacimiento: '', // 👈 nuevo campo
+    codigo: '',
+    telefono: '',
+    sexo: '',
+  });
 
   const [original, setOriginal] = useState(formulario);
   const [cargando, setCargando] = useState(false);
