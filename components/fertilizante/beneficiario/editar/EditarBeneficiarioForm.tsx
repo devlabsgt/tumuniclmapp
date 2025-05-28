@@ -18,7 +18,7 @@ export default function EditarBeneficiarioForm() {
     dpi: '',
     lugar: '',
     fecha: '',
-    fecha_nacimiento: '', // 👈 nuevo campo
+    fecha_nacimiento: '', 
     codigo: '',
     telefono: '',
     sexo: '',

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 export default function Header() {
   return (
     <div className="flex flex-col gap-16 items-center pt-12 w-full">
-      <p className="text-xl md:text-4xl !leading-tight mx-auto max-w-3xl text-center">
+      <div className="text-xl md:text-4xl !leading-tight mx-auto max-w-3xl text-center">
 
         Bienvenido a la Aplicación Web de la<br />
         <a
@@ -22,7 +22,7 @@ export default function Header() {
         <h1>
           Inicie sesión para acceder al sistema
         </h1>
-      </p>
+      </div>
 
       {/* Línea divisoria decorativa */}
       <div className="w-full p-[1px] bg-gradient-to-r from-transparent via-foreground/10 to-transparent my-4" />

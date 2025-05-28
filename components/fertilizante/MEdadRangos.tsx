@@ -74,30 +74,32 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   const totalMujeres = Object.values(totalPorRango).reduce((acc, curr) => acc + curr.mujeres, 0);
   const totalGeneral = Object.values(totalPorRango).reduce((acc, curr) => acc + curr.total, 0);
 
-  const datosGrafica = clavesRango.map((clave) => {
-    const hombres = totalPorRango[clave].hombres;
-    const mujeres = totalPorRango[clave].mujeres;
-    const total = hombres + mujeres;
+const datosGrafica = clavesRango.map((clave) => {
+  const hombres = totalPorRango[clave].hombres;
+  const mujeres = totalPorRango[clave].mujeres;
+  const total = hombres + mujeres;
 
-    const nombre =
-      clave === 'jovenes'
-        ? 'Jóvenes'
-        : clave === 'adultoMenor'
-        ? 'Adulto menor'
-        : clave === 'adulto'
-        ? 'Adultos'
-        : 'Adulto mayor';
+  const nombre =
+    clave === 'jovenes'
+      ? 'Jóvenes'
+      : clave === 'adultoMenor'
+      ? 'Adulto menor'
+      : clave === 'adulto'
+      ? 'Adultos'
+      : 'Adulto mayor';
 
-    const porcentajeTotal = totalGeneral
-      ? ((total / totalGeneral) * 100).toFixed(1)
-      : '0.0';
+  const porcentajeTotal = totalGeneral
+    ? ((total / totalGeneral) * 100).toFixed(1)
+    : '0.0';
 
-    return {
-      etiqueta: `${nombre} (${porcentajeTotal}%)`,
-      hombres,
-      mujeres,
-    };
-  });
+  return {
+    etiqueta: `${nombre} (${porcentajeTotal}%)`,
+    hombres,
+    mujeres,
+    total, // 👉 agregado aquí
+  };
+});
+
 
   return (
     <Dialog open={true} onClose={onClose} as={Fragment}>
@@ -125,14 +127,19 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                   <XAxis dataKey="etiqueta" tick={{ fontSize: 20 }} />
                   <YAxis tick={{ fontSize: 16 }} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="hombres" fill="#06c" barSize={60}>
+                  
+                  <Bar dataKey="hombres" fill="#06c" barSize={50}>
                     <LabelList dataKey="hombres" position="top" />
                   </Bar>
-                  <Bar dataKey="mujeres" fill="#f87171" barSize={60}>
+                  <Bar dataKey="mujeres" fill="#f87171" barSize={50}>
                     <LabelList dataKey="mujeres" position="top" />
+                  </Bar>
+                  <Bar dataKey="total" fill="#34d399" barSize={50}>
+                    <LabelList dataKey="total" position="top" />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
+
             </div>
           </div>
 

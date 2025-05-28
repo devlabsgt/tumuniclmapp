@@ -22,10 +22,12 @@ interface ResumenBeneficiarios {
 
 export function TablaBeneficiarios({ 
   data, 
-  resumen 
+  resumen,
+  isLoading
 }: { 
   data: Beneficiario[]; 
-  resumen: ResumenBeneficiarios; 
+  resumen: ResumenBeneficiarios;
+  isLoading: boolean;
 }) {
   const router = useRouter();
 
@@ -48,17 +50,21 @@ export function TablaBeneficiarios({
   };
 
   const formatearFecha = (iso?: string) => {
-  if (!iso) return 'N/A';
-  const [a, m, d] = iso.split('-');
-  return `${d}/${m}/${a}`;
-};
-
+    if (!iso) return 'N/A';
+    const [a, m, d] = iso.split('-');
+    return `${d}/${m}/${a}`;
+  };
 
   return (
     <div>
-      {/* Tabla */}
+      {isLoading && (
+        <div className="text-center text-gray-600 font-semibold text-sm mb-4 animate-pulse">
+          
+        </div>
+      )}
+
       <div className="w-full overflow-x-auto max-w-full">
-        <table className="w-full  border-collapse text-xs">
+        <table className="w-full border-collapse text-xs">
           <thead>
             <tr className="bg-gray-100 text-left">
               <th className="p-2 border">Folio</th>
@@ -74,27 +80,37 @@ export function TablaBeneficiarios({
             </tr>
           </thead>
           <tbody>
-            {data.map((b) => (
-              <tr key={b.id} className="hover:bg-gray-50">
-                <td className="p-2 border">{mostrar(b.codigo)}</td>
-                <td className="p-2 border">{mostrar(b.nombre_completo)}</td>
-                <td className="p-2 border">{mostrar(b.dpi)}</td>
-                <td className="p-2 border">{mostrar(b.lugar)}</td>
-                <td className="p-2 border">{formatearFecha(b.fecha)}</td>
-                <td className="p-2 border">{formatearFecha(b.fecha_nacimiento)}</td>
-                <td className="p-2 border">{calcularEdad(b.fecha_nacimiento)}</td>
-                <td className="p-2 border">{mostrar(b.telefono)}</td>
-                <td className="p-2 border">{mostrar(b.sexo)}</td>
-                <td className="p-2 border">
-                  <button
-                    onClick={() => irAEditar(b.id)}
-                    className="text-blue-600 hover:underline"
-                  >
-                    Editar
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {isLoading
+              ? Array.from({ length: 8 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse bg-gray-50">
+                    {Array.from({ length: 10 }).map((_, j) => (
+                      <td key={j} className="p-2 border">
+                        <div className="h-4 bg-gray-300 rounded w-full"></div>
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              : data.map((b) => (
+                  <tr key={b.id} className="hover:bg-gray-50">
+                    <td className="p-2 border">{mostrar(b.codigo)}</td>
+                    <td className="p-2 border">{mostrar(b.nombre_completo)}</td>
+                    <td className="p-2 border">{mostrar(b.dpi)}</td>
+                    <td className="p-2 border">{mostrar(b.lugar)}</td>
+                    <td className="p-2 border">{formatearFecha(b.fecha)}</td>
+                    <td className="p-2 border">{formatearFecha(b.fecha_nacimiento)}</td>
+                    <td className="p-2 border">{calcularEdad(b.fecha_nacimiento)}</td>
+                    <td className="p-2 border">{mostrar(b.telefono)}</td>
+                    <td className="p-2 border">{mostrar(b.sexo)}</td>
+                    <td className="p-2 border">
+                      <button
+                        onClick={() => irAEditar(b.id)}
+                        className="text-blue-600 hover:underline"
+                      >
+                        Editar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
           </tbody>
         </table>
       </div>
