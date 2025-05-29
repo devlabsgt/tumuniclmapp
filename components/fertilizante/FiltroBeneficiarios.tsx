@@ -43,7 +43,6 @@ export function FiltroBeneficiarios({ filtros, setFiltros, anios }: Props) {
     <div className="flex flex-col md:flex-row flex-wrap gap-4 mb-6">
       <div className="flex gap-2 items-center flex-1">
         <span className="text-sm text-gray-700 whitespace-nowrap font-semibold">Buscar por:</span>
-
         <select
           name="campo"
           value={filtros.campo}
