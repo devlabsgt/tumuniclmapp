@@ -18,13 +18,16 @@ interface Beneficiario {
   codigo: string;
   telefono?: string;
   sexo?: string;
+   cantidad?: number;
 }
 
 type CampoFiltro = 'nombre_completo' | 'dpi' | 'codigo';
 type OrdenFiltro = 
   'nombre_completo_asc' | 'nombre_completo_desc' |
   'fecha_asc' | 'fecha_desc' |
-  'codigo_asc' | 'codigo_desc';
+  'codigo_asc' | 'codigo_desc' |
+  'cantidad_desc'; 
+
 
 export default function VerBeneficiarios() {
   const [beneficiarios, setBeneficiarios] = useState<Beneficiario[]>([]);
@@ -115,6 +118,7 @@ export default function VerBeneficiarios() {
         case 'nombre_completo_desc': return b.nombre_completo.localeCompare(a.nombre_completo);
         case 'fecha_asc': return new Date(a.fecha).getTime() - new Date(b.fecha).getTime();
         case 'fecha_desc': return new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
+        case 'cantidad_desc': return (b.cantidad ?? 1) - (a.cantidad ?? 1);
         case 'codigo_asc': return a.codigo.localeCompare(b.codigo);
         case 'codigo_desc': return b.codigo.localeCompare(a.codigo);
         default: return 0;
@@ -187,12 +191,15 @@ export default function VerBeneficiarios() {
           onChange={(e) => setOrden(e.target.value as OrdenFiltro)}
           className="border border-gray-300 rounded px-3 py-2 ml-2"
         >
+
           <option value="codigo_asc">Formulario (ascendente)</option>
           <option value="codigo_desc">Formulario (descendente)</option>
           <option value="nombre_completo_asc">Nombre (A-Z)</option>
           <option value="nombre_completo_desc">Nombre (Z-A)</option>
           <option value="fecha_desc">Fecha (más reciente primero)</option>
           <option value="fecha_asc">Fecha (más antigua primero)</option>
+          <option value="cantidad_desc">Cantidad (mayor a menor)</option>
+
         </select>
       </div>
 
