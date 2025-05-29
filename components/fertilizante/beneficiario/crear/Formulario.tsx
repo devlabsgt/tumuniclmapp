@@ -11,7 +11,8 @@ interface Props {
   fecha: string;
   codigo: string;
   telefono: string;
-  fecha_nacimiento: string; // 👈 nuevo campo
+  fecha_nacimiento: string;
+  cantidad: string;
 };
 
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
@@ -60,6 +61,20 @@ export function Formulario({ formulario, onChange }: Props) {
         value={formulario.codigo}
         onChange={onChange}
       />
+      <div>
+      <label className="font-semibold block mb-1">Cantidad de sacos</label>
+      <input
+        type="number"
+        name="cantidad"
+        min="1"
+        step="1"
+        value={formulario.cantidad}
+        onChange={onChange}
+        className="w-full border border-gray-300 rounded px-3 py-2"
+        required
+      />
+    </div>
+
       <CampoTexto
         label="Teléfono"
         name="telefono"

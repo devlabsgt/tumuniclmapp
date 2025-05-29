@@ -22,6 +22,7 @@ export default function EditarBeneficiarioForm() {
     codigo: '',
     telefono: '',
     sexo: '',
+    cantidad: '1',
   });
 
   const [original, setOriginal] = useState(formulario);
@@ -52,6 +53,7 @@ const datos = {
   codigo: data.codigo || '',
   telefono: data.telefono || '',
   sexo: data.sexo || 'M',
+  cantidad: data.cantidad?.toString() || '1', 
 };
 
 
@@ -121,7 +123,8 @@ const datos = {
     const datosActualizar = {
       ...formulario,
       telefono: formulario.telefono === '' ? 'N/A' : formulario.telefono,
-      fecha_nacimiento: formulario.fecha_nacimiento?.trim() || null
+      fecha_nacimiento: formulario.fecha_nacimiento?.trim() || null,
+      cantidad: parseInt(formulario.cantidad || '1', 10),
     };
 
   
@@ -159,6 +162,20 @@ const datos = {
         placeholder="8 dígitos numéricos"
       />
       <CampoTexto label="Formulario" name="codigo" value={formulario.codigo} onChange={handleChange} />
+      <div>
+        <label className="font-semibold block mb-1">Cantidad de sacos</label>
+        <input
+          type="number"
+          name="cantidad"
+          min="1"
+          step="1"
+          value={formulario.cantidad}
+          onChange={handleChange}
+          className="w-full border border-gray-300 rounded px-3 py-2"
+          required
+        />
+      </div>
+
       <CampoLugar value={formulario.lugar} onChange={handleChange} />
       <div>
         <label className="font-semibold block mb-1">Fecha</label>

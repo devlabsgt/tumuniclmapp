@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Progress } from '@/components/ui/Progress';
 import MTopLugares from './MTopLugares';
 import MEdadRangos from './MEdadRangos';
-import { ClassNames } from '@emotion/react';
 
 interface Beneficiario {
   id: string;
@@ -16,6 +15,7 @@ interface Beneficiario {
   telefono?: string;
   sexo?: string;
   fecha_nacimiento?: string;
+  cantidad?: number; // ✅ agregado
 }
 
 interface Props {
@@ -35,10 +35,11 @@ const calcularEdad = (fechaNacimiento: string): number => {
 
 export default function EstadisticasBeneficiarios({ data }: Props) {
   const totalMeta = 7000;
+  const totalCantidad = data.reduce((sum, b) => sum + (b.cantidad ?? 1), 0);
   const total = data.length;
   const hombres = data.filter((b) => b.sexo === 'M').length;
   const mujeres = data.filter((b) => b.sexo === 'F').length;
-  const porcentaje = Math.min((total / totalMeta) * 100, 100);
+  const porcentaje = Math.min((totalCantidad / totalMeta) * 100, 100);
 
   const edades = data.filter((b) => b.fecha_nacimiento).map((b) => calcularEdad(b.fecha_nacimiento!));
 
@@ -96,8 +97,10 @@ export default function EstadisticasBeneficiarios({ data }: Props) {
 return (
   <div className="mb-4">
     <div className="text-lg font-bold text-green-700">
-      <span className="text-green-800">Entregados: {total}</span> / {totalMeta} ({porcentaje.toFixed(2)}%)
+      <span className="text-green-800">Entregados: {totalCantidad}</span> / {totalMeta} ({porcentaje.toFixed(2)}%)  
+      <span className="ml-2 text-gray-600 text-sm">(Folios: {total})</span>
     </div>
+
 
     <div className="mt-2">
       <Progress value={porcentaje} className="h-3" />

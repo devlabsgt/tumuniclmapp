@@ -64,7 +64,8 @@ useEffect(() => {
     fecha_nacimiento: '',
     codigo: '',
     telefono: '',
-    sexo: 'M', // valor por defecto
+    sexo: 'M', 
+    cantidad: '1',
   });
 
   const handleChange = (
@@ -123,11 +124,20 @@ useEffect(() => {
       'fecha',
       'codigo',
       'sexo',
+      'cantidad',
     ];
     
     const vacios = camposRequeridos.some(
       (campo) => !formulario[campo as keyof typeof formulario]?.trim()
     );
+
+    const cantidad = parseInt(formulario.cantidad || '1', 10);
+
+    if (isNaN(cantidad) || cantidad < 1) {
+      Swal.fire('Error', 'La cantidad debe ser un número mayor o igual a 1.', 'warning');
+      return;
+    }
+
   
     if (vacios) {
       Swal.fire('Error', 'Complete todos los campos obligatorios.', 'error');
@@ -207,6 +217,7 @@ useEffect(() => {
      
       .insert([{ 
         ...formulario,
+        cantidad,
         dpi,
         codigo,
         telefono: telefono === '' ? 'N/A' : telefono,
@@ -227,6 +238,7 @@ if (error) {
         codigo: '',
         telefono: '',
         sexo: 'M',
+        cantidad: '1',
       });
       setDpi('');
       setMostrarFormulario(false);
@@ -248,10 +260,6 @@ return (
           Volver
       </Button>
     </div>
-
-    
-
-    
 
     <h1 className="text-2xl font-bold text-center mb-4">
       Registrar Beneficiario de Fertilizante

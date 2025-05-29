@@ -121,7 +121,7 @@ export default function VerBeneficiarios() {
       }
     });
 
-  const [beneficiariosPorPagina, setBeneficiariosPorPagina] = useState(20);
+  const [beneficiariosPorPagina, setBeneficiariosPorPagina] = useState(10);
   const totalPaginas = Math.ceil(beneficiariosFiltrados.length / beneficiariosPorPagina);
   const inicio = (paginaActual - 1) * beneficiariosPorPagina;
   const beneficiariosPaginados = beneficiariosFiltrados.slice(inicio, inicio + beneficiariosPorPagina);
@@ -196,26 +196,26 @@ export default function VerBeneficiarios() {
         </select>
       </div>
 
-{beneficiarios.length === 0 ? (
-  <div className="text-center text-gray-600 my-10">
-    <div className="mb-4 text-lg animate-pulse">🔄 Cargando beneficiarios...</div>
-    <TablaBeneficiarios
-      data={[]} // pasar array vacío, el skeleton se encarga
-      resumen={resumen}
-      isLoading={true}
-    />
-  </div>
-) : beneficiariosPaginados.length === 0 ? (
-  <div className="text-center text-gray-600 my-8 text-2xl">
-    <strong>No se encontraron beneficiarios que coincidan con su búsqueda.</strong>
-  </div>
-) : (
-  <TablaBeneficiarios
-    data={beneficiariosPaginados}
-    resumen={resumen}
-    isLoading={false}
-  />
-)}
+    {beneficiarios.length === 0 ? (
+      <div className="text-center text-gray-600 my-10">
+        <div className="mb-4 text-lg animate-pulse">🔄 Cargando beneficiarios...</div>
+        <TablaBeneficiarios
+          data={[]} // pasar array vacío, el skeleton se encarga
+          resumen={resumen}
+          isLoading={true}
+        />
+      </div>
+    ) : beneficiariosPaginados.length === 0 ? (
+      <div className="text-center text-gray-600 my-8 text-2xl">
+        <strong>No se encontraron beneficiarios que coincidan con su búsqueda.</strong>
+      </div>
+    ) : (
+      <TablaBeneficiarios
+        data={beneficiariosPaginados}
+        resumen={resumen}
+        isLoading={false}
+      />
+    )}
 
 
       <div className="flex justify-center mt-5 mb-2 text-sm gap-2 items-center">
