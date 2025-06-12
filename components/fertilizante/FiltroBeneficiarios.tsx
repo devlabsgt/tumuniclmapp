@@ -36,7 +36,7 @@ export function FiltroBeneficiarios({ filtros, setFiltros, anios }: Props) {
     'La Loma', 'La Quesera', 'Las Burras', 'Limones', 'Liquidámbar', 'Monte Barroso',
     'Puebnlo Nuevo', 'Platanar', 'Rodeíto', 'Rodeo El Espino', 'Rodeo Las Lajas',
     'Roble Gacho', 'Sacramento', 'San Antonio', 'San José', 'San Vicente',
-    'Santa Anita', 'Socorro', 'Tisizón', 'Valeriano', 'Valle Arriba', 'San Isidro','Llano de las tareas'
+    'Santa Anita', 'Socorro', 'Tisizón', 'Valeriano', 'Valle Arriba', 'San Isidro','Llano de las tareas', 'Caserío Bordo el Llano'
   ].sort();
 
   return (
