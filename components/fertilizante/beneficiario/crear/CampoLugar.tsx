@@ -13,7 +13,7 @@ const lugares = [
   'El Pinito', 'La Leona', 'Limones', 'Cruz Calle', 'Cabildo', 'El Obraje', 'San Antonio',
   'La Quesera', 'Rodeo Las Lajas', 'Tisizón', 'Hornito', 'Anonas', 'Socorro', 'Aguajal',
   'San José', 'Valle Arriba', 'El Capulín', 'Rodeíto', 'El Límite', 'El Obispo',
-  'Pueblo Nuevo', 'Casco Urbano', 'San Isidro','Llano de las tareas'
+  'Pueblo Nuevo', 'Casco Urbano', 'San Isidro','Llano de las tareas','Caserío Bordo el Llano'
 ].sort((a, b) => a.localeCompare(b));
 
 export function CampoLugar({ value, onChange }: Props) {
