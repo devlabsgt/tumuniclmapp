@@ -30,7 +30,7 @@ export default function MISSINGFolioModal({ visible, onClose, beneficiarios }: P
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-md shadow-lg p-6 w-full max-w-3xl overflow-auto max-h-[80vh]">
           <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            Folios faltantes (0002 - 6000)
+            Folios faltantes (0002 - 6000): 
             <span className="text-orange-600">({faltantes.length})</span>
           </h2>
 
