@@ -51,7 +51,7 @@ export function FiltroBeneficiarios({ filtros, setFiltros, anios }: Props) {
         >
           <option value="nombre_completo">Nombre</option>
           <option value="dpi">DPI</option>
-          <option value="codigo">Formulario</option>
+          <option value="codigo">Folio</option>
         </select>
 
         <Input
