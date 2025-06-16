@@ -1,6 +1,12 @@
 'use client';
 
-import { Dialog } from '@headlessui/react';
+import {
+  Dialog,
+  DialogPanel,
+  DialogTitle,
+  Transition,
+  TransitionChild,
+} from '@headlessui/react';
 import { Fragment } from 'react';
 import {
   BarChart,
@@ -10,6 +16,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   LabelList,
+  CartesianGrid,
 } from 'recharts';
 import { Button } from '@/components/ui/button';
 
@@ -41,77 +48,81 @@ export default function MTopLugares({ conteoPorLugar, onClose }: MTopLugaresProp
   };
 
   return (
-    <Dialog open={true} onClose={onClose} as={Fragment}>
-      <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-        <Dialog.Panel className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-lg">
-          <div className="flex justify-between items-center mb-4">
-            <Dialog.Title className="text-2xl font-bold text-gray-800">
-              Estadísticas de entrega de abono por lugar
-            </Dialog.Title>
-            <Button onClick={onClose} variant="ghost">Cerrar</Button>
-          </div>
+    <Transition appear show={true} as={Fragment}>
+      <Dialog as="div" className="relative z-50" onClose={onClose}>
+        <TransitionChild
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <div className="fixed inset-0 bg-black bg-opacity-30" />
+        </TransitionChild>
 
-          {/* Gráfica de Barras */}
-          <div className="w-full overflow-x-auto">
-            <div style={{ minWidth: '1000px', height: '400px' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={datosGrafica}
-                  margin={{ top: 30, right: 20, left: 20, bottom: 0 }}
-                >
-                  <XAxis
-                    dataKey="index"
-                    tick={{ fontSize:14, fill: '#333', fontWeight: 'bold' }}
-                    label={{ value: 'No.', position: 'insideBottom', offset: -5 }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 14, fill: '#333' }}
-                    ticks={Array.from(
-                      { length: Math.ceil(Math.max(...datosGrafica.map(d => d.value)) / 50) + 1 },
-                      (_, i) => i * 50
-                    )}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="value" fill="#06c" barSize={20}>
-                    <LabelList
-                      dataKey="value"
-                      position="top"
-                      offset={10}
-                      style={{
-                        fill: '#333',
-                        fontSize: 14,
-                        fontWeight: 'bold',
-                      }}
-                    />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+        <div className="fixed inset-0 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 text-center">
+            <TransitionChild
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <DialogPanel className="w-full max-w-6xl transform overflow-hidden bg-white p-6 text-left align-middle shadow-xl transition-all">
+                <div className="flex justify-between items-center mb-4">
+                  <DialogTitle as="h3" className="text-2xl font-bold text-gray-800">
+                    Estadísticas de entrega de abono por lugar
+                  </DialogTitle>
+                  <Button onClick={onClose} variant="ghost">Cerrar</Button>
+                </div>
 
-          {/* Tabla completa */}
-          <div className="mt-6">
-            <table className="w-full border-collapse text-lg">
-              <thead>
-                <tr className="bg-gray-100 text-left">
-                  <th className="p-2 border">No.</th>
-                  <th className="p-2 border">Lugar</th>
-                  <th className="p-2 border">Cantidad</th>
-                </tr>
-              </thead>
-              <tbody>
-                {datosGrafica.map(({ index, name, value }) => (
-                  <tr key={name}>
-                    <td className="p-2 border text-center">{index}</td>
-                    <td className="p-2 border">{name}</td>
-                    <td className="p-2 border">{value}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                <div className="w-full overflow-x-auto max-h-[80vh] overflow-y-scroll pr-2">
+                  <div style={{ width: '100%', height: `${datosGrafica.length * 40}px`, minHeight: '500px' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={datosGrafica}
+                        layout="vertical"
+                        margin={{ top: 20, right: 60, left: 0, bottom: 10 }}
+                        barCategoryGap={24}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis
+                          type="number"
+                          
+                          tick={{ fontSize: 20, fill: '#333' }}
+                          allowDecimals={false}
+                          domain={[0, 'dataMax + 50']}
+                          tickCount={Math.ceil((Math.max(...datosGrafica.map(d => d.value)) + 50) / 100)}
+                          interval={0}
+                        />
+                        <YAxis
+                          dataKey="name"
+                          type="category"
+                          tick={{ fontSize: 20, fill: '#333' }}
+                          width={160}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar dataKey="value" fill="#06c" barSize={20} radius={[0, 0, 0, 0]}>
+                          <LabelList
+                            dataKey="value"
+                            position="right"
+                            style={{ fill: '#333', fontSize: 16, fontWeight: 'bold' }}
+                          />
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </DialogPanel>
+            </TransitionChild>
           </div>
-        </Dialog.Panel>
-      </div>
-    </Dialog>
+        </div>
+      </Dialog>
+    </Transition>
   );
 }

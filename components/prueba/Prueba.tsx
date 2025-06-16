@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import type { Route } from 'next';
 
 const afiliados = [
   {
@@ -29,7 +29,7 @@ export default function Prueba() {
   const router = useRouter();
 
   const irAEditar = (id: string) => {
-    router.push(`/editar?id=${id}`);
+    router.push(`/editar?id=${id}` as Route);
   };
 
   return (

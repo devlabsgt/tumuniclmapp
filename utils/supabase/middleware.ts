@@ -29,27 +29,52 @@ export const updateSession = async (request: NextRequest) => {
       }
     );
 
-    const user = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
 
-    // 🚫 Redirección si intenta entrar a /protected sin sesión
-    if (request.nextUrl.pathname.startsWith("/protected") && user.error) {
-      return NextResponse.redirect(new URL("/sign-in", request.url));
+    if (!user || error) {
+      if (request.nextUrl.pathname.startsWith("/protected")) {
+        return NextResponse.redirect(new URL("/sign-in", request.url));
+      }
+      return response;
     }
 
-    // 🔐 Si intenta entrar a /protected/admin y no es admin
+    const { data: relacion } = await supabase
+      .from("usuarios_roles")
+      .select("roles(nombre)")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const rolNombre =
+      relacion?.roles && "nombre" in relacion.roles
+        ? (relacion.roles as { nombre: string }).nombre
+        : null;
+
+    // 🔐 Si intenta entrar a /protected/admin/configs/* y no es SUPER
     if (
-      request.nextUrl.pathname.startsWith("/protected/admin") &&
-      user.data?.user?.user_metadata?.rol !== "Admin"
+      request.nextUrl.pathname.startsWith("/protected/admin/configs") &&
+      rolNombre !== "SUPER"
     ) {
       return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
 
-    // ✅ Redirige desde / según el rol
-    if (request.nextUrl.pathname === "/") {
-      if (user.error) return response;
+    // 🔐 Si intenta entrar a /protected/admin y no es ADMINISTRADOR o SUPER
+    if (
+      request.nextUrl.pathname.startsWith("/protected/admin") &&
+      rolNombre !== "ADMINISTRADOR" &&
+      rolNombre !== "SUPER"
+    ) {
+      return NextResponse.redirect(new URL("/unauthorized", request.url));
+    }
 
-      const rol = user.data?.user?.user_metadata?.rol;
-      const destino = rol === "Admin" ? "/protected/admin" : "/protected";
+    // ✅ Redirección inicial desde /
+    if (request.nextUrl.pathname === "/") {
+      const destino =
+        rolNombre === "ADMINISTRADOR" || rolNombre === "SUPER"
+          ? "/protected/admin"
+          : "/protected/user";
       return NextResponse.redirect(new URL(destino, request.url));
     }
 

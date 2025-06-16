@@ -1,55 +1,54 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import { createClient } from '@/utils/supabase/client';
 
 export default function ProtectedPage() {
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
-    const getUser = async () => {
+    const verificarAcceso = async () => {
       const supabase = createClient();
+
       const {
         data: { user },
+        error: userError,
       } = await supabase.auth.getUser();
 
-      if (!user) {
+      if (userError || !user) {
         router.push('/sign-in');
         return;
       }
 
-      setUser(user);
-      setLoading(false);
+      const { data, error } = await supabase
+        .from('usuarios_roles')
+        .select('roles(nombre)')
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle();
+
+      const rolNombre =
+        !error && data?.roles && 'nombre' in data.roles
+          ? (data.roles as { nombre: string }).nombre
+          : null;
+
+      const rolNormalizado = rolNombre?.toUpperCase();
+      if (rolNormalizado === 'ADMINISTRADOR' || rolNormalizado === 'SUPER') {
+        router.push('/protected/admin');
+      } else {
+        router.push('/protected/user');
+      }
+
     };
 
-    getUser();
+    verificarAcceso();
   }, [router]);
 
-  if (loading) return <p className="p-4 text-center">Cargando...</p>;
-
-  const irAlDashboard = () => {
-    const rol = user.user_metadata?.rol;
-    if (rol === 'Admin') {
-      router.push('/protected/admin');
-    } else {
-      router.push('/protected/user');
-    }
-  };
-
   return (
-    <div className="flex-1 w-full flex flex-col items-center pt-12 px-4">
-      <div className="text-center w-full max-w-xl">
-        <h1 className="text-xl md:text-4xl font-bold mb-4">Bienvenido al sistema de Gestión Municipal</h1>
-        <p className="text-xl md:text-4xl text-gray-600 mb-6">Selecciona una opción.</p>
-
-        <Button onClick={irAlDashboard} className="text-xl md:text-2xl px-6 h-16 w-full">
-          Entrar al Sistema
-        </Button>
-      </div>
+    <div className="flex flex-col items-center justify-center min-h-screen gap-4 text-center text-gray-700">
+      <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      <p className="text-lg font-semibold">Verificando acceso...</p>
     </div>
   );
 }

@@ -254,7 +254,7 @@ return (
 
       <Button
           variant="ghost"
-        onClick={() => router.push('/protected/fertilizante/beneficiarios/')}
+        onClick={() => router.push('/protected/fertilizante/beneficiarios')}
           className="text-blue-600 text-base underline"
         >
           Volver

@@ -1,16 +1,38 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
+import { Users, Leaf, Settings } from 'lucide-react';
 
 export default function AdminDashboard() {
+  const router = useRouter();
   const [mostrarOpciones, setMostrarOpciones] = useState(false);
   const opcionesRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
 
-  // Cerrar si se hace clic fuera
+  const [rol, setRol] = useState('');
+  const [permisos, setPermisos] = useState<string[]>([]);
+  const [modulos, setModulos] = useState<string[]>([]); // ← nuevo estado
+
+  useEffect(() => {
+    const obtenerUsuario = async () => {
+      try {
+        const res = await fetch('/api/getuser');
+        const data = await res.json();
+        console.log('ROL:', data.rol);
+        console.log('PERMISOS:', data.permisos);
+        console.log('MODULOS:', data.modulos);
+        setRol(data.rol || '');
+        setPermisos(data.permisos || []);
+        setModulos(data.modulos || []); // ← asignamos modulos
+      } catch (err) {
+        console.error('Error al obtener datos del usuario:', err);
+      }
+    };
+
+    obtenerUsuario();
+  }, []);
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (opcionesRef.current && !opcionesRef.current.contains(event.target as Node)) {
@@ -19,67 +41,89 @@ export default function AdminDashboard() {
     }
 
     if (mostrarOpciones) {
-      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [mostrarOpciones]);
 
   return (
-    <section className="w-full max-w-5xl mx-auto pt-0 px-4 md:px-8 relative">
-        <Button
-          variant="ghost"
-          onClick={() => router.push('/protected')}
-          className="text-blue-600 text-base underline"
-        >
-          Volver
-        </Button>
-      <div className="relative flex items-center justify-center mb-6">
-
-      {/* Título */}
-        <h1 className="text-2xl md:text-4xl font-bold text-center">
-          Dashboard de Administrador
-        </h1>
-        </div>
-
-
-      {/* Barra de acciones */}
-      <div className="flex flex-wrap justify-center gap-4 mb-12">
-        <div className="relative" ref={opcionesRef}>
-          <Link href="/protected/admin/users">
-            <Button>Ver Usuarios</Button>
-          </Link>
-          {mostrarOpciones && (
-            <div className="absolute top-12 left-0 z-10 w-48 bg-white dark:bg-gray-900 shadow-lg rounded border border-gray-200 dark:border-gray-700 p-2 flex flex-col gap-2">
-              <Link href="/protected/admin/sign-up">
-                <Button variant="ghost" className="w-full justify-start">
-                  Crear Usuario
-                </Button>
-              </Link>
-              <Link href="/protected/admin/users">
-                <Button variant="ghost" className="w-full justify-start">
-                  Ver Usuarios
-                </Button>
-              </Link>
-            </div>
-          )}
-        </div>
-
-        {/* Otros botones */}
-        <Link href="/protected/fertilizante/beneficiarios">
-          
-          <Button variant="outline" className="w-full justify-start">
-            Entrega de Fertilizante
+    <>
+      {/* Barra superior */}
+      <div className="w-full px-4 sm:px-6 py-4 bg-white border-b shadow-sm flex justify-between items-center flex-wrap gap-4">
+       
+        <div className="flex flex-wrap gap-4 items-center">
+          <Button
+            onClick={() => router.push('/protected/admin/users')}
+            className="gap-2 text-xl"
+          >
+            <Users size={20} />
+            Ver Usuarios
           </Button>
-        </Link>
+        </div>
+
+        {permisos.includes('CONFIGURACION') && (
+          <div className="relative" ref={opcionesRef}>
+            <Button
+              onClick={() => setMostrarOpciones(!mostrarOpciones)}
+              className="gap-2 text-xl"
+            >
+              <Settings size={24} />
+              Configuraciones
+            </Button>
+
+            {mostrarOpciones && (
+              <div className="absolute top-12 right-0 z-10 bg-white dark:bg-gray-900 shadow-xl rounded border border-gray-200 dark:border-gray-700 p-2 flex flex-col gap-2">
+                <Button
+                  variant="ghost"
+                  className="w-full text-xl justify-end gap-2 hover:underline"
+                  onClick={() => router.push('/protected/admin/configs/roles')}
+                >
+                  <Users size={24} />  Roles
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full text-xl justify-end gap-2 hover:underline"
+                  onClick={() => router.push('/protected/admin/configs/modulos')}
+                >
+                  <Settings size={24} />  Módulos
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
 
       </div>
 
-      <p className="text-center text-muted-foreground text-lg mb-8">
-        Desde aquí podrá gestionar el sistema interno de la municipalidad.
-      </p>
-    </section>
+      {/* Contenido principal */}
+      <section className="w-full max-w-5xl mx-auto px-4 md:px-8 pt-8">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl md:text-4xl font-bold">
+            Dashboard de Administrador
+          </h1>
+        </div>
+
+        <p className="text-center text-muted-foreground text-lg mb-10">
+          Desde aquí podrá gestionar el sistema interno de la municipalidad.
+        </p>
+
+        {/* ✅ Solo mostrar si el módulo está permitido */}
+        {modulos.includes('FERTILIZANTE') && (
+          <div
+            onClick={() => router.push('/protected/fertilizante/beneficiarios')}
+            className="cursor-pointer bg-white hover:shadow-lg transition-shadow border rounded-xl p-6 flex items-center gap-4 mb-16"
+          >
+            <Leaf size={36} className="text-green-600" />
+            <div>
+              <h2 className="text-xl font-semibold text-gray-800">Fertilizante</h2>
+              <p className="text-gray-500">Gestionar beneficiarios y entregas.</p>
+            </div>
+          </div>
+        )}
+      </section>
+    </>
   );
 }

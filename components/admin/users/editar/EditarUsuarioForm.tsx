@@ -5,11 +5,10 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-
 import { createClient } from '@/utils/supabase/client';
 import CampoNombre from './CampoNombre';
 import CampoEmail from './CampoEmail';
-import RolSelector from '@/components/ui/RolSelector';
+import DRolSelector from '@/components/ui/DRolSelector';
 import PasswordEditor from './PasswordEditor';
 import { Switch } from '@/components/ui/Switch';
 
@@ -20,40 +19,50 @@ export default function EditarUsuarioForm() {
 
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
-  const [rol, setRol] = useState('');
-  const [activo, setActivo] = useState(true); // true por defecto
+  const [rol, setRol] = useState<string | null>(null);
+  const [activo, setActivo] = useState(true);
   const [cargando, setCargando] = useState(false);
-
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmar, setConfirmar] = useState('');
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
 
-const [original, setOriginal] = useState({ nombre: '', email: '', rol: '', activo: true });
+  const [original, setOriginal] = useState({
+    nombre: '',
+    email: '',
+    rol: '',
+    activo: true,
+  });
 
   useEffect(() => {
     if (!id) return;
+
     const supabase = createClient();
 
     const cargarUsuario = async () => {
       const { data: usuarios, error } = await supabase.rpc('obtener_usuarios');
-      if (error || !usuarios) {
-        router.push('/protected/admin/users');
+
+      if (error) {
+        setErrorCarga('Error al obtener los usuarios.');
         return;
       }
 
-      const user = usuarios.find((u: any) => u.id === id);
+      const user = usuarios.find((u: any) =>
+        String(u.id).toLowerCase() === String(id).toLowerCase()
+      );
+
       if (!user) {
-        router.push('/protected/admin/users');
+        setErrorCarga('Usuario no encontrado.');
         return;
       }
 
       setNombre(user.nombre || '');
       setEmail(user.email || '');
-      setRol(user.rol || '');
+      setRol(user.rol || null);
       setOriginal({
         nombre: user.nombre,
         email: user.email,
-        rol: user.rol,
+        rol: user.rol || '',
         activo: user.activo === 'true' || user.activo === true,
       });
       setActivo(user.activo === 'true' || user.activo === true);
@@ -62,17 +71,17 @@ const [original, setOriginal] = useState({ nombre: '', email: '', rol: '', activ
     cargarUsuario();
   }, [id]);
 
-const contraseñaValida =
-  password &&
-  password === confirmar &&
-  /^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W]).*$/.test(password);
+  const contraseñaValida =
+    password &&
+    password === confirmar &&
+    /^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W]).*$/.test(password);
 
-const hayCambios =
-  nombre !== original.nombre ||
-  email !== original.email ||
-  rol !== original.rol ||
-  activo !== original.activo ||
-  (mostrarPassword && contraseñaValida);
+  const hayCambios =
+    nombre !== original.nombre ||
+    email !== original.email ||
+    rol !== original.rol ||
+    activo !== original.activo ||
+    mostrarPassword;
 
   const actualizarUsuario = async () => {
     if (!id || !hayCambios) {
@@ -80,6 +89,15 @@ const hayCambios =
         icon: 'info',
         title: 'Sin cambios',
         text: 'No hiciste ninguna modificación.',
+      });
+      return;
+    }
+
+    if (!rol) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Rol requerido',
+        text: 'Debe seleccionar un rol.',
       });
       return;
     }
@@ -105,14 +123,15 @@ const hayCambios =
       }
     }
 
-const actualizarData: any = { id, email, nombre, rol, activo };
+    const actualizarData: any = {
+      id,
+      email,
+      nombre,
+      roles: [rol],
+      activo,
+    };
 
     if (mostrarPassword) {
-      const contraseñaValida =
-        password &&
-        password === confirmar &&
-        /^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W]).*$/.test(password);
-
       if (!contraseñaValida) {
         setCargando(false);
         Swal.fire({
@@ -159,18 +178,18 @@ const actualizarData: any = { id, email, nombre, rol, activo };
     }).then(() => router.push(`/protected/admin/users/ver?id=${id}`));
   };
 
-  if (!id) return <p className="p-4 text-center">ID no proporcionado.</p>;
+  if (!id) return <p className="p-4 text-center text-red-600">ID no proporcionado.</p>;
+  if (errorCarga) return <p className="p-4 text-center text-red-600">{errorCarga}</p>;
 
   return (
     <div className="flex flex-col gap-4">
       <CampoNombre value={nombre} onChange={setNombre} />
       <CampoEmail value={email} onChange={setEmail} />
-      <RolSelector rol={rol} onChange={setRol} />
+      <DRolSelector rol={rol} onChange={setRol} />
       <div className="flex items-center justify-between mt-2">
-      <Label className="text-base">Activo</Label>
-      <Switch checked={activo} onCheckedChange={setActivo} />
-    </div>
-
+        <Label className="text-base">Activo</Label>
+        <Switch checked={activo} onCheckedChange={setActivo} />
+      </div>
 
       <Button
         variant="outline"
@@ -180,8 +199,6 @@ const actualizarData: any = { id, email, nombre, rol, activo };
       >
         {mostrarPassword ? 'Cancelar cambio de contraseña' : 'Editar contraseña'}
       </Button>
-
-
 
       {mostrarPassword && (
         <PasswordEditor

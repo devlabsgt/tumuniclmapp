@@ -10,22 +10,44 @@ export default async function AuthButton() {
     data: { user },
   } = await supabase.auth.getUser();
 
-return user ? (
-  <div className="flex items-center gap-4">
-    <span className=" text-xl hidden lg:inline ">Hola, <strong>{user.email}</strong>!</span>
-    <form action={signOutAction}>
-      <Button type="submit" variant={"outline"}>
-        Cerrar Sesión
+  let rolNombre = "";
+
+  if (user) {
+    const { data: relacion, error } = await supabase
+      .from("usuarios_roles")
+      .select("roles(nombre)")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!error && relacion && 'roles' in relacion && relacion.roles && 'nombre' in relacion.roles) {
+      rolNombre = (relacion.roles as { nombre: string }).nombre;
+    }
+  }
+
+  return user ? (
+    <div className="flex flex-col items-start gap-1 lg:flex-row lg:items-center lg:gap-4">
+    <div className="flex flex-col items-end">
+      <span className="text-xl hidden lg:inline">
+        Hola, <strong>{user.email}</strong>!
+      </span>
+      {rolNombre && (
+        <div className="text-[#06c] text-xs font-medium mt-1 lg:mt-0">
+        Rol:  <strong><span className="underline">{rolNombre}</span></strong> 
+        </div>
+      )}
+    </div>
+
+      <form action={signOutAction}>
+        <Button type="submit" variant="outline">
+          Cerrar Sesión
+        </Button>
+      </form>
+    </div>
+  ) : (
+    <div className="flex gap-2">
+      <Button asChild size="sm" variant="outline">
+        <Link href="/sign-in">Iniciar Sesión</Link>
       </Button>
-    </form>
-  </div>
-) : (
-  <div className="flex gap-2">
-    <Button asChild size="sm" variant={"outline"}>
-      <Link href="/sign-in">Iniciar Sesión</Link>
-    </Button>
-  </div>
-);
-
-
+    </div>
+  );
 }

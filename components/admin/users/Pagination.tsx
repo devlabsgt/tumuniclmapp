@@ -1,4 +1,3 @@
-// components/admin/users/Pagination.tsx
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -6,28 +5,36 @@ import { Button } from '@/components/ui/button';
 type Props = {
   paginaActual: number;
   totalPaginas: number;
-  setPaginaActual: (nueva: number) => void;
+  setPaginaActual: (pagina: number) => void;
 };
 
 export default function Pagination({ paginaActual, totalPaginas, setPaginaActual }: Props) {
   return (
-    <div className="mt-10 flex justify-center items-center gap-5">
+    <div className="flex justify-center mt-4 gap-2 flex-wrap">
       <Button
-        onClick={() => setPaginaActual(Math.max(1, paginaActual - 1))}
+        variant="outline"
+        onClick={() => setPaginaActual(paginaActual - 1)}
         disabled={paginaActual === 1}
       >
-        Anterior
+        ←
       </Button>
 
-      <span className="text-sm">
-        Página {paginaActual} de {totalPaginas || 1}
-      </span>
+      {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((numero) => (
+        <Button
+          key={numero}
+          onClick={() => setPaginaActual(numero)}
+          variant={paginaActual === numero ? 'default' : 'outline'}
+        >
+          {numero}
+        </Button>
+      ))}
 
       <Button
-        onClick={() => setPaginaActual(Math.min(totalPaginas, paginaActual + 1))}
-        disabled={paginaActual === totalPaginas || totalPaginas === 0}
+        variant="outline"
+        onClick={() => setPaginaActual(paginaActual + 1)}
+        disabled={paginaActual === totalPaginas}
       >
-        Siguiente
+        →
       </Button>
     </div>
   );

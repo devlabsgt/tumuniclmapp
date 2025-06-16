@@ -139,7 +139,6 @@ const datosGrafica = clavesRango.map((clave) => {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-
             </div>
           </div>
 

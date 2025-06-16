@@ -18,6 +18,7 @@ export function EnvVarWarning() {
         >
           <Link href="/sign-in">Sign in</Link>
         </Button>
+{/* 
         <Button
           asChild
           size="sm"
@@ -27,6 +28,7 @@ export function EnvVarWarning() {
         >
           <Link href="/sign-up">Sign up</Link>
         </Button>
+*/}
       </div>
     </div>
   );

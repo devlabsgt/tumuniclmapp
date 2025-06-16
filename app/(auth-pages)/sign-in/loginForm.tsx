@@ -6,8 +6,8 @@ import { signInAction } from '@/app/actions';
 import { SubmitButton } from '@/components/submit-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { Eye, EyeOff } from 'lucide-react';
+import BotonVolver from '@/components/ui/botones/BotonVolver';
 
 export function LoginForm() {
   const router = useRouter();
@@ -34,61 +34,63 @@ export function LoginForm() {
   }
 
   return (
-    <form className="flex-1 flex flex-col min-w-64 max-w-md mx-auto p-8 gap-6">
-
-
-      {/* Volver y Título alineados */}
-      <div className="flex items-center justify-between mb-2">
-        
-        <Button
-          variant="ghost"
-          onClick={() => router.push('/')}
-          className="text-blue-600 text-base underline"
-        >
-          Volver
-        </Button>
-        <h1 className="text-2xl font-medium text-right flex-1">Iniciar Sesión</h1>
+    <form className="flex-1 flex flex-col max-w-xl mx-auto px-8 py-10 gap-8 text-2xl bg-white rounded-xl shadow-md mt-10">
+      {/* Volver y Título */}
+      <div className="flex items-center justify-between mb-4">
+        <BotonVolver ruta="/" />
       </div>
+        <h1 className="text-3xl font-bold text-center flex-1">Iniciar Sesión</h1>
+        <h2 className="text-lg  text-blue-500  text-center">Ingresa tus credenciales para iniciar sesión</h2>
 
       {error && (
-        <div className="bg-red-100 text-red-800 p-3 text-base rounded mb-4 border border-red-300">
+        <div className="bg-red-100 text-red-800 p-4 rounded border border-red-300 text-xl">
           {traducirError(decodeURIComponent(error))}
         </div>
       )}
 
       {success && (
-        <div className="bg-green-100 text-green-800 p-3 text-base rounded mb-4 border border-green-300">
+        <div className="bg-green-100 text-green-800 p-4 rounded border border-green-300 text-xl">
           {decodeURIComponent(success)}
         </div>
       )}
 
-      <div className="flex flex-col gap-2 [&>input]:mb-3 mt-2">
-        <Label htmlFor="email">Email</Label>
-        <Input name="email" placeholder="correo@ejemplo.com" required />
-
-        <div className="flex justify-between items-center">
-          <Label htmlFor="password">Contraseña&nbsp;</Label>
-        </div>
-
-        <div className="relative">
+      <div className="flex flex-col gap-6">
+        <div>
+          <Label htmlFor="email" className="text-2xl mb-5 block">Email</Label>
           <Input
-            type={verPassword ? 'text' : 'password'}
-            name="password"
-            placeholder="Tu Contraseña"
+            name="email"
+            placeholder="correo@ejemplo.com"
             required
-            className="pr-10"
+            className="text-2xl py-8 px-4 mb-10"
           />
-          <button
-            type="button"
-            onClick={() => setVerPassword((prev) => !prev)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            aria-label="Mostrar u ocultar contraseña"
-          >
-            {verPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
         </div>
 
-        <SubmitButton pendingText="Iniciando..." formAction={signInAction}>
+        <div>
+          <Label htmlFor="password" className="text-2xl mb-5 block">Contraseña</Label>
+          <div className="relative">
+            <Input
+              type={verPassword ? 'text' : 'password'}
+              name="password"
+              placeholder="Tu Contraseña"
+              required
+              className="text-2xl py-8 px-4 pr-12 mb-10"
+            />
+            <button
+              type="button"
+              onClick={() => setVerPassword((prev) => !prev)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
+              aria-label="Mostrar u ocultar contraseña"
+            >
+              {verPassword ? <EyeOff size={24} /> : <Eye size={24} />}
+            </button>
+          </div>
+        </div>
+
+        <SubmitButton
+          pendingText="Iniciando..."
+          formAction={signInAction}
+          className="text-2xl py-8"
+        >
           Iniciar Sesión
         </SubmitButton>
       </div>

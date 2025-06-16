@@ -23,7 +23,7 @@ interface Empleado {
 interface Usuario {
   nombre: string;
   email: string;
-  rol: string;
+  roles: string[];
 }
 
 export async function generarPdfEmpleado(usuario: Usuario, empleado?: Empleado) {

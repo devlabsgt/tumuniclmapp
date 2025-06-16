@@ -1,30 +1,44 @@
-// components/admin/sign-up/RolSelector.tsx
 'use client';
 
-import { Label } from '@/components/ui/label';
+import { useState } from 'react';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 
 type Props = {
-  rol: string;
-  onChange: (val: string) => void;
+  roles: string[];
+  onChange: (valores: string[]) => void;
 };
 
-export default function RolSelector({ rol, onChange }: Props) {
+const opciones = ['Admin', 'Usuario', 'Maestro', 'Inventario'];
+
+export default function RolSelector({ roles, onChange }: Props) {
+  const toggleRol = (rol: string) => {
+    if (roles.includes(rol)) {
+      onChange(roles.filter((r) => r !== rol));
+    } else {
+      onChange([...roles, rol]);
+    }
+  };
+
   return (
-    <div>
-      <Label htmlFor="rol" className="text-lg mb-1 block">
-        Rol
-      </Label>
-      <select
-        name="rol"
-        required
-        value={rol}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-12 text-lg border border-input rounded px-3 w-full"
-      >
-        <option value="">Seleccione un rol</option>
-        <option value="Usuario">Usuario</option>
-        <option value="Admin">Admin</option>
-      </select>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="w-full md:w-auto">
+          {roles.length > 0 ? `Filtrando (${roles.length}) rol(es)` : 'Seleccionar rol'}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="p-2">
+        {opciones.map((rol) => (
+          <DropdownMenuCheckboxItem
+            key={rol}
+            checked={roles.includes(rol)}
+            onCheckedChange={() => toggleRol(rol)}
+            className="capitalize"
+          >
+            {rol}
+          </DropdownMenuCheckboxItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
