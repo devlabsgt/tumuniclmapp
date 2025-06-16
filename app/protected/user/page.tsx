@@ -51,7 +51,6 @@ export default function AdminDashboard() {
 
   return (
     <>
-
       {/* Contenido principal */}
       <section className="w-full max-w-5xl mx-auto px-4 md:px-8 pt-8">
 
@@ -74,11 +73,12 @@ export default function AdminDashboard() {
             <Leaf size={36} className="text-green-600" />
             <div>
               <h2 className="text-xl font-semibold text-gray-800">Fertilizante</h2>
-              <p className="text-gray-500">Gestionar beneficiarios y entregas.</p>
+              <p className="text-gray-500">Gestionar beneficiarios y entregas de fertilizante.</p>
             </div>
           </div>
         )}
       </section>
     </>
   );
+
 }
