@@ -9,6 +9,7 @@ import { TablaBeneficiarios } from './TablaBeneficiarios';
 import { generarPdfBeneficiarios } from '@/components/utils/PdfBeneficiarios';
 import EstadisticasBeneficiarios from './EstadisticasBeneficiarios';
 import MISSINGFolioModal from './MISSINGFolioModal';
+import Swal from 'sweetalert2';
 
 
 interface Beneficiario {
@@ -21,6 +22,7 @@ interface Beneficiario {
   telefono?: string;
   sexo?: string;
   cantidad?: number;
+  estado?: string;
 }
 
 type CampoFiltro = 'nombre_completo' | 'dpi' | 'codigo';
@@ -31,7 +33,10 @@ type OrdenFiltro =
   | 'fecha_desc'
   | 'codigo_asc'
   | 'codigo_desc'
-  | 'cantidad_desc';
+  | 'cantidad_desc'
+  | 'solo_anulados'
+  | 'solo_extraviados';
+
 
 type RelacionUsuarioRol = {
   roles: {
@@ -105,8 +110,7 @@ useEffect(() => {
     obtenerAnios();
   }, []);
 
-  useEffect(() => {
-    const cargarDatos = async () => {
+      const cargarDatos = async () => {
       const { data, error } = await supabase
         .from('beneficiarios_fertilizante')
         .select('*')
@@ -117,27 +121,35 @@ useEffect(() => {
       }
     };
 
+  useEffect(() => {
     cargarDatos();
   }, [filtros.anio]);
 
-  const beneficiariosFiltrados = beneficiarios
-    .filter(
-      (b) =>
-        b[filtros.campo].toLowerCase().includes(filtros.valor.toLowerCase()) &&
-        (filtros.lugar === '' || b.lugar === filtros.lugar)
-    )
-    .sort((a, b) => {
-      switch (orden) {
-        case 'nombre_completo_asc': return a.nombre_completo.localeCompare(b.nombre_completo);
-        case 'nombre_completo_desc': return b.nombre_completo.localeCompare(a.nombre_completo);
-        case 'fecha_asc': return new Date(a.fecha).getTime() - new Date(b.fecha).getTime();
-        case 'fecha_desc': return new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
-        case 'cantidad_desc': return (b.cantidad ?? 1) - (a.cantidad ?? 1);
-        case 'codigo_asc': return a.codigo.localeCompare(b.codigo);
-        case 'codigo_desc': return b.codigo.localeCompare(a.codigo);
-        default: return 0;
-      }
-    });
+
+const beneficiariosFiltrados = beneficiarios
+  .filter((b) => {
+    const cumpleCampo = b[filtros.campo].toLowerCase().includes(filtros.valor.toLowerCase());
+    const cumpleLugar = filtros.lugar === '' || b.lugar === filtros.lugar;
+    const cumpleEstado =
+      orden === 'solo_anulados' ? b.estado === 'Anulado' :
+      orden === 'solo_extraviados' ? b.estado === 'Extraviado' :
+      true;
+
+    return cumpleCampo && cumpleLugar && cumpleEstado;
+  })
+  .sort((a, b) => {
+    switch (orden) {
+      case 'nombre_completo_asc': return a.nombre_completo.localeCompare(b.nombre_completo);
+      case 'nombre_completo_desc': return b.nombre_completo.localeCompare(a.nombre_completo);
+      case 'fecha_asc': return new Date(a.fecha).getTime() - new Date(b.fecha).getTime();
+      case 'fecha_desc': return new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
+      case 'cantidad_desc': return (b.cantidad ?? 1) - (a.cantidad ?? 1);
+      case 'codigo_asc': return a.codigo.localeCompare(b.codigo);
+      case 'codigo_desc': return b.codigo.localeCompare(a.codigo);
+      default: return 0;
+    }
+  });
+
 
   const [beneficiariosPorPagina, setBeneficiariosPorPagina] = useState(10);
   const totalPaginas = Math.ceil(beneficiariosFiltrados.length / beneficiariosPorPagina);
@@ -152,6 +164,82 @@ useEffect(() => {
     hombres: beneficiariosFiltrados.filter((b) => b.sexo?.toUpperCase() === 'M').length,
     mujeres: beneficiariosFiltrados.filter((b) => b.sexo?.toUpperCase() === 'F').length,
   };
+
+const ingresarFolioAnulado = async () => {
+  const { value: folio } = await Swal.fire({
+    title: 'Ingresar folio anulado',
+    input: 'text',
+    inputPlaceholder: 'Ejemplo: 0234',
+    inputAttributes: {
+      maxlength: '4',
+      inputmode: 'numeric',
+      style: 'text-align: center; font-size: 20px; letter-spacing: 10px;',
+    },
+    confirmButtonText: 'Anular Folio',
+    confirmButtonColor: '#dc2626',
+    cancelButtonText: 'Cancelar',
+    showCancelButton: true,
+    inputValidator: (value) => {
+      if (!value) return 'Debe ingresar un número';
+      if (!/^\d{4}$/.test(value)) return 'Formato inválido. Use 4 dígitos';
+      return null;
+    }
+  });
+
+  if (!folio) return;
+
+  const codigo = folio.padStart(4, '0');
+  const { data, error } = await supabase
+    .from('beneficiarios_fertilizante')
+    .select('nombre_completo, dpi, lugar, estado, fecha')
+    .eq('codigo', codigo)
+    .eq('anio', filtros.anio)
+    .maybeSingle();
+
+  if (data) {
+    Swal.fire({
+      icon: 'info',
+      title: `Folio ${codigo} ya existe`,
+      html: `
+        <p><strong>Nombre:</strong> ${data.nombre_completo}</p>
+        <p><strong>DPI:</strong> ${data.dpi}</p>
+        <p><strong>Lugar:</strong> ${data.lugar}</p>
+        <p><strong>Estado:</strong> ${data.estado}</p>
+        <p><strong>Fecha:</strong> ${data.fecha}</p>
+      `,
+      confirmButtonColor: '#06c',
+    });
+    return;
+  }
+
+  const hoy = new Date().toISOString().split('T')[0];
+  await supabase.from('beneficiarios_fertilizante').insert({
+    codigo,
+    lugar: '-',
+    fecha: hoy,
+    fecha_nacimiento: hoy,
+    nombre_completo: '-',
+    dpi: '-',
+    telefono: '-',
+    sexo: '-',
+    cantidad: 0,
+    estado: 'Anulado',
+    anio: filtros.anio
+  });
+
+  Swal.fire({
+    icon: 'success',
+    title: `Folio ${codigo} anulado`,
+    toast: true,
+    position: 'center',
+    timer: 3500,
+    showConfirmButton: false,
+  });
+    await cargarDatos();
+
+};
+
+
 
   useEffect(() => {
     setPaginaActual(1);
@@ -209,14 +297,26 @@ useEffect(() => {
       <option value="fecha_desc">Fecha (más reciente primero)</option>
       <option value="fecha_asc">Fecha (más antigua primero)</option>
       <option value="cantidad_desc">Cantidad (mayor a menor)</option>
+      <option value="solo_anulados">Mostrar Anulados</option>
+      <option value="solo_extraviados">Mostrar Extraviados</option>
+
     </select>
   </div>
 
   {(permisos.includes('TODO') || permisos.includes('LEER')) && (
+
     <div className="w-fit">
+<Button
+  onClick={ingresarFolioAnulado}
+  className="h-12 bg-red-600 hover:bg-red-700 text-white px-4"
+>
+   Anular Folio
+</Button>
+
+
       <Button
         onClick={() => setMostrarModalFolio(true)}
-        className="h-12 bg-orange-600 hover:bg-orange-700 text-white px-4"
+        className="h-12 bg-orange-600 hover:bg-orange-700 ml-5 text-white px-4"
       >
         Folios faltantes
       </Button>

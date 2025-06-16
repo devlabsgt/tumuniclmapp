@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Formulario } from './Formulario';
 import CampoDPI from './CampoDPI';
 import CampoSexo from './CampoSexo';
+import CampoEstado from './CampoEstado';
+
 
 export function CrearBeneficiario() {
   const supabase = createBrowserClient(
@@ -56,17 +58,19 @@ useEffect(() => {
   const [dpi, setDpi] = useState('');
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
-  const [formulario, setFormulario] = useState({
-    nombre_completo: '',
-    dpi: '',
-    lugar: '',
-    fecha: '',
-    fecha_nacimiento: '',
-    codigo: '',
-    telefono: '',
-    sexo: 'M', 
-    cantidad: '1',
-  });
+const [formulario, setFormulario] = useState({
+  nombre_completo: '',
+  dpi: '',
+  lugar: '',
+  fecha: '',
+  fecha_nacimiento: '',
+  codigo: '',
+  telefono: '',
+  sexo: 'M',
+  cantidad: '1',
+  estado: 'Entregado',
+});
+
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -239,6 +243,7 @@ if (error) {
         telefono: '',
         sexo: 'M',
         cantidad: '1',
+          estado: 'Entregado',
       });
       setDpi('');
       setMostrarFormulario(false);
@@ -289,6 +294,7 @@ return (
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-4">
         <Formulario formulario={formulario} onChange={handleChange} />
         <CampoSexo sexo={formulario.sexo} onChange={handleChange} />
+        <CampoEstado estado={formulario.estado} onChange={handleChange} />
         <Button type="submit" className="mt-4 h-11 text-lg">
           Crear Beneficiario
         </Button>

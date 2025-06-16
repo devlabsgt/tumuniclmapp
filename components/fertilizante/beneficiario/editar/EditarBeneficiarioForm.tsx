@@ -7,6 +7,8 @@ import Swal from 'sweetalert2';
 import { createClient } from '@/utils/supabase/client';
 import { CampoTexto } from '../crear/CampoTexto';
 import { CampoLugar } from '../crear/CampoLugar';
+import CampoSexo from '../crear/CampoSexo';
+import CampoEstado from '../crear/CampoEstado';
 
 export default function EditarBeneficiarioForm() {
   const searchParams = useSearchParams();
@@ -22,7 +24,8 @@ export default function EditarBeneficiarioForm() {
     codigo: '',
     telefono: '',
     sexo: '',
-    cantidad: '1',
+    cantidad: '',
+    estado: '',
   });
 
   const [original, setOriginal] = useState(formulario);
@@ -44,17 +47,18 @@ export default function EditarBeneficiarioForm() {
         return;
       }
 
-const datos = {
-  nombre_completo: data.nombre_completo || '',
-  dpi: data.dpi || '',
-  lugar: data.lugar || '',
-  fecha: data.fecha?.split('T')[0] || '',
-  fecha_nacimiento: data.fecha_nacimiento?.split('T')[0] || '', // 👈 nuevo campo
-  codigo: data.codigo || '',
-  telefono: data.telefono || '',
-  sexo: data.sexo || 'M',
-  cantidad: data.cantidad?.toString() || '1', 
-};
+    const datos = {
+      nombre_completo: data.nombre_completo || '',
+      dpi: data.dpi || '',
+      lugar: data.lugar || '',
+      fecha: data.fecha?.split('T')[0] || '',
+      fecha_nacimiento: data.fecha_nacimiento?.split('T')[0] || '', // 👈 nuevo campo
+      codigo: data.codigo || '',
+      telefono: data.telefono || '',
+      sexo: data.sexo || 'M',
+      cantidad: data.cantidad?.toString() || '', 
+      estado: data.estado?.toString() || ''
+    };
 
 
 
@@ -193,31 +197,10 @@ const datos = {
     </div>
 
       <div>
-  <label className="font-semibold block mb-2">Sexo</label>
-  <div className="flex gap-6">
-    <label className="flex items-center gap-2">
-      <input
-        type="radio"
-        name="sexo"
-        value="M"
-        checked={formulario.sexo === 'M'}
-        onChange={handleChange}
-        className="accent-blue-600"
-      />
-      Masculino
-    </label>
-    <label className="flex items-center gap-2">
-      <input
-        type="radio"
-        name="sexo"
-        value="F"
-        checked={formulario.sexo === 'F'}
-        onChange={handleChange}
-        className="accent-pink-500"
-      />
-      Femenino
-    </label>
-  </div>
+    <CampoSexo sexo={formulario.sexo} onChange={handleChange} />
+    <CampoEstado estado={formulario.estado} onChange={handleChange} />
+
+
 </div>
 
       <Button onClick={actualizar} disabled={!hayCambios || cargando} className="h-12 text-lg bg-blue-600 hover:bg-blue-700 text-white mt-4">

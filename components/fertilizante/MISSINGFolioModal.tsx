@@ -24,6 +24,7 @@ export default function MISSINGFolioModal({ visible, onClose, beneficiarios }: P
       }
     }
     return total;
+    
   }, [foliosRegistrados]);
 
 const generarPdfFoliosFaltantes = () => {

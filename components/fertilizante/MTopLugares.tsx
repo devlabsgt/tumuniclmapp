@@ -21,16 +21,21 @@ import {
 import { Button } from '@/components/ui/button';
 
 interface MTopLugaresProps {
-  conteoPorLugar: Record<string, number>;
+  conteoPorLugar: Record<string, number>; // ahora espera sumas, no conteos
   onClose: () => void;
 }
 
 export default function MTopLugares({ conteoPorLugar, onClose }: MTopLugaresProps) {
-  const datosGrafica = Object.entries(conteoPorLugar)
+  // Filtrar los lugares con al menos un saco
+  const lugaresConCantidad = Object.entries(conteoPorLugar).filter(([, cantidad]) => cantidad > 0);
+
+  const totalEntregados = lugaresConCantidad.reduce((sum, [, cantidad]) => sum + cantidad, 0);
+
+  const datosGrafica = lugaresConCantidad
     .sort((a, b) => b[1] - a[1])
     .map(([lugar, cantidad], index) => ({
       index: index + 1,
-      name: lugar,
+      name: `${lugar} (${((cantidad / totalEntregados) * 100).toFixed(1)}%)`,
       value: cantidad,
     }));
 
@@ -40,7 +45,7 @@ export default function MTopLugares({ conteoPorLugar, onClose }: MTopLugaresProp
       return (
         <div className="bg-white border border-gray-300 rounded px-3 py-2 text-xs shadow">
           <p><strong>{data.name}</strong></p>
-          <p>Cantidad: {data.value}</p>
+          <p>Sacos entregados: {data.value}</p>
         </div>
       );
     }
@@ -76,24 +81,23 @@ export default function MTopLugares({ conteoPorLugar, onClose }: MTopLugaresProp
               <DialogPanel className="w-full max-w-6xl transform overflow-hidden bg-white p-6 text-left align-middle shadow-xl transition-all">
                 <div className="flex justify-between items-center mb-4">
                   <DialogTitle as="h3" className="text-2xl font-bold text-gray-800">
-                    Estadísticas de entrega de abono por lugar
+                    Sacos entregados: {totalEntregados}
                   </DialogTitle>
                   <Button onClick={onClose} variant="ghost">Cerrar</Button>
                 </div>
 
                 <div className="w-full overflow-x-auto max-h-[80vh] overflow-y-scroll pr-2">
-                  <div style={{ width: '100%', height: `${datosGrafica.length * 40}px`, minHeight: '500px' }}>
+<div style={{ width: '100%', height: `${datosGrafica.length * 70}px`, minHeight: '500px' }}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={datosGrafica}
-                        layout="vertical"
-                        margin={{ top: 20, right: 60, left: 0, bottom: 10 }}
-                        barCategoryGap={24}
-                      >
+                    <BarChart
+                      data={datosGrafica}
+                      layout="vertical"
+                      margin={{ top: 20, right: 60, left: 0, bottom: 10 }}
+                      barCategoryGap={60} // Aumentamos la separación entre barras
+                    >
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis
                           type="number"
-                          
                           tick={{ fontSize: 20, fill: '#333' }}
                           allowDecimals={false}
                           domain={[0, 'dataMax + 50']}
@@ -104,10 +108,10 @@ export default function MTopLugares({ conteoPorLugar, onClose }: MTopLugaresProp
                           dataKey="name"
                           type="category"
                           tick={{ fontSize: 20, fill: '#333' }}
-                          width={160}
+                          width={240}
                         />
                         <Tooltip content={<CustomTooltip />} />
-                        <Bar dataKey="value" fill="#06c" barSize={20} radius={[0, 0, 0, 0]}>
+                      <Bar dataKey="value" fill="#06c" barSize={30}> {/* Aumentamos el grosor de la barra */}
                           <LabelList
                             dataKey="value"
                             position="right"
