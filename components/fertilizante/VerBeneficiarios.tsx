@@ -250,48 +250,52 @@ export default function VerBeneficiarios() {
       <FiltroBeneficiarios filtros={filtros} setFiltros={setFiltros} anios={aniosDisponibles} />
       <EstadisticasBeneficiarios data={beneficiariosFiltrados} />
 
-      <div className="mb-4 flex justify-between items-center">
-        <div className="flex items-center">
-          <span className="text-sm font-semibold text-gray-700">Ordenar por:</span>
-          <select
-            value={orden}
-            onChange={(e) => setOrden(e.target.value as OrdenFiltro)}
-            className="border border-gray-300 rounded px-3 py-2 ml-2"
-          >
-            <option value="codigo_asc">Formulario (ascendente)</option>
-            <option value="codigo_desc">Formulario (descendente)</option>
-            <option value="nombre_completo_asc">Nombre (A-Z)</option>
-            <option value="nombre_completo_desc">Nombre (Z-A)</option>
-            <option value="fecha_desc">Fecha (más reciente primero)</option>
-            <option value="fecha_asc">Fecha (más antigua primero)</option>
-            <option value="cantidad_desc">Cantidad (mayor a menor)</option>
-            <option value="solo_anulados">Mostrar Anulados</option>
-            <option value="solo_extraviados">Mostrar Extraviados</option>
-          </select>
-        </div>
+<div className="mb-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+  {/* Ordenar por */}
+  <div className="flex flex-col sm:flex-row sm:items-center">
+    <span className="text-sm font-semibold text-gray-700">Ordenar por:</span>
+    <select
+      value={orden}
+      onChange={(e) => setOrden(e.target.value as OrdenFiltro)}
+      className="border border-gray-300 rounded px-3 py-2 mt-2 sm:mt-0 sm:ml-2"
+    >
+      <option value="codigo_asc">Formulario (ascendente)</option>
+      <option value="codigo_desc">Formulario (descendente)</option>
+      <option value="nombre_completo_asc">Nombre (A-Z)</option>
+      <option value="nombre_completo_desc">Nombre (Z-A)</option>
+      <option value="fecha_desc">Fecha (más reciente primero)</option>
+      <option value="fecha_asc">Fecha (más antigua primero)</option>
+      <option value="cantidad_desc">Cantidad (mayor a menor)</option>
+      <option value="solo_anulados">Mostrar Anulados</option>
+      <option value="solo_extraviados">Mostrar Extraviados</option>
+    </select>
+  </div>
 
-        {(permisos.includes('TODO') || permisos.includes('LEER')) && (
-          <div className="w-fit flex gap-4">
-            <Button
-              onClick={ingresarFolioAnulado}
-              className="h-12 bg-red-600 hover:bg-red-700 text-white px-4"
-            >
-              Anular Folio
-            </Button>
-            <Button
-              onClick={() => setMostrarModalFolio(true)}
-              className="h-12 bg-orange-600 hover:bg-orange-700 text-white px-4"
-            >
-              Folios faltantes
-            </Button>
-            <MISSINGFolioModal
-              visible={mostrarModalFolio}
-              onClose={() => setMostrarModalFolio(false)}
-              beneficiarios={beneficiariosFiltrados}
-            />
-          </div>
-        )}
-      </div>
+  {/* Botones */}
+  {(permisos.includes('TODO') || permisos.includes('LEER')) && (
+    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-fit">
+      <Button
+        onClick={ingresarFolioAnulado}
+        className="h-12 bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto"
+      >
+        Anular Folio
+      </Button>
+      <Button
+        onClick={() => setMostrarModalFolio(true)}
+        className="h-12 bg-orange-600 hover:bg-orange-700 text-white w-full sm:w-auto"
+      >
+        Folios faltantes
+      </Button>
+
+      <MISSINGFolioModal
+        visible={mostrarModalFolio}
+        onClose={() => setMostrarModalFolio(false)}
+        beneficiarios={beneficiariosFiltrados}
+      />
+    </div>
+  )}
+</div>
+
 
       {beneficiarios.length === 0 ? (
         <div className="text-center text-gray-600 my-10">

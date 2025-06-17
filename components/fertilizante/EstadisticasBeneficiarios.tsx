@@ -101,11 +101,14 @@ export default function EstadisticasBeneficiarios({ data }: Props) {
   return (
     <div className="mb-4">
       <div className="text-lg font-bold text-green-700">
+
         <div className="text-sm text-gray-900 mb-5">
           Folios: 
           <span className="text-green-700 mx-2">Entregados: {data.filter(b => b.estado === 'Entregado').length}</span>
           <span className="text-orange-500 mx-2">Extraviados: {data.filter(b => b.estado === 'Extraviado').length}</span>
-          <span className="text-gray-500 mx-2">Anulados: {data.filter(b => b.estado === 'Anulado').length}</span>
+          <span className="text-gray-500 mx-2">Anulados: {data.filter(b => b.estado === 'Anulado').length}:</span>
+          <span className="text-blue-500 mx-2 underline">Total: {data.length}</span>
+
         </div>
         <span className="text-green-800">
           Sacos entregados: {totalCantidad}
@@ -121,52 +124,43 @@ export default function EstadisticasBeneficiarios({ data }: Props) {
         Haz clic en las siguientes tarjetas para ver información detallada
       </div>
 
-      <div className="flex flex-col gap-4 mt-2">
+      <div className="flex flex-col md:flex-row gap-4 mt-4">
+        {/* Card: Top 3 lugares */}
         <div
-          className="cursor-pointer px-3 py-4 border rounded shadow hover:bg-gray-100"
-          onClick={() => setMostrarEdadModal(true)}
-        >
-          <div className="flex flex-wrap text-sm items-center gap-x-6 font-bold p-2">
-            <div className="text-blue-600">👥 Género y Edades:</div>
-            <div style={{ color: '#06c' }}>Hombres: {hombres}</div> |
-            <div style={{ color: '#f87171' }}>Mujeres: {mujeres}</div>
-          </div>
-
-          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm p-2">
-            <div className="font-bold text-gray-600">
-              Jóvenes (18–25): <span className="text-black">{jovenes}</span>
-            </div>
-            <div className="font-bold text-gray-600">
-              Adulto menor (26–35): <span className="text-black">{adultoMenor}</span>
-            </div>
-            <div className="font-bold text-gray-600">
-              Adulto (36–59): <span className="text-black">{adulto}</span>
-            </div>
-            <div className="font-bold text-gray-600">
-              Adulto mayor (60+): <span className="text-black">{adultoMayor}</span>
-            </div>
-          </div>
-        </div>
-
-        <div
-          className="cursor-pointer px-3 py-4 border rounded shadow hover:bg-gray-100"
           onClick={() => setMostrarTopLugares(true)}
+          className="w-full md:w-3/7 cursor-pointer bg-white rounded-sm shadow p-4 hover:bg-gray-50 transition"
         >
-          <div className="flex flex-wrap items-center gap-x-4 text-md text-gray-700 mb-1 p-2">
-            <div className="text-blue-600 font-bold text-md">🏆 Top 3 lugares:</div>
+          <h3 className="text-blue-600 text-sm underline font-bold mb-3">🏆 Top 3 lugares</h3>
+          <div className="flex flex-col gap-2 text-gray-700 text-xs font-extrabold">
             {top3.map(([lugar, cantidad], index) => (
-              <div key={lugar} className="flex items-center gap-1">
-                <span>
-                  {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
-                </span>
-                <span className="font-medium">
-                  {lugar}: {cantidad}
-                </span>
+              <div key={lugar} className="flex items-center gap-2">
+                <span>{index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}</span>
+                <span className="text-xs">{lugar}: {cantidad}</span>
               </div>
             ))}
           </div>
         </div>
+
+        {/* Card: Género y edades */}
+        <div
+          onClick={() => setMostrarEdadModal(true)}
+          className="w-full md:w-4/7 cursor-pointer bg-white rounded-sm shadow p-4 hover:bg-gray-50 transition"
+        >
+          <h3 className="text-blue-600 text-sm underline font-bold mb-3">👥 Género y Edades</h3>
+          <div className="flex flex-wrap items-center gap-x-6 font-semibold text-sm mb-2">
+            <span className="text-blue-700">Hombres: {hombres}</span> |
+            <span className="text-red-500">Mujeres: {mujeres}</span>
+          </div>
+          <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs">
+            <div className="text-gray-600 font-medium">Jóvenes (18–25): <span className="text-black">{jovenes}</span></div>
+            <div className="text-gray-600 font-medium">Adulto menor (26–35): <span className="text-black">{adultoMenor}</span></div>
+            <div className="text-gray-600 font-medium">Adulto (36–59): <span className="text-black">{adulto}</span></div>
+            <div className="text-gray-600 font-medium">Adulto mayor (60+): <span className="text-black">{adultoMayor}</span></div>
+          </div>
+        </div>
       </div>
+
+
 
       {mostrarTopLugares && (
         <MTopLugares

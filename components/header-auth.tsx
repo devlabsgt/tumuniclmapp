@@ -25,10 +25,10 @@ export default async function AuthButton() {
   }
 
   return user ? (
-    <div className="flex flex-col items-start gap-1 lg:flex-row lg:items-center lg:gap-4">
+    <div className="flex flex-col items-end gap-1 lg:flex-row lg:items-center lg:gap-4">
     <div className="flex flex-col items-end">
-      <span className="text-xl hidden lg:inline">
-        Hola, <strong>{user.email}</strong>!
+      <span className="text-xs inline lg:text-lg font-bold ">
+      {user.email}
       </span>
       {rolNombre && (
         <div className="text-[#06c] text-xs font-medium mt-1 lg:mt-0">

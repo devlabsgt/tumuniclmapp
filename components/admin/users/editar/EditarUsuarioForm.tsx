@@ -65,7 +65,6 @@ useEffect(() => {
   cargarUsuario();
 }, [id, router]);
 
-
   const hayCambios =
     nombre !== original.nombre ||
     email !== original.email ||
