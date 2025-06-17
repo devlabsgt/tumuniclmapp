@@ -3,20 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import type { Route } from 'next';
-
-interface Beneficiario {
-  id: string;
-  nombre_completo: string;
-  dpi: string;
-  lugar: string;
-  fecha: string;
-  fecha_nacimiento?: string;
-  codigo: string;
-  telefono?: string;
-  sexo?: string;
-  cantidad?: number;
-  estado?: string;
-}
+import type { Beneficiario } from './types';
 
 interface ResumenBeneficiarios {
   total: number;
@@ -43,28 +30,31 @@ export function TablaBeneficiarios({
     router.push(`/protected/fertilizante/beneficiarios/editar?id=${id}` as Route);
   };
 
-  const mostrar = (valor?: string | number) =>
-    valor !== undefined && valor !== null && valor.toString().trim() !== ''
-      ? valor
-      : 'N/A';
+const mostrar = (valor: string | number | null | undefined) =>
+  valor !== undefined && valor !== null && valor.toString().trim() !== ''
+    ? valor
+    : '—';
 
-  const calcularEdad = (fechaNacimiento?: string) => {
-    if (!fechaNacimiento) return 'N/A';
-    const nacimiento = new Date(fechaNacimiento);
-    const hoy = new Date();
-    let edad = hoy.getFullYear() - nacimiento.getFullYear();
-    const mes = hoy.getMonth() - nacimiento.getMonth();
-    if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
-      edad--;
-    }
-    return edad.toString();
-  };
 
-  const formatearFecha = (iso?: string) => {
-    if (!iso) return 'N/A';
-    const [a, m, d] = iso.split('-');
-    return `${d}/${m}/${a}`;
-  };
+const formatearFecha = (iso?: string | null) => {
+  if (!iso || iso === 'null') return '—';
+  const [a, m, d] = iso.split('-');
+  return `${d}/${m}/${a}`;
+};
+
+const calcularEdad = (fechaNacimiento?: string | null) => {
+  if (!fechaNacimiento || fechaNacimiento === 'null') return '—';
+  const nacimiento = new Date(fechaNacimiento);
+  if (isNaN(nacimiento.getTime())) return '—';
+  const hoy = new Date();
+  let edad = hoy.getFullYear() - nacimiento.getFullYear();
+  const mes = hoy.getMonth() - nacimiento.getMonth();
+  if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+    edad--;
+  }
+  return edad.toString();
+};
+
 
   return (
     <div>

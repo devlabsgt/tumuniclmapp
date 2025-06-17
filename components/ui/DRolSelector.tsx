@@ -11,9 +11,10 @@ interface Rol {
 interface DRolSelectorProps {
   rol: string | null;
   onChange: (rol: string) => void;
+  devolver?: 'id' | 'nombre'; // Nuevo: especifica qué valor devolver
 }
 
-export default function DRolSelector({ rol, onChange }: DRolSelectorProps) {
+export default function DRolSelector({ rol, onChange, devolver = 'id' }: DRolSelectorProps) {
   const [rolesDisponibles, setRolesDisponibles] = useState<Rol[]>([]);
   const [rolActual, setRolActual] = useState<string>('');
 
@@ -21,22 +22,19 @@ export default function DRolSelector({ rol, onChange }: DRolSelectorProps) {
     const fetchDatos = async () => {
       const supabase = createClient();
 
-      // 1. Obtener el rol del usuario autenticado
       const res = await fetch('/api/getuser');
       const user = await res.json();
       const rolUsuario = user?.rol || '';
       setRolActual(rolUsuario);
 
-      // 2. Obtener todos los roles
       const { data, error } = await supabase.from('roles').select('id, nombre');
       if (error) {
         console.error('Error al obtener roles:', error);
         return;
       }
 
-      // 3. Filtrar el rol SUPER si el usuario no lo tiene
       const filtrados = data.filter((r) => {
-       if (rolUsuario !== 'SUPER') return r.nombre !== 'SUPER';
+        if (rolUsuario !== 'SUPER') return r.nombre !== 'SUPER';
         return true;
       });
 
@@ -52,7 +50,13 @@ export default function DRolSelector({ rol, onChange }: DRolSelectorProps) {
         id="rol"
         name="rol"
         value={rol ?? ''}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          const seleccionado = e.target.value;
+          const rolEncontrado = rolesDisponibles.find(r => r.id === seleccionado);
+          if (!rolEncontrado) return;
+
+          onChange(devolver === 'nombre' ? rolEncontrado.nombre : rolEncontrado.id);
+        }}
         required
         className="border rounded px-3 py-2 h-10 text-sm"
       >

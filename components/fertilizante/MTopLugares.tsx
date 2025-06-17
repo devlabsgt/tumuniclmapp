@@ -87,7 +87,7 @@ export default function MTopLugares({ conteoPorLugar, onClose }: MTopLugaresProp
                 </div>
 
                 <div className="w-full overflow-x-auto max-h-[80vh] overflow-y-scroll pr-2">
-<div style={{ width: '100%', height: `${datosGrafica.length * 70}px`, minHeight: '500px' }}>
+                <div style={{ width: '100%', height: `${datosGrafica.length * 70}px`, minHeight: '500px' }}>
                     <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={datosGrafica}

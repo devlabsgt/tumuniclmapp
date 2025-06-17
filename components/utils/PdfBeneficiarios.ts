@@ -2,16 +2,7 @@
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
-interface Beneficiario {
-  nombre_completo: string;
-  dpi: string;
-  lugar: string;
-  fecha: string;
-  codigo: string;
-  telefono?: string;
-  sexo?: string;
-}
+import type { Beneficiario } from '@/components/fertilizante/types'; // Usa el mismo tipo centralizado
 
 export async function generarPdfBeneficiarios(beneficiarios: Beneficiario[]) {
   const doc = new jsPDF({
@@ -42,7 +33,7 @@ export async function generarPdfBeneficiarios(beneficiarios: Beneficiario[]) {
     align: 'center',
   });
 
-  // Resumen de Beneficiarios
+  // Resumen
   const total = beneficiarios.length;
   const hombres = beneficiarios.filter((b) => b.sexo?.toUpperCase() === 'M').length;
   const mujeres = beneficiarios.filter((b) => b.sexo?.toUpperCase() === 'F').length;
@@ -53,7 +44,6 @@ export async function generarPdfBeneficiarios(beneficiarios: Beneficiario[]) {
   });
 
   const tableStartY = imgHeight + 30;
-
   const beneficiariosPorPagina = 10;
   const paginas = Math.ceil(beneficiarios.length / beneficiariosPorPagina);
 
@@ -63,18 +53,18 @@ export async function generarPdfBeneficiarios(beneficiarios: Beneficiario[]) {
     const beneficiariosPagina = beneficiarios.slice(inicio, fin);
 
     const body = beneficiariosPagina.map((b) => [
-      b.nombre_completo || 'N/A',
-      b.dpi || 'N/A',
-      b.telefono || 'N/A',  // 👉 Aquí agregamos Teléfono
-      b.lugar || 'N/A',
-      b.fecha || 'N/A',
-      b.codigo || 'N/A',
-      b.sexo?.toUpperCase() === 'M' || b.sexo?.toUpperCase() === 'F' ? b.sexo?.toUpperCase() : 'N/A',
+      b.nombre_completo || '—',
+      b.dpi || '—',
+      b.telefono || '—',
+      b.lugar || '—',
+      b.fecha || '—',
+      b.codigo || '—',
+      b.sexo?.toUpperCase() === 'M' || b.sexo?.toUpperCase() === 'F' ? b.sexo?.toUpperCase() : '—',
     ]);
 
     autoTable(doc, {
       startY: i === 0 ? tableStartY : 20,
-      head: [['Nombre Completo', 'DPI', 'Teléfono', 'Lugar', 'Fecha', 'Formulario', 'Sexo']], // 👉 Aquí agregamos el encabezado Teléfono
+      head: [['Nombre Completo', 'DPI', 'Teléfono', 'Lugar', 'Fecha', 'Formulario', 'Sexo']],
       body,
       theme: 'grid',
       styles: {

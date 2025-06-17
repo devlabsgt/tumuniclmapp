@@ -4,20 +4,7 @@ import { useState } from 'react';
 import { Progress } from '@/components/ui/Progress';
 import MTopLugares from './MTopLugares';
 import MEdadRangos from './MEdadRangos';
-
-interface Beneficiario {
-  id: string;
-  nombre_completo: string;
-  dpi: string;
-  lugar: string;
-  fecha: string;
-  codigo: string;
-  telefono?: string;
-  sexo?: string;
-  fecha_nacimiento?: string;
-  cantidad?: number;
-  estado?: string;
-}
+import type { Beneficiario } from './types';
 
 interface Props {
   data: Beneficiario[];
@@ -37,15 +24,14 @@ const calcularEdad = (fechaNacimiento: string): number => {
 export default function EstadisticasBeneficiarios({ data }: Props) {
   const totalMeta = 7000;
 
-    const dataFiltrada = data.filter(
-      (b) => b.estado !== 'Anulado'
-    );
+  // Filtrar datos válidos
+  const dataFiltrada = data.filter((b) => b.estado !== 'Anulado');
 
+  const totalCantidad = dataFiltrada.reduce((sum, b) => {
+    const cantidad = b.cantidad ?? 0;
+    return cantidad > 0 ? sum + cantidad : sum;
+  }, 0);
 
-const totalCantidad = dataFiltrada.reduce((sum, b) => {
-  const cantidad = b.cantidad ?? 0;
-  return cantidad > 0 ? sum + cantidad : sum;
-}, 0);
   const total = dataFiltrada.length;
   const hombres = dataFiltrada.filter((b) => b.sexo === 'M').length;
   const mujeres = dataFiltrada.filter((b) => b.sexo === 'F').length;
@@ -69,18 +55,20 @@ const totalCantidad = dataFiltrada.reduce((sum, b) => {
 
   const detallePorLugar: Record<string, any> = {};
   dataFiltrada.forEach((b) => {
-    if (!b.fecha_nacimiento) return;
+    if (!b.lugar || !b.fecha_nacimiento) return;
+
     const edad = calcularEdad(b.fecha_nacimiento);
-    const lugar = b.lugar;
     const sexo = b.sexo;
-    if (!detallePorLugar[lugar]) {
-      detallePorLugar[lugar] = {
+
+    if (!detallePorLugar[b.lugar]) {
+      detallePorLugar[b.lugar] = {
         jovenes: { total: 0, hombres: 0, mujeres: 0 },
         adultoMenor: { total: 0, hombres: 0, mujeres: 0 },
         adulto: { total: 0, hombres: 0, mujeres: 0 },
         adultoMayor: { total: 0, hombres: 0, mujeres: 0 },
       };
     }
+
     const grupo =
       edad >= 18 && edad <= 25
         ? 'jovenes'
@@ -89,19 +77,19 @@ const totalCantidad = dataFiltrada.reduce((sum, b) => {
         : edad >= 36 && edad <= 59
         ? 'adulto'
         : 'adultoMayor';
-    detallePorLugar[lugar][grupo].total++;
-    if (sexo === 'M') detallePorLugar[lugar][grupo].hombres++;
-    else if (sexo === 'F') detallePorLugar[lugar][grupo].mujeres++;
+
+    detallePorLugar[b.lugar][grupo].total++;
+    if (sexo === 'M') detallePorLugar[b.lugar][grupo].hombres++;
+    else if (sexo === 'F') detallePorLugar[b.lugar][grupo].mujeres++;
   });
 
-const conteoPorLugar = dataFiltrada.reduce((acc: Record<string, number>, curr) => {
-  const cantidad = curr.cantidad ?? 0;
-  if (cantidad > 0) {
-    acc[curr.lugar] = (acc[curr.lugar] || 0) + cantidad;
-  }
-  return acc;
-}, {});
-
+  const conteoPorLugar = dataFiltrada.reduce((acc: Record<string, number>, curr) => {
+    const cantidad = curr.cantidad ?? 0;
+    if (curr.lugar && cantidad > 0) {
+      acc[curr.lugar] = (acc[curr.lugar] || 0) + cantidad;
+    }
+    return acc;
+  }, {});
 
   const top3 = Object.entries(conteoPorLugar)
     .sort((a, b) => b[1] - a[1])
@@ -112,19 +100,18 @@ const conteoPorLugar = dataFiltrada.reduce((acc: Record<string, number>, curr) =
 
   return (
     <div className="mb-4">
-    <div className="text-lg font-bold text-green-700">
-    <div className=" text-sm text-gray-900 mb-5">
-    Folios: 
-    <span className="text-green-700 mx-2">Entregados: {data.filter(b => b.estado === 'Entregado').length}</span>{' '}
-    <span className="text-orange-500 mx-2">Extraviados: {data.filter(b => b.estado === 'Extraviado').length}</span>{' '}
-    <span className="text-gray-500 mx-2">Anulados: {data.filter(b => b.estado === 'Anulado').length}</span>
-  </div>
-  <span className="text-green-800">
-    Sacos entregados: {totalCantidad}
-  </span>{' '}
-  / {totalMeta} ({porcentaje.toFixed(2)}%)
-
-</div>
+      <div className="text-lg font-bold text-green-700">
+        <div className="text-sm text-gray-900 mb-5">
+          Folios: 
+          <span className="text-green-700 mx-2">Entregados: {data.filter(b => b.estado === 'Entregado').length}</span>
+          <span className="text-orange-500 mx-2">Extraviados: {data.filter(b => b.estado === 'Extraviado').length}</span>
+          <span className="text-gray-500 mx-2">Anulados: {data.filter(b => b.estado === 'Anulado').length}</span>
+        </div>
+        <span className="text-green-800">
+          Sacos entregados: {totalCantidad}
+        </span>{' '}
+        / {totalMeta} ({porcentaje.toFixed(2)}%)
+      </div>
 
       <div className="mt-2">
         <Progress value={porcentaje} className="h-3" />
