@@ -1,34 +1,30 @@
 'use client';
 
-import useSWR from 'swr';
+import { useEffect, useState } from 'react';
 
-interface UserData {
-  rol: string;
-  permisos: string[];
-}
+export default function useUserData() {
+  const [rol, setRol] = useState('');
+  const [permisos, setPermisos] = useState<string[]>([]);
+  const [modulos, setModulos] = useState<string[]>([]);
+  const [cargando, setCargando] = useState(true);
 
-const fetcher = async (): Promise<UserData> => {
-  const res = await fetch('/api/getuser');
-  if (!res.ok) throw new Error('Error al obtener datos de usuario');
-  const data = await res.json();
+  useEffect(() => {
+    const obtenerUsuario = async () => {
+      try {
+        const res = await fetch('/api/getuser');
+        const data = await res.json();
+        setRol(data.rol || '');
+        setPermisos(data.permisos || []);
+        setModulos(data.modulos || []);
+      } catch (error) {
+        console.error('Error al obtener sesión:', error);
+      } finally {
+        setCargando(false);
+      }
+    };
 
-  if (!data.rol || !data.permisos) {
-    throw new Error('Rol o permisos no encontrados en la respuesta');
-  }
+    obtenerUsuario();
+  }, []);
 
-  return {
-    rol: data.rol,
-    permisos: data.permisos,
-  };
-};
-
-export function useUserData() {
-  const { data, error, isLoading } = useSWR('userData', fetcher);
-
-  return {
-    rol: data?.rol,
-    permisos: data?.permisos || [],
-    isLoading,
-    isError: !!error,
-  };
+  return { rol, permisos, modulos, cargando };
 }

@@ -19,9 +19,6 @@ export default function AdminDashboard() {
       try {
         const res = await fetch('/api/getuser');
         const data = await res.json();
-        console.log('ROL:', data.rol);
-        console.log('PERMISOS:', data.permisos);
-        console.log('MODULOS:', data.modulos);
         setRol(data.rol || '');
         setPermisos(data.permisos || []);
         setModulos(data.modulos || []); // ← asignamos modulos

@@ -2,14 +2,12 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import useSWR from 'swr';
-import { useEffect, useMemo, useState, Fragment } from 'react';
+import { useState, Fragment } from 'react';
 import Swal from 'sweetalert2';
 import { Button } from '@/components/ui/button';
 import BotonVolver from '@/components/ui/botones/BotonVolver';
 import BotonEditar from '@/components/ui/botones/BotonEditar';
 import BotonGenerarPDF from '@/components/ui/botones/BotonGenerarPDF';
-import { generarPdfEmpleado } from '@/components/utils/PdfEmpleados';
-import { ArrowLeft, FileText, Pencil } from 'lucide-react';
 import {
   Dialog,
   DialogPanel,
@@ -17,7 +15,7 @@ import {
   Transition,
   TransitionChild,
 } from '@headlessui/react';
-import type { Route } from 'next';
+import useUserData from '@/hooks/useUserData'; // ← Hook para obtener la sesión
 
 const fetchUsuario = async (id: string) => {
   const res = await fetch('/api/users/ver', {
@@ -41,43 +39,12 @@ export function UsuarioPageContent() {
   const id = searchParams.get('id');
   const [mostrarModal, setMostrarModal] = useState(false);
 
-  const [anioSeleccionado, setAnioSeleccionado] = useState<number>(new Date().getFullYear());
-  const [contratoSeleccionadoId, setContratoSeleccionadoId] = useState('');
+  const { rol, permisos } = useUserData(); // ← Uso del hook
 
   const { data: usuario, error, isLoading } = useSWR(
     id ? ['usuario', id] : null,
     () => fetchUsuario(id!)
   );
-
-  const aniosDisponibles = useMemo(() => {
-    if (!usuario?.empleados) return [];
-    const anios = new Set<number>();
-    usuario.empleados.forEach((emp: any) => {
-      if (emp.fecha_ini) anios.add(new Date(emp.fecha_ini).getUTCFullYear());
-    });
-    return Array.from(anios).sort((a, b) => b - a);
-  }, [usuario?.empleados]);
-
-  const contratosDelAnio = useMemo(() => {
-    return usuario?.empleados?.filter((emp: any) => {
-      const fecha = new Date(emp.fecha_ini);
-      return fecha.getUTCFullYear() === anioSeleccionado;
-    }) || [];
-  }, [usuario?.empleados, anioSeleccionado]);
-
-  useEffect(() => {
-    if (aniosDisponibles.length > 0 && !aniosDisponibles.includes(anioSeleccionado)) {
-      setAnioSeleccionado(aniosDisponibles[0]);
-    }
-  }, [aniosDisponibles]);
-
-  useEffect(() => {
-    if (contratosDelAnio.length > 0) {
-      setContratoSeleccionadoId(contratosDelAnio[0].id);
-    } else {
-      setContratoSeleccionadoId('');
-    }
-  }, [contratosDelAnio]);
 
   if (!id) return <p>No se proporcionó un ID.</p>;
   if (isLoading) return <p>Cargando usuario...</p>;
@@ -88,39 +55,15 @@ export function UsuarioPageContent() {
   }
   if (!usuario) return null;
 
-  const empleadoDelAnio = contratosDelAnio.find((e: any) => e.id === contratoSeleccionadoId);
-
-  const handleGenerarPDF = () => {
-    if (!empleadoDelAnio) {
-      Swal.fire('Sin registros', 'No hay datos de empleado para el año seleccionado.', 'info');
-      return;
-    }
-    generarPdfEmpleado(usuario, empleadoDelAnio);
-  };
 
   return (
     <div className="max-w-4xl mx-auto p-6 border rounded shadow bg-background text-foreground text-sm">
-    <div className="flex justify-between items-center mb-4">
-      <div>
+      <div className="flex justify-between items-center mb-4">
         <BotonVolver ruta="/protected/admin/users" />
-      </div>
-
-      {(usuario.permisos?.includes('TODO') || usuario.permisos?.includes('IMPRIMIR')) && (
-        <div>
-          <BotonGenerarPDF onGenerar={handleGenerarPDF} />
-        </div>
-      )}
-
-      {(usuario.permisos?.includes('TODO') || usuario.permisos?.includes('EDITAR')) && (
-        <div>
+        {(permisos.includes('TODO') || permisos.includes('EDITAR')) && (
           <BotonEditar ruta={`/protected/admin/users/editar?id=${usuario.id}`} />
-        </div>
-      )}
-
-
-    </div>
-
-
+        )}
+      </div>
 
       <h1 className="text-2xl font-bold mb-4">Informe de Datos de Empleado Municipal</h1>
 
@@ -179,7 +122,6 @@ export function UsuarioPageContent() {
                 </DialogTitle>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Permisos */}
                   <div className="bg-white border border-gray-200 rounded-sm shadow-sm p-4">
                     <h3 className="text-base font-semibold mb-3 text-gray-700">Permisos del Rol</h3>
                     <div className="flex flex-wrap gap-2">
@@ -198,7 +140,6 @@ export function UsuarioPageContent() {
                     </div>
                   </div>
 
-                  {/* Módulos */}
                   <div className="bg-white border border-gray-200 rounded-sm shadow-sm p-4">
                     <h3 className="text-base font-semibold mb-3 text-gray-700">Módulos con acceso</h3>
                     <div className="flex flex-wrap gap-2">
@@ -218,8 +159,6 @@ export function UsuarioPageContent() {
                   </div>
                 </div>
 
-
-
                 <div className="mt-6 text-right">
                   <Button variant="outline" onClick={() => setMostrarModal(false)}>
                     Cerrar
@@ -230,54 +169,6 @@ export function UsuarioPageContent() {
           </div>
         </Dialog>
       </Transition>
-
-      {/* Selección de año y contrato */}
-      <div className="my-6">
-        {aniosDisponibles.length > 0 ? (
-          <>
-            <label className="block text-sm mb-2 font-bold">Seleccionar año:</label>
-            <select className="border rounded p-2 w-full" value={anioSeleccionado} onChange={(e) => setAnioSeleccionado(Number(e.target.value))}>
-              {aniosDisponibles.map((anio) => (
-                <option key={anio} value={anio}>
-                  {anio}
-                </option>
-              ))}
-            </select>
-          </>
-        ) : (
-          <div className="text-center text-red-600 text-lg font-semibold">
-            No se ha ingresado ningún contrato
-          </div>
-        )}
-      </div>
-
-      {contratosDelAnio.length > 0 ? (
-        <div className="my-6">
-          <label className="block text-sm mb-2 font-bold">Seleccionar contrato:</label>
-          <select className="border rounded p-2 w-full" value={contratoSeleccionadoId} onChange={(e) => setContratoSeleccionadoId(e.target.value)}>
-            {contratosDelAnio.map((contrato: any) => {
-              const fechaIni = new Date(contrato.fecha_ini);
-              const fechaFin = contrato.fecha_fin ? new Date(contrato.fecha_fin) : null;
-              const fechaIniTexto = `${String(fechaIni.getUTCDate()).padStart(2, '0')}/${String(fechaIni.getUTCMonth() + 1).padStart(2, '0')}/${fechaIni.getUTCFullYear()}`;
-              const fechaFinTexto = fechaFin
-                ? `${String(fechaFin.getUTCDate()).padStart(2, '0')}/${String(fechaFin.getUTCMonth() + 1).padStart(2, '0')}/${fechaFin.getUTCFullYear()}`
-                : 'Actual';
-              return (
-                <option key={contrato.id} value={contrato.id}>
-                  {fechaIniTexto} - {fechaFinTexto}
-                </option>
-              );
-            })}
-          </select>
-        </div>
-      ) : (
-        <div className="text-center mt-6">
-          <Button className="bg-green-600 hover:bg-green-700 text-white text-lg"
-            onClick={() => router.push(`/protected/admin/empleado/crear?user_id=${usuario.id}`)}>
-            Ingresar nuevo contrato
-          </Button>
-        </div>
-      )}
     </div>
   );
 }

@@ -5,7 +5,6 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { createClient } from '@/utils/supabase/client';
 import CampoNombre from './CampoNombre';
 import CampoEmail from './CampoEmail';
 import DRolSelector from '@/components/ui/DRolSelector';
@@ -13,8 +12,8 @@ import PasswordEditor from './PasswordEditor';
 import { Switch } from '@/components/ui/Switch';
 
 export default function EditarUsuarioForm() {
-  const searchParams = useSearchParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const id = searchParams.get('id');
 
   const [nombre, setNombre] = useState('');
@@ -22,10 +21,10 @@ export default function EditarUsuarioForm() {
   const [rol, setRol] = useState<string | null>(null);
   const [activo, setActivo] = useState(true);
   const [cargando, setCargando] = useState(false);
+
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmar, setConfirmar] = useState('');
-  const [errorCarga, setErrorCarga] = useState<string | null>(null);
 
   const [original, setOriginal] = useState({
     nombre: '',
@@ -34,47 +33,38 @@ export default function EditarUsuarioForm() {
     activo: true,
   });
 
-  useEffect(() => {
-    if (!id) return;
+useEffect(() => {
+  if (!id) return;
 
-    const supabase = createClient();
+  const cargarUsuario = async () => {
+    const res = await fetch('/api/users/ver', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
 
-    const cargarUsuario = async () => {
-      const { data: usuarios, error } = await supabase.rpc('obtener_usuarios');
+    const json = await res.json();
+    if (!res.ok || !json.usuario) {
+      Swal.fire('Error', json.error || 'No se pudo obtener el usuario.', 'error');
+      return router.push('/protected/admin/users');
+    }
 
-      if (error) {
-        setErrorCarga('Error al obtener los usuarios.');
-        return;
-      }
+    const user = json.usuario;
+    setNombre(user.nombre || '');
+    setEmail(user.email || '');
+    setRol(user.rol_id || null); // ← AQUÍ
+    setActivo(user.activo === true || user.activo === 'true');
+    setOriginal({
+      nombre: user.nombre || '',
+      email: user.email || '',
+      rol: user.rol_id || '', // ← TAMBIÉN AQUÍ si quiere detectar cambios correctamente
+      activo: user.activo === true || user.activo === 'true',
+    });
+  };
 
-      const user = usuarios.find((u: any) =>
-        String(u.id).toLowerCase() === String(id).toLowerCase()
-      );
+  cargarUsuario();
+}, [id, router]);
 
-      if (!user) {
-        setErrorCarga('Usuario no encontrado.');
-        return;
-      }
-
-      setNombre(user.nombre || '');
-      setEmail(user.email || '');
-      setRol(user.rol || null);
-      setOriginal({
-        nombre: user.nombre,
-        email: user.email,
-        rol: user.rol || '',
-        activo: user.activo === 'true' || user.activo === true,
-      });
-      setActivo(user.activo === 'true' || user.activo === true);
-    };
-
-    cargarUsuario();
-  }, [id]);
-
-  const contraseñaValida =
-    password &&
-    password === confirmar &&
-    /^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W]).*$/.test(password);
 
   const hayCambios =
     nombre !== original.nombre ||
@@ -83,47 +73,31 @@ export default function EditarUsuarioForm() {
     activo !== original.activo ||
     mostrarPassword;
 
-  const actualizarUsuario = async () => {
+  const contraseñaValida =
+    password &&
+    password === confirmar &&
+    /^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W]).*$/.test(password);
+
+  const guardarCambios = async () => {
     if (!id || !hayCambios) {
-      Swal.fire({
-        icon: 'info',
-        title: 'Sin cambios',
-        text: 'No hiciste ninguna modificación.',
-      });
-      return;
+      return Swal.fire('Sin cambios', 'No hiciste ninguna modificación.', 'info');
     }
 
     if (!rol) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Rol requerido',
-        text: 'Debe seleccionar un rol.',
-      });
-      return;
+      return Swal.fire('Rol requerido', 'Debes seleccionar un rol.', 'warning');
+    }
+
+    if (mostrarPassword && !contraseñaValida) {
+      return Swal.fire(
+        'Contraseña inválida',
+        'Debe tener al menos 8 caracteres, mayúscula, minúscula, número y símbolo.',
+        'error'
+      );
     }
 
     setCargando(true);
 
-    const emailModificado = email !== original.email;
-
-    if (emailModificado) {
-      const supabase = createClient();
-      const { data: yaExiste, error } = await supabase.rpc('correo_ya_registrado', {
-        email_input: email,
-      });
-
-      if (error || yaExiste) {
-        setCargando(false);
-        Swal.fire({
-          icon: 'warning',
-          title: 'Correo ya registrado',
-          text: 'Ese correo ya está en uso.',
-        });
-        return;
-      }
-    }
-
-    const actualizarData: any = {
+    const payload: any = {
       id,
       email,
       nombre,
@@ -132,60 +106,35 @@ export default function EditarUsuarioForm() {
     };
 
     if (mostrarPassword) {
-      if (!contraseñaValida) {
-        setCargando(false);
-        Swal.fire({
-          icon: 'error',
-          title: 'Contraseña inválida',
-          text: 'La contraseña no cumple los requisitos o no coincide.',
-        });
-        return;
-      }
-
-      actualizarData.password = password;
+      payload.password = password;
     }
 
     const res = await fetch('/api/users/editar', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(actualizarData),
+      body: JSON.stringify(payload),
     });
 
     const json = await res.json();
     setCargando(false);
 
     if (!res.ok) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: json.error || 'No se pudo actualizar el usuario.',
-      });
-      return;
+      return Swal.fire('Error', json.error || 'No se pudo actualizar el usuario.', 'error');
     }
 
-    if (emailModificado) {
-      Swal.fire({
-        icon: 'info',
-        title: 'Correo modificado',
-        text: 'Se envió un enlace de confirmación al nuevo correo.',
-      }).then(() => router.push(`/protected/admin/users/ver?id=${id}`));
-      return;
-    }
-
-    Swal.fire({
-      icon: 'success',
-      title: 'Usuario actualizado',
-    }).then(() => router.push(`/protected/admin/users/ver?id=${id}`));
+    Swal.fire('Actualizado', 'El usuario fue actualizado con éxito.', 'success').then(() => {
+      router.push(`/protected/admin/users/ver?id=${id}`);
+    });
   };
 
-  if (!id) return <p className="p-4 text-center text-red-600">ID no proporcionado.</p>;
-  if (errorCarga) return <p className="p-4 text-center text-red-600">{errorCarga}</p>;
+  if (!id) return <p className="text-center text-red-600">ID no proporcionado.</p>;
 
   return (
     <div className="flex flex-col gap-4">
       <CampoNombre value={nombre} onChange={setNombre} />
       <CampoEmail value={email} onChange={setEmail} />
       <DRolSelector rol={rol} onChange={setRol} />
+
       <div className="flex items-center justify-between mt-2">
         <Label className="text-base">Activo</Label>
         <Switch checked={activo} onCheckedChange={setActivo} />
@@ -193,8 +142,7 @@ export default function EditarUsuarioForm() {
 
       <Button
         variant="outline"
-        type="button"
-        onClick={() => setMostrarPassword((prev) => !prev)}
+        onClick={() => setMostrarPassword(!mostrarPassword)}
         className="mt-4 border-red-500 text-red-600 hover:bg-red-50"
       >
         {mostrarPassword ? 'Cancelar cambio de contraseña' : 'Editar contraseña'}
@@ -210,7 +158,7 @@ export default function EditarUsuarioForm() {
       )}
 
       <Button
-        onClick={actualizarUsuario}
+        onClick={guardarCambios}
         disabled={!hayCambios || cargando}
         className="h-12 text-lg bg-blue-600 hover:bg-blue-700 text-white"
       >

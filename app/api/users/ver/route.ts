@@ -9,16 +9,17 @@ export async function POST(req: Request) {
   }
 
   // 1. Obtener datos del perfil
-const { data: perfil, error: perfilError } = await supabaseAdmin
-  .from('usuarios_perfil')
-  .select('*')
-  .eq('user_id', id) // Asegúrese que el campo sea 'user_id' si así está en su DB
-  .maybeSingle();
+  const { data: perfil, error: perfilError } = await supabaseAdmin
+    .from('usuarios_perfil')
+    .select('*')
+    .eq('user_id', id)
+    .maybeSingle();
 
   // 2. Obtener relación roles/permisos/módulos
   const { data: relacion, error } = await supabaseAdmin
     .from('usuarios_roles')
     .select(`
+      rol_id,
       roles (
         nombre,
         roles_permisos (
@@ -54,15 +55,16 @@ const { data: perfil, error: perfilError } = await supabaseAdmin
         .filter((nombre: string | undefined): nombre is string => !!nombre)
     : [];
 
-return NextResponse.json({
-  usuario: {
-    id: user.id,
-    email: user.email,
-    nombre: perfil?.nombre || '',
-    rol: rol?.nombre || null,
-    permisos,
-    modulos,
-    activo: perfil?.activo ?? true,
-  },
-});
+  return NextResponse.json({
+    usuario: {
+      id: user.id,
+      email: user.email,
+      nombre: perfil?.nombre || '',
+      rol: rol?.nombre || null,
+      rol_id: relacion?.rol_id || null, // ← añadido aquí
+      permisos,
+      modulos,
+      activo: perfil?.activo ?? true,
+    },
+  });
 }
