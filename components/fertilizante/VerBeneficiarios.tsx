@@ -266,27 +266,39 @@ export default function VerBeneficiarios() {
 
 <div className="mb-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
   {/* Ordenar por */}
-  <div className="flex flex-col sm:flex-row sm:items-center">
-    <span className="text-sm font-semibold text-gray-700">Ordenar por:</span>
-    <select
-      value={orden}
-      onChange={(e) => setOrden(e.target.value as OrdenFiltro)}
-      className="border border-gray-300 rounded px-3 py-2 mt-2 sm:mt-0 sm:ml-2"
-    >
+<div className="flex flex-col sm:flex-row sm:items-center">
+  <span className="text-sm font-semibold text-gray-700">Ordenar por:</span>
+  <select
+    value={orden}
+    onChange={(e) => setOrden(e.target.value as OrdenFiltro)}
+    className="border border-gray-300 rounded px-3 py-2 mt-2 sm:mt-0 sm:ml-2"
+  >
+    <optgroup label="Formulario">
       <option value="codigo_asc">Formulario (ascendente)</option>
       <option value="codigo_desc">Formulario (descendente)</option>
+    </optgroup>
+    <optgroup label="Nombre">
       <option value="nombre_completo_asc">Nombre (A-Z)</option>
       <option value="nombre_completo_desc">Nombre (Z-A)</option>
+    </optgroup>
+    <optgroup label="Fecha">
       <option value="fecha_desc">Fecha (más reciente primero)</option>
       <option value="fecha_asc">Fecha (más antigua primero)</option>
+    </optgroup>
+    <optgroup label="Cantidad">
       <option value="cantidad_desc">Cantidad (mayor a menor)</option>
-      <option value="solo_anulados">Mostrar Anulados</option>
-      <option value="solo_extraviados">Mostrar Extraviados</option>
+    </optgroup>
+    <optgroup label="Género">
       <option value="genero_hombres_primero">Hombres primero</option>
       <option value="genero_mujeres_primero">Mujeres primero</option>
-    </select>
+    </optgroup>
+    <optgroup label="Estado">
+      <option value="solo_anulados">Mostrar Anulados</option>
+      <option value="solo_extraviados">Mostrar Extraviados</option>
+    </optgroup>
+  </select>
+</div>
 
-  </div>
 
   {/* Botones */}
   {(permisos.includes('TODO') || permisos.includes('LEER')) && (
