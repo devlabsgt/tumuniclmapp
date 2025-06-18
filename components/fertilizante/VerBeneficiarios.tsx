@@ -126,9 +126,17 @@ export default function VerBeneficiarios() {
         case 'codigo_desc':
           return b.codigo.localeCompare(a.codigo);
         case 'genero_hombres_primero':
-          return (a.sexo === 'M' ? -1 : 1) - (b.sexo === 'M' ? -1 : 1);
+          return a.sexo === b.sexo
+            ? a.codigo.localeCompare(b.codigo)
+            : a.sexo === 'M'
+            ? -1
+            : 1;
         case 'genero_mujeres_primero':
-          return (a.sexo === 'F' ? -1 : 1) - (b.sexo === 'F' ? -1 : 1);
+          return a.sexo === b.sexo
+            ? a.codigo.localeCompare(b.codigo)
+            : a.sexo === 'F'
+            ? -1
+            : 1;
         default:
           return 0;
       }
