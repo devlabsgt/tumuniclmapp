@@ -11,6 +11,7 @@ import EstadisticasBeneficiarios from './EstadisticasBeneficiarios';
 import MISSINGFolioModal from './MISSINGFolioModal';
 import Swal from 'sweetalert2';
 import type { Beneficiario } from './types';
+import { LUGARES } from '@/components/utils/lugares';
 
 
 type CampoFiltro = 'nombre_completo' | 'dpi' | 'codigo';
@@ -35,6 +36,8 @@ export default function VerBeneficiarios() {
   const [aniosDisponibles, setAniosDisponibles] = useState<string[]>([]);
   const [mostrarModalFolio, setMostrarModalFolio] = useState(false);
   const [beneficiariosPorPagina, setBeneficiariosPorPagina] = useState(10);
+  const [lugarAnulado, setLugarAnulado] = useState('');
+  const [anioAnulado, setAnioAnulado] = useState(new Date().getFullYear().toString());
 
   const [filtros, setFiltros] = useState({
     campo: 'nombre_completo' as CampoFiltro,
@@ -151,85 +154,102 @@ export default function VerBeneficiarios() {
     hombres: beneficiariosFiltrados.filter((b) => b.sexo?.toUpperCase() === 'M').length,
     mujeres: beneficiariosFiltrados.filter((b) => b.sexo?.toUpperCase() === 'F').length,
   };
+const ingresarFolioAnulado = async () => {
+  const { value: formValues } = await Swal.fire({
+    title: 'Anular Folio',
+    html: `
+      <div style="display: flex; flex-direction: column; gap: 10px; text-align: left;">
+        <label>Folio (4 dígitos)</label>
+        <input id="folio" class="swal2-input" maxlength="4" style="text-align: center; letter-spacing: 5px;" placeholder="0234" />
+        
+        <label>Lugar</label>
+        <select id="lugar" class="swal2-select">
+          ${LUGARES.map(l => `<option value="${l}">${l}</option>`).join('')}
+        </select>
 
-  const ingresarFolioAnulado = async () => {
-    const { value: folio } = await Swal.fire({
-      title: 'Ingresar folio anulado',
-      input: 'text',
-      inputPlaceholder: 'Ejemplo: 0234',
-      inputAttributes: {
-        maxlength: '4',
-        inputmode: 'numeric',
-        style: 'text-align: center; font-size: 20px; letter-spacing: 10px;',
-      },
-      confirmButtonText: 'Anular Folio',
-      confirmButtonColor: '#dc2626',
-      cancelButtonText: 'Cancelar',
-      showCancelButton: true,
-      inputValidator: (value) => {
-        if (!value) return 'Debe ingresar un número';
-        if (!/^\d{4}$/.test(value)) return 'Formato inválido. Use 4 dígitos';
+        <label>Año</label>
+        <select id="anio" class="swal2-select">
+          ${aniosDisponibles.map(anio => `<option value="${anio}" ${anio === filtros.anio ? 'selected' : ''}>${anio}</option>`).join('')}
+        </select>
+      </div>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: 'Guardar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#dc2626',
+    preConfirm: () => {
+      const folio = (document.getElementById('folio') as HTMLInputElement)?.value.trim();
+      const lugar = (document.getElementById('lugar') as HTMLSelectElement)?.value;
+      const anio = (document.getElementById('anio') as HTMLSelectElement)?.value;
+
+      if (!folio || !/^\d{4}$/.test(folio)) {
+        Swal.showValidationMessage('Ingrese un folio válido de 4 dígitos');
         return null;
       }
-    });
 
-    if (!folio) return;
-
-    const codigo = folio.padStart(4, '0');
-
-    const { data } = await supabase
-      .from('beneficiarios_fertilizante')
-      .select('id')
-      .eq('codigo', codigo)
-      .eq('anio', filtros.anio)
-      .maybeSingle();
-
-    if (data) {
-      Swal.fire({
-        icon: 'info',
-        title: `Folio ${codigo} ya existe`,
-        text: 'Este folio ya está registrado en el sistema.',
-        confirmButtonColor: '#06c',
-      });
-      return;
+      return { folio, lugar, anio };
     }
+  });
 
-    const hoy = new Date().toISOString().split('T')[0];
-    const { error: insertError } = await supabase.from('beneficiarios_fertilizante').insert({
-      codigo,
-      lugar: null,
-      fecha: hoy,
-      fecha_nacimiento: null,
-      nombre_completo: null,
-      dpi: null,
-      telefono: null,
-      sexo: null,
-      cantidad: 0,
-      estado: 'Anulado',
-      anio: filtros.anio
+  if (!formValues) return;
+
+  const { folio, lugar, anio } = formValues;
+  const codigo = folio.padStart(4, '0');
+  const hoy = new Date().toISOString().split('T')[0];
+
+  const { data: existe } = await supabase
+    .from('beneficiarios_fertilizante')
+    .select('id')
+    .eq('codigo', codigo)
+    .eq('anio', anio)
+    .maybeSingle();
+
+  if (existe) {
+    return Swal.fire({
+      icon: 'info',
+      title: `Folio ${codigo} ya existe`,
+      text: 'Este folio ya está registrado.',
+      confirmButtonColor: '#06c',
     });
+  }
 
-    if (insertError) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error al guardar el folio',
-        text: insertError.message,
-        confirmButtonColor: '#dc2626',
-      });
-      return;
-    }
+  const { error } = await supabase.from('beneficiarios_fertilizante').insert({
+    codigo,
+    lugar,
+    anio,
+    fecha: hoy,
+    fecha_nacimiento: null,
+    nombre_completo: null,
+    dpi: null,
+    telefono: null,
+    sexo: null,
+    cantidad: 0,
+    estado: 'Anulado'
+  });
 
-    Swal.fire({
-      icon: 'success',
-      title: `Folio ${codigo} anulado`,
-      toast: true,
-      position: 'center',
-      timer: 3000,
-      showConfirmButton: false,
+  if (error) {
+    return Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: error.message,
+      confirmButtonColor: '#dc2626',
     });
+  }
 
-    await cargarDatos();
-  };
+  await Swal.fire({
+    icon: 'success',
+    title: `Folio ${codigo} anulado`,
+    text: `Lugar: ${lugar} | Año: ${anio}`,
+    toast: true,
+    position: 'top-end',
+    timer: 3000,
+    showConfirmButton: false,
+  });
+
+  await cargarDatos();
+};
+
 
   useEffect(() => {
     setPaginaActual(1);
