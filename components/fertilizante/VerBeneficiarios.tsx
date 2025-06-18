@@ -23,7 +23,9 @@ type OrdenFiltro =
   | 'codigo_desc'
   | 'cantidad_desc'
   | 'solo_anulados'
-  | 'solo_extraviados';
+  | 'solo_extraviados'
+  | 'genero_hombres_primero'
+  | 'genero_mujeres_primero';
 
 export default function VerBeneficiarios() {
   const [beneficiarios, setBeneficiarios] = useState<Beneficiario[]>([]);
@@ -109,14 +111,26 @@ export default function VerBeneficiarios() {
     })
     .sort((a, b) => {
       switch (orden) {
-        case 'nombre_completo_asc': return (a.nombre_completo || '').localeCompare(b.nombre_completo || '');
-        case 'nombre_completo_desc': return (b.nombre_completo || '').localeCompare(a.nombre_completo || '');
-        case 'fecha_asc': return new Date(a.fecha).getTime() - new Date(b.fecha).getTime();
-        case 'fecha_desc': return new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
-        case 'cantidad_desc': return (b.cantidad ?? 1) - (a.cantidad ?? 1);
-        case 'codigo_asc': return a.codigo.localeCompare(b.codigo);
-        case 'codigo_desc': return b.codigo.localeCompare(a.codigo);
-        default: return 0;
+        case 'nombre_completo_asc':
+          return (a.nombre_completo || '').localeCompare(b.nombre_completo || '');
+        case 'nombre_completo_desc':
+          return (b.nombre_completo || '').localeCompare(a.nombre_completo || '');
+        case 'fecha_asc':
+          return new Date(a.fecha).getTime() - new Date(b.fecha).getTime();
+        case 'fecha_desc':
+          return new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
+        case 'cantidad_desc':
+          return (b.cantidad ?? 1) - (a.cantidad ?? 1);
+        case 'codigo_asc':
+          return a.codigo.localeCompare(b.codigo);
+        case 'codigo_desc':
+          return b.codigo.localeCompare(a.codigo);
+        case 'genero_hombres_primero':
+          return (a.sexo === 'M' ? -1 : 1) - (b.sexo === 'M' ? -1 : 1);
+        case 'genero_mujeres_primero':
+          return (a.sexo === 'F' ? -1 : 1) - (b.sexo === 'F' ? -1 : 1);
+        default:
+          return 0;
       }
     });
 
@@ -268,7 +282,10 @@ export default function VerBeneficiarios() {
       <option value="cantidad_desc">Cantidad (mayor a menor)</option>
       <option value="solo_anulados">Mostrar Anulados</option>
       <option value="solo_extraviados">Mostrar Extraviados</option>
+      <option value="genero_hombres_primero">Hombres primero</option>
+      <option value="genero_mujeres_primero">Mujeres primero</option>
     </select>
+
   </div>
 
   {/* Botones */}
