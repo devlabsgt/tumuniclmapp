@@ -366,40 +366,40 @@ export default function VerBeneficiarios() {
         </select>
       </div>
 
-<div className="flex justify-center mt-4 gap-2 flex-wrap">
-  <button
-    onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
-    disabled={paginaActual === 1}
-    className={`px-3 py-2 rounded border ${paginaActual === 1 ? 'bg-gray-200 text-gray-500' : 'bg-white'}`}
-  >
-    ←
-  </button>
+      <div className="flex justify-center mt-4 gap-2 flex-wrap">
+        <button
+          onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+          disabled={paginaActual === 1}
+          className={`px-3 py-2 rounded border ${paginaActual === 1 ? 'bg-gray-200 text-gray-500' : 'bg-white'}`}
+        >
+          ←
+        </button>
 
-  {Array.from({ length: totalPaginas }, (_, i) => i + 1)
-    .filter((n) => {
-      const grupo = Math.floor((paginaActual - 1) / 45);
-      return n > grupo * 45 && n <= (grupo + 1) * 45;
-    })
-    .map((numero) => (
-      <button
-        key={numero}
-        onClick={() => setPaginaActual(numero)}
-        className={`px-4 py-2 rounded border ${
-          paginaActual === numero ? 'bg-blue-600 text-white' : 'bg-white'
-        }`}
-      >
-        {numero}
-      </button>
-    ))}
+        {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+          .filter((n) => {
+            const grupo = Math.floor((paginaActual - 1) / 45);
+            return n > grupo * 45 && n <= (grupo + 1) * 45;
+          })
+          .map((numero) => (
+            <button
+              key={numero}
+              onClick={() => setPaginaActual(numero)}
+              className={`px-4 py-2 rounded border ${
+                paginaActual === numero ? 'bg-blue-600 text-white' : 'bg-white'
+              }`}
+            >
+              {numero}
+            </button>
+          ))}
 
-  <button
-    onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
-    disabled={paginaActual === totalPaginas}
-    className={`px-3 py-2 rounded border ${paginaActual === totalPaginas ? 'bg-gray-200 text-gray-500' : 'bg-white'}`}
-  >
-    →
-  </button>
-</div>
+        <button
+          onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
+          disabled={paginaActual === totalPaginas}
+          className={`px-3 py-2 rounded border ${paginaActual === totalPaginas ? 'bg-gray-200 text-gray-500' : 'bg-white'}`}
+        >
+          →
+        </button>
+      </div>
 
     </div>
   );

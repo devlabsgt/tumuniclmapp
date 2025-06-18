@@ -5,6 +5,8 @@ import { createClient } from "@/utils/supabase/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import supabaseAdmin from '@/utils/supabase/admin';
+import { registrarLogServer } from '@/utils/registrarLogServer';
+import { obtenerFechaYFormatoGT } from '@/utils/formatoFechaGT';
 
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
@@ -43,7 +45,7 @@ export const signUpAction = async (formData: FormData) => {
   if (error || !data?.user) {
     return encodedRedirect("error", "/protected/admin/sign-up", error?.message || "No se pudo crear.");
   }
-
+ 
   const user_id = data.user.id;
 
   // Insertar perfil
@@ -63,10 +65,25 @@ export const signUpAction = async (formData: FormData) => {
       .from("usuarios_roles")
       .insert({ user_id, rol_id });
   }
+    const { fecha, formateada } = obtenerFechaYFormatoGT();
+
+    const {
+      data: { user: usuarioActual },
+    } = await supabase.auth.getUser();
+
+    const emailActual = usuarioActual?.email ?? 'correo_desconocido';
+    
+    await registrarLogServer({
+      accion: 'CREAR_USUARIO',
+      descripcion: `${emailActual} CREÓ al usuario ${email} el ${formateada}`,
+      nombreModulo: 'SISTEMA',
+      fecha,
+    });
+
+
 
   return encodedRedirect("success", "/protected/admin/sign-up", "Usuario creado con éxito.");
 };
-
 
 export const signInAction = async (formData: FormData) => {
   const email = formData.get('email') as string;
@@ -108,10 +125,24 @@ export const signInAction = async (formData: FormData) => {
     await supabase.auth.signOut();
     return encodedRedirect('error', '/sign-in', 'Tu cuenta está desactivada. Contacta con Soporte Técnico.');
   }
+  const { fecha, formateada } = obtenerFechaYFormatoGT();
+
+    const {
+      data: { user: usuarioActual },
+    } = await supabase.auth.getUser();
+
+    const emailActual = usuarioActual?.email ?? 'correo_desconocido';
+
+    await registrarLogServer({
+      accion: 'INICIO_SESION',
+      descripcion: `${emailActual} INICIO SESION el ${formateada}`,
+      nombreModulo: 'SISTEMA',
+      fecha,
+    });
 
   return redirect('/protected');
 };
-
+/*
 export const forgotPasswordAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const supabase = await createClient();
@@ -140,7 +171,7 @@ export const forgotPasswordAction = async (formData: FormData) => {
     "Revisa tu correo electrónico para cambiar tu contraseña"
   );
 };
-
+*/
 export const resetPasswordAction = async (formData: FormData) => {
   const supabase = await createClient();
 
@@ -167,5 +198,19 @@ export const resetPasswordAction = async (formData: FormData) => {
 export const signOutAction = async () => {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  return redirect("/sign-in");
+  const { fecha, formateada } = obtenerFechaYFormatoGT();
+
+const {
+  data: { user: usuarioActual },
+} = await supabase.auth.getUser();
+
+const emailActual = usuarioActual?.email ?? 'correo_desconocido';
+
+await registrarLogServer({
+  accion: 'CERRAR_SESION',
+  descripcion: `${emailActual} CERRO SESION el ${formateada}`,
+  nombreModulo: 'SISTEMA',
+  fecha,
+});
+  return redirect("/");
 };
