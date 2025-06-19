@@ -9,9 +9,18 @@ interface Props {
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   type?: string;
   placeholder?: string;
+  disabled?: boolean; // ✅ ahora soporta campo deshabilitado
 }
 
-export function CampoTexto({ label, name, value, onChange, type = 'text', placeholder }: Props) {
+export function CampoTexto({
+  label,
+  name,
+  value,
+  onChange,
+  type = 'text',
+  placeholder,
+  disabled,
+}: Props) {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let nuevoValor = e.target.value;
 
@@ -23,7 +32,6 @@ export function CampoTexto({ label, name, value, onChange, type = 'text', placeh
       nuevoValor = nuevoValor.replace(/\D/g, '').slice(0, 4);
     }
 
-    // Creamos un nuevo evento con el valor modificado
     const eventoModificado = {
       ...e,
       target: {
@@ -45,7 +53,10 @@ export function CampoTexto({ label, name, value, onChange, type = 'text', placeh
         value={value}
         onChange={handleInputChange}
         placeholder={placeholder}
-        className="w-full border border-gray-300 rounded px-3 py-2"
+        disabled={disabled}
+        className={`w-full border rounded px-3 py-2 ${
+          disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'border-gray-300'
+        }`}
       />
     </div>
   );

@@ -3,9 +3,10 @@
 interface Props {
   estado: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  esEdicion?: boolean;
 }
 
-export default function CampoEstado({ estado, onChange }: Props) {
+export default function CampoEstado({ estado, onChange, esEdicion = false }: Props) {
   return (
     <div className="flex items-center gap-4">
       <label className="text-lg font-medium">Estado:</label>
@@ -32,6 +33,20 @@ export default function CampoEstado({ estado, onChange }: Props) {
           />
           Extraviado
         </label>
+
+        {esEdicion && (
+          <label className="flex items-center gap-2 text-red-600 font-semibold">
+            <input
+              type="radio"
+              name="estado"
+              value="Anulado"
+              checked={estado === 'Anulado'}
+              onChange={onChange}
+              className="accent-red-600"
+            />
+            Anulado
+          </label>
+        )}
       </div>
     </div>
   );

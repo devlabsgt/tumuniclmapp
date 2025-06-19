@@ -250,7 +250,6 @@ const ingresarFolioAnulado = async () => {
   await cargarDatos();
 };
 
-
   useEffect(() => {
     setPaginaActual(1);
   }, [filtros, orden, beneficiariosPorPagina]);
@@ -302,8 +301,8 @@ const ingresarFolioAnulado = async () => {
     className="border border-gray-300 rounded px-3 py-2 mt-2 sm:mt-0 sm:ml-2"
   >
     <optgroup label="Formulario">
-      <option value="codigo_asc">Formulario (ascendente)</option>
-      <option value="codigo_desc">Formulario (descendente)</option>
+      <option value="codigo_asc">Folio (ascendente)</option>
+      <option value="codigo_desc">Folio (descendente)</option>
     </optgroup>
     <optgroup label="Nombre">
       <option value="nombre_completo_asc">Nombre (A-Z)</option>

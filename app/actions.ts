@@ -79,9 +79,6 @@ export const signUpAction = async (formData: FormData) => {
       nombreModulo: 'SISTEMA',
       fecha,
     });
-
-
-
   return encodedRedirect("success", "/protected/admin/sign-up", "Usuario creado con éxito.");
 };
 
@@ -197,7 +194,6 @@ export const resetPasswordAction = async (formData: FormData) => {
 
 export const signOutAction = async () => {
   const supabase = await createClient();
-  await supabase.auth.signOut();
   const { fecha, formateada } = obtenerFechaYFormatoGT();
 
 const {
@@ -212,5 +208,8 @@ await registrarLogServer({
   nombreModulo: 'SISTEMA',
   fecha,
 });
+
+  await supabase.auth.signOut();
+
   return redirect("/");
 };

@@ -5,6 +5,7 @@ import { Geist } from "next/font/google";
 import HeaderAuth from "@/components/header-auth";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import LogoLink from "@/components/ui/LogoLink";
+import AutoLogoutWrapper from '@/components/ui/AutoLogoutWrapper';
 
 // 👉 Esto define la metadata del <head>
 export const metadata = {
@@ -33,6 +34,8 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+            <AutoLogoutWrapper />  {/* 👈 Aquí activa el cierre automático */}
+
           {/* Layout principal en columna */}
           <main className="min-h-screen flex flex-col">
             {/* Encabezado y contenido principal */}

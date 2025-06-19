@@ -20,15 +20,16 @@ export default function EditarBeneficiarioForm() {
     dpi: '',
     lugar: '',
     fecha: '',
-    fecha_nacimiento: '', 
+    fecha_nacimiento: '',
     codigo: '',
     telefono: '',
-    sexo: '',
+    sexo: 'M',
     cantidad: '',
     estado: '',
   });
 
   const [original, setOriginal] = useState(formulario);
+  const estaAnulado = formulario.estado === 'Anulado';
   const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
@@ -47,20 +48,18 @@ export default function EditarBeneficiarioForm() {
         return;
       }
 
-    const datos = {
-      nombre_completo: data.nombre_completo || '',
-      dpi: data.dpi || '',
-      lugar: data.lugar || '',
-      fecha: data.fecha?.split('T')[0] || '',
-      fecha_nacimiento: data.fecha_nacimiento?.split('T')[0] || '', // 👈 nuevo campo
-      codigo: data.codigo || '',
-      telefono: data.telefono || '',
-      sexo: data.sexo || 'M',
-      cantidad: data.cantidad?.toString() || '', 
-      estado: data.estado?.toString() || ''
-    };
-
-
+      const datos = {
+        nombre_completo: data.nombre_completo ?? '',
+        dpi: data.dpi ?? '',
+        lugar: data.lugar ?? '',
+        fecha: data.fecha?.split('T')[0] ?? '',
+        fecha_nacimiento: data.fecha_nacimiento?.split('T')[0] ?? '',
+        codigo: data.codigo ?? '',
+        telefono: data.telefono ?? '',
+        sexo: data.sexo ?? 'M',
+        cantidad: data.cantidad?.toString() ?? '',
+        estado: data.estado ?? '',
+      };
 
       setFormulario(datos);
       setOriginal(datos);
@@ -71,7 +70,10 @@ export default function EditarBeneficiarioForm() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormulario((prev) => ({ ...prev, [name]: value }));
+    setFormulario((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const hayCambios = useMemo(() => {
@@ -83,62 +85,75 @@ export default function EditarBeneficiarioForm() {
       Swal.fire('Sin cambios', 'No hiciste ninguna modificación.', 'info');
       return;
     }
-  
+
     setCargando(true);
     const supabase = createClient();
-  
-    formulario.dpi = formulario.dpi.replace(/\s+/g, '');
-    formulario.codigo = formulario.codigo.replace(/\s+/g, '');
-    formulario.telefono = formulario.telefono.replace(/\s+/g, '');
-  
-    if (!/^\d+$/.test(formulario.dpi) || !/^\d+$/.test(formulario.codigo)) {
+
+    const dpi = formulario.dpi.replace(/\s+/g, '');
+    const codigo = formulario.codigo.replace(/\s+/g, '');
+    const telefono = formulario.telefono.replace(/\s+/g, '');
+
+    if (dpi && !/^\d+$/.test(dpi)) {
       setCargando(false);
-      Swal.fire('Error', 'DPI y Formulario deben contener solo números.', 'warning');
+      Swal.fire('Error', 'DPI debe contener solo números.', 'warning');
       return;
     }
-  
-    if (formulario.telefono !== '' && !/^\d{8}$/.test(formulario.telefono)) {
+
+    if (telefono && telefono !== 'N/A' && !/^\d{8}$/.test(telefono)) {
       setCargando(false);
-      Swal.fire('Error', 'Si se ingresa Teléfono, debe tener exactamente 8 números.', 'warning');
+      Swal.fire('Error', 'Si se ingresa Teléfono, debe tener exactamente 8 dígitos.', 'warning');
       return;
     }
-  
+
     const { data: duplicados, error: errorCheck } = await supabase
       .from('beneficiarios_fertilizante')
       .select('id, dpi, codigo, telefono');
-  
+
     if (errorCheck || !duplicados) {
       setCargando(false);
       Swal.fire('Error', 'No se pudo verificar duplicados.', 'error');
       return;
     }
-  
-    const existeDPI = duplicados.find((b) => b.dpi === formulario.dpi && b.id !== id);
-    const existeCodigo = duplicados.find((b) => b.codigo === formulario.codigo && b.id !== id);
-    const existeTelefono = duplicados.find((b) => b.telefono === formulario.telefono && b.id !== id);
-  
-    if (existeDPI || existeCodigo || (formulario.telefono !== 'N/A' && existeTelefono)) {
+
+    const existeDPI = duplicados.find((b) => b.dpi === dpi && b.id !== id);
+    const existeCodigo = duplicados.find((b) => b.codigo === codigo && b.id !== id);
+    const existeTelefono = duplicados.find((b) => b.telefono === telefono && b.id !== id);
+
+    if (existeDPI || existeCodigo || (telefono !== 'N/A' && existeTelefono)) {
       setCargando(false);
-      Swal.fire('Error', 'DPI, Formulario o Teléfono ya existen para otro beneficiario.', 'warning');
+      Swal.fire('Error', 'DPI, Folio o Teléfono ya existen para otro beneficiario.', 'warning');
       return;
     }
-  
-    // Aquí corregimos el teléfono si viene vacío
-    const datosActualizar = {
+
+    let datosActualizar: any = {
       ...formulario,
-      telefono: formulario.telefono === '' ? 'N/A' : formulario.telefono,
+      dpi,
+      codigo,
+      telefono: telefono === '' ? 'N/A' : telefono,
       fecha_nacimiento: formulario.fecha_nacimiento?.trim() || null,
       cantidad: parseInt(formulario.cantidad || '1', 10),
     };
 
-  
+    if (formulario.estado === 'Anulado') {
+      datosActualizar = {
+        ...datosActualizar,
+        nombre_completo: null,
+        dpi: null,
+        telefono: null,
+        sexo: null,
+        fecha_nacimiento: null,
+        cantidad: 0,
+        fecha: new Date().toISOString().split('T')[0],
+      };
+    }
+
     const { error } = await supabase
       .from('beneficiarios_fertilizante')
       .update(datosActualizar)
       .eq('id', id);
-  
+
     setCargando(false);
-  
+
     if (error) {
       console.error(error);
       Swal.fire('Error', 'No se pudo actualizar el beneficiario.', 'error');
@@ -148,60 +163,35 @@ export default function EditarBeneficiarioForm() {
       });
     }
   };
-  
-  
 
   if (!id) return <p className="p-4 text-center">ID de beneficiario no proporcionado.</p>;
 
   return (
     <div className="flex flex-col gap-4">
-      <CampoTexto label="Nombre completo" name="nombre_completo" value={formulario.nombre_completo} onChange={handleChange} />
-      <CampoTexto label="DPI" name="dpi" value={formulario.dpi} onChange={handleChange} />
-      <CampoTexto
-        label="Teléfono"
-        name="telefono"
-        value={formulario.telefono}
-        onChange={handleChange}
-        type="text"
-        placeholder="8 dígitos numéricos"
-      />
-      <CampoTexto label="Formulario" name="codigo" value={formulario.codigo} onChange={handleChange} />
+      <CampoTexto label="Nombre completo" name="nombre_completo" value={formulario.nombre_completo} onChange={handleChange} disabled={estaAnulado} />
+      <CampoTexto label="DPI" name="dpi" value={formulario.dpi} onChange={handleChange} disabled={estaAnulado} />
+      <CampoTexto label="Teléfono" name="telefono" value={formulario.telefono} onChange={handleChange} type="text" placeholder="8 dígitos numéricos" disabled={estaAnulado} />
+      <CampoTexto label="Folio" name="codigo" value={formulario.codigo} onChange={handleChange} disabled={estaAnulado} />
+
       <div>
         <label className="font-semibold block mb-1">Cantidad de sacos</label>
-        <input
-          type="number"
-          name="cantidad"
-          min="1"
-          step="1"
-          value={formulario.cantidad}
-          onChange={handleChange}
-          className="w-full border border-gray-300 rounded px-3 py-2"
-          required
-        />
+        <input type="number" name="cantidad" min="1" step="1" value={formulario.cantidad} onChange={handleChange} className="w-full border border-gray-300 rounded px-3 py-2" disabled={estaAnulado} required />
       </div>
 
       <CampoLugar value={formulario.lugar} onChange={handleChange} />
+
       <div>
         <label className="font-semibold block mb-1">Fecha</label>
         <input type="date" name="fecha" value={formulario.fecha} onChange={handleChange} className="w-full border border-gray-300 rounded px-3 py-2" />
       </div>
-      <div>
-      <label className="font-semibold block mb-1">Fecha de nacimiento</label>
-      <input
-        type="date"
-        name="fecha_nacimiento"
-        value={formulario.fecha_nacimiento}
-        onChange={handleChange}
-        className="w-full border border-gray-300 rounded px-3 py-2"
-      />
-    </div>
 
       <div>
-    <CampoSexo sexo={formulario.sexo} onChange={handleChange} />
-    <CampoEstado estado={formulario.estado} onChange={handleChange} />
+        <label className="font-semibold block mb-1">Fecha de nacimiento</label>
+        <input type="date" name="fecha_nacimiento" value={formulario.fecha_nacimiento} onChange={handleChange} disabled={estaAnulado} className="w-full border border-gray-300 rounded px-3 py-2" />
+      </div>
 
-
-</div>
+      <CampoSexo sexo={formulario.sexo} onChange={handleChange} />
+      <CampoEstado estado={formulario.estado} onChange={handleChange} esEdicion />
 
       <Button onClick={actualizar} disabled={!hayCambios || cargando} className="h-12 text-lg bg-blue-600 hover:bg-blue-700 text-white mt-4">
         {cargando ? 'Guardando...' : 'Guardar Cambios'}

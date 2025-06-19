@@ -106,7 +106,7 @@ const [formulario, setFormulario] = useState({
           <strong>Datos del beneficiario:</strong><br/><br/>
           <strong>Nombre:</strong> ${data.nombre_completo}<br/><br/>
           <strong>DPI:</strong> ${data.dpi}<br/><br/>
-          <strong>Formulario:</strong> ${data.codigo}<br/><br/>
+          <strong>Folio:</strong> ${data.codigo}<br/><br/>
           <strong>Lugar:</strong> ${data.lugar}<br/><br/>
           <strong>Fecha:</strong> ${data.fecha}
         `,
@@ -158,7 +158,7 @@ const [formulario, setFormulario] = useState({
     }
   
     if (!/^\d{4}$/.test(codigo)) {
-      Swal.fire('Error', 'El Formulario debe tener 4 números.', 'warning');
+      Swal.fire('Error', 'El Foiio debe tener 4 números.', 'warning');
       return;
     }
   
@@ -187,7 +187,7 @@ const [formulario, setFormulario] = useState({
       let b: any = null;
   
       if (duplicadoCodigo) {
-        campo = 'Formulario';
+        campo = 'Folio';
         valor = codigo;
         b = duplicadoCodigo;
       } else if (duplicadoDPI) {
@@ -206,7 +206,7 @@ const [formulario, setFormulario] = useState({
           <strong>Nombre:</strong> ${b.nombre_completo}<br/><br/>
           <strong>DPI:</strong> ${b.dpi}<br/><br/>
           <strong>Teléfono:</strong> ${b.telefono}<br/><br/>
-          <strong>Formulario:</strong> ${b.codigo}<br/><br/>
+          <strong>Folio:</strong> ${b.codigo}<br/><br/>
           <strong>Lugar:</strong> ${b.lugar}<br/><br/>
           <strong>Fecha:</strong> ${b.fecha}
         `,
@@ -294,7 +294,7 @@ return (
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-4">
         <Formulario formulario={formulario} onChange={handleChange} />
         <CampoSexo sexo={formulario.sexo} onChange={handleChange} />
-        <CampoEstado estado={formulario.estado} onChange={handleChange} />
+      <CampoEstado estado={formulario.estado} onChange={handleChange} />
         <Button type="submit" className="mt-4 h-11 text-lg">
           Crear Beneficiario
         </Button>
