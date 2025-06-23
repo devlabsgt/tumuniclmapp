@@ -2,10 +2,8 @@
 
 import { useEffect } from 'react';
 import Swal from 'sweetalert2';
-import { registrarLog } from '@/utils/registrarLog';
-import { createClient } from '@/utils/supabase/client';
+import { logoutPorInactividad } from '@/utils/auth/logoutCliente';
 import { useRouter } from 'next/navigation';
-import { obtenerFechaYFormatoGT } from '@/utils/formatoFechaGT';
 
 export function useAutoLogout(minutos: number = 15) {
   const router = useRouter();
@@ -16,19 +14,7 @@ export function useAutoLogout(minutos: number = 15) {
     const resetTimer = () => {
       clearTimeout(timeout);
       timeout = setTimeout(async () => {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { fecha, formateada } = obtenerFechaYFormatoGT();
-
-        await registrarLog({
-          accion: 'INACTIVIDAD',
-          descripcion: `${user.email} cerró sesión por inactividad el ${formateada}`,
-          nombreModulo: 'SISTEMA',
-        });
-
-        await supabase.auth.signOut();
+        await logoutPorInactividad();
 
         await Swal.fire({
           title: 'Sesión cerrada',
@@ -42,7 +28,6 @@ export function useAutoLogout(minutos: number = 15) {
     };
 
     resetTimer();
-
     window.addEventListener('mousemove', resetTimer);
     window.addEventListener('keydown', resetTimer);
 
