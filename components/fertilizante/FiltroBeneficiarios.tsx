@@ -1,9 +1,11 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { createClient } from '@/utils/supabase/client';
 import { Input } from '@/components/ui/input';
-import { LUGARES } from '@/components/utils/lugares'; // ✅ Importa la constante centralizada
+import { obtenerLugares } from '@/lib/obtenerLugares';
 
-type CampoFiltro = 'nombre_completo' | 'dpi' | 'codigo';
+type CampoFiltro = 'codigo' | 'dpi' | 'nombre_completo' ;
 
 interface Props {
   filtros: {
@@ -22,12 +24,23 @@ interface Props {
 }
 
 export function FiltroBeneficiarios({ filtros, setFiltros, anios }: Props) {
+  const [lugares, setLugares] = useState<string[]>([]);
+  const supabase = createClient();
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setFiltros({ ...filtros, [name]: value });
   };
+
+  useEffect(() => {
+    const cargarLugares = async () => {
+    obtenerLugares().then(setLugares);
+    };
+
+    cargarLugares();
+  }, []);
 
   return (
     <div className="flex flex-col md:flex-row flex-wrap gap-4 mb-6">
@@ -39,9 +52,9 @@ export function FiltroBeneficiarios({ filtros, setFiltros, anios }: Props) {
           onChange={handleChange}
           className="border border-gray-300 rounded px-3 py-2"
         >
+          <option value="codigo">Folio</option>
           <option value="nombre_completo">Nombre</option>
           <option value="dpi">DPI</option>
-          <option value="codigo">Folio</option>
         </select>
 
         <Input
@@ -59,7 +72,7 @@ export function FiltroBeneficiarios({ filtros, setFiltros, anios }: Props) {
         className="border border-gray-300 rounded px-3 py-2"
       >
         <option value="">Todos los lugares</option>
-        {LUGARES.map((lugar) => (
+        {lugares.map((lugar) => (
           <option key={lugar} value={lugar}>{lugar}</option>
         ))}
       </select>

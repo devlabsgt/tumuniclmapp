@@ -1,6 +1,7 @@
 'use client';
 
-import { LUGARES } from '@/components/utils/lugares';
+import { useEffect, useState } from 'react';
+import { obtenerLugares } from '@/lib/obtenerLugares';
 
 interface Props {
   value: string;
@@ -8,6 +9,16 @@ interface Props {
 }
 
 export function CampoLugar({ value, onChange }: Props) {
+  const [lugares, setLugares] = useState<string[]>([]);
+
+  useEffect(() => {
+    const cargarLugares = async () => {
+      const lista = await obtenerLugares();
+      setLugares(lista);
+    };
+    cargarLugares();
+  }, []);
+
   return (
     <div>
       <label className="font-semibold block mb-1">Lugar</label>
@@ -19,7 +30,7 @@ export function CampoLugar({ value, onChange }: Props) {
         required
       >
         <option value="">Seleccione un lugar...</option>
-        {LUGARES.map((lugar) => (
+        {lugares.map((lugar) => (
           <option key={lugar} value={lugar}>
             {lugar}
           </option>
