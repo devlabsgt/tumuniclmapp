@@ -1,20 +1,11 @@
 'use client';
 
+import { LUGARES } from '@/components/utils/lugares';
+
 interface Props {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }
-
-const lugares = [
-  'Apantes', 'Liquidámbar', 'Rodeo El Espino', 'Dolores', 'Sacramento', 'Platanar',
-  'Caserío Los Planes', 'El Jícaro', 'La Loma', 'Monte Barroso', 'Agua Caliente',
-  'Roble Gacho', 'El Pinal', 'San Vicente', 'Guacamayas', 'La Ermita', 'Conacastes',
-  'Cañada', 'Santa Anita', 'Valeriano', 'Alambrados', 'Anguiatú', 'Las Burras',
-  'El Pinito', 'La Leona', 'Limones', 'Cruz Calle', 'Cabildo', 'El Obraje', 'San Antonio',
-  'La Quesera', 'Rodeo Las Lajas', 'Tisizón', 'Hornito', 'Anonas', 'Socorro', 'Aguajal',
-  'San José', 'Valle Arriba', 'El Capulín', 'Rodeíto', 'El Límite', 'El Obispo',
-  'Pueblo Nuevo', 'Casco Urbano', 'San Isidro','Llano de las tareas','Caserío Bordo el Llano'
-].sort((a, b) => a.localeCompare(b));
 
 export function CampoLugar({ value, onChange }: Props) {
   return (
@@ -28,7 +19,7 @@ export function CampoLugar({ value, onChange }: Props) {
         required
       >
         <option value="">Seleccione un lugar...</option>
-        {lugares.map((lugar) => (
+        {LUGARES.map((lugar) => (
           <option key={lugar} value={lugar}>
             {lugar}
           </option>
