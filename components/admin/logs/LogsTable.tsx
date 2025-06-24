@@ -156,7 +156,7 @@ const cambiarDia = (dias: number) => {
         <table className="min-w-full border text-sm">
           <thead>
             <tr className="bg-gray-100">
-            <th className="p-2 border w-32">Fecha</th> {/* o w-64 si quiere más */}
+            <th className="p-2 border w-32">Fecha</th> 
               <th className="p-2 border">Acción</th>
               <th className="p-2 border">Descripción</th>
               <th className="p-2 border">Módulo</th>

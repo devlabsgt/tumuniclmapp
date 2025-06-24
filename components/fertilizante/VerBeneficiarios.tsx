@@ -196,9 +196,56 @@ const ingresarFolioAnulado = async () => {
 
   if (!formValues) return;
 
-  // ... resto del código igual ...
-};
+  const { folio, lugar, anio } = formValues;
+  const codigo = folio.padStart(4, '0');
 
+  const { data: existente } = await supabase
+    .from('beneficiarios_fertilizante')
+    .select('id')
+    .eq('codigo', codigo)
+    .eq('anio', anio)
+    .maybeSingle();
+
+  if (existente) {
+    return Swal.fire({
+      icon: 'warning',
+      title: 'Folio existente',
+      text: `El folio ${codigo} ya está registrado para el año ${anio}`,
+    });
+  }
+
+  const { error } = await supabase.from('beneficiarios_fertilizante').insert({
+    codigo,
+    lugar,
+    anio,
+    fecha: new Date().toISOString(),
+    cantidad: 0,
+    estado: 'Anulado',
+    nombre_completo: null,
+    dpi: null,
+    telefono: null,
+    sexo: null,
+  });
+
+  if (error) {
+    return Swal.fire({
+      icon: 'error',
+      title: 'Error al anular folio',
+      html: `
+        <p>No se pudo guardar el folio anulado para <strong>${lugar || 'N/A'}</strong>, año <strong>${anio || 'N/A'}</strong>.</p>
+        <p><strong>Detalles:</strong> ${error.message}</p>
+      `,
+    });
+  }
+
+  await Swal.fire({
+    icon: 'success',
+    title: 'Folio anulado',
+    text: `Se anuló correctamente el folio ${codigo} para ${lugar}, año ${anio}`,
+  });
+
+  await cargarDatos();
+};
 
   useEffect(() => {
     setPaginaActual(1);
