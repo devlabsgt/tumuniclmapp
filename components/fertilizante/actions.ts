@@ -3,6 +3,7 @@ import Swal from 'sweetalert2';
 import { obtenerLugares } from '@/lib/obtenerLugares';
 import { createBrowserClient } from '@supabase/ssr';
 import type { Beneficiario, CampoFiltro, OrdenFiltro } from './types';
+import { registrarLog } from '@/utils/registrarLog';
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -118,21 +119,38 @@ export const ingresarFolioAnulado = async (
   });
 
   if (error) {
+    const htmlError = `
+      <p>No se pudo guardar el folio anulado para <strong>${lugar || 'N/A'}</strong>, año <strong>${anio || 'N/A'}</strong>.</p>
+      <p><strong>Detalles:</strong> ${error.message}</p>
+    `;
+
+    await registrarLog({
+      accion: 'ERROR_ANULAR',
+      nombreModulo: 'FERTILIZANTE',
+      descripcion: htmlError,
+    });
+
     return Swal.fire({
       icon: 'error',
       title: 'Error al anular folio',
-      html: `
-        <p>No se pudo guardar el folio anulado para <strong>${lugar || 'N/A'}</strong>, año <strong>${anio || 'N/A'}</strong>.</p>
-        <p><strong>Detalles:</strong> ${error.message}</p>
-      `,
+      html: htmlError,
     });
   }
 
-  await Swal.fire({
-    icon: 'success',
-    title: 'Folio anulado',
-    text: `Se anuló correctamente el folio ${codigo} para ${lugar}, año ${anio}`,
-  });
+
+const mensajeExito = `Se anuló correctamente el folio ${codigo} para ${lugar}, año ${anio}`;
+
+await registrarLog({
+  accion: 'ANULAR_FOLIO',
+  nombreModulo: 'FERTILIZANTE',
+  descripcion: mensajeExito,
+});
+
+await Swal.fire({
+  icon: 'success',
+  title: 'Folio anulado',
+  text: mensajeExito,
+});
 
   await cargarDatos();
 };

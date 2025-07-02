@@ -9,6 +9,7 @@ import { Formulario } from './Formulario';
 import CampoDPI from './CampoDPI';
 import CampoSexo from './CampoSexo';
 import CampoEstado from './CampoEstado';
+import { registrarLog } from '@/utils/registrarLog';
 
 
 export function CrearBeneficiario() {
@@ -230,8 +231,18 @@ const [formulario, setFormulario] = useState({
         
 if (error) {
   console.error('Error de Supabase:', error);
+      await registrarLog({
+        accion: 'ERROR_CREAR',
+        nombreModulo: 'FERTILIZANTE',
+        descripcion: `No se pudo registrar el beneficiario.<br><br><small>${error.message}</small>`,
+      });
   Swal.fire('Error', `No se pudo registrar el beneficiario.<br><br><small>${error.message}</small>`, 'error');
 } else {
+        await registrarLog({
+        accion: 'CREAR',
+        nombreModulo: 'FERTILIZANTE',
+        descripcion: `Se ingresó:<br><br><strong>Folio:</strong> ${formulario.codigo}<br><br><strong>Nombre:</strong> ${formulario.nombre_completo}<br><br><strong>DPI:</strong> ${formulario.dpi}`,
+      });
       Swal.fire('Éxito', 'Beneficiario registrado correctamente.', 'success').then(() => {
       setFormulario({
         nombre_completo: '',

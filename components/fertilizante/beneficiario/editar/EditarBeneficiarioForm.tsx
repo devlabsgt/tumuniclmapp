@@ -149,6 +149,40 @@ export default function EditarBeneficiarioForm() {
         fecha: new Date().toISOString().split('T')[0],
       };
     }
+    const cambios: string[] = [];
+
+    if (formulario.nombre_completo !== original.nombre_completo) {
+      cambios.push(`<strong>Nombre:</strong> "${original.nombre_completo}" → "${formulario.nombre_completo}"`);
+    }
+    if (formulario.dpi !== original.dpi) {
+      cambios.push(`<strong>DPI:</strong> "${original.dpi}" → "${formulario.dpi}"`);
+    }
+    if (formulario.telefono !== original.telefono) {
+      cambios.push(`<strong>Teléfono:</strong> "${original.telefono}" → "${formulario.telefono}"`);
+    }
+    if (formulario.codigo !== original.codigo) {
+      cambios.push(`<strong>Folio:</strong> "${original.codigo}" → "${formulario.codigo}"`);
+    }
+    if (formulario.lugar !== original.lugar) {
+      cambios.push(`<strong>Lugar:</strong> "${original.lugar}" → "${formulario.lugar}"`);
+    }
+    if (formulario.fecha !== original.fecha) {
+      cambios.push(`<strong>Fecha:</strong> "${original.fecha}" → "${formulario.fecha}"`);
+    }
+    if (formulario.fecha_nacimiento !== original.fecha_nacimiento) {
+      cambios.push(`<strong>Fecha nacimiento:</strong> "${original.fecha_nacimiento}" → "${formulario.fecha_nacimiento}"`);
+    }
+    if (formulario.sexo !== original.sexo) {
+      cambios.push(`<strong>Sexo:</strong> "${original.sexo}" → "${formulario.sexo}"`);
+    }
+    if (formulario.cantidad !== original.cantidad) {
+      cambios.push(`<strong>Cantidad:</strong> "${original.cantidad}" → "${formulario.cantidad}"`);
+    }
+    if (formulario.estado !== original.estado) {
+      cambios.push(`<strong>Estado:</strong> "${original.estado}" → "${formulario.estado}"`);
+    }
+
+    const descripcion = `<strong>Folio: ${formulario.codigo}</strong>:<br><br>${cambios.join('<br><br>')}`;
 
     const { error } = await supabase
       .from('beneficiarios_fertilizante')
@@ -157,52 +191,23 @@ export default function EditarBeneficiarioForm() {
 
     setCargando(false);
 
-    const cambios: string[] = [];
-
-if (formulario.nombre_completo !== original.nombre_completo) {
-  cambios.push(`<strong>Nombre:</strong> "${original.nombre_completo}" → "${formulario.nombre_completo}"`);
-}
-if (formulario.dpi !== original.dpi) {
-  cambios.push(`<strong>DPI:</strong> "${original.dpi}" → "${formulario.dpi}"`);
-}
-if (formulario.telefono !== original.telefono) {
-  cambios.push(`<strong>Teléfono:</strong> "${original.telefono}" → "${formulario.telefono}"`);
-}
-if (formulario.codigo !== original.codigo) {
-  cambios.push(`<strong>Folio:</strong> "${original.codigo}" → "${formulario.codigo}"`);
-}
-if (formulario.lugar !== original.lugar) {
-  cambios.push(`<strong>Lugar:</strong> "${original.lugar}" → "${formulario.lugar}"`);
-}
-if (formulario.fecha !== original.fecha) {
-  cambios.push(`<strong>Fecha:</strong> "${original.fecha}" → "${formulario.fecha}"`);
-}
-if (formulario.fecha_nacimiento !== original.fecha_nacimiento) {
-  cambios.push(`<strong>Fecha nacimiento:</strong> "${original.fecha_nacimiento}" → "${formulario.fecha_nacimiento}"`);
-}
-if (formulario.sexo !== original.sexo) {
-  cambios.push(`<strong>Sexo:</strong> "${original.sexo}" → "${formulario.sexo}"`);
-}
-if (formulario.cantidad !== original.cantidad) {
-  cambios.push(`<strong>Cantidad:</strong> "${original.cantidad}" → "${formulario.cantidad}"`);
-}
-if (formulario.estado !== original.estado) {
-  cambios.push(`<strong>Estado:</strong> "${original.estado}" → "${formulario.estado}"`);
-}
-
-const { fecha } = obtenerFechaYFormatoGT();
-
-await registrarLog({
-  accion: 'EDITAR',
-  nombreModulo: 'FERTILIZANTE',
-descripcion: ` <strong>Folio: ${formulario.codigo}</strong>:<br><br>${cambios.join('<br><br>')}`,
-});
-
-
     if (error) {
       console.error(error);
+
+      await registrarLog({
+        accion: 'ERROR_EDITAR',
+        nombreModulo: 'FERTILIZANTE',
+        descripcion: `Error al editar el folio ${formulario.codigo}: ${error.message}`,
+      });
+
       Swal.fire('Error', 'No se pudo actualizar el beneficiario.', 'error');
     } else {
+      await registrarLog({
+        accion: 'EDITAR',
+        nombreModulo: 'FERTILIZANTE',
+        descripcion,
+      });
+
       Swal.fire('Éxito', 'Beneficiario actualizado correctamente.', 'success').then(() => {
         router.back();
       });

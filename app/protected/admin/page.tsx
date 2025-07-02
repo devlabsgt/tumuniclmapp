@@ -49,7 +49,7 @@ export default function AdminDashboard() {
 
   const irAUsuarios = async () => {
     await registrarLog({
-      accion: 'NGRESO_MODULO',
+      accion: 'INGRESO_MODULO',
       descripcion: 'Accedió al módulo de usuarios',
       nombreModulo: 'USUARIOS',
     });
@@ -58,7 +58,7 @@ export default function AdminDashboard() {
 
   const irAFertilizante = async () => {
     await registrarLog({
-      accion: 'NGRESO_MODULO',
+      accion: 'INGRESO_MODULO',
       descripcion: 'Accedió al módulo de fertilizante',
       nombreModulo: 'FERTILIZANTE',
     });
