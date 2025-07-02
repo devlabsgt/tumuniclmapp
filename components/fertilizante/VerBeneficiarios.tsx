@@ -10,6 +10,7 @@ import { generarPdfBeneficiarios } from '@/components/utils/PdfBeneficiarios';
 import EstadisticasBeneficiarios from './EstadisticasBeneficiarios';
 import MISSINGFolioModal from './MISSINGFolioModal';
 import type { Beneficiario, CampoFiltro, OrdenFiltro } from './types';
+import { registrarLog } from '@/utils/registrarLog';
 import {
   cargarBeneficiariosPorAnio,
   obtenerAniosDisponibles,
@@ -75,15 +76,16 @@ export default function VerBeneficiarios() {
 
 return (
   <div className="w-full max-w-6xl mx-auto px-4 py-6 overflow-hidden">
-    <Button
+
+
+    <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-2">
+          <Button
       variant="ghost"
       onClick={() => router.push("/protected")}
       className="text-blue-600 text-base underline"
     >
       Volver
     </Button>
-
-    <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-2">
       <h1 className="text-2xl font-bold text-left">Lista de Beneficiarios</h1>
       <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
         {(permisos.includes('IMPRIMIR') || permisos.includes('TODO')) && (

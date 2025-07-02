@@ -21,7 +21,6 @@ const mostrar = (valor: string | number | null | undefined) =>
     ? valor
     : '—';
 
-
 const formatearFecha = (iso?: string | null) => {
   if (!iso || iso === 'null') return '—';
   const [a, m, d] = iso.split('-');
@@ -40,7 +39,6 @@ const calcularEdad = (fechaNacimiento?: string | null) => {
   }
   return edad.toString();
 };
-
 
   return (
     <div>

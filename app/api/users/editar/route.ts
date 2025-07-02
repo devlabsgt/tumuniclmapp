@@ -42,11 +42,8 @@ export async function POST(req: Request) {
     const rolAnterior = rolActualRow.rol_id;
     const emailAnterior = authActual.user.email ?? '—';
 
-
-    // 🛠️ 2. Actualizar en auth
-    const updateData: any = {
-      email,
-    };
+    // 2. Actualizar en auth
+    const updateData: any = { email };
     if (password) updateData.password = password;
 
     const { error: errorAuth } = await supabaseAdmin.auth.admin.updateUserById(id, updateData);
@@ -55,7 +52,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No se pudo actualizar el usuario.' }, { status: 500 });
     }
 
-    // 🛠️ 3. Actualizar perfil
+    // 3. Actualizar perfil
     const { error: errorPerfil } = await supabaseAdmin
       .from('usuarios_perfil')
       .update({ nombre, activo })
@@ -65,61 +62,79 @@ export async function POST(req: Request) {
       console.error('Error al actualizar perfil:', errorPerfil);
       return NextResponse.json({ error: 'Error al actualizar perfil' }, { status: 500 });
     }
-// 📝 5. Construir log de cambios
-const cambios: string[] = [];
 
-if (email !== emailAnterior) {
-  cambios.push(`Correo: "${emailAnterior}" → "${email}"`);
-}
+    // 4. Actualizar rol si cambió
+    if (rol !== rolAnterior) {
+      const { error: errorRol } = await supabaseAdmin
+        .from('usuarios_roles')
+        .update({ rol_id: rol })
+        .eq('user_id', id);
 
-if (nombre !== nombreAnterior) {
-  cambios.push(`Nombre: "${nombreAnterior}" → "${nombre}"`);
-}
+      if (errorRol) {
+        console.error('Error al actualizar rol:', errorRol);
+        return NextResponse.json({ error: 'Error al actualizar rol' }, { status: 500 });
+      }
+    }
 
-if (activo !== activoAnterior) {
-  const estadoAnterior = activoAnterior ? 'activo' : 'inactivo';
-  const estadoNuevo = activo ? 'activo' : 'inactivo';
-  cambios.push(`Estado: "${estadoAnterior}" → "${estadoNuevo}"`);
-}
+    // 5. Construir log de cambios
+    const cambios: string[] = [];
 
-// Obtener nombres de roles
-const { data: rolAnteriorData } = await supabaseAdmin
-  .from('roles')
-  .select('nombre')
-  .eq('id', rolAnterior)
-  .maybeSingle();
+    if (email !== emailAnterior) {
+      cambios.push(`Correo: "${emailAnterior}" → "${email}"`);
+    }
 
-const { data: rolNuevoData } = await supabaseAdmin
-  .from('roles')
-  .select('nombre')
-  .eq('id', rol)
-  .maybeSingle();
+    if (nombre !== nombreAnterior) {
+      cambios.push(`Nombre: "${nombreAnterior}" → "${nombre}"`);
+    }
 
-const nombreRolAnterior = rolAnteriorData?.nombre ?? rolAnterior;
-const nombreRolNuevo = rolNuevoData?.nombre ?? rol;
+    if (activo !== activoAnterior) {
+      const estadoAnterior = activoAnterior ? 'activo' : 'inactivo';
+      const estadoNuevo = activo ? 'activo' : 'inactivo';
+      cambios.push(`Estado: "${estadoAnterior}" → "${estadoNuevo}"`);
+    }
 
-if (rol !== rolAnterior) {
-  cambios.push(`Rol: "${nombreRolAnterior}" → "${nombreRolNuevo}"`);
-}
+    // Obtener nombres de roles
+    const { data: rolAnteriorData } = await supabaseAdmin
+      .from('roles')
+      .select('nombre')
+      .eq('id', rolAnterior)
+      .maybeSingle();
 
-if (password) {
-  cambios.push(`Contraseña: actualizada`);
-}
+    const { data: rolNuevoData } = await supabaseAdmin
+      .from('roles')
+      .select('nombre')
+      .eq('id', rol)
+      .maybeSingle();
 
-const { fecha } = obtenerFechaYFormatoGT();
-const supabase = await createClient();
-const {
-  data: { user: usuarioActual },
-} = await supabase.auth.getUser();
+    const nombreRolAnterior = rolAnteriorData?.nombre ?? rolAnterior;
+    const nombreRolNuevo = rolNuevoData?.nombre ?? rol;
 
-const emailEditor = usuarioActual?.email ?? 'correo_desconocido';
+    if (rol !== rolAnterior) {
+      cambios.push(`Rol: "${nombreRolAnterior}" → "${nombreRolNuevo}"`);
+    }
 
-await registrarLogServer({
-  accion: 'EDITAR_USUARIO',
-  descripcion: `<br> Se editó al usuario ${email}:<br><br>${cambios.join('<br><br>')}<br><br>`,
-  nombreModulo: 'SISTEMA',
-  fecha,
-});
+    if (password) {
+      cambios.push(`Contraseña: actualizada`);
+    }
+
+    // 6. Registrar log con usuario en sesión real
+    const { fecha } = obtenerFechaYFormatoGT();
+    const supabase = await createClient();
+
+    const {
+      data: { user: usuarioEditor },
+    } = await supabase.auth.getUser();
+
+    const user_id_editor = usuarioEditor?.id;
+    const emailEditor = usuarioEditor?.email ?? 'correo_desconocido';
+
+    await registrarLogServer({
+      accion: 'EDITAR_USUARIO',
+      descripcion: `<br> Se editó al usuario ${email}:<br><br>${cambios.join('<br><br>')}<br><br>`,
+      nombreModulo: 'SISTEMA',
+      fecha,
+      user_id: user_id_editor,
+    });
 
     return NextResponse.json({ message: 'Usuario actualizado con éxito' });
   } catch (error) {

@@ -87,23 +87,26 @@ export default function VerUsuarios() {
 
   return (
     <div className="px-6">
-      <Button
-        variant="ghost"
-        onClick={() => router.push("/protected/admin")}
-        className="text-blue-600 text-base underline"
-      >
-        Volver
-      </Button>
+      <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center mb-4 w-full">
+        <Button
+          variant="ghost"
+          onClick={() => router.push("/protected/admin")}
+          className="text-blue-600 text-base underline w-full md:w-auto"
+        >
+          Volver
+        </Button>
 
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Usuarios del sistema</h1>
-        <Link href="/protected/admin/sign-up">
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white text-base">
+        <h1 className="text-2xl font-bold text-center w-full md:w-auto">Usuarios del sistema</h1>
+
+        <Link href="/protected/admin/sign-up" className="w-full md:w-auto">
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white text-base w-full md:w-auto">
             <Plus className="mr-2 w-4 h-4" />
             Crear Usuario
           </Button>
         </Link>
       </div>
+
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 items-end">
         <div>

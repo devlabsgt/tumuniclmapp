@@ -35,17 +35,24 @@ export const signUpAction = async (formData: FormData) => {
     return encodedRedirect("error", "/protected/admin/sign-up", "Usuario ya registrado.");
   }
 
+  // Capturar el usuario actual antes de crear uno nuevo
+  const {
+    data: { user: usuarioActual },
+  } = await supabase.auth.getUser();
+
+  const user_id_log = usuarioActual?.id;
+
   // Crear usuario sin metadata
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
-    email_confirm: true
+    email_confirm: true,
   });
 
   if (error || !data?.user) {
     return encodedRedirect("error", "/protected/admin/sign-up", error?.message || "No se pudo crear.");
   }
- 
+
   const user_id = data.user.id;
 
   // Insertar perfil
@@ -54,10 +61,9 @@ export const signUpAction = async (formData: FormData) => {
     .insert({ user_id, nombre, activo: true });
 
   if (errorPerfil) {
-    console.error('Error al insertar en usuarios_perfil:', errorPerfil); // 👈 log completo
+    console.error('Error al insertar en usuarios_perfil:', errorPerfil);
     return encodedRedirect("error", "/protected/admin/sign-up", "Error al guardar perfil.");
   }
-
 
   // Relacionar roles en usuarios_roles
   for (const rol_id of roles) {
@@ -65,20 +71,17 @@ export const signUpAction = async (formData: FormData) => {
       .from("usuarios_roles")
       .insert({ user_id, rol_id });
   }
-    const { fecha, formateada } = obtenerFechaYFormatoGT();
 
-    const {
-      data: { user: usuarioActual },
-    } = await supabase.auth.getUser();
+  const { fecha } = obtenerFechaYFormatoGT();
 
-    const emailActual = usuarioActual?.email ?? 'correo_desconocido';
-    
-    await registrarLogServer({
-      accion: 'CREAR_USUARIO',
-      descripcion: `Creó al usuario ${email}`,
-      nombreModulo: 'SISTEMA',
-      fecha,
-    });
+  await registrarLogServer({
+    accion: 'CREAR_USUARIO',
+    descripcion: `Creó al usuario ${email}`,
+    nombreModulo: 'SISTEMA',
+    fecha,
+    user_id: user_id_log,
+  });
+
   return encodedRedirect("success", "/protected/admin/sign-up", "Usuario creado con éxito.");
 };
 
@@ -122,20 +125,22 @@ export const signInAction = async (formData: FormData) => {
     await supabase.auth.signOut();
     return encodedRedirect('error', '/sign-in', 'Tu cuenta está desactivada. Contacta con Soporte Técnico.');
   }
-  const { fecha, formateada } = obtenerFechaYFormatoGT();
 
-    const {
-      data: { user: usuarioActual },
-    } = await supabase.auth.getUser();
+  const {
+    data: { user: usuarioActual },
+  } = await supabase.auth.getUser();
 
-    const emailActual = usuarioActual?.email ?? 'correo_desconocido';
+  const user_id_log = usuarioActual?.id;
+  const emailActual = usuarioActual?.email ?? 'correo_desconocido';
+  const { fecha } = obtenerFechaYFormatoGT();
 
-    await registrarLogServer({
-      accion: 'INICIO_SESION',
-      descripcion: `${emailActual} Inició sesión`,
-      nombreModulo: 'SISTEMA',
-      fecha,
-    });
+  await registrarLogServer({
+    accion: 'INICIO_SESION',
+    descripcion: `-`,
+    nombreModulo: 'SISTEMA',
+    fecha,
+    user_id: user_id_log,
+  });
 
   return redirect('/protected');
 };
@@ -165,20 +170,22 @@ export const resetPasswordAction = async (formData: FormData) => {
 
 export const signOutAction = async () => {
   const supabase = await createClient();
-  const { fecha, formateada } = obtenerFechaYFormatoGT();
+  const { fecha } = obtenerFechaYFormatoGT();
 
-const {
-  data: { user: usuarioActual },
-} = await supabase.auth.getUser();
+  const {
+    data: { user: usuarioActual },
+  } = await supabase.auth.getUser();
 
-const emailActual = usuarioActual?.email ?? 'correo_desconocido';
+  const emailActual = usuarioActual?.email ?? 'correo_desconocido';
+  const user_id_log = usuarioActual?.id;
 
-await registrarLogServer({
-  accion: 'CERRAR_SESION',
-  descripcion: `${emailActual} cerró sesión`,
-  nombreModulo: 'SISTEMA',
-  fecha,
-});
+  await registrarLogServer({
+    accion: 'CERRAR_SESION',
+    descripcion: `-`,
+    nombreModulo: 'SISTEMA',
+    fecha,
+    user_id: user_id_log,
+  });
 
   await supabase.auth.signOut();
 

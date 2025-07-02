@@ -3,7 +3,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Users, Leaf, Settings } from 'lucide-react';
+import { Users, Leaf, Settings, FileText } from 'lucide-react';
+import { registrarLog } from '@/utils/registrarLog'; // ⬅️ importar función
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -12,7 +13,7 @@ export default function AdminDashboard() {
 
   const [rol, setRol] = useState('');
   const [permisos, setPermisos] = useState<string[]>([]);
-  const [modulos, setModulos] = useState<string[]>([]); // ← nuevo estado
+  const [modulos, setModulos] = useState<string[]>([]);
 
   useEffect(() => {
     const obtenerUsuario = async () => {
@@ -21,7 +22,7 @@ export default function AdminDashboard() {
         const data = await res.json();
         setRol(data.rol || '');
         setPermisos(data.permisos || []);
-        setModulos(data.modulos || []); // ← asignamos modulos
+        setModulos(data.modulos || []);
       } catch (err) {
         console.error('Error al obtener datos del usuario:', err);
       }
@@ -46,16 +47,29 @@ export default function AdminDashboard() {
     };
   }, [mostrarOpciones]);
 
+  const irAUsuarios = async () => {
+    await registrarLog({
+      accion: 'NGRESO_MODULO',
+      descripcion: 'Accedió al módulo de usuarios',
+      nombreModulo: 'USUARIOS',
+    });
+    router.push('/protected/admin/users');
+  };
+
+  const irAFertilizante = async () => {
+    await registrarLog({
+      accion: 'NGRESO_MODULO',
+      descripcion: 'Accedió al módulo de fertilizante',
+      nombreModulo: 'FERTILIZANTE',
+    });
+    router.push('/protected/fertilizante/beneficiarios');
+  };
+
   return (
     <>
-      {/* Barra superior */}
       <div className="w-full px-4 sm:px-6 py-4 bg-white border-b shadow-sm flex justify-between items-center flex-wrap gap-4">
-       
         <div className="flex flex-wrap gap-4 items-center">
-          <Button
-            onClick={() => router.push('/protected/admin/users')}
-            className="gap-2 text-xl"
-          >
+          <Button onClick={irAUsuarios} className="gap-2 text-xl">
             <Users size={20} />
             Ver Usuarios
           </Button>
@@ -78,31 +92,28 @@ export default function AdminDashboard() {
                   className="w-full text-xl justify-end gap-2 hover:underline"
                   onClick={() => router.push('/protected/admin/configs/roles')}
                 >
-                  <Users size={24} />  Roles
+                  <Users size={24} /> Roles
                 </Button>
                 <Button
                   variant="ghost"
                   className="w-full text-xl justify-end gap-2 hover:underline"
                   onClick={() => router.push('/protected/admin/configs/modulos')}
                 >
-                  <Settings size={24} />  Módulos
+                  <Settings size={24} /> Módulos
                 </Button>
-                                <Button
+                <Button
                   variant="ghost"
                   className="w-full text-xl justify-end gap-2 hover:underline"
                   onClick={() => router.push('/protected/admin/logs')}
                 >
-                  <Settings size={24} />  Logs
+                  <FileText size={24} /> Logs
                 </Button>
               </div>
             )}
           </div>
         )}
-
-
       </div>
 
-      {/* Contenido principal */}
       <section className="w-full max-w-5xl mx-auto px-4 md:px-8 pt-8">
         <div className="text-center mb-6">
           <h1 className="text-2xl md:text-4xl font-bold">
@@ -114,10 +125,9 @@ export default function AdminDashboard() {
           Desde aquí podrá gestionar el sistema interno de la municipalidad.
         </p>
 
-        {/* ✅ Solo mostrar si el módulo está permitido */}
         {modulos.includes('FERTILIZANTE') && (
           <div
-            onClick={() => router.push('/protected/fertilizante/beneficiarios')}
+            onClick={irAFertilizante}
             className="cursor-pointer bg-white hover:shadow-lg transition-shadow border rounded-xl p-6 flex items-center gap-4 mb-16"
           >
             <Leaf size={36} className="text-green-600" />

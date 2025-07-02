@@ -1,4 +1,3 @@
-// utils/auth/logoutCliente.ts
 'use client';
 
 import { createClient } from "@/utils/supabase/client";
@@ -11,12 +10,16 @@ export async function logoutPorInactividad() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
 
-  const { fecha, formateada } = obtenerFechaYFormatoGT();
+  const { fecha } = obtenerFechaYFormatoGT();
 
   await registrarLog({
     accion: 'INACTIVIDAD',
-    descripcion: `${user.email} cerró sesión automático por inactividad`,
+    descripcion: `Cierre de sesión automático por inactividad`,
     nombreModulo: 'SISTEMA',
+    fecha,
+    user_id: user.id,
   });
+
+
   await supabase.auth.signOut();
 }

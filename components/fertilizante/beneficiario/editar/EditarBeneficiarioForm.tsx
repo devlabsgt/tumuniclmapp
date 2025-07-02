@@ -9,6 +9,9 @@ import { CampoTexto } from '../crear/CampoTexto';
 import { CampoLugar } from '../crear/CampoLugar';
 import CampoSexo from '../crear/CampoSexo';
 import CampoEstado from '../crear/CampoEstado';
+import { registrarLog } from '@/utils/registrarLog';
+import { obtenerFechaYFormatoGT } from '@/utils/formatoFechaGT';
+
 
 export default function EditarBeneficiarioForm() {
   const searchParams = useSearchParams();
@@ -153,6 +156,48 @@ export default function EditarBeneficiarioForm() {
       .eq('id', id);
 
     setCargando(false);
+
+    const cambios: string[] = [];
+
+if (formulario.nombre_completo !== original.nombre_completo) {
+  cambios.push(`<strong>Nombre:</strong> "${original.nombre_completo}" → "${formulario.nombre_completo}"`);
+}
+if (formulario.dpi !== original.dpi) {
+  cambios.push(`<strong>DPI:</strong> "${original.dpi}" → "${formulario.dpi}"`);
+}
+if (formulario.telefono !== original.telefono) {
+  cambios.push(`<strong>Teléfono:</strong> "${original.telefono}" → "${formulario.telefono}"`);
+}
+if (formulario.codigo !== original.codigo) {
+  cambios.push(`<strong>Folio:</strong> "${original.codigo}" → "${formulario.codigo}"`);
+}
+if (formulario.lugar !== original.lugar) {
+  cambios.push(`<strong>Lugar:</strong> "${original.lugar}" → "${formulario.lugar}"`);
+}
+if (formulario.fecha !== original.fecha) {
+  cambios.push(`<strong>Fecha:</strong> "${original.fecha}" → "${formulario.fecha}"`);
+}
+if (formulario.fecha_nacimiento !== original.fecha_nacimiento) {
+  cambios.push(`<strong>Fecha nacimiento:</strong> "${original.fecha_nacimiento}" → "${formulario.fecha_nacimiento}"`);
+}
+if (formulario.sexo !== original.sexo) {
+  cambios.push(`<strong>Sexo:</strong> "${original.sexo}" → "${formulario.sexo}"`);
+}
+if (formulario.cantidad !== original.cantidad) {
+  cambios.push(`<strong>Cantidad:</strong> "${original.cantidad}" → "${formulario.cantidad}"`);
+}
+if (formulario.estado !== original.estado) {
+  cambios.push(`<strong>Estado:</strong> "${original.estado}" → "${formulario.estado}"`);
+}
+
+const { fecha } = obtenerFechaYFormatoGT();
+
+await registrarLog({
+  accion: 'EDITAR',
+  nombreModulo: 'FERTILIZANTE',
+descripcion: ` <strong>Folio: ${formulario.codigo}</strong>:<br><br>${cambios.join('<br><br>')}`,
+});
+
 
     if (error) {
       console.error(error);

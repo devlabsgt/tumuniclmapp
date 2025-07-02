@@ -2,39 +2,42 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
-  interface Log {
-    id: string;
-    fecha: string;
-    accion: string;
-    descripcion: string;
-    usuario: string;
-    modulo: {
-      nombre: string;
-    } | null;
-  }
+interface Log {
+  id: string;
+  fecha: string;
+  accion: string;
+  descripcion: string;
+  usuario: string;
+  modulo: {
+    nombre: string;
+  } | null;
+}
+
+interface Modulo {
+  id: string;
+  nombre: string;
+}
 
 export default function Logs() {
   const supabase = createClient();
-  const hoy = new Date(Date.now() - 6 * 60 * 60 * 1000) // UTC-6
-    .toISOString()
-    .split('T')[0];
-
+  const hoy = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString().split('T')[0]; // UTC-6
 
   const [logs, setLogs] = useState<Log[]>([]);
-  const [modulos, setModulos] = useState<string[]>([]);
+  const [modulos, setModulos] = useState<Modulo[]>([]);
   const [usuarios, setUsuarios] = useState<string[]>([]);
   const [filtro, setFiltro] = useState({
     modulo: '',
     usuario: '',
     fecha: hoy,
   });
+  const router = useRouter();
 
   const formatearFecha = (iso?: string | null) => {
     if (!iso || iso === 'null') return '—';
-
     const fechaUTC = new Date(iso);
-    // Ajustar a UTC-6 (Guatemala)
     fechaUTC.setUTCHours(fechaUTC.getUTCHours() - 6);
 
     const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
@@ -67,70 +70,62 @@ export default function Logs() {
   const obtenerFiltros = async () => {
     const { data: modData } = await supabase
       .from('modulos')
-      .select('nombre')
+      .select('id, nombre')
       .order('nombre', { ascending: true });
 
     const { data: userData } = await supabase
-      .from('logs')
-      .select('descripcion');
+      .from('vista_logs')
+      .select('usuario_email');
 
-    const modulosUnicos = Array.from(new Set(modData?.map((m) => m.nombre)));
-    const usuariosUnicos = Array.from(new Set(userData?.map((l) => {
-      const correoMatch = l.descripcion?.match(/([\w.-]+@[\w.-]+\.\w+)/);
-      return correoMatch?.[1] ?? 'Desconocido';
-    })));
+    const usuariosUnicos = Array.from(
+      new Set(userData?.map((l) => l.usuario_email).filter(Boolean))
+    );
 
-    setModulos(modulosUnicos);
-    setUsuarios(usuariosUnicos);
+    setModulos(modData ?? []);
+    setUsuarios(usuariosUnicos as string[]);
   };
 
   const obtenerLogs = async () => {
     let query = supabase
-      .from('logs')
+      .from('vista_logs')
       .select(`
         id,
         fecha,
         accion,
         descripcion,
+        usuario_email,
         modulo:modulo_id (
           nombre
         )
       `)
       .order('fecha', { ascending: false });
 
-    if (filtro.modulo) query = query.eq('modulo_id.nombre', filtro.modulo);
-    if (filtro.usuario) query = query.ilike('descripcion', `%${filtro.usuario}%`);
-      if (filtro.fecha) {
-        const inicioGuatemala = new Date(`${filtro.fecha}T00:00:00`);
-        const finGuatemala = new Date(`${filtro.fecha}T23:59:59`);
-        // Convertimos a UTC sumando 6 horas
-        inicioGuatemala.setHours(inicioGuatemala.getHours() + 6);
-        finGuatemala.setHours(finGuatemala.getHours() + 6);
+    if (filtro.modulo) query = query.eq('modulo_id', filtro.modulo);
+    if (filtro.usuario) query = query.ilike('usuario_email', `%${filtro.usuario}%`);
+    if (filtro.fecha) {
+      const inicioGuatemala = new Date(`${filtro.fecha}T00:00:00`);
+      const finGuatemala = new Date(`${filtro.fecha}T23:59:59`);
+      inicioGuatemala.setHours(inicioGuatemala.getHours() + 6);
+      finGuatemala.setHours(finGuatemala.getHours() + 6);
 
-        query = query
-          .gte('fecha', inicioGuatemala.toISOString())
-          .lte('fecha', finGuatemala.toISOString());
-      }
-
+      query = query
+        .gte('fecha', inicioGuatemala.toISOString())
+        .lte('fecha', finGuatemala.toISOString());
+    }
 
     const { data } = await query;
 
     setLogs(
-      (data ?? []).map((log: any): Log => {
-        const correoMatch = log.descripcion?.match(/([\w.-]+@[\w.-]+\.\w+)/);
-        const usuario = correoMatch?.[1] ?? 'Desconocido';
-
-        return {
-          id: log.id,
-          fecha: log.fecha,
-          accion: log.accion,
-          descripcion: log.descripcion,
-          usuario,
-          modulo: log.modulo && 'nombre' in log.modulo
-            ? { nombre: log.modulo.nombre }
-            : null,
-        };
-      })
+      (data ?? []).map((log: any): Log => ({
+        id: log.id,
+        fecha: log.fecha,
+        accion: log.accion,
+        descripcion: log.descripcion,
+        usuario: log.usuario_email ?? 'Desconocido',
+        modulo: log.modulo && 'nombre' in log.modulo
+          ? { nombre: log.modulo.nombre }
+          : null,
+      }))
     );
   };
 
@@ -145,24 +140,33 @@ export default function Logs() {
 
   return (
     <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">Historial de Logs</h2>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4">
+        <Button
+          variant="ghost"
+          onClick={() => router.push("/protected")}
+          className="text-blue-600 text-base underline w-full md:w-auto"
+        >
+          Volver
+        </Button>
+        <h1 className="text-2xl font-bold text-center w-full md:w-auto">Registro de Actividades</h1>
+      </div>
 
-      <div className="flex flex-wrap gap-4 mb-6 items-center">
+      <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6">
         <select
-          className="border p-2 rounded"
+          className="border p-2 rounded w-full md:w-auto"
           value={filtro.modulo}
           onChange={(e) => setFiltro({ ...filtro, modulo: e.target.value })}
         >
           <option value="">Todos los módulos</option>
           {modulos.map((modulo) => (
-            <option key={modulo} value={modulo}>
-              {modulo}
+            <option key={modulo.id} value={modulo.id}>
+              {modulo.nombre}
             </option>
           ))}
         </select>
 
         <select
-          className="border p-2 rounded"
+          className="border p-2 rounded w-full md:w-auto"
           value={filtro.usuario}
           onChange={(e) => setFiltro({ ...filtro, usuario: e.target.value })}
         >
@@ -174,7 +178,7 @@ export default function Logs() {
           ))}
         </select>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full md:w-auto">
           <button
             onClick={() => cambiarDia(-1)}
             className="px-2 text-lg border rounded hover:bg-gray-100"
@@ -183,7 +187,7 @@ export default function Logs() {
           </button>
           <input
             type="date"
-            className="border p-2 rounded"
+            className="border p-2 rounded w-full md:w-auto"
             value={filtro.fecha}
             max={hoy}
             onChange={(e) => setFiltro({ ...filtro, fecha: e.target.value })}
@@ -197,15 +201,15 @@ export default function Logs() {
         </div>
       </div>
 
-      <div className="overflow-auto">
-        <table className="min-w-full border text-sm">
+      <div className="w-full overflow-x-auto max-w-full border-[2.5px] border-gray-400">
+        <table className="w-full min-w-[1000px] border-collapse text-xs border-[2.5px] border-gray-300">
           <thead>
             <tr className="bg-gray-100">
-              <th className="p-2 border w-32">Fecha</th>
-              <th className="p-2 border">Acción</th>
               <th className="p-2 border">Usuario</th>
-              <th className="p-2 border">Descripción</th>
+              <th className="p-2 border">Acción</th>
               <th className="p-2 border">Módulo</th>
+              <th className="p-2 border">Fecha</th>
+              <th className="p-2 border">Descripción</th>
             </tr>
           </thead>
           <tbody>
@@ -218,17 +222,19 @@ export default function Logs() {
 
               return (
                 <tr key={log.id} className={colorFila}>
-                  <td className="p-2 border whitespace-pre">{formatearFecha(log.fecha)}</td>
-                  <td className="p-2 border">{log.accion}</td>
                   <td className="p-2 border">{log.usuario}</td>
-                  <td dangerouslySetInnerHTML={{ __html: log.descripcion }} />
+                  <td className="p-2 border">{log.accion}</td>
                   <td className="p-2 border">{log.modulo?.nombre ?? '—'}</td>
+                  <td className="p-2 border whitespace-pre-line">{formatearFecha(log.fecha)}</td>
+                  <td
+                    className="p-2 border whitespace-pre-line break-words"
+                    dangerouslySetInnerHTML={{ __html: log.descripcion }}
+                  ></td>
                 </tr>
               );
             })}
           </tbody>
         </table>
-
         {logs.length === 0 && (
           <p className="mt-4 text-gray-500">No hay registros para los filtros seleccionados.</p>
         )}
