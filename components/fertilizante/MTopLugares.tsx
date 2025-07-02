@@ -19,11 +19,8 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { Button } from '@/components/ui/button';
+import type {MTopLugaresProps} from './types';
 
-interface MTopLugaresProps {
-  conteoPorLugar: Record<string, number>; // ahora espera sumas, no conteos
-  onClose: () => void;
-}
 
 export default function MTopLugares({ conteoPorLugar, onClose }: MTopLugaresProps) {
   // Filtrar los lugares con al menos un saco

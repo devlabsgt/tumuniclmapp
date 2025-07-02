@@ -100,9 +100,10 @@ useEffect(() => {
       id,
       email,
       nombre,
-      roles: [rol],
+      rol, // ✅ ya no lo envíe como array
       activo,
     };
+
 
     if (mostrarPassword) {
       payload.password = password;

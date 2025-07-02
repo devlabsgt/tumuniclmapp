@@ -59,6 +59,7 @@ export const updateSession = async (request: NextRequest) => {
     ) {
       return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
+    
 
     // 🔐 Si intenta entrar a /protected/admin y no es ADMINISTRADOR o SUPER
     if (

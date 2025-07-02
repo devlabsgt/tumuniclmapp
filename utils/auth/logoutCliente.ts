@@ -15,7 +15,7 @@ export async function logoutPorInactividad() {
 
   await registrarLog({
     accion: 'INACTIVIDAD',
-    descripcion: `${user.email} cerró sesión por inactividad el ${formateada}`,
+    descripcion: `${user.email} cerró sesión automático por inactividad`,
     nombreModulo: 'SISTEMA',
   });
   await supabase.auth.signOut();

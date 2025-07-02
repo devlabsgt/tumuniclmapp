@@ -3,24 +3,10 @@
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import type { Route } from 'next';
-import type { Beneficiario } from './types';
-
-interface ResumenBeneficiarios {
-  total: number;
-  hombres: number;
-  mujeres: number;
-}
-
-interface TablaBeneficiariosProps {
-  data: Beneficiario[];
-  resumen: ResumenBeneficiarios;
-  isLoading: boolean;
-  permisos: string[]; // ✅ NUEVA PROP
-}
+import type {TablaBeneficiariosProps} from './types';
 
 export function TablaBeneficiarios({ 
   data, 
-  resumen,
   isLoading,
   permisos
 }: TablaBeneficiariosProps) {
@@ -64,30 +50,28 @@ const calcularEdad = (fechaNacimiento?: string | null) => {
 
       <div className="w-full overflow-x-auto max-w-full border-[2.5px] border-gray-400">
         <table className="w-full border-collapse text-xs border-[2.5px] border-gray-300">
-<thead>
-  <tr className="text-left text-[13px] font-semibold bg-gray-200">
-    <th colSpan={5} className="p-2 border-b-[2.5px] border-r-[2.5px] border-gray-400 text-center">Datos de entrega</th>
-    <th colSpan={7} className="p-2 border-b-[2.5px] border-gray-400 text-center">Datos del beneficiario</th>
-  </tr>
-  <tr className="bg-gray-100 text-left border-b-[2.5px] border-gray-400">
-    <th className="p-2 border-[1.5px] border-gray-300">Folio</th>
-    <th className="p-2 border-[1.5px] border-gray-300">Lugar</th>
-    <th className="p-2 border-[1.5px] border-gray-300">Fecha</th>
-    <th className="p-2 border-[1.5px] border-gray-300">Ctd.</th>
-    <th className="p-2 border-r-[2.5px] border-gray-400">Estado</th>
-    <th className="p-2 border-[1.5px] border-gray-300 min-w-[160px]">Nombre</th>
-    <th className="p-2 border-[1.5px] border-gray-300">DPI</th>
-    <th className="p-2 border-[1.5px] border-gray-300">Teléfono</th>
-    <th className="p-2 border-[1.5px] border-gray-300">Nacimiento</th>
-    <th className="p-2 border-[1.5px] border-gray-300">Edad</th>
-    <th className="p-2 border-r-[2.5px] border-gray-400">Sexo</th>
-    {(permisos.includes('EDITAR') || permisos.includes('TODO')) && (
-      <th className="p-2 border-[1.5px] border-gray-300">Acciones</th>
-    )}
-  </tr>
-</thead>
-
-
+        <thead>
+          <tr className="text-left text-[13px] font-semibold bg-gray-200">
+            <th colSpan={5} className="p-2 border-b-[2.5px] border-r-[2.5px] border-gray-400 text-center">Datos de entrega</th>
+            <th colSpan={7} className="p-2 border-b-[2.5px] border-gray-400 text-center">Datos del beneficiario</th>
+          </tr>
+          <tr className="bg-gray-100 text-left border-b-[2.5px] border-gray-400">
+            <th className="p-2 border-[1.5px] border-gray-300">Folio</th>
+            <th className="p-2 border-[1.5px] border-gray-300">Lugar</th>
+            <th className="p-2 border-[1.5px] border-gray-300">Fecha</th>
+            <th className="p-2 border-[1.5px] border-gray-300">Ctd.</th>
+            <th className="p-2 border-r-[2.5px] border-gray-400">Estado</th>
+            <th className="p-2 border-[1.5px] border-gray-300 min-w-[160px]">Nombre</th>
+            <th className="p-2 border-[1.5px] border-gray-300">DPI</th>
+            <th className="p-2 border-[1.5px] border-gray-300">Teléfono</th>
+            <th className="p-2 border-[1.5px] border-gray-300">Nacimiento</th>
+            <th className="p-2 border-[1.5px] border-gray-300">Edad</th>
+            <th className="p-2 border-r-[2.5px] border-gray-400">Sexo</th>
+            {(permisos.includes('EDITAR') || permisos.includes('TODO')) && (
+              <th className="p-2 border-[1.5px] border-gray-300">Acciones</th>
+            )}
+          </tr>
+        </thead>
           <tbody>
             {isLoading
               ? Array.from({ length: 8 }).map((_, i) => (

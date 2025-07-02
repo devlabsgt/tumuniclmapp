@@ -87,6 +87,13 @@ export default function AdminDashboard() {
                 >
                   <Settings size={24} />  Módulos
                 </Button>
+                                <Button
+                  variant="ghost"
+                  className="w-full text-xl justify-end gap-2 hover:underline"
+                  onClick={() => router.push('/protected/admin/logs')}
+                >
+                  <Settings size={24} />  Logs
+                </Button>
               </div>
             )}
           </div>

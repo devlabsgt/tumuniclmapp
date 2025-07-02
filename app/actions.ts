@@ -75,7 +75,7 @@ export const signUpAction = async (formData: FormData) => {
     
     await registrarLogServer({
       accion: 'CREAR_USUARIO',
-      descripcion: `${emailActual} CREÓ al usuario ${email} el ${formateada}`,
+      descripcion: `Creó al usuario ${email}`,
       nombreModulo: 'SISTEMA',
       fecha,
     });
@@ -132,43 +132,14 @@ export const signInAction = async (formData: FormData) => {
 
     await registrarLogServer({
       accion: 'INICIO_SESION',
-      descripcion: `${emailActual} INICIO SESION el ${formateada}`,
+      descripcion: `${emailActual} Inició sesión`,
       nombreModulo: 'SISTEMA',
       fecha,
     });
 
   return redirect('/protected');
 };
-/*
-export const forgotPasswordAction = async (formData: FormData) => {
-  const email = formData.get("email")?.toString();
-  const supabase = await createClient();
-  const origin = (await headers()).get("origin");
-  const callbackUrl = formData.get("callbackUrl")?.toString();
 
-  if (!email) {
-    return encodedRedirect("error", "/forgot-password", "El correo es requerido");
-  }
-
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/reset-password`,
-  });
-
-  if (error) {
-    return encodedRedirect("error", "/forgot-password", error.message || "No se pudo enviar el correo de recuperación");
-  }
-
-  if (callbackUrl) {
-    return redirect(callbackUrl);
-  }
-
-  return encodedRedirect(
-    "success",
-    "/forgot-password",
-    "Revisa tu correo electrónico para cambiar tu contraseña"
-  );
-};
-*/
 export const resetPasswordAction = async (formData: FormData) => {
   const supabase = await createClient();
 
@@ -204,7 +175,7 @@ const emailActual = usuarioActual?.email ?? 'correo_desconocido';
 
 await registrarLogServer({
   accion: 'CERRAR_SESION',
-  descripcion: `${emailActual} CERRO SESION el ${formateada}`,
+  descripcion: `${emailActual} cerró sesión`,
   nombreModulo: 'SISTEMA',
   fecha,
 });
