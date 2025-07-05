@@ -26,7 +26,6 @@ const formatearFecha = (iso?: string | null) => {
   const [a, m, d] = iso.split('-');
   return `${d}/${m}/${a}`;
 };
-
 const calcularEdad = (fechaNacimiento?: string | null) => {
   if (!fechaNacimiento || fechaNacimiento === 'null') return '—';
   const nacimiento = new Date(fechaNacimiento);
@@ -39,7 +38,6 @@ const calcularEdad = (fechaNacimiento?: string | null) => {
   }
   return edad.toString();
 };
-
   return (
     <div>
       {isLoading && (

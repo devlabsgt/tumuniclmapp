@@ -108,7 +108,7 @@ export const signInAction = async (formData: FormData) => {
 
   const user = data?.user;
 
-  // Consultar el campo activo desde la tabla relacionada
+  // Verificar si el usuario está activo
   const { data: perfil, error: errorPerfil } = await supabase
     .from('usuarios_perfil')
     .select('activo')
@@ -118,7 +118,7 @@ export const signInAction = async (formData: FormData) => {
   if (errorPerfil) {
     console.error('Error al verificar estado del usuario:', errorPerfil);
     await supabase.auth.signOut();
-    return encodedRedirect('error', '/sign-in', 'Error al iniciar sesión, Intenta más tarde, si el problema persiste contacta con Soporte Técnico.');
+    return encodedRedirect('error', '/sign-in', 'Error al iniciar sesión. Intenta más tarde, si el problema persiste contacta con Soporte Técnico.');
   }
 
   if (!perfil?.activo) {
@@ -126,12 +126,49 @@ export const signInAction = async (formData: FormData) => {
     return encodedRedirect('error', '/sign-in', 'Tu cuenta está desactivada. Contacta con Soporte Técnico.');
   }
 
+  // Obtener el rol
+  const { data: relacion } = await supabase
+    .from('usuarios_roles')
+    .select('roles(nombre)')
+    .eq('user_id', user?.id)
+    .maybeSingle();
+
+  const rol =
+    relacion?.roles && 'nombre' in relacion.roles
+      ? (relacion.roles as { nombre: string }).nombre
+      : '';
+
+  // Validar horario si NO es SUPER o ADMINISTRADOR
+  if (!['SUPER', 'ADMINISTRADOR'].includes(rol)) {
+    const ahora = new Date();
+    const dia = ahora.getDay(); // 0 = domingo, 1 = lunes, ..., 6 = sábado
+    const hora = ahora.getHours();
+
+    const esLaboral = dia >= 1 && dia <= 5; // lunes a viernes
+    const enHorario = hora >= 8 && hora < 16; // entre 08:00 y 15:59
+
+    if (!esLaboral || !enHorario) {
+      const { fecha } = obtenerFechaYFormatoGT();
+
+      await registrarLogServer({
+        accion: 'INTENTO_FUERA_DE_HORARIO',
+        descripcion: `Intento de acceso fuera de horario: ${ahora.toLocaleString('es-GT')}`,
+        nombreModulo: 'SISTEMA',
+        fecha,
+        user_id: user?.id,
+      });
+
+      await supabase.auth.signOut();
+      return encodedRedirect('error', '/sign-in', 'Solo puedes acceder de lunes a viernes entre 08:00 y 16:00 horas.');
+    }
+  }
+
+  // Log de inicio de sesión
   const {
     data: { user: usuarioActual },
   } = await supabase.auth.getUser();
 
   const user_id_log = usuarioActual?.id;
-  const emailActual = usuarioActual?.email ?? 'correo_desconocido';
   const { fecha } = obtenerFechaYFormatoGT();
 
   await registrarLogServer({

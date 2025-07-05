@@ -24,7 +24,6 @@ interface Modulo {
 export default function Logs() {
   const supabase = createClient();
   const hoy = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString().split('T')[0]; // UTC-6
-
   const [logs, setLogs] = useState<Log[]>([]);
   const [modulos, setModulos] = useState<Modulo[]>([]);
   const [usuarios, setUsuarios] = useState<string[]>([]);
@@ -33,6 +32,17 @@ export default function Logs() {
     usuario: '',
     fecha: hoy,
   });
+
+const [paginaActual, setPaginaActual] = useState(1);
+const [elementosPorPagina, setElementosPorPagina] = useState(20);
+
+
+const totalPaginas = Math.ceil(logs.length / elementosPorPagina);
+const logsPaginados = logs.slice(
+  (paginaActual - 1) * elementosPorPagina,
+  paginaActual * elementosPorPagina
+);
+
   const router = useRouter();
 
   const formatearFecha = (iso?: string | null) => {
@@ -137,108 +147,156 @@ export default function Logs() {
   useEffect(() => {
     obtenerLogs();
   }, [filtro]);
+useEffect(() => {
+  setPaginaActual(1);
+}, [filtro]);
 
-  return (
-    <div className="p-4">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4">
-        <Button
-          variant="ghost"
-          onClick={() => router.push("/protected")}
-          className="text-blue-600 text-base underline w-full md:w-auto"
+return (
+  <div className="p-4">
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4">
+      <Button
+        variant="ghost"
+        onClick={() => router.push("/protected")}
+        className="text-blue-600 text-base underline w-full md:w-auto"
+      >
+        Volver
+      </Button>
+      <h1 className="text-2xl font-bold text-center w-full md:w-auto">Registro de Actividades</h1>
+    </div>
+
+    <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6">
+      <select
+        className="border p-2 rounded w-full md:w-auto"
+        value={filtro.modulo}
+        onChange={(e) => setFiltro({ ...filtro, modulo: e.target.value })}
+      >
+        <option value="">Todos los módulos</option>
+        {modulos.map((modulo) => (
+          <option key={modulo.id} value={modulo.id}>
+            {modulo.nombre}
+          </option>
+        ))}
+      </select>
+
+      <select
+        className="border p-2 rounded w-full md:w-auto"
+        value={filtro.usuario}
+        onChange={(e) => setFiltro({ ...filtro, usuario: e.target.value })}
+      >
+        <option value="">Todos los usuarios</option>
+        {usuarios.map((usuario) => (
+          <option key={usuario} value={usuario}>
+            {usuario}
+          </option>
+        ))}
+      </select>
+
+      <div className="flex items-center gap-2 w-full md:w-auto">
+        <button
+          onClick={() => cambiarDia(-1)}
+          className="px-2 text-lg border rounded hover:bg-gray-100"
         >
-          Volver
-        </Button>
-        <h1 className="text-2xl font-bold text-center w-full md:w-auto">Registro de Actividades</h1>
-      </div>
-
-      <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6">
-        <select
+          &lt;
+        </button>
+        <input
+          type="date"
           className="border p-2 rounded w-full md:w-auto"
-          value={filtro.modulo}
-          onChange={(e) => setFiltro({ ...filtro, modulo: e.target.value })}
+          value={filtro.fecha}
+          max={hoy}
+          onChange={(e) => setFiltro({ ...filtro, fecha: e.target.value })}
+        />
+        <button
+          onClick={() => cambiarDia(1)}
+          className="px-2 text-lg border rounded hover:bg-gray-100"
         >
-          <option value="">Todos los módulos</option>
-          {modulos.map((modulo) => (
-            <option key={modulo.id} value={modulo.id}>
-              {modulo.nombre}
-            </option>
-          ))}
-        </select>
-
-        <select
-          className="border p-2 rounded w-full md:w-auto"
-          value={filtro.usuario}
-          onChange={(e) => setFiltro({ ...filtro, usuario: e.target.value })}
-        >
-          <option value="">Todos los usuarios</option>
-          {usuarios.map((usuario) => (
-            <option key={usuario} value={usuario}>
-              {usuario}
-            </option>
-          ))}
-        </select>
-
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <button
-            onClick={() => cambiarDia(-1)}
-            className="px-2 text-lg border rounded hover:bg-gray-100"
-          >
-            &lt;
-          </button>
-          <input
-            type="date"
-            className="border p-2 rounded w-full md:w-auto"
-            value={filtro.fecha}
-            max={hoy}
-            onChange={(e) => setFiltro({ ...filtro, fecha: e.target.value })}
-          />
-          <button
-            onClick={() => cambiarDia(1)}
-            className="px-2 text-lg border rounded hover:bg-gray-100"
-          >
-            &gt;
-          </button>
-        </div>
-      </div>
-
-      <div className="w-full overflow-x-auto max-w-full border-[2.5px] border-gray-400">
-        <table className="w-full min-w-[1000px] border-collapse text-xs border-[2.5px] border-gray-300">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="p-2 border">Usuario</th>
-              <th className="p-2 border">Acción</th>
-              <th className="p-2 border">Módulo</th>
-              <th className="p-2 border">Fecha</th>
-              <th className="p-2 border">Descripción</th>
-            </tr>
-          </thead>
-          <tbody>
-            {logs.map((log) => {
-              const fecha = new Date(log.fecha);
-              const hora = fecha.getHours();
-              const dia = fecha.getDay();
-              const esHorarioLaboral = hora >= 8 && hora < 17 && dia >= 1 && dia <= 5;
-              const colorFila = esHorarioLaboral ? 'bg-green-100' : 'bg-yellow-100';
-
-              return (
-                <tr key={log.id} className={colorFila}>
-                  <td className="p-2 border">{log.usuario}</td>
-                  <td className="p-2 border">{log.accion}</td>
-                  <td className="p-2 border">{log.modulo?.nombre ?? '—'}</td>
-                  <td className="p-2 border whitespace-pre-line">{formatearFecha(log.fecha)}</td>
-                  <td
-                    className="p-2 border whitespace-pre-line break-words"
-                    dangerouslySetInnerHTML={{ __html: log.descripcion }}
-                  ></td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {logs.length === 0 && (
-          <p className="mt-4 text-gray-500">No hay registros para los filtros seleccionados.</p>
-        )}
+          &gt;
+        </button>
       </div>
     </div>
-  );
+
+    <div className="w-full overflow-x-auto max-w-full border-[2.5px] border-gray-400">
+      <table className="w-full min-w-[1000px] border-collapse text-xs border-[2.5px] border-gray-300">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="p-2 border">Usuario</th>
+            <th className="p-2 border">Acción</th>
+            <th className="p-2 border">Módulo</th>
+            <th className="p-2 border">Fecha</th>
+            <th className="p-2 border">Descripción</th>
+          </tr>
+        </thead>
+        <tbody>
+          {logsPaginados.map((log) => {
+            const fecha = new Date(log.fecha);
+            const hora = fecha.getHours();
+            const dia = fecha.getDay();
+            const esHorarioLaboral = hora >= 8 && hora < 17 && dia >= 1 && dia <= 5;
+            const colorFila = esHorarioLaboral ? 'bg-green-100' : 'bg-yellow-100';
+
+            return (
+              <tr key={log.id} className={colorFila}>
+                <td className="p-2 border">{log.usuario}</td>
+                <td className="p-2 border">{log.accion}</td>
+                <td className="p-2 border">{log.modulo?.nombre ?? '—'}</td>
+                <td className="p-2 border whitespace-pre-line">
+                  {formatearFecha(log.fecha)}
+                </td>
+                <td
+                  className="p-2 border whitespace-pre-line break-words"
+                  dangerouslySetInnerHTML={{ __html: log.descripcion }}
+                ></td>
+              </tr>
+            );
+          })}
+        </tbody>
+         </table>
+
+    {logs.length === 0 && (
+      <p className="mt-4 text-gray-500">
+        No hay registros para los filtros seleccionados.
+      </p>
+    )}
+  </div>
+
+  {/* Selector de cantidad por página */}
+  <div className="flex justify-center mt-6 mb-2 items-center gap-2 text-sm">
+    <span className="font-semibold">Ver por:</span>
+<select
+  value={elementosPorPagina}
+  onChange={(e) => {
+    const nuevaCantidad = parseInt(e.target.value);
+    setElementosPorPagina(nuevaCantidad);
+    setPaginaActual(1);
+  }}
+  className="border border-gray-300 rounded px-2 py-1"
+>
+  <option value={20}>20</option>
+  <option value={50}>50</option>
+  <option value={100}>100</option>
+</select>
+
+  </div>
+
+  {/* Paginación afuera del scroll */}
+  {logs.length > elementosPorPagina && (
+    <div className="flex justify-center mt-2 mb-6 gap-2 flex-wrap">
+      {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((num) => (
+        <button
+          key={num}
+          className={`px-3 py-1 rounded border ${
+            num === paginaActual
+              ? 'bg-blue-600 text-white'
+              : 'bg-white text-blue-600 hover:bg-blue-100'
+          }`}
+          onClick={() => setPaginaActual(num)}
+        >
+          {num}
+        </button>
+      ))}
+    </div>
+  )}
+</div>
+
+);
+
 }

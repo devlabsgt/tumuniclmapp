@@ -3,10 +3,8 @@ import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { Geist } from "next/font/google";
 import HeaderAuth from "@/components/header-auth";
-import { ThemeSwitcher } from "@/components/theme-switcher";
 import LogoLink from "@/components/ui/LogoLink";
 import AutoLogoutWrapper from '@/components/ui/AutoLogoutWrapper';
-
 // 👉 Esto define la metadata del <head>
 export const metadata = {
   title: "Gestión Municipal",
@@ -72,11 +70,14 @@ export default function RootLayout({
                 </a>
               </p>
               <div className="text-right">
-                <ThemeSwitcher />
+                <p className="text-sm">
+                  © {new Date().getFullYear()} - Todos los derechos reservados.
+                </p>
+                <p className="text-xs">
+                  Versión 1.0.0
+                </p>
               </div>
             </footer>
-
-
 
           </main>
         </ThemeProvider>
