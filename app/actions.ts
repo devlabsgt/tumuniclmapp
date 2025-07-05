@@ -151,7 +151,7 @@ export const signInAction = async (formData: FormData) => {
       const { fecha } = obtenerFechaYFormatoGT();
 
       await registrarLogServer({
-        accion: 'INTENTO_FUERA_DE_HORARIO',
+        accion: 'FUERA_DE_HORARIO',
         descripcion: `Intento de acceso fuera de horario: ${ahora.toLocaleString('es-GT')}`,
         nombreModulo: 'SISTEMA',
         fecha,
@@ -159,7 +159,7 @@ export const signInAction = async (formData: FormData) => {
       });
 
       await supabase.auth.signOut();
-      return encodedRedirect('error', '/sign-in', 'Solo puedes acceder de lunes a viernes entre 08:00 y 16:00 horas.');
+      return encodedRedirect('error', '/sign-in', ' Fuera de horario: intenta de nuevo en horario hábil: lunes - viernes, 08:00 - 16:00.');
     }
   }
 
