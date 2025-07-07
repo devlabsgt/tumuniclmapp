@@ -143,7 +143,7 @@ export const signInAction = async (formData: FormData) => {
       : '';
 
     // Validar horario si NO es SUPER o ADMINISTRADOR
-    if (!['SUPER', 'ADMINISTRADOR'].includes(rol)) {
+    if (!['SUPER', 'ADMINISTRADOR','USUARIO'].includes(rol)) {
       const ahora = new Date();
       const horaGT = ahora.toLocaleTimeString('es-GT', { hour12: false }); 
       const [horaStr] = horaGT.split(':');
