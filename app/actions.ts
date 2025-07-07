@@ -118,7 +118,11 @@ export const signInAction = async (formData: FormData) => {
   if (errorPerfil) {
     console.error('Error al verificar estado del usuario:', errorPerfil);
     await supabase.auth.signOut();
-    return encodedRedirect('error', '/sign-in', 'Error al iniciar sesión. Intenta más tarde, si el problema persiste contacta con Soporte Técnico.');
+    return encodedRedirect(
+      'error',
+      '/sign-in',
+      'Error al iniciar sesión. Intenta más tarde, si el problema persiste contacta con Soporte Técnico.'
+    );
   }
 
   if (!perfil?.activo) {
@@ -138,30 +142,37 @@ export const signInAction = async (formData: FormData) => {
       ? (relacion.roles as { nombre: string }).nombre
       : '';
 
-  // Validar horario si NO es SUPER o ADMINISTRADOR
-  if (!['SUPER', 'ADMINISTRADOR'].includes(rol)) {
-    const ahora = new Date();
-    const dia = ahora.getDay(); // 0 = domingo, 1 = lunes, ..., 6 = sábado
-    const hora = ahora.getHours();
+    // Validar horario si NO es SUPER o ADMINISTRADOR
+    if (!['SUPER', 'ADMINISTRADOR'].includes(rol)) {
+      const ahora = new Date();
+      const horaGT = ahora.toLocaleTimeString('es-GT', { hour12: false }); 
+      const [horaStr] = horaGT.split(':');
+      const hora = parseInt(horaStr, 10);
 
-    const esLaboral = dia >= 1 && dia <= 5; // lunes a viernes
-    const enHorario = hora >= 8 && hora < 16; // entre 08:00 y 15:59
+      const dia = ahora.getDay(); // 0 = domingo, ..., 6 = sábado
+      const esLaboral = dia >= 1 && dia <= 5; // lunes a viernes
+      const enHorario = hora >= 8 && hora < 16; // 08:00 - 15:59
 
-    if (!esLaboral || !enHorario) {
       const { fecha } = obtenerFechaYFormatoGT();
 
-      await registrarLogServer({
-        accion: 'FUERA_DE_HORARIO',
-        descripcion: `Intento de acceso fuera de horario: ${ahora.toLocaleString('es-GT')}`,
-        nombreModulo: 'SISTEMA',
-        fecha,
-        user_id: user?.id,
-      });
+      if (!esLaboral || !enHorario) {
+        await registrarLogServer({
+          accion: 'FUERA_DE_HORARIO',
+          descripcion: `Intento de acceso fuera de horario: ${horaGT}`,
+          nombreModulo: 'SISTEMA',
+          fecha,
+          user_id: user?.id,
+        });
 
-      await supabase.auth.signOut();
-      return encodedRedirect('error', '/sign-in', ' Fuera de horario: intenta de nuevo en horario hábil: lunes - viernes, 08:00 - 16:00.');
+        await supabase.auth.signOut();
+        return encodedRedirect(
+          'error',
+          '/sign-in',
+          ' Fuera de horario: intenta de nuevo en horario hábil: lunes - viernes, 08:00 - 16:00.'
+        );
+      }
     }
-  }
+
 
   // Log de inicio de sesión
   const {
@@ -223,7 +234,7 @@ export const signOutAction = async () => {
     fecha,
     user_id: user_id_log,
   });
-
+ 
   await supabase.auth.signOut();
 
   return redirect("/");
