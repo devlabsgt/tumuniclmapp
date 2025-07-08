@@ -18,7 +18,7 @@ export default function MISSINGFolioModal({ visible, onClose, beneficiarios }: P
 
   const faltantes = useMemo(() => {
     const total = [];
-    for (let i = 2; i <= 7000; i++) {
+    for (let i = 2; i <= 7030; i++) {
       if (!foliosRegistrados.includes(i)) {
         total.push(i.toString().padStart(4, '0'));
       }
@@ -37,7 +37,7 @@ const generarPdfFoliosFaltantes = () => {
   const pageHeight = doc.internal.pageSize.getHeight();
 
   doc.setFontSize(16);
-  doc.text('Listado de Folios Faltantes (0002 - 7000)', pageWidth / 2, 20, { align: 'center' });
+  doc.text('Listado de Folios Faltantes (0002 - 7030)', pageWidth / 2, 20, { align: 'center' });
   doc.setFontSize(12);
   doc.text(`Total faltantes: ${faltantes.length}`, pageWidth / 2, 28, { align: 'center' });
 
@@ -83,7 +83,7 @@ const generarPdfFoliosFaltantes = () => {
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-md shadow-lg p-6 w-full max-w-3xl overflow-auto max-h-[80vh]">
           <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            Folios faltantes (0002 - 7000):
+            Folios faltantes (0002 - 7030):
             <span className="text-orange-600">({faltantes.length})</span>
           </h2>
 

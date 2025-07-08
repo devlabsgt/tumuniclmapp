@@ -67,3 +67,10 @@
     @apply bg-background text-foreground;
   }
 }
+
+@font-face {
+  font-family: 'Blacksword';
+  src: url('/fonts/Blacksword.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
