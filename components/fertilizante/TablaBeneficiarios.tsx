@@ -11,7 +11,6 @@ export function TablaBeneficiarios({
   permisos
 }: TablaBeneficiariosProps) {
   const router = useRouter();
-
   const irAEditar = (id: string) => {
     router.push(`/protected/fertilizante/beneficiarios/editar?id=${id}` as Route);
   };

@@ -142,10 +142,10 @@ export const signInAction = async (formData: FormData) => {
       ? (relacion.roles as { nombre: string }).nombre
       : '';
 
-    // Validar horario si NO es SUPER o ADMINISTRADOR
-    if (!['SUPER', 'ADMINISTRADOR','USUARIO'].includes(rol)) {
+    // Validar horario si NO es SUPER, ADMINISTRADOR o USUARIO
+    if (!['SUPER', 'ADMINISTRADOR', 'USUARIO'].includes(rol)) {
       const ahora = new Date();
-      const horaGT = ahora.toLocaleTimeString('es-GT', { hour12: false }); 
+      const horaGT = ahora.toLocaleTimeString('es-GT', { hour12: false }); // ejemplo: '13:42:01'
       const [horaStr] = horaGT.split(':');
       const hora = parseInt(horaStr, 10);
 
@@ -168,10 +168,11 @@ export const signInAction = async (formData: FormData) => {
         return encodedRedirect(
           'error',
           '/sign-in',
-          ' Fuera de horario: intenta de nuevo en horario hábil: lunes - viernes, 08:00 - 16:00.'
+          `Fuera de horario (${horaGT}): intenta de nuevo en horario hábil: lunes - viernes, 08:00 - 16:00.`
         );
       }
     }
+
 
 
   // Log de inicio de sesión
