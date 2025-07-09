@@ -2,6 +2,7 @@ import { signOutAction } from "@/app/actions";
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { createClient } from "@/utils/supabase/server";
+import EmailAnimado from './ui/Typeanimation'; // 👈 importar componente
 
 export default async function AuthButton() {
   const supabase = await createClient();
@@ -28,10 +29,20 @@ export default async function AuthButton() {
     <div className="flex flex-col items-end gap-1 lg:flex-row lg:items-center lg:gap-4">
       <div className="flex flex-col items-end">
         <span className="text-xs inline lg:text-lg font-bold">
-          {user.email}
+
+          <EmailAnimado
+            textos={[
+              '¡Hoy! Concepción Avanza',
+              'Bienvenido al sistema apptumuniclm',
+              user?.email || ''
+            ]}
+          />
+          
         </span>
         {rolNombre && (
+
           <div className="text-[#06c] text-xs font-medium mt-1 lg:mt-0">
+            
             Rol: <strong><span className="underline">{rolNombre}</span></strong>
           </div>
         )}
