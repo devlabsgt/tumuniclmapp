@@ -79,7 +79,7 @@ export default function Hero() {
             transition={{ duration: 0.5, delay: 0.7 }}
             className="mb-5 text-xl md:text-4xl font-extrabold text-gray-900 dark:text-white  transition-colors"
           >
-            Bienvenido a la aplicación web <br/> de la Municipalidad de Concepción Las Minas
+            Bienvenido a la aplicación web Municipal
           </motion.h1>
 
           <motion.p
@@ -88,7 +88,7 @@ export default function Hero() {
             transition={{ duration: 0.5, delay: 1.1 }}
             className="text-xl font-medium text-[#06c]"
           >
-            Haz click aquí 🤳 <br/> para acceder al sistema
+            Haz click aquí 🤳 para acceder al sistema
           </motion.p>
         </div>
       </motion.button>
