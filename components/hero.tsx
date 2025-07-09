@@ -5,34 +5,50 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import TextoHoyAvanza from '@/components/ui/TextoHoyConcepcionAvanza';
+import TextoHoyConcepcionAvanza from '@/components/ui/TextoHoyConcepcionAvanza';
+import { useEffect, useState } from 'react';
 
-
-
-export default function Header() {
+export default function Hero() {
   const router = useRouter();
+  const [mostrarBienvenida, setMostrarBienvenida] = useState(false);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setMostrarBienvenida(true), 1000); // 2.5 segundos
+    return () => clearTimeout(timeout);
+  }, []);
 
   return (
     <div className="flex flex-col items-center w-full gap-8 relative">
-      {/* Botón salir */}
-      <div className="w-full max-w-5xl flex justify-start pr-2">
-        <Button
-          variant="link"
-          size="sm"
-          onClick={() => window.location.href = 'https://www.tumuniclm.com'}
-          className="text-blue-600 text-xl flex items-center gap-2"
+      {/* Zona superior */}
+      <div className="w-full max-w-5xl flex flex-col md:flex-row items-center justify-between md:items-center px-2 mt-4 relative">
+        {/* Botón ir */}
+        <motion.div
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6 }}
+          className="w-full md:w-auto flex justify-start md:justify-start"
         >
-          <ArrowLeft className="w-5 h-5" />
-          ir a tumuniclm.com
-        </Button>
+          <Button
+            variant="link"
+            size="sm"
+            onClick={() => window.location.href = 'https://www.tumuniclm.com'}
+            className="text-blue-600 text-xl flex items-center gap-2"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            ir a tumuniclm.com
+          </Button>
+        </motion.div>
+        {/* Texto centrado */}
+      <div className="w-full mt-5 md:w-auto text-center md:absolute md:left-1/2 md:transform md:-translate-x-1/2">
+        <TextoHoyConcepcionAvanza size="text-6xl" />
       </div>
-      <TextoHoyAvanza size="text-6xl" />
 
+      </div>
 
       {/* Tarjeta principal */}
       <motion.button
         initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
+        animate={{ opacity: mostrarBienvenida ? 1 : 0 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
@@ -59,20 +75,20 @@ export default function Header() {
         <div className="flex-1 text-center md:text-left">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            animate={{ opacity: mostrarBienvenida ? 1 : 0 }}
             transition={{ duration: 0.5, delay: 0.7 }}
-            className="text-2xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-3 transition-colors"
+            className="mb-5 text-xl md:text-4xl font-extrabold text-gray-900 dark:text-white  transition-colors"
           >
-            Bienvenido a la aplicación de la Municipalidad de Concepción Las Minas
+            Bienvenido a la aplicación web <br/> de la Municipalidad de Concepción Las Minas
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            animate={{ opacity: mostrarBienvenida ? 1 : 0 }}
             transition={{ duration: 0.5, delay: 1.1 }}
-            className="text-lg font-medium text-[#06c]"
+            className="text-xl font-medium text-[#06c]"
           >
-            Haz click aquí 🤳 para acceder al sistema
+            Haz click aquí 🤳 <br/> para acceder al sistema
           </motion.p>
         </div>
       </motion.button>

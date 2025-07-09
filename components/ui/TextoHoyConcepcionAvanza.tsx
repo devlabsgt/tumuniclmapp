@@ -31,7 +31,7 @@ export default function TextoHoyAvanza({ size = 'text-7xl' }: Props) {
       className={`text-center text-[#06c] mt-4 ${responsiveSize}`}
       style={{
         fontFamily: 'Blacksword',
-        letterSpacing: '0.08em',
+        letterSpacing: '0.05em',
       }}
       variants={container}
       initial="hidden"

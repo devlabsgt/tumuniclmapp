@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Eye, EyeOff } from 'lucide-react';
 import BotonVolver from '@/components/ui/botones/BotonVolver';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
+import { Typewriter } from 'react-simple-typewriter';
 
 export function LoginForm() {
   const searchParams = useSearchParams();
@@ -25,9 +27,7 @@ export function LoginForm() {
       'signup requires a valid password': 'Contraseña inválida.',
       'user not found': 'Usuario no encontrado.',
     };
-
-    const mensajeNormalizado = mensaje.toLowerCase();
-    return errores[mensajeNormalizado] || mensaje;
+    return errores[mensaje.toLowerCase()] || mensaje;
   }
 
   useEffect(() => {
@@ -45,31 +45,52 @@ export function LoginForm() {
     <form
       ref={formRef}
       action={signInAction}
-      className="flex-1 flex flex-col max-w-xl mx-auto px-8 py-5  gap-8 text-2xl bg-white rounded-xl shadow-md mt-2"
+      className="flex-1 flex flex-col max-w-xl mx-auto px-5 py-5 gap-8 text-2xl bg-white rounded-xl shadow-md mt-2"
     >
-      {/* Botón oculto para submit con Enter */}
-      <button type="submit" style={{ display: 'none' }} />
-
-      {/* Grupo 1: Botón Volver */}
+            {/* Imagen SVG */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.6 }}
-        className="flex items-center justify-between mb-4"
+        className="w-full px-4 flex flex-col gap-4"
       >
-        <BotonVolver ruta="/" />
+        {/* Línea superior: Volver e Iniciar Sesión */}
+        <div className="flex justify-between w-full ">
+          <BotonVolver ruta="/" />
+          <h1 className="text-2xl font-bold text-black md:text-3xl">Iniciar Sesión</h1>
+        </div>
+
+        {/* Línea inferior: texto y svg */}
+    <div className="flex items-center justify-between w-full gap-4 flex-wrap md:flex-nowrap">
+      <div className="flex-1">
+      <p className="text-[#06c] text-base md:text-lg font-medium">
+          <Typewriter
+            words={['Ingresa tus credenciales para iniciar sesión']}
+            loop={1}
+            cursor
+            cursorStyle="|"
+            typeSpeed={40}
+            deleteSpeed={0}
+            delaySpeed={1000}
+          />
+        </p>
+      </div>
+      <div className="w-[120px] h-[120px]">
+        <Image
+          src="/svg/login.svg"
+          alt="Iniciar sesión"
+          width={120}
+          height={120}
+          className="w-full h-full object-contain"
+        />
+      </div>
+    </div>
+
       </motion.div>
 
-      {/* Grupo 2: Título y Subtítulo */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.4 }}
-        className="text-center"
-      >
-        <h1 className="text-3xl font-bold">Iniciar Sesión</h1>
-        <h2 className="text-lg text-blue-500 mt-2">Ingresa tus credenciales para iniciar sesión</h2>
-      </motion.div>
+
+
+
 
       {/* Mensajes */}
       {(error || success) && (
@@ -127,7 +148,7 @@ export function LoginForm() {
         </div>
       </motion.div>
 
-      {/* Botón de Iniciar Sesión */}
+      {/* Botón de envío */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
