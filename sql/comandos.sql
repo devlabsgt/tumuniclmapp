@@ -55,3 +55,11 @@ FROM beneficiarios_fertilizante
 WHERE estado = 'Anulado'
 GROUP BY lugar;
 
+--- Politicas
+
+CREATE POLICY "Acceso completo si está autenticado"
+ON logs
+FOR ALL
+TO authenticated
+USING (true)
+WITH CHECK (true);

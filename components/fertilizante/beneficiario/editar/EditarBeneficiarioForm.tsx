@@ -10,8 +10,6 @@ import { CampoLugar } from '../crear/CampoLugar';
 import CampoSexo from '../crear/CampoSexo';
 import CampoEstado from '../crear/CampoEstado';
 import { registrarLog } from '@/utils/registrarLog';
-import { obtenerFechaYFormatoGT } from '@/utils/formatoFechaGT';
-
 
 export default function EditarBeneficiarioForm() {
   const searchParams = useSearchParams();
@@ -33,6 +31,7 @@ export default function EditarBeneficiarioForm() {
 
   const [original, setOriginal] = useState(formulario);
   const estaAnulado = formulario.estado === 'Anulado';
+  const estaInforme = formulario.estado === 'Informe';
   const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
@@ -218,15 +217,24 @@ export default function EditarBeneficiarioForm() {
 
   return (
     <div className="flex flex-col gap-4">
-      <CampoTexto label="Nombre completo" name="nombre_completo" value={formulario.nombre_completo} onChange={handleChange} disabled={estaAnulado} />
-      <CampoTexto label="DPI" name="dpi" value={formulario.dpi} onChange={handleChange} disabled={estaAnulado} />
-      <CampoTexto label="Teléfono" name="telefono" value={formulario.telefono} onChange={handleChange} type="text" placeholder="8 dígitos numéricos" disabled={estaAnulado} />
-      <CampoTexto label="Folio" name="codigo" value={formulario.codigo} onChange={handleChange} disabled={estaAnulado} />
+      {formulario.estado !== 'Anulado' && formulario.estado !== 'Informe' && (
+        <>
+          <CampoTexto label="Nombre completo" name="nombre_completo" value={formulario.nombre_completo} onChange={handleChange} disabled={estaAnulado || estaInforme} />
+          <CampoTexto label="DPI" name="dpi" value={formulario.dpi} onChange={handleChange} disabled={estaAnulado || estaInforme} />
+          <CampoTexto label="Teléfono" name="telefono" value={formulario.telefono} onChange={handleChange} type="text" placeholder="8 dígitos numéricos" disabled={estaAnulado || estaInforme} />
+        </>
+      )}
+      {formulario.estado !== 'Anulado'  && (
+        <>
+          <CampoTexto label="Folio" name="codigo" value={formulario.codigo} onChange={handleChange} disabled={estaAnulado} />
+              <div>
+            <label className="font-semibold block mb-1">Cantidad de sacos</label>
+            <input type="number" name="cantidad" min="1" step="1" value={formulario.cantidad} onChange={handleChange} className="w-full border border-gray-300 rounded px-3 py-2" disabled={estaAnulado} required />
+          </div>
 
-      <div>
-        <label className="font-semibold block mb-1">Cantidad de sacos</label>
-        <input type="number" name="cantidad" min="1" step="1" value={formulario.cantidad} onChange={handleChange} className="w-full border border-gray-300 rounded px-3 py-2" disabled={estaAnulado} required />
-      </div>
+        </>
+      )}
+
 
       <CampoLugar value={formulario.lugar} onChange={handleChange} />
 
@@ -235,13 +243,24 @@ export default function EditarBeneficiarioForm() {
         <input type="date" name="fecha" value={formulario.fecha} onChange={handleChange} className="w-full border border-gray-300 rounded px-3 py-2" />
       </div>
 
-      <div>
-        <label className="font-semibold block mb-1">Fecha de nacimiento</label>
-        <input type="date" name="fecha_nacimiento" value={formulario.fecha_nacimiento} onChange={handleChange} disabled={estaAnulado} className="w-full border border-gray-300 rounded px-3 py-2" />
-      </div>
 
-      <CampoSexo sexo={formulario.sexo} onChange={handleChange} />
-      <CampoEstado estado={formulario.estado} onChange={handleChange} esEdicion />
+
+      {formulario.estado !== 'Anulado' && formulario.estado !== 'Informe' && (
+        <>
+          <div>
+              <label className="font-semibold block mb-1">Fecha de nacimiento</label>
+              <input type="date" name="fecha_nacimiento" value={formulario.fecha_nacimiento} onChange={handleChange} disabled={estaAnulado || estaInforme} className="w-full border border-gray-300 rounded px-3 py-2" />
+            </div>
+        <CampoSexo sexo={formulario.sexo} onChange={handleChange} />
+        </>
+      )}
+      
+      <CampoEstado
+        estado={formulario.estado}
+        onChange={handleChange}
+        esEdicion
+        disabled={estaAnulado || estaInforme}
+      />
 
       <Button onClick={actualizar} disabled={!hayCambios || cargando} className="h-12 text-lg bg-blue-600 hover:bg-blue-700 text-white mt-4">
         {cargando ? 'Guardando...' : 'Guardar Cambios'}

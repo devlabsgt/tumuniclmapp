@@ -104,10 +104,11 @@ export default function EstadisticasBeneficiarios({ data }: Props) {
 
         <div className="text-sm text-gray-900 mb-5">
           Folios: 
-          <span className="text-green-700 mx-2">Entregados: {data.filter(b => b.estado === 'Entregado').length}</span>
-          <span className="text-orange-500 mx-2">Extraviados: {data.filter(b => b.estado === 'Extraviado').length}</span>
-          <span className="text-gray-500 mx-2">Anulados: {data.filter(b => b.estado === 'Anulado').length}:</span>
-          <span className="text-blue-500 mx-2 underline">Total: {data.length}</span>
+          <span className="text-green-700 mx-2">Entregados: {data.filter(b => b.estado === 'Entregado').length},</span>
+          <span className="text-orange-500 mx-2">Extraviados: {data.filter(b => b.estado === 'Extraviado').length},</span>
+          <span className="text-red-500 mx-2">Anulados: {data.filter(b => b.estado === 'Anulado').length},</span>
+          <span className="text-blue-500 mx-2">Informes: {data.filter(b => b.estado === 'Informe').length}</span>
+          |<span className="text-grayy-500 mx-1 underline">Total: {data.length}</span>
 
         </div>
         <span className="text-green-800">

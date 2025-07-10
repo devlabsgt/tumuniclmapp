@@ -155,6 +155,130 @@ await Swal.fire({
   await cargarDatos();
 };
 
+export const ingresarFolioInforme = async (
+  aniosDisponibles: string[],
+  filtrosAnio: string,
+  cargarDatos: () => void
+) => {
+  const listaLugares = await obtenerLugares();
+
+  const { value: formValues } = await Swal.fire({
+    title: 'Ingresar informe',
+    html: `
+      <div style="display: flex; flex-direction: column; gap: 10px; text-align: left;">
+        <label>Código (solo 4 dígitos)</label>
+        <input id="codigo" class="swal2-input" maxlength="4" placeholder="Ej. 0234"
+          style="text-align: center; letter-spacing: 5px;" />
+
+        <label>Lugar</label>
+        <select id="lugar" class="swal2-select">
+          ${listaLugares.map(l => `<option value="${l}">${l}</option>`).join('')}
+        </select>
+
+        <label>Año</label>
+        <select id="anio" class="swal2-select">
+          ${aniosDisponibles.map(anio => `
+            <option value="${anio}" ${anio === filtrosAnio ? 'selected' : ''}>${anio}</option>
+          `).join('')}
+        </select>
+
+        <label>Cantidad entregada</label>
+        <input id="cantidad" class="swal2-input" type="number" min="1" placeholder="Ej. 1" />
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Guardar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#dc2626',
+    focusConfirm: false,
+    preConfirm: () => {
+      const codigoInput = (document.getElementById('codigo') as HTMLInputElement)?.value.trim();
+      const lugar = (document.getElementById('lugar') as HTMLSelectElement)?.value;
+      const anio = (document.getElementById('anio') as HTMLSelectElement)?.value;
+      const cantidad = Number((document.getElementById('cantidad') as HTMLInputElement)?.value);
+
+      if (!/^\d{4}$/.test(codigoInput)) {
+        Swal.showValidationMessage('El código debe contener exactamente 4 dígitos numéricos');
+        return null;
+      }
+
+      if (!cantidad || cantidad <= 0) {
+        Swal.showValidationMessage('Ingrese una cantidad válida mayor a 0');
+        return null;
+      }
+
+      return { codigo: `I-${codigoInput}`, lugar, anio, cantidad };
+    },
+  });
+
+  if (!formValues) return;
+
+  const { codigo, lugar, anio, cantidad} = formValues;
+
+  const { data: existente } = await supabase
+    .from('beneficiarios_fertilizante')
+    .select('id')
+    .eq('codigo', codigo)
+    .eq('anio', anio)
+    .maybeSingle();
+
+  if (existente) {
+    return Swal.fire({
+      icon: 'warning',
+      title: 'Código existente',
+      text: `El código ${codigo} ya está registrado para el año ${anio}`,
+    });
+  }
+
+  const { error } = await supabase.from('beneficiarios_fertilizante').insert({
+    codigo,
+    lugar,
+    anio,
+    fecha: new Date().toISOString(),
+    cantidad,
+    estado: 'Informe',
+    nombre_completo: null,
+    dpi: null,
+    telefono: null,
+    sexo: null,
+  });
+
+  if (error) {
+    const htmlError = `
+      <p>No se pudo guardar el informe para <strong>${lugar || 'N/A'}</strong>, año <strong>${anio || 'N/A'}</strong>.</p>
+      <p><strong>Detalles:</strong> ${error.message}</p>
+    `;
+
+    await registrarLog({
+      accion: 'ERROR_INFORME',
+      nombreModulo: 'FERTILIZANTE',
+      descripcion: htmlError,
+    });
+
+    return Swal.fire({
+      icon: 'error',
+      title: 'Error al guardar informe',
+      html: htmlError,
+    });
+  }
+
+  const mensajeExito = `Informe registrado con código ${codigo} para ${lugar}, año ${anio}, cantidad: ${cantidad}`;
+
+  await registrarLog({
+    accion: 'GUARDAR_INFORME',
+    nombreModulo: 'FERTILIZANTE',
+    descripcion: mensajeExito,
+  });
+
+  await Swal.fire({
+    icon: 'success',
+    title: 'Informe registrado',
+    text: mensajeExito,
+  });
+
+  await cargarDatos();
+};
+
 export const filtrarYOrdenarBeneficiarios = (
   beneficiarios: Beneficiario[],
   filtros: {
@@ -173,6 +297,8 @@ export const filtrarYOrdenarBeneficiarios = (
       const cumpleEstado =
         orden === 'solo_anulados' ? b.estado === 'Anulado' :
         orden === 'solo_extraviados' ? b.estado === 'Extraviado' :
+        orden === 'solo_informes' ? b.estado === 'Informe' :
+
         true;
 
       return cumpleCampo && cumpleLugar && cumpleEstado;

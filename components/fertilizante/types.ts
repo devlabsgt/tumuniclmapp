@@ -37,6 +37,7 @@ export type OrdenFiltro =
   | 'cantidad_desc'
   | 'solo_anulados'
   | 'solo_extraviados'
+  | 'solo_informes'
   | 'genero_hombres_primero'
   | 'genero_mujeres_primero';
 
