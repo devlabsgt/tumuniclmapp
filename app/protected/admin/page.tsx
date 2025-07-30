@@ -81,6 +81,15 @@ useEffect(() => {
     router.push('/protected/fertilizante/beneficiarios');
   };
 
+    const irAOrganos = async () => {
+    await registrarLog({
+      accion: 'INGRESO_MODULO',
+      descripcion: 'Accedió al módulo de organos',
+      nombreModulo: 'ORGANOS',
+    });
+    router.push('/protected/admin/organos');
+  };
+
   return (
     <>
       <motion.div
@@ -196,6 +205,28 @@ useEffect(() => {
           Desde aquí podrá gestionar el sistema interno de la municipalidad.
         </motion.p>
 
+        {modulos.includes('ORGANIZACION') && (
+          <motion.div
+            onClick={irAOrganos}
+            className="cursor-pointer bg-white hover:shadow-lg transition-shadow border rounded-xl p-6 flex justify-between items-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.8 }}
+          >
+        <div className="flex-1 pr-4">
+          <h2 className="text-2xl font-bold text-[#06c]">Jerarquía Municipal</h2>
+          <p className="text-lg text-gray-600">Gestionar Órganos, suborganos y políticas municipales.</p>
+        </div>
+        <Image
+          src="/svg/organos.svg"
+          alt="Ícono organos"
+          width={250}
+          height={250}
+          className="w-32 h-32 shrink-0 lg:w-64 lg:h-64"
+        />
+          </motion.div>
+        )}
+        
         {modulos.includes('FERTILIZANTE') && (
           <motion.div
             onClick={irAFertilizante}
@@ -213,7 +244,7 @@ useEffect(() => {
               alt="Ícono Fertilizante"
               width={250}
               height={250}
-              className="shrink-0"
+              className="w-32 h-32 shrink-0 lg:w-64 lg:h-64"
             />
           </motion.div>
         )}

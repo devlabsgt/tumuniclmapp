@@ -91,94 +91,146 @@ export default function EditarBeneficiarioForm() {
     setCargando(true);
     const supabase = createClient();
 
-    const dpi = formulario.dpi.replace(/\s+/g, '');
-    const codigo = formulario.codigo.replace(/\s+/g, '');
-    const telefono = formulario.telefono.replace(/\s+/g, '');
+    const dpiActual = formulario.dpi.replace(/\s+/g, '');
+    const codigoActual = formulario.codigo.replace(/\s+/g, '');
+    const telefonoActual = formulario.telefono.replace(/\s+/g, '');
 
-    if (dpi && !/^\d+$/.test(dpi)) {
-      setCargando(false);
-      Swal.fire('Error', 'DPI debe contener solo números.', 'warning');
-      return;
+    // Validaciones de formato si los campos son editables y el estado lo permite
+    if (formulario.estado !== 'Anulado' && formulario.estado !== 'Informe') {
+      if (dpiActual && !/^\d+$/.test(dpiActual)) {
+        setCargando(false);
+        Swal.fire('Error', 'DPI debe contener solo números.', 'warning');
+        return;
+      }
+      if (telefonoActual && telefonoActual !== 'N/A' && !/^\d{8}$/.test(telefonoActual)) {
+        setCargando(false);
+        Swal.fire('Error', 'Si se ingresa Teléfono, debe tener exactamente 8 dígitos.', 'warning');
+        return;
+      }
     }
 
-    if (telefono && telefono !== 'N/A' && !/^\d{8}$/.test(telefono)) {
-      setCargando(false);
-      Swal.fire('Error', 'Si se ingresa Teléfono, debe tener exactamente 8 dígitos.', 'warning');
-      return;
+    // Lógica de validación de duplicados (solo si el campo ha cambiado y no está en estado Anulado/Informe para DPI, Anulado para Código)
+    let isDuplicateDPI = false;
+    let isDuplicateCodigo = false;
+
+    const originalDPIclean = original.dpi.replace(/\s+/g, '');
+    const originalCodigoClean = original.codigo.replace(/\s+/g, '');
+
+    const needToCheckDpiForChange = (dpiActual !== originalDPIclean && formulario.estado !== 'Anulado' && formulario.estado !== 'Informe');
+    const needToCheckCodigoForChange = (codigoActual !== originalCodigoClean && formulario.estado !== 'Anulado');
+
+    if (needToCheckDpiForChange || needToCheckCodigoForChange) {
+        const { data: allBeneficiarios, error: errorCheck } = await supabase
+            .from('beneficiarios_fertilizante')
+            .select('id, dpi, codigo');
+
+        if (errorCheck || !allBeneficiarios) {
+            setCargando(false);
+            Swal.fire('Error', 'No se pudo verificar duplicados.', 'error');
+            return;
+        }
+
+        if (needToCheckDpiForChange) {
+            isDuplicateDPI = allBeneficiarios.some((b) => b.dpi === dpiActual && b.id !== id);
+        }
+
+        if (needToCheckCodigoForChange) {
+            isDuplicateCodigo = allBeneficiarios.some((b) => b.codigo === codigoActual && b.id !== id);
+        }
     }
 
-    const { data: duplicados, error: errorCheck } = await supabase
-      .from('beneficiarios_fertilizante')
-      .select('id, dpi, codigo, telefono');
-
-    if (errorCheck || !duplicados) {
-      setCargando(false);
-      Swal.fire('Error', 'No se pudo verificar duplicados.', 'error');
-      return;
+    if (isDuplicateDPI || isDuplicateCodigo) {
+        setCargando(false);
+        Swal.fire('Error', 'DPI o Folio ya existen para otro beneficiario.', 'warning');
+        return;
     }
 
-    const existeDPI = duplicados.find((b) => b.dpi === dpi && b.id !== id);
-    const existeCodigo = duplicados.find((b) => b.codigo === codigo && b.id !== id);
-    const existeTelefono = duplicados.find((b) => b.telefono === telefono && b.id !== id);
-
-    if (existeDPI || existeCodigo || (telefono !== 'N/A' && existeTelefono)) {
-      setCargando(false);
-      Swal.fire('Error', 'DPI, Folio o Teléfono ya existen para otro beneficiario.', 'warning');
-      return;
-    }
-
-    let datosActualizar: any = {
-      ...formulario,
-      dpi,
-      codigo,
-      telefono: telefono === '' ? 'N/A' : telefono,
-      fecha_nacimiento: formulario.fecha_nacimiento?.trim() || null,
-      cantidad: parseInt(formulario.cantidad || '1', 10),
-    };
-
-    if (formulario.estado === 'Anulado') {
-      datosActualizar = {
-        ...datosActualizar,
-        nombre_completo: null,
-        dpi: null,
-        telefono: null,
-        sexo: null,
-        fecha_nacimiento: null,
-        cantidad: 0,
-        fecha: new Date().toISOString().split('T')[0],
-      };
-    }
+    // Construcción dinámica de datosActualizar y lista de cambios para el log
+    const datosActualizar: any = {};
     const cambios: string[] = [];
 
-    if (formulario.nombre_completo !== original.nombre_completo) {
-      cambios.push(`<strong>Nombre:</strong> "${original.nombre_completo}" → "${formulario.nombre_completo}"`);
-    }
-    if (formulario.dpi !== original.dpi) {
-      cambios.push(`<strong>DPI:</strong> "${original.dpi}" → "${formulario.dpi}"`);
-    }
-    if (formulario.telefono !== original.telefono) {
-      cambios.push(`<strong>Teléfono:</strong> "${original.telefono}" → "${formulario.telefono}"`);
-    }
-    if (formulario.codigo !== original.codigo) {
-      cambios.push(`<strong>Folio:</strong> "${original.codigo}" → "${formulario.codigo}"`);
-    }
+    // Lógica para campos que pueden cambiar en diferentes estados
     if (formulario.lugar !== original.lugar) {
+      datosActualizar.lugar = formulario.lugar;
       cambios.push(`<strong>Lugar:</strong> "${original.lugar}" → "${formulario.lugar}"`);
     }
+    
+    // Fecha: Siempre se puede modificar
     if (formulario.fecha !== original.fecha) {
+      datosActualizar.fecha = formulario.fecha;
       cambios.push(`<strong>Fecha:</strong> "${original.fecha}" → "${formulario.fecha}"`);
     }
-    if (formulario.fecha_nacimiento !== original.fecha_nacimiento) {
-      cambios.push(`<strong>Fecha nacimiento:</strong> "${original.fecha_nacimiento}" → "${formulario.fecha_nacimiento}"`);
+
+    // Código: Editable en "Normal" e "Informe", se mantiene en "Anulado"
+    if (codigoActual !== originalCodigoClean) {
+      datosActualizar.codigo = codigoActual;
+      cambios.push(`<strong>Folio:</strong> "${original.codigo}" → "${formulario.codigo}"`);
     }
-    if (formulario.sexo !== original.sexo) {
-      cambios.push(`<strong>Sexo:</strong> "${original.sexo}" → "${formulario.sexo}"`);
+
+    // Cantidad: Editable en "Normal" e "Informe", 0 en "Anulado"
+    const cantidadActual = parseInt(formulario.cantidad || '0', 10);
+    const originalCantidad = parseInt(original.cantidad || '0', 10);
+    if (cantidadActual !== originalCantidad && formulario.estado !== 'Anulado') {
+        datosActualizar.cantidad = cantidadActual;
+        cambios.push(`<strong>Cantidad:</strong> "${original.cantidad}" → "${formulario.cantidad}"`);
     }
-    if (formulario.cantidad !== original.cantidad) {
-      cambios.push(`<strong>Cantidad:</strong> "${original.cantidad}" → "${formulario.cantidad}"`);
+
+    // Campos específicos para estado "Normal" (no Anulado ni Informe)
+    if (formulario.estado !== 'Anulado' && formulario.estado !== 'Informe') {
+      if (formulario.nombre_completo !== original.nombre_completo) {
+        datosActualizar.nombre_completo = formulario.nombre_completo;
+        cambios.push(`<strong>Nombre:</strong> "${original.nombre_completo}" → "${formulario.nombre_completo}"`);
+      }
+      if (dpiActual !== originalDPIclean) {
+        datosActualizar.dpi = dpiActual;
+        cambios.push(`<strong>DPI:</strong> "${original.dpi}" → "${formulario.dpi}"`);
+      }
+      if (telefonoActual !== original.telefono.replace(/\s+/g, '') || (telefonoActual === '' && original.telefono !== 'N/A')) {
+        datosActualizar.telefono = telefonoActual === '' ? 'N/A' : telefonoActual;
+        cambios.push(`<strong>Teléfono:</strong> "${original.telefono}" → "${formulario.telefono}"`);
+      }
+      if (formulario.fecha_nacimiento !== original.fecha_nacimiento) {
+        datosActualizar.fecha_nacimiento = formulario.fecha_nacimiento?.trim() || null;
+        cambios.push(`<strong>Fecha nacimiento:</strong> "${original.fecha_nacimiento}" → "${formulario.fecha_nacimiento}"`);
+      }
+      if (formulario.sexo !== original.sexo) {
+        datosActualizar.sexo = formulario.sexo;
+        cambios.push(`<strong>Sexo:</strong> "${original.sexo}" → "${formulario.sexo}"`);
+      }
     }
+    
+    // El cambio de estado siempre es relevante y define otras actualizaciones
     if (formulario.estado !== original.estado) {
+      datosActualizar.estado = formulario.estado;
       cambios.push(`<strong>Estado:</strong> "${original.estado}" → "${formulario.estado}"`);
+
+      // Si el nuevo estado es Anulado, sobrescribimos ciertos campos a null/0
+      if (formulario.estado === 'Anulado') {
+          // Solo si no se ha establecido ya por un cambio de valor directo.
+          // Si el campo ya tiene valor null/0 en datosActualizar, no lo sobrescribimos.
+          if (!('nombre_completo' in datosActualizar)) datosActualizar.nombre_completo = null;
+          if (!('dpi' in datosActualizar)) datosActualizar.dpi = null;
+          if (!('telefono' in datosActualizar)) datosActualizar.telefono = null;
+          if (!('sexo' in datosActualizar)) datosActualizar.sexo = null;
+          if (!('fecha_nacimiento' in datosActualizar)) datosActualizar.fecha_nacimiento = null;
+          if (!('cantidad' in datosActualizar)) datosActualizar.cantidad = 0;
+          if (!('fecha' in datosActualizar)) datosActualizar.fecha = new Date().toISOString().split('T')[0]; // Fecha actual al anular
+
+          // Registra en el log los campos que se anularon
+          if (original.nombre_completo !== null) cambios.push(`<strong>Nombre:</strong> Se anuló de "${original.nombre_completo}" a null`);
+          if (original.dpi !== null) cambios.push(`<strong>DPI:</strong> Se anuló de "${original.dpi}" a null`);
+          if (original.telefono !== null && original.telefono !== 'N/A') cambios.push(`<strong>Teléfono:</strong> Se anuló de "${original.telefono}" a null`);
+          if (original.sexo !== null) cambios.push(`<strong>Sexo:</strong> Se anuló de "${original.sexo}" a null`);
+          if (original.fecha_nacimiento !== null) cambios.push(`<strong>Fecha nacimiento:</strong> Se anuló de "${original.fecha_nacimiento}" a null`);
+          if (parseInt(original.cantidad || '0', 10) !== 0) cambios.push(`<strong>Cantidad:</strong> Se anuló de "${original.cantidad}" a 0`);
+      }
+    }
+
+    // Si no hay campos para actualizar después de construir el objeto, no hay cambios reales
+    if (Object.keys(datosActualizar).length === 0) {
+        Swal.fire('Sin cambios', 'No hubo modificaciones significativas para guardar.', 'info');
+        setCargando(false);
+        return;
     }
 
     const descripcion = `<strong>Folio: ${formulario.codigo}</strong>:<br><br>${cambios.join('<br><br>')}`;

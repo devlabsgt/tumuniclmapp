@@ -1,14 +1,33 @@
-'use client';
+'use-client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import { logoutPorInactividad } from '@/utils/auth/logoutCliente';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/utils/supabase/client';
+import type { Session } from '@supabase/supabase-js';
 
-export function useAutoLogout(minutos: number = 15) {
+export function useAutoLogout(minutos: number = 60) {
   const router = useRouter();
+  const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
+    const supabase = createClient();
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!session) {
+      return;
+    }
+
     let timeout: NodeJS.Timeout;
 
     const resetTimer = () => {
@@ -36,5 +55,5 @@ export function useAutoLogout(minutos: number = 15) {
       window.removeEventListener('mousemove', resetTimer);
       window.removeEventListener('keydown', resetTimer);
     };
-  }, [minutos, router]);
+  }, [minutos, session, router]); 
 }
