@@ -88,7 +88,7 @@ return (
     >
       Volver
     </Button>
-      <h1 className="text-2xl font-bold text-left">Lista de Beneficiarios</h1>
+      <h1 className="text-2xl font-bold text-left">Beneficiarios de Fertilizante</h1>
       <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
         {(permisos.includes('IMPRIMIR') || permisos.includes('TODO')) && (
           <Button

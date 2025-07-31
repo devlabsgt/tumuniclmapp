@@ -114,7 +114,7 @@ export default function EstadisticasBeneficiarios({ data }: Props) {
         <span className="text-green-800">
           Sacos entregados: {totalCantidad}
         </span>{' '}
-        / {totalMeta} ({porcentaje.toFixed(2)}%)
+        / {totalMeta} <span className="text-black">({porcentaje.toFixed(2)}%) </span><span className="text-blue-800">(Restantes: {totalMeta - totalCantidad}) </span>
       </div>
 
       <div className="mt-2">
