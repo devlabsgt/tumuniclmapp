@@ -6,6 +6,7 @@ export default function useUserData() {
   const [rol, setRol] = useState('');
   const [permisos, setPermisos] = useState<string[]>([]);
   const [modulos, setModulos] = useState<string[]>([]);
+  const [programas, setProgramas] = useState<string[]>([]); // <-- Estado añadido
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
@@ -16,6 +17,7 @@ export default function useUserData() {
         setRol(data.rol || '');
         setPermisos(data.permisos || []);
         setModulos(data.modulos || []);
+        setProgramas(data.programas || []); // <-- Se asignan los programas
       } catch (error) {
         console.error('Error al obtener sesión:', error);
       } finally {
@@ -26,5 +28,5 @@ export default function useUserData() {
     obtenerUsuario();
   }, []);
 
-  return { rol, permisos, modulos, cargando };
+  return { rol, permisos, modulos, programas, cargando }; // <-- Se retorna el nuevo estado
 }
