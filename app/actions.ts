@@ -142,23 +142,23 @@ export const signInAction = async (formData: FormData) => {
       ? (relacion.roles as { nombre: string }).nombre
       : '';
 
-    // Validar horario si NO es SUPER, ADMINISTRADOR o USUARIO
+    // --- SECCIÓN CORREGIDA ---
     if (!['SUPER', 'ADMINISTRADOR', 'USUARIO'].includes(rol)) {
       const ahora = new Date();
-      const horaGT = ahora.toLocaleTimeString('es-GT', { hour12: false }); // ejemplo: '13:42:01'
-      const [horaStr] = horaGT.split(':');
-      const hora = parseInt(horaStr, 10);
+      
+      const horaUTC = ahora.getUTCHours();
+      const hora = (horaUTC - 6 + 24) % 24;
+      
+      const dia = ahora.getUTCDay();
+      const esLaboral = dia >= 1 && dia <= 5;
+      const enHorario = hora >= 8 && hora < 16;
 
-      const dia = ahora.getDay(); // 0 = domingo, ..., 6 = sábado
-      const esLaboral = dia >= 1 && dia <= 5; // lunes a viernes
-      const enHorario = hora >= 8 && hora < 16; // 08:00 - 15:59
-
-      const { fecha } = obtenerFechaYFormatoGT();
+      const { fecha, formateada } = obtenerFechaYFormatoGT(); // <-- Se usa 'formateada'
 
       if (!esLaboral || !enHorario) {
         await registrarLogServer({
           accion: 'FUERA_DE_HORARIO',
-          descripcion: `Intento de acceso fuera de horario: ${horaGT}`,
+          descripcion: `Intento de acceso fuera de horario: ${formateada}`,
           nombreModulo: 'SISTEMA',
           fecha,
           user_id: user?.id,
@@ -168,12 +168,10 @@ export const signInAction = async (formData: FormData) => {
         return encodedRedirect(
           'error',
           '/sign-in',
-          `Fuera de horario (${horaGT}): intenta de nuevo en horario hábil: lunes - viernes, 08:00 - 16:00.`
+          `Fuera de horario (${formateada}): intenta de nuevo en horario hábil: lunes - viernes, 08:00 - 16:00.`
         );
       }
     }
-
-
 
   // Log de inicio de sesión
   const {

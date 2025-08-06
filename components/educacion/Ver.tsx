@@ -1,89 +1,92 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Programas from './tablas/Programas';
 import FormPrograma from './forms/Programa';
 import FormAlumno from './forms/Alumno';
 import AsignarPrograma from './AsignarPrograma'; 
+import FormMaestro from './forms/Maestro';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'react-toastify';
-import type { Programa, Alumno } from './esquemas';
+import type { Programa, Alumno, Maestro } from './esquemas';
 import BotonVolver from '@/components/ui/botones/BotonVolver';
-import { Plus, Search, UserCog } from 'lucide-react'; 
+import { Plus, Search, UserCog, UserPlus as MaestroIcon, ChevronDown } from 'lucide-react'; 
 import useUserData from '@/hooks/useUserData';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Ver() {
-    const { rol, programas: programasAsignados } = useUserData(); 
+    const { rol, programas: programasAsignados } = useUserData();
     const [programas, setProgramas] = useState<Programa[]>([]);
     const [alumnos, setAlumnos] = useState<Alumno[]>([]);
     const [todosLosAlumnos, setTodosLosAlumnos] = useState<Alumno[]>([]);
+    const [maestros, setMaestros] = useState<Maestro[]>([]);
     const [loading, setLoading] = useState(true);
     const [aniosDisponibles, setAniosDisponibles] = useState<number[]>([]);
     const [filtroAnio, setFiltroAnio] = useState<string>(new Date().getFullYear().toString());
     const [programaSearchTerm, setProgramaSearchTerm] = useState('');
     
+    // --- ESTADOS DE LOS MODALES ---
     const [formProgramaOpen, setFormProgramaOpen] = useState(false);
     const [formAlumnoOpen, setFormAlumnoOpen] = useState(false);
     const [asignarProgramaOpen, setAsignarProgramaOpen] = useState(false); 
+    const [formMaestroOpen, setFormMaestroOpen] = useState(false);
+    const [maestrosMenuOpen, setMaestrosMenuOpen] = useState(false); // Estado para el nuevo menú
 
     const [programaParaEditar, setProgramaParaEditar] = useState<Programa | null>(null);
     const [programaPadreId, setProgramaPadreId] = useState<number | null>(null);
     const [alumnoParaEditar, setAlumnoParaEditar] = useState<Alumno | null>(null);
     const [nivelIdParaAlumno, setNivelIdParaAlumno] = useState<number | null>(null);
+    const [maestroParaEditar, setMaestroParaEditar] = useState<Maestro | null>(null);
+
+    const maestrosMenuRef = useRef<HTMLDivElement>(null);
+
+    // Hook para cerrar el menú al hacer clic fuera
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (maestrosMenuRef.current && !maestrosMenuRef.current.contains(event.target as Node)) {
+                setMaestrosMenuOpen(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
 
     const fetchData = useCallback(async (anio: string) => {
         setLoading(true);
         const supabase = createClient();
         
-        const { data: programasData, error: programasError } = await supabase
-            .from('programas_educativos')
-            .select('*')
-            .eq('anio', anio);
+        const [programasRes, alumnosInscripcionesRes, todosAlumnosRes, maestrosRes] = await Promise.all([
+            supabase.from('programas_educativos').select('*').eq('anio', anio),
+            supabase.from('alumnos_inscripciones').select('programa_id, alumnos(*)'),
+            supabase.from('alumnos').select('*'),
+            supabase.from('maestros_municipales').select('id, nombre')
+        ]);
 
-        if (programasError) {
-            toast.error('Error al cargar los programas.');
-            setLoading(false);
-            return;
-        }
-        setProgramas(programasData || []);
-        
-        const programaIds = programasData?.map(p => p.id) || [];
-        if (programaIds.length > 0) {
-            const { data: inscripcionesData, error: inscripcionesError } = await supabase
-                .from('alumnos_inscripciones')
-                .select('programa_id, alumnos(*)')
-                .in('programa_id', programaIds);
+        if (programasRes.error) toast.error('Error al cargar los programas.');
+        else setProgramas(programasRes.data || []);
 
-            if (inscripcionesError) {
-                toast.error('Error al cargar los alumnos inscritos.');
-                setAlumnos([]);
-            } else {
-                const alumnosInscritos = inscripcionesData.reduce<Alumno[]>((acc, inscripcion) => {
-                    if (inscripcion.alumnos && typeof inscripcion.alumnos === 'object' && !Array.isArray(inscripcion.alumnos)) {
-                        const alumnoData = inscripcion.alumnos as Alumno;
-                        acc.push({
-                            ...alumnoData,
-                            programa_id: inscripcion.programa_id,
-                        });
-                    }
-                    return acc;
-                }, []);
-                setAlumnos(alumnosInscritos);
-            }
-        } else {
+        if (alumnosInscripcionesRes.error) {
+            toast.error('Error al cargar los alumnos inscritos.');
             setAlumnos([]);
+        } else {
+            const alumnosInscritos = alumnosInscripcionesRes.data.reduce<Alumno[]>((acc, inscripcion) => {
+                if (inscripcion.alumnos && typeof inscripcion.alumnos === 'object' && !Array.isArray(inscripcion.alumnos)) {
+                    acc.push({ ...(inscripcion.alumnos as Alumno), programa_id: inscripcion.programa_id });
+                }
+                return acc;
+            }, []);
+            setAlumnos(alumnosInscritos);
         }
 
-        const { data: todosAlumnosData, error: todosAlumnosError } = await supabase
-            .from('alumnos')
-            .select('*');
-        if (todosAlumnosError) {
-            toast.error('Error al cargar la lista completa de alumnos.');
-        } else {
-            setTodosLosAlumnos(todosAlumnosData || []);
-        }
+        if (todosAlumnosRes.error) toast.error('Error al cargar la lista completa de alumnos.');
+        else setTodosLosAlumnos(todosAlumnosRes.data || []);
+
+        if (maestrosRes.error) toast.error('Error al cargar los maestros.');
+        else setMaestros(maestrosRes.data || []);
 
         setLoading(false);
     }, []);
@@ -111,10 +114,12 @@ export default function Ver() {
         setFormProgramaOpen(false);
         setFormAlumnoOpen(false);
         setAsignarProgramaOpen(false);
+        setFormMaestroOpen(false);
         setProgramaParaEditar(null);
         setAlumnoParaEditar(null);
         setProgramaPadreId(null);
         setNivelIdParaAlumno(null);
+        setMaestroParaEditar(null);
     };
 
     const handleOpenCrearPrograma = () => {
@@ -122,6 +127,11 @@ export default function Ver() {
         setFormProgramaOpen(true);
     };
     
+    const handleOpenCrearMaestro = () => {
+        handleCloseAllModals();
+        setFormMaestroOpen(true);
+    };
+
     const handleOpenCrearNivel = (padreId: number) => {
         setProgramaPadreId(padreId);
         setFormProgramaOpen(true);
@@ -150,14 +160,12 @@ export default function Ver() {
 
     if (loading) { return <div className="text-center py-10">Cargando datos...</div>; }
 
-    // --- LÓGICA DE FILTRADO POR PERMISOS ---
     const programasPrincipales = programas
         .filter(p => p.parent_id === null)
         .filter(p => {
-            if (rol === 'SUPER' || rol === 'ADMINISTRADOR') {
-                return true; // Muestra todos si es SUPER admin o tiene acceso a "TODOS"
+            if (rol === 'SUPER' || (programasAsignados && programasAsignados.includes('TODOS'))) {
+                return true;
             }
-            // Muestra el programa solo si su nombre está en la lista de programas asignados
             return programasAsignados && programasAsignados.includes(p.nombre);
         })
         .filter(p => p.nombre.toLowerCase().includes(programaSearchTerm.toLowerCase()))
@@ -174,10 +182,31 @@ export default function Ver() {
                         </div>
                         {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
                             <div className="flex flex-col sm:flex-row gap-2">
-                                <Button onClick={() => setAsignarProgramaOpen(true)} variant="outline" className="w-full md:w-auto gap-2 whitespace-nowrap">
-                                    <UserCog className="h-4 w-4"/>
-                                    Asignar Maestros
-                                </Button>
+                                {/* --- NUEVO MENÚ DESPLEGABLE --- */}
+                                <div className="relative" ref={maestrosMenuRef}>
+                                    <Button onClick={() => setMaestrosMenuOpen(prev => !prev)} variant="outline" className="w-full md:w-auto gap-2 whitespace-nowrap">
+                                        <MaestroIcon className="h-4 w-4"/>
+                                        Maestros
+                                        <ChevronDown className={`h-4 w-4 transition-transform ${maestrosMenuOpen ? 'rotate-180' : ''}`} />
+                                    </Button>
+                                    <AnimatePresence>
+                                        {maestrosMenuOpen && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: -10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: -10 }}
+                                                className="absolute top-full mt-2 w-full md:w-56 bg-white border rounded-md shadow-lg z-10"
+                                            >
+                                                <Button onClick={() => { setAsignarProgramaOpen(true); setMaestrosMenuOpen(false); }} variant="ghost" className="w-full justify-start gap-2">
+                                                    <UserCog className="h-4 w-4"/> Asignar Curso
+                                                </Button>
+                                                <Button onClick={() => { handleOpenCrearMaestro(); setMaestrosMenuOpen(false); }} variant="ghost" className="w-full justify-start gap-2">
+                                                    <Plus className="h-4 w-4"/>Nuevo Maestro
+                                                </Button>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
                                 <Button onClick={handleOpenCrearPrograma} className="w-full md:w-auto gap-2 whitespace-nowrap">
                                     <Plus className="h-4 w-4"/>
                                     Nuevo Programa
@@ -214,6 +243,7 @@ export default function Ver() {
                     programasPrincipales={programasPrincipales}
                     todosLosProgramas={programas}
                     alumnos={alumnos}
+                    maestros={maestros}
                     onEditarPrograma={handleOpenEditarPrograma}
                     onCrearNivel={handleOpenCrearNivel}
                     onInscribirAlumno={handleOpenInscribirAlumno}
@@ -221,6 +251,13 @@ export default function Ver() {
                     onDataChange={() => fetchData(filtroAnio)}
                 />
             </div>
+
+            <FormMaestro
+                isOpen={formMaestroOpen}
+                onClose={handleCloseAllModals}
+                onSave={handleSaveAndClose}
+                maestroAEditar={maestroParaEditar}
+            />
 
             <AsignarPrograma 
                 isOpen={asignarProgramaOpen}

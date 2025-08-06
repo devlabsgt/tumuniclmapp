@@ -19,6 +19,11 @@ interface Lugar {
     nombre: string;
 }
 
+interface Maestro {
+    id: number;
+    nombre: string;
+}
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -32,43 +37,64 @@ export default function Programa({ isOpen, onClose, onSave, programaAEditar, pro
   const isNivel = !!programaPadreId || (isEditMode && !!programaAEditar?.parent_id);
   
   const [lugares, setLugares] = useState<Lugar[]>([]);
+  const [maestros, setMaestros] = useState<Maestro[]>([]);
+  const [maestroSearchTerm, setMaestroSearchTerm] = useState('');
+  const [maestroResults, setMaestroResults] = useState<Maestro[]>([]);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<ProgramaFormData>({
+  const { register, handleSubmit, formState: { errors, isSubmitting }, reset, setValue } = useForm<ProgramaFormData>({
     resolver: zodResolver(programaSchema),
   });
 
   useEffect(() => {
     if (isOpen) {
-      const fetchLugares = async () => {
-        const supabase = createClient();
-        const { data, error } = await supabase
-            .from('lugares_clm')
-            .select('id, nombre')
-            .order('nombre', { ascending: true });
-        
-        if (error) {
-            toast.error("No se pudieron cargar los lugares.");
+      const supabase = createClient();
+      
+      const fetchInitialData = async () => {
+        const { data: lugaresData, error: lugaresError } = await supabase.from('lugares_clm').select('id, nombre').order('nombre');
+        if (lugaresError) toast.error("No se pudieron cargar los lugares.");
+        else setLugares(lugaresData as Lugar[]);
+
+        const { data: maestrosData, error: maestrosError } = await supabase.from('maestros_municipales').select('id, nombre').order('nombre');
+        if (maestrosError) toast.error("No se pudieron cargar los maestros.");
+        else setMaestros(maestrosData as Maestro[]);
+
+        if (programaAEditar) {
+            reset(programaAEditar);
+            if (programaAEditar.maestro_id) {
+                const maestroInicial = maestrosData?.find(m => m.id === programaAEditar.maestro_id);
+                if (maestroInicial) setMaestroSearchTerm(maestroInicial.nombre);
+            }
         } else {
-            setLugares(data as Lugar[]);
+            reset({
+                nombre: '',
+                descripcion: '',
+                anio: new Date().getFullYear(),
+                parent_id: programaPadreId || null,
+                lugar: '',
+                maestro_id: undefined,
+            });
+            setMaestroSearchTerm('');
         }
       };
 
-      fetchLugares();
-
-      if (programaAEditar) {
-        reset(programaAEditar);
-      } else {
-        reset({
-          nombre: '',
-          descripcion: '',
-          anio: new Date().getFullYear(),
-          parent_id: programaPadreId || null,
-          lugar: '',
-          encargado: '', // Inicializar encargado
-        });
-      }
+      fetchInitialData();
     }
   }, [isOpen, programaAEditar, programaPadreId, reset]);
+
+  useEffect(() => {
+    if (maestroSearchTerm.length > 1) {
+        const filtered = maestros.filter(m => m.nombre.toLowerCase().includes(maestroSearchTerm.toLowerCase()));
+        setMaestroResults(filtered);
+    } else {
+        setMaestroResults([]);
+    }
+  }, [maestroSearchTerm, maestros]);
+
+  const handleSelectMaestro = (maestro: Maestro) => {
+    setValue('maestro_id', maestro.id, { shouldValidate: true });
+    setMaestroSearchTerm(maestro.nombre);
+    setMaestroResults([]);
+  };
 
   const onSubmit = async (formData: ProgramaFormData) => {
     const supabase = createClient();
@@ -108,7 +134,6 @@ export default function Programa({ isOpen, onClose, onSave, programaAEditar, pro
     }
     return years;
   };
-
   const yearOptions = generateYearOptions();
 
   if (!isOpen) return null;
@@ -134,13 +159,13 @@ export default function Programa({ isOpen, onClose, onSave, programaAEditar, pro
           <div className="space-y-4 p-6 bg-white rounded-lg border border-gray-200">
             <div>
               <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-              <Input id="nombre" {...register("nombre")} placeholder="Nombre breve" className={errors.nombre ? 'border-red-500' : ''} />
+              <Input id="nombre" {...register("nombre")} placeholder="Nombre del programa o nivel" className={errors.nombre ? 'border-red-500' : ''} />
               {errors.nombre && <p className="text-sm text-red-500 mt-1">{errors.nombre.message}</p>}
             </div>
 
             <div>
               <label htmlFor="descripcion" className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-              <Input id="descripcion" {...register("descripcion")} placeholder="Descripción completa" className={errors.descripcion ? 'border-red-500' : ''} />
+              <Input id="descripcion" {...register("descripcion")} placeholder="Descripción breve" className={errors.descripcion ? 'border-red-500' : ''} />
               {errors.descripcion && <p className="text-sm text-red-500 mt-1">{errors.descripcion.message}</p>}
             </div>
             
@@ -148,37 +173,49 @@ export default function Programa({ isOpen, onClose, onSave, programaAEditar, pro
               <>
                 <div>
                   <label htmlFor="lugar" className="block text-sm font-medium text-gray-700 mb-1">Lugar</label>
-                  <select
-                    id="lugar"
-                    {...register("lugar")}
-                    className={`w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.lugar ? 'border-red-500' : ''}`}
-                  >
+                  <select id="lugar" {...register("lugar")} className={`w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.lugar ? 'border-red-500' : ''}`}>
                     <option value="">-- Seleccione un lugar --</option>
-                    {lugares.map(lugar => (
-                      <option key={lugar.id} value={lugar.nombre}>{lugar.nombre}</option>
-                    ))}
+                    {lugares.map(lugar => (<option key={lugar.id} value={lugar.nombre}>{lugar.nombre}</option>))}
                   </select>
                   {errors.lugar && <p className="text-sm text-red-500 mt-1">{errors.lugar.message}</p>}
                 </div>
                 
-                <div>
-                  <label htmlFor="encargado" className="block text-sm font-medium text-gray-700 mb-1">Maestro</label>
-                  <Input id="encargado" {...register("encargado")} placeholder="Nombre completo del Maestro del nivel" className={errors.encargado ? 'border-red-500' : ''} />
-                  {errors.encargado && <p className="text-sm text-red-500 mt-1">{errors.encargado.message}</p>}
+                <div className="relative">
+                  <label htmlFor="maestro" className="block text-sm font-medium text-gray-700 mb-1">Maestro</label>
+                  <Input 
+                    id="maestro" 
+                    value={maestroSearchTerm}
+                    onChange={(e) => {
+                        setMaestroSearchTerm(e.target.value);
+                        setValue('maestro_id', undefined, { shouldValidate: true });
+                    }}
+                    placeholder="Buscar maestro por nombre..." 
+                    className={errors.maestro_id ? 'border-red-500' : ''} 
+                    autoComplete="off"
+                  />
+                  {errors.maestro_id && <p className="text-sm text-red-500 mt-1">{errors.maestro_id.message}</p>}
+                  {maestroResults.length > 0 && (
+                    <div className="absolute w-full bg-white border rounded-md mt-1 z-10 max-h-40 overflow-y-auto shadow-lg">
+                        {maestroResults.map(maestro => (
+                            <button
+                                type="button"
+                                key={maestro.id}
+                                className="w-full text-left p-2 hover:bg-blue-600 hover:text-white"
+                                onClick={() => handleSelectMaestro(maestro)}
+                            >
+                                {maestro.nombre}
+                            </button>
+                        ))}
+                    </div>
+                  )}
                 </div>
               </>
             )}
 
             <div>
               <label htmlFor="anio" className="block text-sm font-medium text-gray-700 mb-1">Año</label>
-              <select
-                id="anio"
-                {...register("anio", { valueAsNumber: true })}
-                className={`w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.anio ? 'border-red-500' : ''}`}
-              >
-                {yearOptions.map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
+              <select id="anio" {...register("anio", { valueAsNumber: true })} className={`w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.anio ? 'border-red-500' : ''}`}>
+                {yearOptions.map(year => (<option key={year} value={year}>{year}</option>))}
               </select>
               {errors.anio && <p className="text-sm text-red-500 mt-1">{errors.anio.message}</p>}
             </div>

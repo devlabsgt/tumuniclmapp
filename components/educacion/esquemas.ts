@@ -7,9 +7,8 @@ export const programaSchema = z.object({
   anio: z.number({ message: 'El año es obligatorio.' }).int(),
   parent_id: z.number().int().nullable().optional(),
   lugar: z.string().optional(),
-  encargado: z.string().optional(), // Se añade 'encargado' como opcional inicialmente
+  maestro_id: z.number().int().nullable().optional(),
 }).superRefine((data, ctx) => {
-  // Si es un Nivel (tiene un parent_id), entonces 'lugar' y 'encargado' son obligatorios.
   if (data.parent_id) {
     if (!data.lugar || data.lugar.trim() === '') {
       ctx.addIssue({
@@ -18,16 +17,15 @@ export const programaSchema = z.object({
         message: 'El lugar es obligatorio para un nivel.',
       });
     }
-    if (!data.encargado || data.encargado.trim() === '') {
+    if (!data.maestro_id) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ['encargado'],
-        message: 'El encargado es obligatorio para un nivel.',
+        path: ['maestro_id'],
+        message: 'El maestro es obligatorio para un nivel.',
       });
     }
   }
 });
-
 // --- Esquema para Alumnos ---
 export const alumnoSchema = z.object({
   nombre_completo: z.string().min(3, { message: 'El nombre es obligatorio.' }),
@@ -47,17 +45,24 @@ export const alumnoSchema = z.object({
   telefono_encargado: z.string().length(8, { message: 'El teléfono del encargado debe tener 8 dígitos.' }),
   telefono_alumno: z.string().length(8, { message: 'El teléfono del alumno debe tener 8 dígitos.' }).optional().or(z.literal('')),
 });
-
+// --- Esquema para Maestros (Simplificado) ---
+export const maestroSchema = z.object({
+    nombre: z.string().min(3, { message: 'El nombre es obligatorio.' }),
+});
 
 // --- Tipos exportados para usar en toda la aplicación ---
 export type Programa = z.infer<typeof programaSchema> & {
   id: number;
   lugar?: string | null;
-  encargado?: string | null; // Se añade el tipo para 'encargado'
+  maestro_id?: number | null;
 };
 
 export type Alumno = z.infer<typeof alumnoSchema> & {
   id: string;
   created_at: string;
   programa_id?: number;
+};
+
+export type Maestro = z.infer<typeof maestroSchema> & {
+    id: number;
 };

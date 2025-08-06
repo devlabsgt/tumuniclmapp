@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import type { Programa, Alumno } from '../esquemas';
+import type { Programa, Alumno, Maestro } from '../esquemas';
 import { Pencil, PlusCircle, UserPlus, Search } from 'lucide-react';
 import TablaAlumnos from './Alumnos';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,6 +12,7 @@ interface Props {
   programasPrincipales: Programa[];
   todosLosProgramas: Programa[];
   alumnos: Alumno[];
+  maestros: Maestro[]; // <-- Prop para recibir la lista de maestros
   onEditarPrograma: (programa: Programa) => void;
   onCrearNivel: (padreId: number) => void;
   onInscribirAlumno: (nivelId: number) => void;
@@ -23,6 +24,7 @@ export default function Programas({
     programasPrincipales, 
     todosLosProgramas, 
     alumnos, 
+    maestros, // <-- Recibir maestros
     onEditarPrograma, 
     onCrearNivel, 
     onInscribirAlumno, 
@@ -83,7 +85,6 @@ export default function Programas({
               transition={{ duration: 0.2 }}
               className="border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden"
             >
-              {/* Cabecera del Acordeón de Programa */}
               <div 
                 className="p-4 cursor-pointer hover:bg-gray-50"
                 onClick={() => handleProgramaToggle(programa.id)}
@@ -104,7 +105,6 @@ export default function Programas({
                 <p className="text-sm text-gray-500 mt-1">{programa.descripcion || 'Sin descripción'}</p>
               </div>
 
-              {/* Contenido del Acordeón de Programa */}
               <AnimatePresence>
                 {isProgramaOpen && (
                   <motion.div
@@ -128,6 +128,8 @@ export default function Programas({
                         <AnimatePresence>
                           {nivelesParaMostrar.map(nivel => {
                             const isNivelOpen = openNivelId === nivel.id;
+                            // Encontrar el nombre del maestro
+                            const maestroAsignado = maestros.find(m => m.id === nivel.maestro_id);
                             return (
                               <motion.div 
                                 layout 
@@ -156,9 +158,8 @@ export default function Programas({
                                         </div>
                                     </div>
                                     <p className="text-sm text-gray-500 mt-1">{nivel.descripcion || 'Sin descripción'}</p>
-                                    {/* --- ENCARGADO AÑADIDO AQUÍ --- */}
-                                    {nivel.encargado && (
-                                        <p className="text-xs font-medium text-gray-600 mt-1">Encargado: {nivel.encargado}</p>
+                                    {maestroAsignado && (
+                                        <p className="text-xs font-medium text-gray-600 mt-1">Maestro: {maestroAsignado.nombre}</p>
                                     )}
                                 </div>
                                 <AnimatePresence>
