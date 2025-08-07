@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { Programa, Alumno, Maestro } from '../lib/esquemas';
-import { Pencil, PlusCircle, UserPlus, Search, Users, BookCopy, UserCheck, ChevronDown } from 'lucide-react';
+import { Pencil, PlusCircle, UserPlus, Search, Users, BookCopy, UserCheck } from 'lucide-react';
 import TablaAlumnos from './Alumnos';
 import TablaMaestros from './Maestros';
 import AsignarMaestro from '../forms/AsignarMaestro';
@@ -117,21 +117,16 @@ export default function Programas({
               <div className="p-4 cursor-pointer hover:bg-gray-50" onClick={() => handleProgramaToggle(programa.id)}>
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="flex-grow text-lg font-semibold text-gray-800 truncate">{programa.nombre}</h3>
-                                      <div className="flex-shrink-0 flex items-center gap-1">
-
                   {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
-                    <>
+                    <div className="flex-shrink-0 flex items-center gap-1">
                       <Button size="sm" variant="outline" className="text-xs p-2 h-auto" onClick={(e) => { e.stopPropagation(); onEditarPrograma(programa); }}>
                         <Pencil className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Editar</span>
                       </Button>
-
-                      </>
-                  )}
-                   <Button size="sm" className="text-xs p-2 h-auto" onClick={(e) => { e.stopPropagation(); onCrearNivel(programa.id); }}>
+                      <Button size="sm" className="text-xs p-2 h-auto" onClick={(e) => { e.stopPropagation(); onCrearNivel(programa.id); }}>
                         <PlusCircle className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Nivel</span>
-                    </Button>
-                  </div>
-
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <p className="text-sm text-gray-500 mt-1">{programa.descripcion || 'Sin descripción'}</p>
               </div>
@@ -161,6 +156,7 @@ export default function Programas({
                                 <AnimatePresence>
                                   {filteredNiveles.map(nivel => {
                                     const isNivelOpen = openNivelId === nivel.id;
+                                    const alumnosEnNivel = alumnos.filter(a => a.programa_id === nivel.id).length;
                                     if (openNivelId !== null && openNivelId !== nivel.id) {
                                       return null;
                                     }
@@ -177,14 +173,13 @@ export default function Programas({
                                           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                                               <div className="flex-grow">
                                                   <h4 className="font-semibold text-gray-800">{nivel.nombre}</h4>
-                                                  <p className="text-sm text-gray-500 mt-1">{nivel.descripcion || 'Sin descripción'}</p>
-                                                  <div className="border-t my-2"></div>
-                                                  <p className="text-xs text-gray-500"><span className='font-bold'>Maestro Encargado:</span> {maestros.find(m => m.id === nivel.maestro_id)?.nombre || 'Sin maestro asignado'}</p>
+                                                  <p className="text-sm text-gray-500 mt-1 mb-5">{nivel.descripcion || 'Sin descripción'}</p>
+                                                  <p className="text-xs text-gray-500"><span className='font-bold'>Maestro:</span> {maestros.find(m => m.id === nivel.maestro_id)?.nombre || 'Sin asignar'}</p>
+                                                  <p className="text-xs text-gray-500 mt-1"><span className='font-bold'>Alumnos Inscritos:</span> {alumnosEnNivel}</p>
                                               </div>
                                             <div className="relative w-full sm:w-auto" ref={openNivelMenuId === nivel.id ? menuRef : null}>
                                                 <Button size="sm" variant="ghost" className="w-full sm:w-auto p-2 h-auto flex items-center justify-center gap-2" onClick={(e) => { e.stopPropagation(); setOpenNivelMenuId(prev => prev === nivel.id ? null : nivel.id); }}>
                                                     Acciones
-                                                    <ChevronDown className={`h-4 w-4 transition-transform ${openNivelMenuId === nivel.id ? 'rotate-180' : ''}`} />
                                                 </Button>
                                                 <AnimatePresence>
                                                 {openNivelMenuId === nivel.id && (
@@ -202,11 +197,11 @@ export default function Programas({
                                                                 <Button variant="ghost" className="w-full justify-start gap-2" onClick={(e) => { e.stopPropagation(); handleOpenAsignarMaestro(nivel); setOpenNivelMenuId(null); }}>
                                                                     <UserCheck className="h-4 w-4" /> Asignar Maestro
                                                                 </Button>
+                                                                <Button variant="ghost" className="w-full justify-start gap-2" onClick={(e) => { e.stopPropagation(); onEditarPrograma(nivel); setOpenNivelMenuId(null); }}>
+                                                                    <Pencil className="h-4 w-4" /> Editar Nivel
+                                                                </Button>
                                                             </>
                                                         )}
-                                                         <Button variant="ghost" className="w-full justify-start gap-2" onClick={(e) => { e.stopPropagation(); onEditarPrograma(nivel); setOpenNivelMenuId(null); }}>
-                                                             <Pencil className="h-4 w-4" /> Editar Nivel
-                                                         </Button>
                                                     </motion.div>
                                                 )}
                                                 </AnimatePresence>

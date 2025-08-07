@@ -1,6 +1,6 @@
 'use client';
 
-import { Pencil, Trash2 } from 'lucide-react';
+import { Eye, ArrowDown } from 'lucide-react'; // <-- ICONOS ACTUALIZADOS
 import { Button } from '@/components/ui/button';
 import type { Alumno, Programa } from '../lib/esquemas';
 import { desinscribirAlumno } from '../lib/acciones';
@@ -36,22 +36,24 @@ export default function Alumnos({ alumnos, nivel, onEditar, onDataChange }: Prop
               </td>
               <td className="px-4 py-3 text-right">
                 <div className="flex justify-end items-center gap-1 sm:gap-2">
+                  {/* --- BOTÓN VER --- */}
                   <Button 
                     size="sm" 
                     variant="ghost" 
                     onClick={() => onEditar(alumno)}
                     className="p-2 h-auto"
                   >
-                    <Pencil className="h-4 w-4" />
-                    <span className="hidden sm:inline sm:ml-2">Editar</span>
+                    <Eye className="h-4 w-4" />
+                    <span className="hidden sm:inline sm:ml-2">Ver</span>
                   </Button>
+                  {/* --- BOTÓN DESASIGNAR --- */}
                   <Button 
                     size="sm" 
                     variant="ghost"
                     className="p-2 h-auto text-red-600 hover:text-red-700 hover:bg-red-50"
                     onClick={() => desinscribirAlumno(alumno.id, nivel.id, alumno.nombre_completo, onDataChange)}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <ArrowDown className="h-4 w-4" />
                     <span className="hidden sm:inline sm:ml-2">Desasignar</span>
                   </Button>
                 </div>

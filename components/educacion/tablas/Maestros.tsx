@@ -11,17 +11,9 @@ interface Props {
 }
 
 export default function TablaMaestros({ maestrosDelPrograma, nivelesDelPrograma, onEditarMaestro }: Props) {
-
-  // Lógica para ordenar los maestros según el nombre del nivel asignado
-  const maestrosOrdenados = [...maestrosDelPrograma].sort((a, b) => {
-    const nivelA = nivelesDelPrograma.find(n => n.maestro_id === a.id);
-    const nivelB = nivelesDelPrograma.find(n => n.maestro_id === b.id);
-
-    const nombreNivelA = nivelA ? nivelA.nombre : '';
-    const nombreNivelB = nivelB ? nivelB.nombre : '';
-
-    return nombreNivelA.localeCompare(nombreNivelB);
-  });
+  
+  const totalNiveles = nivelesDelPrograma.length;
+  const totalAlumnos = maestrosDelPrograma.reduce((sum, maestro) => sum + (maestro.ctd_alumnos || 0), 0);
 
   if (maestrosDelPrograma.length === 0) {
     return <p className="text-sm text-center text-gray-500 italic px-4 py-6 bg-white rounded-lg">No hay maestros asignados a los niveles de este programa.</p>;
@@ -34,12 +26,12 @@ export default function TablaMaestros({ maestrosDelPrograma, nivelesDelPrograma,
           <tr>
             <th className="px-4 py-2 text-left font-medium text-gray-600">Nombre del Maestro</th>
             <th className="px-4 py-2 text-left font-medium text-gray-600">Nivel Asignado</th>
-            <th className="px-4 py-2 text-left font-medium text-gray-600">Cantidad <br/>Alumnos</th>
+            <th className="px-4 py-2 text-left font-medium text-gray-600">Cantidad de Alumnos</th>
             <th className="px-4 py-2 text-right font-medium text-gray-600">Acciones</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {maestrosOrdenados.map((maestro) => { // Se usa la lista ordenada
+          {maestrosDelPrograma.map((maestro) => {
             const nivelAsignado = nivelesDelPrograma.find(n => n.maestro_id === maestro.id);
             
             return (
@@ -62,6 +54,15 @@ export default function TablaMaestros({ maestrosDelPrograma, nivelesDelPrograma,
             );
           })}
         </tbody>
+        {/* --- FILA DE TOTALES CORREGIDA --- */}
+        <tfoot className="bg-gray-50 border-t-2 border-gray-300">
+            <tr>
+                <td className="px-4 py-3 text-left font-bold text-gray-700">Total:</td>
+                <td className="px-4 py-3 font-bold text-gray-700"> {totalNiveles} Niveles</td>
+                <td className="px-4 py-3 font-bold text-gray-700"> {totalAlumnos} Alumnos</td>
+                <td className="px-4 py-3"></td>
+            </tr>
+        </tfoot>
       </table>
     </div>
   );

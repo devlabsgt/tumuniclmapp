@@ -3,15 +3,13 @@ import { createClient } from '@/utils/supabase/client';
 import { toast } from 'react-toastify';
 import type { Alumno, Programa } from './esquemas';
 
-const COLOR_CANCELAR = '#DC3545';
-
 export const eliminarPrograma = async (programa: Programa, onEliminado: () => void) => {
     const confirmacion = await Swal.fire({
         title: '¿Está seguro?',
         text: `Se eliminará el programa "${programa.nombre}" y todos sus niveles y alumnos asociados. ¡Esta acción no se puede revertir!`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: COLOR_CANCELAR,
+        confirmButtonColor: '#DC3545',
         cancelButtonColor: '#6c757d',
         confirmButtonText: 'Sí, ¡eliminar!',
         cancelButtonText: 'Cancelar'
@@ -32,12 +30,12 @@ export const eliminarPrograma = async (programa: Programa, onEliminado: () => vo
 export const desinscribirAlumno = async (alumnoId: string, programaId: number, alumnoNombre: string, onComplete: () => void) => {
     const confirmacion = await Swal.fire({
         title: '¿Está seguro?',
-        text: `Se quitará a "${alumnoNombre}" de este nivel. El registro del alumno no se eliminará.`,
+        text: `Se desasignará a "${alumnoNombre}" de este nivel. El registro del alumno no se eliminará.`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: COLOR_CANCELAR,
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Sí, ¡quitar!',
+        confirmButtonColor: '#6c757d',  // Botón de confirmar en gris
+        cancelButtonColor: '#007bff',   // Botón de cancelar en azul
+        confirmButtonText: 'Sí, ¡desasignar!',
         cancelButtonText: 'Cancelar'
     });
 
@@ -51,7 +49,7 @@ export const desinscribirAlumno = async (alumnoId: string, programaId: number, a
         if (error) {
             toast.error('No se pudo quitar la inscripción.');
         } else {
-            toast.error(`"${alumnoNombre}" ha sido desinscrito de este nivel.`);
+            toast.error(`"${alumnoNombre}" ha sido desasignado de este nivel.`);
             onComplete();
         }
     }

@@ -87,12 +87,15 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar }: Pro
         </div>
         
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+
           <div className="space-y-4 p-6 bg-white rounded-lg border border-gray-200">
+
             <div>
               <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
               <Input id="nombre" {...register("nombre")} placeholder="Nombre del maestro" className={errors.nombre ? 'border-red-500' : ''} />
               {errors.nombre && <p className="text-sm text-red-500 mt-1">{errors.nombre.message}</p>}
             </div>
+            
             <div>
               <label htmlFor="ctd_alumnos" className="block text-sm font-medium text-gray-700 mb-1">Cantidad de Alumnos</label>
               <Input 
@@ -104,6 +107,7 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar }: Pro
               />
               {errors.ctd_alumnos && <p className="text-sm text-red-500 mt-1">{errors.ctd_alumnos.message}</p>}
             </div>
+
           </div>
           
           <div className="flex justify-end gap-3 pt-4">
