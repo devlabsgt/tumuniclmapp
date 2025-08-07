@@ -1,20 +1,18 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import Programas from './tablas/Programas';
 import FormPrograma from './forms/Programa';
 import FormAlumno from './forms/Alumno';
-import AsignarPrograma from './AsignarPrograma'; 
 import FormMaestro from './forms/Maestro';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'react-toastify';
-import type { Programa, Alumno, Maestro } from './esquemas';
+import type { Programa, Alumno, Maestro } from './lib/esquemas';
 import BotonVolver from '@/components/ui/botones/BotonVolver';
-import { Plus, Search, UserCog, UserPlus as MaestroIcon, ChevronDown } from 'lucide-react'; 
+import { Plus, Search } from 'lucide-react'; 
 import useUserData from '@/hooks/useUserData';
-import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Ver() {
     const { rol, programas: programasAsignados } = useUserData();
@@ -27,33 +25,15 @@ export default function Ver() {
     const [filtroAnio, setFiltroAnio] = useState<string>(new Date().getFullYear().toString());
     const [programaSearchTerm, setProgramaSearchTerm] = useState('');
     
-    // --- ESTADOS DE LOS MODALES ---
     const [formProgramaOpen, setFormProgramaOpen] = useState(false);
     const [formAlumnoOpen, setFormAlumnoOpen] = useState(false);
-    const [asignarProgramaOpen, setAsignarProgramaOpen] = useState(false); 
     const [formMaestroOpen, setFormMaestroOpen] = useState(false);
-    const [maestrosMenuOpen, setMaestrosMenuOpen] = useState(false); // Estado para el nuevo menú
 
     const [programaParaEditar, setProgramaParaEditar] = useState<Programa | null>(null);
     const [programaPadreId, setProgramaPadreId] = useState<number | null>(null);
     const [alumnoParaEditar, setAlumnoParaEditar] = useState<Alumno | null>(null);
     const [nivelIdParaAlumno, setNivelIdParaAlumno] = useState<number | null>(null);
     const [maestroParaEditar, setMaestroParaEditar] = useState<Maestro | null>(null);
-
-    const maestrosMenuRef = useRef<HTMLDivElement>(null);
-
-    // Hook para cerrar el menú al hacer clic fuera
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (maestrosMenuRef.current && !maestrosMenuRef.current.contains(event.target as Node)) {
-                setMaestrosMenuOpen(false);
-            }
-        }
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
 
     const fetchData = useCallback(async (anio: string) => {
         setLoading(true);
@@ -63,7 +43,7 @@ export default function Ver() {
             supabase.from('programas_educativos').select('*').eq('anio', anio),
             supabase.from('alumnos_inscripciones').select('programa_id, alumnos(*)'),
             supabase.from('alumnos').select('*'),
-            supabase.from('maestros_municipales').select('id, nombre')
+            supabase.from('maestros_municipales').select('id, nombre, ctd_alumnos')
         ]);
 
         if (programasRes.error) toast.error('Error al cargar los programas.');
@@ -113,7 +93,6 @@ export default function Ver() {
     const handleCloseAllModals = () => {
         setFormProgramaOpen(false);
         setFormAlumnoOpen(false);
-        setAsignarProgramaOpen(false);
         setFormMaestroOpen(false);
         setProgramaParaEditar(null);
         setAlumnoParaEditar(null);
@@ -127,11 +106,6 @@ export default function Ver() {
         setFormProgramaOpen(true);
     };
     
-    const handleOpenCrearMaestro = () => {
-        handleCloseAllModals();
-        setFormMaestroOpen(true);
-    };
-
     const handleOpenCrearNivel = (padreId: number) => {
         setProgramaPadreId(padreId);
         setFormProgramaOpen(true);
@@ -151,6 +125,16 @@ export default function Ver() {
     const handleOpenEditarPrograma = (programa: Programa) => {
         setProgramaParaEditar(programa);
         setFormProgramaOpen(true);
+    };
+
+    const handleOpenCrearMaestro = () => {
+        setMaestroParaEditar(null);
+        setFormMaestroOpen(true);
+    };
+
+    const handleOpenEditarMaestro = (maestro: Maestro) => {
+        setMaestroParaEditar(maestro);
+        setFormMaestroOpen(true);
     };
 
     const handleSaveAndClose = async () => {
@@ -182,31 +166,6 @@ export default function Ver() {
                         </div>
                         {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
                             <div className="flex flex-col sm:flex-row gap-2">
-                                {/* --- NUEVO MENÚ DESPLEGABLE --- */}
-                                <div className="relative" ref={maestrosMenuRef}>
-                                    <Button onClick={() => setMaestrosMenuOpen(prev => !prev)} variant="outline" className="w-full md:w-auto gap-2 whitespace-nowrap">
-                                        <MaestroIcon className="h-4 w-4"/>
-                                        Maestros
-                                        <ChevronDown className={`h-4 w-4 transition-transform ${maestrosMenuOpen ? 'rotate-180' : ''}`} />
-                                    </Button>
-                                    <AnimatePresence>
-                                        {maestrosMenuOpen && (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: -10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: -10 }}
-                                                className="absolute top-full mt-2 w-full md:w-56 bg-white border rounded-md shadow-lg z-10"
-                                            >
-                                                <Button onClick={() => { setAsignarProgramaOpen(true); setMaestrosMenuOpen(false); }} variant="ghost" className="w-full justify-start gap-2">
-                                                    <UserCog className="h-4 w-4"/> Asignar Curso
-                                                </Button>
-                                                <Button onClick={() => { handleOpenCrearMaestro(); setMaestrosMenuOpen(false); }} variant="ghost" className="w-full justify-start gap-2">
-                                                    <Plus className="h-4 w-4"/>Nuevo Maestro
-                                                </Button>
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
                                 <Button onClick={handleOpenCrearPrograma} className="w-full md:w-auto gap-2 whitespace-nowrap">
                                     <Plus className="h-4 w-4"/>
                                     Nuevo Programa
@@ -248,21 +207,11 @@ export default function Ver() {
                     onCrearNivel={handleOpenCrearNivel}
                     onInscribirAlumno={handleOpenInscribirAlumno}
                     onEditarAlumno={handleOpenEditarAlumno}
+                    onCrearMaestro={handleOpenCrearMaestro}
+                    onEditarMaestro={handleOpenEditarMaestro}
                     onDataChange={() => fetchData(filtroAnio)}
                 />
             </div>
-
-            <FormMaestro
-                isOpen={formMaestroOpen}
-                onClose={handleCloseAllModals}
-                onSave={handleSaveAndClose}
-                maestroAEditar={maestroParaEditar}
-            />
-
-            <AsignarPrograma 
-                isOpen={asignarProgramaOpen}
-                onClose={handleCloseAllModals}
-            />
 
             <FormPrograma
                 isOpen={formProgramaOpen}
@@ -270,6 +219,13 @@ export default function Ver() {
                 onSave={handleSaveAndClose}
                 programaAEditar={programaParaEditar}
                 programaPadreId={programaPadreId}
+            />
+            
+            <FormMaestro
+                isOpen={formMaestroOpen}
+                onClose={handleCloseAllModals}
+                onSave={handleSaveAndClose}
+                maestroAEditar={maestroParaEditar}
             />
             
             {nivelIdParaAlumno && (

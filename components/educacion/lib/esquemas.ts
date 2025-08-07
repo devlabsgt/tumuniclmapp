@@ -7,8 +7,8 @@ export const programaSchema = z.object({
   anio: z.number({ message: 'El año es obligatorio.' }).int(),
   parent_id: z.number().int().nullable().optional(),
   lugar: z.string().optional(),
-  maestro_id: z.number().int().nullable().optional(),
 }).superRefine((data, ctx) => {
+  // Si es un Nivel (tiene un parent_id), entonces 'lugar' es obligatorio.
   if (data.parent_id) {
     if (!data.lugar || data.lugar.trim() === '') {
       ctx.addIssue({
@@ -17,15 +17,9 @@ export const programaSchema = z.object({
         message: 'El lugar es obligatorio para un nivel.',
       });
     }
-    if (!data.maestro_id) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['maestro_id'],
-        message: 'El maestro es obligatorio para un nivel.',
-      });
-    }
   }
 });
+
 // --- Esquema para Alumnos ---
 export const alumnoSchema = z.object({
   nombre_completo: z.string().min(3, { message: 'El nombre es obligatorio.' }),
@@ -45,16 +39,19 @@ export const alumnoSchema = z.object({
   telefono_encargado: z.string().length(8, { message: 'El teléfono del encargado debe tener 8 dígitos.' }),
   telefono_alumno: z.string().length(8, { message: 'El teléfono del alumno debe tener 8 dígitos.' }).optional().or(z.literal('')),
 });
-// --- Esquema para Maestros (Simplificado) ---
+
+// --- Esquema para Maestros ---
 export const maestroSchema = z.object({
     nombre: z.string().min(3, { message: 'El nombre es obligatorio.' }),
+    ctd_alumnos: z.number().int().min(0, { message: 'Debe ser un número positivo.' }).optional().nullable(),
 });
+
 
 // --- Tipos exportados para usar en toda la aplicación ---
 export type Programa = z.infer<typeof programaSchema> & {
   id: number;
   lugar?: string | null;
-  maestro_id?: number | null;
+  maestro_id?: number | null; // Se mantiene por ahora para no romper otras partes
 };
 
 export type Alumno = z.infer<typeof alumnoSchema> & {

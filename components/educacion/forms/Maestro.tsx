@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { maestroSchema, type Maestro as MaestroType } from '../esquemas';
+import { maestroSchema, type Maestro as MaestroType } from '../lib/esquemas';
 import { toast } from 'react-toastify';
 
 type MaestroFormData = z.infer<typeof maestroSchema>;
@@ -35,6 +35,7 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar }: Pro
       } else {
         reset({
           nombre: '',
+          ctd_alumnos: 0,
         });
       }
     }
@@ -78,7 +79,7 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar }: Pro
         <div className="flex justify-between items-start mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-800">{isEditMode ? 'Editar Maestro' : 'Nuevo Maestro'}</h2>
-            <p className="text-sm text-gray-500">Proporcione el nombre del maestro.</p>
+            <p className="text-sm text-gray-500">Proporcione los detalles del maestro.</p>
           </div>
           <Button size="icon" variant="ghost" onClick={onClose} className="rounded-full -mt-2 -mr-2">
             <X className="h-5 w-5" />
@@ -91,6 +92,17 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar }: Pro
               <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
               <Input id="nombre" {...register("nombre")} placeholder="Nombre del maestro" className={errors.nombre ? 'border-red-500' : ''} />
               {errors.nombre && <p className="text-sm text-red-500 mt-1">{errors.nombre.message}</p>}
+            </div>
+            <div>
+              <label htmlFor="ctd_alumnos" className="block text-sm font-medium text-gray-700 mb-1">Cantidad de Alumnos</label>
+              <Input 
+                id="ctd_alumnos" 
+                type="number"
+                {...register("ctd_alumnos", { valueAsNumber: true })} 
+                placeholder="0" 
+                className={errors.ctd_alumnos ? 'border-red-500' : ''} 
+              />
+              {errors.ctd_alumnos && <p className="text-sm text-red-500 mt-1">{errors.ctd_alumnos.message}</p>}
             </div>
           </div>
           

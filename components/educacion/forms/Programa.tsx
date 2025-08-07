@@ -9,17 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { programaSchema, type Programa as ProgramaType } from '../esquemas';
+import { programaSchema, type Programa as ProgramaType } from '../lib/esquemas';
 import { toast } from 'react-toastify';
 
 type ProgramaFormData = z.infer<typeof programaSchema>;
 
 interface Lugar {
-    id: number;
-    nombre: string;
-}
-
-interface Maestro {
     id: number;
     nombre: string;
 }
@@ -37,11 +32,8 @@ export default function Programa({ isOpen, onClose, onSave, programaAEditar, pro
   const isNivel = !!programaPadreId || (isEditMode && !!programaAEditar?.parent_id);
   
   const [lugares, setLugares] = useState<Lugar[]>([]);
-  const [maestros, setMaestros] = useState<Maestro[]>([]);
-  const [maestroSearchTerm, setMaestroSearchTerm] = useState('');
-  const [maestroResults, setMaestroResults] = useState<Maestro[]>([]);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset, setValue } = useForm<ProgramaFormData>({
+  const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<ProgramaFormData>({
     resolver: zodResolver(programaSchema),
   });
 
@@ -54,16 +46,8 @@ export default function Programa({ isOpen, onClose, onSave, programaAEditar, pro
         if (lugaresError) toast.error("No se pudieron cargar los lugares.");
         else setLugares(lugaresData as Lugar[]);
 
-        const { data: maestrosData, error: maestrosError } = await supabase.from('maestros_municipales').select('id, nombre').order('nombre');
-        if (maestrosError) toast.error("No se pudieron cargar los maestros.");
-        else setMaestros(maestrosData as Maestro[]);
-
         if (programaAEditar) {
             reset(programaAEditar);
-            if (programaAEditar.maestro_id) {
-                const maestroInicial = maestrosData?.find(m => m.id === programaAEditar.maestro_id);
-                if (maestroInicial) setMaestroSearchTerm(maestroInicial.nombre);
-            }
         } else {
             reset({
                 nombre: '',
@@ -71,30 +55,13 @@ export default function Programa({ isOpen, onClose, onSave, programaAEditar, pro
                 anio: new Date().getFullYear(),
                 parent_id: programaPadreId || null,
                 lugar: '',
-                maestro_id: undefined,
             });
-            setMaestroSearchTerm('');
         }
       };
 
       fetchInitialData();
     }
   }, [isOpen, programaAEditar, programaPadreId, reset]);
-
-  useEffect(() => {
-    if (maestroSearchTerm.length > 1) {
-        const filtered = maestros.filter(m => m.nombre.toLowerCase().includes(maestroSearchTerm.toLowerCase()));
-        setMaestroResults(filtered);
-    } else {
-        setMaestroResults([]);
-    }
-  }, [maestroSearchTerm, maestros]);
-
-  const handleSelectMaestro = (maestro: Maestro) => {
-    setValue('maestro_id', maestro.id, { shouldValidate: true });
-    setMaestroSearchTerm(maestro.nombre);
-    setMaestroResults([]);
-  };
 
   const onSubmit = async (formData: ProgramaFormData) => {
     const supabase = createClient();
@@ -170,46 +137,14 @@ export default function Programa({ isOpen, onClose, onSave, programaAEditar, pro
             </div>
             
             {isNivel && (
-              <>
-                <div>
-                  <label htmlFor="lugar" className="block text-sm font-medium text-gray-700 mb-1">Lugar</label>
-                  <select id="lugar" {...register("lugar")} className={`w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.lugar ? 'border-red-500' : ''}`}>
-                    <option value="">-- Seleccione un lugar --</option>
-                    {lugares.map(lugar => (<option key={lugar.id} value={lugar.nombre}>{lugar.nombre}</option>))}
-                  </select>
-                  {errors.lugar && <p className="text-sm text-red-500 mt-1">{errors.lugar.message}</p>}
-                </div>
-                
-                <div className="relative">
-                  <label htmlFor="maestro" className="block text-sm font-medium text-gray-700 mb-1">Maestro</label>
-                  <Input 
-                    id="maestro" 
-                    value={maestroSearchTerm}
-                    onChange={(e) => {
-                        setMaestroSearchTerm(e.target.value);
-                        setValue('maestro_id', undefined, { shouldValidate: true });
-                    }}
-                    placeholder="Buscar maestro por nombre..." 
-                    className={errors.maestro_id ? 'border-red-500' : ''} 
-                    autoComplete="off"
-                  />
-                  {errors.maestro_id && <p className="text-sm text-red-500 mt-1">{errors.maestro_id.message}</p>}
-                  {maestroResults.length > 0 && (
-                    <div className="absolute w-full bg-white border rounded-md mt-1 z-10 max-h-40 overflow-y-auto shadow-lg">
-                        {maestroResults.map(maestro => (
-                            <button
-                                type="button"
-                                key={maestro.id}
-                                className="w-full text-left p-2 hover:bg-blue-600 hover:text-white"
-                                onClick={() => handleSelectMaestro(maestro)}
-                            >
-                                {maestro.nombre}
-                            </button>
-                        ))}
-                    </div>
-                  )}
-                </div>
-              </>
+              <div>
+                <label htmlFor="lugar" className="block text-sm font-medium text-gray-700 mb-1">Lugar</label>
+                <select id="lugar" {...register("lugar")} className={`w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.lugar ? 'border-red-500' : ''}`}>
+                  <option value="">-- Seleccione un lugar --</option>
+                  {lugares.map(lugar => (<option key={lugar.id} value={lugar.nombre}>{lugar.nombre}</option>))}
+                </select>
+                {errors.lugar && <p className="text-sm text-red-500 mt-1">{errors.lugar.message}</p>}
+              </div>
             )}
 
             <div>

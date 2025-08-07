@@ -2,8 +2,8 @@
 
 import { Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { Alumno, Programa } from '../esquemas';
-import { desinscribirAlumno } from '../acciones';
+import type { Alumno, Programa } from '../lib/esquemas';
+import { desinscribirAlumno } from '../lib/acciones';
 
 interface Props {
   alumnos: Alumno[];

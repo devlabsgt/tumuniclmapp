@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { alumnoSchema, type Alumno as AlumnoType } from '../esquemas';
+import { alumnoSchema, type Alumno as AlumnoType } from '../lib/esquemas';
 import { toast } from 'react-toastify';
 
 type AlumnoFormData = z.infer<typeof alumnoSchema>;
