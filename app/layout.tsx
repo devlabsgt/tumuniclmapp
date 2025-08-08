@@ -1,3 +1,5 @@
+// app/layout.tsx
+
 import "./globals.css";
 import { Geist } from "next/font/google";
 import HeaderAuth from "@/components/header-auth";
@@ -7,15 +9,29 @@ import FechaHoraActual from '@/components/ui/FechaHoraActual';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-export const metadata = {
+// --- INICIO DE CAMBIOS ---
+
+import type { Metadata, Viewport } from "next";
+
+// MODIFICADO: Objeto Metadata para la PWA
+export const metadata: Metadata = {
   title: "Gestión Municipal",
   description: "Sistema de Gestión Municipal",
-  icons: [
-    { rel: "icon", url: "/favicon.ico" },
-    { rel: "shortcut icon", url: "/favicon.ico" },
-    { rel: "apple-touch-icon", url: "/favicon.png" },
-  ],
+  manifest: "/manifest.json", // AÑADIDO: Enlace al manifiesto de la PWA
+  icons: {
+    icon: "/icon-192x192.png",
+    shortcut: "/icon-192x192.png",
+    // MODIFICADO: Apuntando a un ícono de mejor resolución para consistencia con el manifest
+    apple: "/icon-192x192.png", 
+  },
 };
+
+// AÑADIDO: Objeto Viewport para controlar el color del tema en móviles
+export const viewport: Viewport = {
+  themeColor: "#FFFFFF", // Asegúrese que coincida con el theme_color de su manifest.json
+};
+
+// --- FIN DE CAMBIOS ---
 
 const geistSans = Geist({ display: "swap", subsets: ["latin"] });
 
@@ -26,6 +42,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={geistSans.className} suppressHydrationWarning>
+      {/* ELIMINADO: La etiqueta <head> manual. 
+        Next.js ahora maneja esto automáticamente con los objetos 'metadata' y 'viewport'.
+      */}
       <body className="bg-background text-foreground min-h-screen flex flex-col">
         <AutoLogoutWrapper />
 
@@ -42,9 +61,9 @@ export default function RootLayout({
         </nav>
 
         {/* Contenido principal que se expande */}
-  <main className="flex flex-col gap-5 max-w-5xl p-5 flex-grow w-full self-center min-h-[100vh]">
-  {children}
-</main>
+        <main className="flex flex-col gap-5 max-w-5xl p-5 flex-grow w-full self-center min-h-[100vh]">
+          {children}
+        </main>
 
         {/* Footer */}
         <footer className="pt-5 border-t border-foreground/10 bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-gray-300 px-6 pb-6">
