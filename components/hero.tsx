@@ -1,8 +1,6 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import TextoHoyConcepcionAvanza from '@/components/ui/TextoHoyConcepcionAvanza';
@@ -21,30 +19,10 @@ export default function Hero() {
     <div className="flex flex-col items-center w-full gap-8 relative">
       {/* Zona superior */}
       <div className="w-full max-w-5xl flex flex-col md:flex-row items-center justify-between md:items-center px-2 mt-4 relative">
-        {/* Botón ir */}
-        <motion.div
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6 }}
-          className="w-full md:w-auto flex justify-start md:justify-start"
-        >
-          <Button
-            variant="link"
-            size="sm"
-            onClick={() => window.location.href = 'https://www.tumuniclm.com'}
-            className="text-blue-600 text-xl flex items-center gap-2"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            ir a tumuniclm.com
-          </Button>
-        </motion.div>
-        {/* Texto centrado */}
-      <div className="w-full mt-5 md:w-auto text-center md:absolute md:left-1/2 md:transform md:-translate-x-1/2">
-        <TextoHoyConcepcionAvanza size="text-6xl" />
+        <div className="w-full mt-5 md:w-auto text-center md:absolute md:left-1/2 md:transform md:-translate-x-1/2">
+          <TextoHoyConcepcionAvanza size="text-6xl" />
+        </div>
       </div>
-
-      </div>
-
       {/* Tarjeta principal */}
       <motion.button
         initial={{ opacity: 0, scale: 0.95 }}
