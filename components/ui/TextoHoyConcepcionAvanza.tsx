@@ -20,18 +20,22 @@ const letra = {
 };
 
 interface Props {
-  size?: string; // Ejemplo: 'text-5xl', 'text-6xl', etc.
+  size?: string;
+  color?: string;
 }
 
-export default function TextoHoyAvanza({ size = 'text-7xl' }: Props) {
-  const responsiveSize = `text-3xl ${size ? `md:${size}` : ''}`;
-
+export default function TextoHoyConcepcionAvanza({ 
+  size = 'text-5xl md:text-7xl', 
+  color = '#FFFFFF' // Color blanco por defecto
+}: Props) {
+  
   return (
     <motion.div
-      className={`text-center text-[#06c] mt-4 ${responsiveSize}`}
+      className={`text-center mt-4 ${size}`}
       style={{
         fontFamily: 'Blacksword',
         letterSpacing: '0.05em',
+        color: color, // Se aplica el color recibido como prop
       }}
       variants={container}
       initial="hidden"

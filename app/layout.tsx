@@ -1,5 +1,3 @@
-// app/layout.tsx
-
 import "./globals.css";
 import { Geist } from "next/font/google";
 import HeaderAuth from "@/components/header-auth";
@@ -8,30 +6,23 @@ import AutoLogoutWrapper from '@/components/ui/AutoLogoutWrapper';
 import FechaHoraActual from '@/components/ui/FechaHoraActual';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
-// --- INICIO DE CAMBIOS ---
-
 import type { Metadata, Viewport } from "next";
+import LoadingAnimation from "@/components/ui/LoadingAnimation"; // <-- 1. IMPORTAR EL COMPONENTE
 
-// MODIFICADO: Objeto Metadata para la PWA
 export const metadata: Metadata = {
   title: "Gestión Municipal",
   description: "Sistema de Gestión Municipal",
-  manifest: "/manifest.json", // AÑADIDO: Enlace al manifiesto de la PWA
+  manifest: "/manifest.json",
   icons: {
     icon: "/icon-192x192.png",
     shortcut: "/icon-192x192.png",
-    // MODIFICADO: Apuntando a un ícono de mejor resolución para consistencia con el manifest
     apple: "/icon-192x192.png", 
   },
 };
 
-// AÑADIDO: Objeto Viewport para controlar el color del tema en móviles
 export const viewport: Viewport = {
-  themeColor: "#FFFFFF", // Asegúrese que coincida con el theme_color de su manifest.json
+  themeColor: "#FFFFFF",
 };
-
-// --- FIN DE CAMBIOS ---
 
 const geistSans = Geist({ display: "swap", subsets: ["latin"] });
 
@@ -42,10 +33,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={geistSans.className} suppressHydrationWarning>
-      {/* ELIMINADO: La etiqueta <head> manual. 
-        Next.js ahora maneja esto automáticamente con los objetos 'metadata' y 'viewport'.
-      */}
       <body className="bg-background text-foreground min-h-screen flex flex-col">
+        <LoadingAnimation /> {/* <-- 2. AÑADIR EL COMPONENTE AQUÍ */}
         <AutoLogoutWrapper />
 
         {/* Header */}

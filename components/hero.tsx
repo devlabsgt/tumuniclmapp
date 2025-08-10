@@ -17,13 +17,7 @@ export default function Hero() {
 
   return (
     <div className="flex flex-col items-center w-full gap-8 relative">
-      {/* Zona superior */}
-      <div className="w-full max-w-5xl flex flex-col md:flex-row items-center justify-between md:items-center px-2 mt-4 relative">
-        <div className="w-full mt-5 md:w-auto text-center md:absolute md:left-1/2 md:transform md:-translate-x-1/2">
-          <TextoHoyConcepcionAvanza size="text-6xl" />
-        </div>
-      </div>
-      {/* Tarjeta principal */}
+  
       <motion.button
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: mostrarBienvenida ? 1 : 0 }}

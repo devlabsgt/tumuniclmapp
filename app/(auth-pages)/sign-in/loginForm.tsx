@@ -88,10 +88,6 @@ export function LoginForm() {
 
       </motion.div>
 
-
-
-
-
       {/* Mensajes */}
       {(error || success) && (
         <motion.div

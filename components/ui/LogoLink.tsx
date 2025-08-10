@@ -28,11 +28,13 @@ export default function LogoLink() {
           transition={{ duration: 0.6, delay: 0.1 }}
         >
           <Image
-            src="/images/logo.webp"
+            src="/images/logo-muni.png"
             alt="Logo Municipalidad de Concepción Las Minas"
-            height={250}
-            width={250}
+            height={80}
+            width={80}
+            className="block w-60"
           />
+    
         </motion.div>
 
         <motion.span
