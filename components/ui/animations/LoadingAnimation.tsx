@@ -4,36 +4,18 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TextoHoyConcepcionAvanza from '@/components/ui/TextoHoyConcepcionAvanza';
 
-interface Props {
-  isLoading?: boolean;
-}
-
-export default function LoadingAnimation({ isLoading: parentIsLoading }: Props) {
+export default function LoadingAnimation() {
   const [show, setShow] = useState(true);
 
   useEffect(() => {
-    // La secuencia de salida se activa solo cuando el componente debe desaparecer.
-    // Esto ocurre si isLoading se establece en 'false' (modo controlado) o
-    // si isLoading es 'undefined' desde el principio (modo autónomo).
-    if (parentIsLoading === false || parentIsLoading === undefined) {
-      
-      // 1. Esperamos 1500ms con el componente aún visible.
-      const timer = setTimeout(() => {
-        // 2. Después de 1500ms, cambiamos 'show' a false.
-        setShow(false);
-        // 3. Esto activa la animación 'exit' que dura 1000ms.
-      }, 1500); 
-      // Duración total de la secuencia de salida: 1500ms (espera) + 1000ms (animación) = 2500ms.
+    // Inicia la secuencia de salida automáticamente al montar el componente.
+    const timer = setTimeout(() => {
+      // 1. Después de 1000ms, activa la animación de salida.
+      setShow(false); 
+    }, 2500); // Espera de 1 segundo (1000ms)
 
-      return () => clearTimeout(timer);
-    }
-    
-    // Si isLoading es 'true', nos aseguramos de que el componente permanezca visible
-    // sin iniciar ningún temporizador de salida.
-    if (parentIsLoading === true) {
-      setShow(true);
-    }
-  }, [parentIsLoading]);
+    return () => clearTimeout(timer);
+  }, []); // El array vacío asegura que esto se ejecute solo una vez.
 
   return (
     <AnimatePresence>
@@ -41,7 +23,7 @@ export default function LoadingAnimation({ isLoading: parentIsLoading }: Props) 
         <motion.div
           key="loading-screen"
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0, transition: { duration: 0.5 } }}
+          exit={{ opacity: 0, transition: { duration: 1 } }} // El fondo se desvanece en 1s
           className="fixed inset-0 flex items-center justify-center bg-gray-100/70 backdrop-blur-sm z-50 overflow-hidden"
         >
           <motion.div
@@ -51,7 +33,7 @@ export default function LoadingAnimation({ isLoading: parentIsLoading }: Props) 
               scale: 15,
               opacity: 0, 
               transition: { 
-                duration: 1.0, // <-- Esta animación dura 1000ms
+                duration: 1.0, // 2. La animación de salida dura 2 segundos (2000ms)
                 ease: [0.76, 0, 0.24, 1]
               } 
             }}

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
-import LoadingAnimation from '@/components/ui/LoadingAnimation';
+import LoadingAnimation from '@/components/ui/animations/LoadingAnimation';
 
 export default function ProtectedPage() {
   const router = useRouter();
@@ -66,5 +66,5 @@ export default function ProtectedPage() {
     verificarAcceso();
   }, [router]);
 
-  return <LoadingAnimation isLoading={isLoading} />;
+  return <LoadingAnimation  />;
 }

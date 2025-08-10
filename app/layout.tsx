@@ -7,7 +7,7 @@ import FechaHoraActual from '@/components/ui/FechaHoraActual';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import type { Metadata, Viewport } from "next";
-import LoadingAnimation from "@/components/ui/LoadingAnimation"; // <-- 1. IMPORTAR EL COMPONENTE
+import LoadingAnimation from "@/components/ui/animations/LoadingAnimation"; // <-- 1. IMPORTAR EL COMPONENTE
 
 export const metadata: Metadata = {
   title: "Gestión Municipal",
