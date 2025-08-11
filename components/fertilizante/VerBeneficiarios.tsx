@@ -9,7 +9,6 @@ import { TablaBeneficiarios } from './TablaBeneficiarios';
 import { generarPdfBeneficiarios } from '@/components/utils/PdfBeneficiarios';
 import EstadisticasBeneficiarios from './EstadisticasBeneficiarios';
 import MISSINGFolioModal from './MISSINGFolioModal';
-import LoadingAnimation from '@/components/ui/animations/LoadingAnimation';
 import type { Beneficiario, CampoFiltro, OrdenFiltro } from './types';
 import {
   cargarBeneficiariosPorAnio,
@@ -82,7 +81,7 @@ export default function VerBeneficiarios() {
 
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-6 overflow-x-hidden">
-        <LoadingAnimation />
+  
       
       <motion.div initial="hidden" animate="visible" variants={itemVariants} transition={getTransition(0.2)}>
         <div className="flex flex-col md:flex-row md:items-center justify-between my-6 gap-2">

@@ -4,12 +4,13 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { Programa, Alumno, Maestro } from '../lib/esquemas';
-import { Pencil, PlusCircle, UserPlus, Search, Users, BookCopy, UserCheck } from 'lucide-react';
-import TablaAlumnos from './Alumnos';
+import { Pencil, PlusCircle, UserPlus, Search, Users, BookCopy, UserCheck, BarChartHorizontal } from 'lucide-react';
+import DetallesAlumnos from './Alumnos'; // Asegúrese que el nombre del import coincida con su archivo
 import TablaMaestros from './Maestros';
 import AsignarMaestro from '../forms/AsignarMaestro';
 import { motion, AnimatePresence } from 'framer-motion';
 import useUserData from '@/hooks/useUserData';
+import EstadisticasNiveles from '../charts/Niveles'; // Renombrado para claridad
 
 interface Props {
   programasPrincipales: Programa[];
@@ -41,7 +42,8 @@ export default function Programas({
   const { rol } = useUserData();
   const [openProgramaId, setOpenProgramaId] = useState<number | null>(null);
   const [openNivelId, setOpenNivelId] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<'niveles' | 'maestros'>('niveles');
+  // --- CAMBIO: Se actualiza el estado para las nuevas pestañas ---
+  const [activeTab, setActiveTab] = useState<'niveles' | 'maestros' | 'asignaciones'>('niveles');
   const [searchTerm, setSearchTerm] = useState('');
   const [openNivelMenuId, setOpenNivelMenuId] = useState<number | null>(null);
   
@@ -135,18 +137,48 @@ export default function Programas({
                 {isProgramaOpen && (
                   <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="bg-slate-50 border-t">
                     <div className="p-4">
-                      <div className="border-b flex mb-4">
+                      {/* --- CAMBIO: Reorganización de las pestañas --- */}
+                      <div className="border-b flex mb-4 flex-wrap">
                         <button onClick={() => setActiveTab('niveles')} className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'niveles' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
-                          <BookCopy className="h-4 w-4" /> Niveles
+                          <BarChartHorizontal className="h-4 w-4" /> Niveles
                         </button>
                         <button onClick={() => setActiveTab('maestros')} className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'maestros' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
                           <Users className="h-4 w-4" /> Maestros
+                        </button>
+                        <button onClick={() => setActiveTab('asignaciones')} className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'asignaciones' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
+                          <BookCopy className="h-4 w-4" /> Asignaciones
                         </button>
                       </div>
 
                       <AnimatePresence mode="wait">
                         <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                          
+                          {/* --- CAMBIO: El contenido de 'estadisticas' ahora está en la pestaña 'niveles' --- */}
                           {activeTab === 'niveles' && (
+                            <EstadisticasNiveles
+                              niveles={nivelesDelPrograma}
+                              alumnos={alumnos}
+                            />
+                          )}
+
+                          {/* El contenido de 'maestros' se queda igual */}
+                          {activeTab === 'maestros' && (
+                            <div className="space-y-4">
+                              {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
+                                <div className="flex justify-end">
+                                    <Button size="sm" className="text-xs" onClick={onCrearMaestro}><PlusCircle className="h-4 w-4 mr-2" /> Agregar Maestro</Button>
+                                </div>
+                              )}
+                              <TablaMaestros 
+                                  maestrosDelPrograma={maestrosDelPrograma} 
+                                  nivelesDelPrograma={nivelesDelPrograma}
+                                  onEditarMaestro={onEditarMaestro}
+                              />
+                            </div>
+                          )}
+
+                          {/* --- CAMBIO: El contenido anterior de 'niveles' ahora está en la pestaña 'asignaciones' --- */}
+                          {activeTab === 'asignaciones' && (
                             <div className="space-y-4">
                               <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -161,34 +193,22 @@ export default function Programas({
                                       return null;
                                     }
                                     return (
-                                      <motion.div 
-                                        layout 
-                                        key={nivel.id} 
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                        className={`border bg-white rounded-lg ${openNivelMenuId !== nivel.id ? 'overflow-hidden' : ''}`}
-                                      >
+                                      <motion.div layout key={nivel.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={`border bg-white rounded-lg ${openNivelMenuId !== nivel.id ? 'overflow-hidden' : ''}`}>
                                         <div className="p-3 cursor-pointer hover:bg-gray-50" onClick={() => handleNivelToggle(nivel.id)}>
                                           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                                              <div className="flex-grow">
-                                                  <h4 className="font-semibold text-gray-800">{nivel.nombre}</h4>
-                                                  <p className="text-sm text-gray-500 mt-1 mb-5">{nivel.descripcion || 'Sin descripción'}</p>
-                                                  <p className="text-xs text-gray-500"><span className='font-bold'>Maestro:</span> {maestros.find(m => m.id === nivel.maestro_id)?.nombre || 'Sin asignar'}</p>
-                                                  <p className="text-xs text-gray-500 mt-1"><span className='font-bold'>Alumnos Inscritos:</span> {alumnosEnNivel}</p>
-                                              </div>
+                                            <div className="flex-grow">
+                                                <h4 className="font-semibold text-gray-800">{nivel.nombre}</h4>
+                                                <p className="text-sm text-gray-500 mt-1 mb-5">{nivel.descripcion || 'Sin descripción'}</p>
+                                                <p className="text-xs text-gray-500"><span className='font-bold'>Maestro:</span> {maestros.find(m => m.id === nivel.maestro_id)?.nombre || 'Sin asignar'}</p>
+                                                <p className="text-xs text-gray-500 mt-1"><span className='font-bold'>Alumnos Inscritos:</span> {alumnosEnNivel}</p>
+                                            </div>
                                             <div className="relative w-full sm:w-auto" ref={openNivelMenuId === nivel.id ? menuRef : null}>
                                                 <Button size="sm" variant="ghost" className="w-full sm:w-auto p-2 h-auto flex items-center justify-center gap-2" onClick={(e) => { e.stopPropagation(); setOpenNivelMenuId(prev => prev === nivel.id ? null : nivel.id); }}>
                                                     Acciones
                                                 </Button>
                                                 <AnimatePresence>
                                                 {openNivelMenuId === nivel.id && (
-                                                    <motion.div
-                                                        initial={{ opacity: 0, scale: 0.95 }}
-                                                        animate={{ opacity: 1, scale: 1 }}
-                                                        exit={{ opacity: 0, scale: 0.95 }}
-                                                        className="absolute top-full right-0 mt-2 w-full sm:w-56 bg-white border rounded-md shadow-lg z-20 p-1"
-                                                    >
+                                                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="absolute top-full right-0 mt-2 w-full sm:w-56 bg-white border rounded-md shadow-lg z-20 p-1">
                                                         <Button variant="ghost" className="w-full justify-start gap-2" onClick={(e) => { e.stopPropagation(); onInscribirAlumno(nivel.id); setOpenNivelMenuId(null); }}>
                                                             <UserPlus className="h-4 w-4" /> Inscribir Alumno
                                                         </Button>
@@ -210,9 +230,7 @@ export default function Programas({
                                         </div>
                                         <AnimatePresence>
                                           {isNivelOpen && (
-                                            <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}>
-                                              <TablaAlumnos alumnos={alumnos.filter(a => a.programa_id === nivel.id)} nivel={nivel} onEditar={onEditarAlumno} onDataChange={onDataChange} />
-                                            </motion.div>
+                                            <DetallesAlumnos alumnos={alumnos.filter(a => a.programa_id === nivel.id)} nivel={nivel} onEditar={onEditarAlumno} onDataChange={onDataChange} />
                                           )}
                                         </AnimatePresence>
                                       </motion.div>
@@ -220,21 +238,6 @@ export default function Programas({
                                   })}
                                 </AnimatePresence>
                               </div>
-                            </div>
-                          )}
-
-                          {activeTab === 'maestros' && (
-                            <div className="space-y-4">
-                              {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
-                                <div className="flex justify-end">
-                                    <Button size="sm" className="text-xs" onClick={onCrearMaestro}><PlusCircle className="h-4 w-4 mr-2" /> Agregar Maestro</Button>
-                                </div>
-                              )}
-                              <TablaMaestros 
-                                  maestrosDelPrograma={maestrosDelPrograma} 
-                                  nivelesDelPrograma={nivelesDelPrograma}
-                                  onEditarMaestro={onEditarMaestro}
-                              />
                             </div>
                           )}
                         </motion.div>

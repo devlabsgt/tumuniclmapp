@@ -4,18 +4,24 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TextoHoyConcepcionAvanza from '@/components/ui/TextoHoyConcepcionAvanza';
 
-export default function LoadingAnimation() {
+// 1. Se define la prop opcional 'duration'
+interface Props {
+  duration?: number;
+}
+
+export default function LoadingAnimation({ duration }: Props) {
   const [show, setShow] = useState(true);
 
   useEffect(() => {
-    // Inicia la secuencia de salida automáticamente al montar el componente.
+    // 2. Se usa la prop 'duration' o el valor por defecto 2500
+    const delay = duration ?? 2500;
+
     const timer = setTimeout(() => {
-      // 1. Después de 1000ms, activa la animación de salida.
       setShow(false); 
-    }, 2500); // Espera de 1 segundo (1000ms)
+    }, delay); // Se utiliza la variable 'delay'
 
     return () => clearTimeout(timer);
-  }, []); // El array vacío asegura que esto se ejecute solo una vez.
+  }, [duration]); // Se agrega 'duration' como dependencia
 
   return (
     <AnimatePresence>
@@ -23,7 +29,7 @@ export default function LoadingAnimation() {
         <motion.div
           key="loading-screen"
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0, transition: { duration: 1 } }} // El fondo se desvanece en 1s
+          exit={{ opacity: 0, transition: { duration: 1 } }}
           className="fixed inset-0 flex items-center justify-center bg-gray-100/70 backdrop-blur-sm z-50 overflow-hidden"
         >
           <motion.div
@@ -33,7 +39,7 @@ export default function LoadingAnimation() {
               scale: 15,
               opacity: 0, 
               transition: { 
-                duration: 1.0, // 2. La animación de salida dura 2 segundos (2000ms)
+                duration: 1.0,
                 ease: [0.76, 0, 0.24, 1]
               } 
             }}

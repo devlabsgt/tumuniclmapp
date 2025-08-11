@@ -8,7 +8,7 @@ import { ArrowRight, BookOpen, Leaf, Building, Users, Settings, FileText, User }
 import { registrarLog } from '@/utils/registrarLog';
 import { motion } from 'framer-motion';
 import useUserData from '@/hooks/useUserData';
-
+import LoadingAnimation from '@/components/ui/animations/LoadingAnimation';
 // --- Definición de Módulos ---
 const TODOS_LOS_MODULOS = [
   {
@@ -96,6 +96,7 @@ export default function AdminDashboard() {
 
   return (
     <>
+    <LoadingAnimation duration={1000} />
       <section className="w-full max-w-6xl mx-auto px-4 md:px-8 pt-8">
         {/* --- BOTONES DE GESTIÓN --- */}
         <motion.div

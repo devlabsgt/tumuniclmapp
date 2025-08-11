@@ -3,10 +3,9 @@
 'use client';
 import { Suspense } from 'react';
 import VerBeneficiarios from '@/components/fertilizante/VerBeneficiarios';
-
 export default function BeneficiariosPage() {
   return (
-    <Suspense fallback={<div>Cargando...</div>}>
+    <Suspense>
       <VerBeneficiarios />
     </Suspense>
   );
