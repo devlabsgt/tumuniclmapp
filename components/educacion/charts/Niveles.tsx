@@ -37,9 +37,20 @@ export default function EstadisticasNiveles({ niveles, alumnos }: Props) {
 
   // --- VISTA DE DETALLES DE UN NIVEL ---
   if (nivelSeleccionado) {
-    const alumnosDelNivel = alumnos.filter(a => a.programa_id === nivelSeleccionado.id);
+const alumnosDelNivel = alumnos
+      .filter(a => a.programa_id === nivelSeleccionado.id)
+      // --- CAMBIO: Nueva lógica de ordenamiento por la primera letra de cada palabra ---
+      .sort((a, b) => {
+        const getFirstLetters = (name: string) => name.split(' ').map(word => word.charAt(0)).join('');
+        const firstLettersA = getFirstLetters(a.nombre_completo);
+        const firstLettersB = getFirstLetters(b.nombre_completo);
+        
+        return firstLettersA.localeCompare(firstLettersB);
+      });
+
     const hombres = alumnosDelNivel.filter(a => a.sexo === 'M').length;
     const mujeres = alumnosDelNivel.filter(a => a.sexo === 'F').length;
+
     const pieData = [
       { name: 'Hombres', value: hombres },
       { name: 'Mujeres', value: mujeres },

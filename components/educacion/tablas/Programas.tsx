@@ -189,6 +189,9 @@ export default function Programas({
                                   {filteredNiveles.map(nivel => {
                                     const isNivelOpen = openNivelId === nivel.id;
                                     const alumnosEnNivel = alumnos.filter(a => a.programa_id === nivel.id).length;
+
+
+                                    
                                     if (openNivelId !== null && openNivelId !== nivel.id) {
                                       return null;
                                     }
