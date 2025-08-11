@@ -136,16 +136,16 @@ export default function Programas({
               <AnimatePresence>
                 {isProgramaOpen && (
                   <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="bg-slate-50 border-t">
-                    <div className="p-4">
+                    <div className="py-2 px-0">
                       {/* --- CAMBIO: Reorganización de las pestañas --- */}
                       <div className="border-b flex mb-4 flex-wrap">
-                        <button onClick={() => setActiveTab('niveles')} className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'niveles' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
-                          <BarChartHorizontal className="h-4 w-4" /> Niveles
+                        <button onClick={() => setActiveTab('niveles')} className={`flex items-center gap-2 px-4 py-2 text-xs lg:text-xl font-semibold ${activeTab === 'niveles' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
+                          <BarChartHorizontal className="h-4 w-4 " /> Niveles
                         </button>
-                        <button onClick={() => setActiveTab('maestros')} className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'maestros' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
+                        <button onClick={() => setActiveTab('maestros')} className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold ${activeTab === 'maestros' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
                           <Users className="h-4 w-4" /> Maestros
                         </button>
-                        <button onClick={() => setActiveTab('asignaciones')} className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold ${activeTab === 'asignaciones' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
+                        <button onClick={() => setActiveTab('asignaciones')} className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold ${activeTab === 'asignaciones' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
                           <BookCopy className="h-4 w-4" /> Asignaciones
                         </button>
                       </div>
@@ -191,7 +191,7 @@ export default function Programas({
                                     const alumnosEnNivel = alumnos.filter(a => a.programa_id === nivel.id).length;
 
 
-                                    
+
                                     if (openNivelId !== null && openNivelId !== nivel.id) {
                                       return null;
                                     }

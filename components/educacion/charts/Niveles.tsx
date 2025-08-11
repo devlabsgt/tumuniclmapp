@@ -10,6 +10,7 @@ import type { Alumno, Programa } from '../lib/esquemas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, User, Phone, Shield, Search } from 'lucide-react';
+import MensajeAnimado from '../../ui/Typeanimation'; 
 
 interface Props {
   niveles: Programa[];
@@ -137,8 +138,6 @@ const alumnosDelNivel = alumnos
     );
   }
 
-  // --- VISTA GENERAL DE ESTADÍSTICAS (GRÁFICA DE BARRAS) ---
-  // --- CAMBIO: Se aplica el filtro del buscador a los datos de la gráfica ---
   const barData = niveles
     .filter(nivel => nivel.nombre.toLowerCase().includes(filtroGrafica.toLowerCase()))
     .map(nivel => ({
@@ -156,10 +155,15 @@ const alumnosDelNivel = alumnos
 
   return (
     <div className="h-auto w-full rounded-lg bg-white p-4">
-      <h3 className="text-lg font-semibold text-gray-800 mb-2">Alumnos por Nivel</h3>
-      <p className="text-sm text-gray-500 mb-4">Haga clic en una barra para ver los detalles del nivel.</p>
+      <h3 className="text-lg font-semibold text-gray-800 mb-5">Alumnos por Nivel</h3>
+                <div className="mb-6 text-xl text-blue-600 font-semibold">
+                <MensajeAnimado
+                  textos={[
+                    'Haga clic en una barra para ver los detalles del nivel.',
+                  ]}
+                />
+        </div>
       
-      {/* --- CAMBIO: Se añade el campo del buscador --- */}
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
         <Input
@@ -178,7 +182,8 @@ const alumnosDelNivel = alumnos
                 <BarChart data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 60 }} onClick={handleBarClick}>
                   <CartesianGrid strokeDasharray="3 3" />
                   {/* --- CAMBIO: Se reduce el tamaño de la fuente en la etiqueta (tick) --- */}
-                <XAxis dataKey="nombre" height={40} interval={0} tick={{ fontSize: 11 }} />                  <YAxis allowDecimals={false} />
+                <XAxis dataKey="nombre" height={40} interval={0} tick={{ fontSize: 11 }} />                 
+                 <YAxis allowDecimals={false} />
                   <Tooltip cursor={{ fill: 'rgba(239, 246, 255, 0.8)' }} />
                     <Bar dataKey="alumnos" fill="#3b82f6" radius={[4, 4, 0, 0]} className="cursor-pointer" barSize={60}>
                         <LabelList dataKey="alumnos" position="top" style={{ fill: '#4a5568', fontSize: 12 }} />
