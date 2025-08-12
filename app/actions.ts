@@ -151,7 +151,7 @@ export const signInAction = async (formData: FormData) => {
       
       const dia = ahora.getUTCDay();
       const esLaboral = dia >= 1 && dia <= 5;
-      const enHorario = hora >= 8 && hora < 16;
+      const enHorario = hora >= 8 && hora < 18;
 
       const { fecha, formateada } = obtenerFechaYFormatoGT(); // <-- Se usa 'formateada'
 
@@ -168,7 +168,7 @@ export const signInAction = async (formData: FormData) => {
         return encodedRedirect(
           'error',
           '/sign-in',
-          `Fuera de horario (${formateada}): intenta de nuevo en horario hábil: lunes - viernes, 08:00 - 16:00.`
+          `Fuera de horario (${formateada}): intenta de nuevo en horario hábil: lunes - viernes, 08:00 - 18:00.`
         );
       }
     }

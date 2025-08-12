@@ -172,10 +172,10 @@ export default function EstadisticasNiveles({ niveles, alumnos }: Props) {
       </div>
 
       <div className="overflow-x-auto">
-        <div className="min-w-[600px] h-[350px]">
+        <div style={{ width: `${Math.max(600, barData.length * 80)}px`, height: '350px' }}>
           {barData.length > 0 ? (
             isClient && (
-              <BarChart width={barData.length * 80} height={350} data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 60 }} onClick={handleBarClick}>
+              <BarChart width={Math.max(600, barData.length * 80)} height={350} data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 60 }} onClick={handleBarClick}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="nombre" height={40} interval={0} tick={{ fontSize: 11 }} />                 
                 <YAxis allowDecimals={false} />

@@ -23,7 +23,7 @@ const TODOS_LOS_MODULOS = [
   },
   {
     nombre: 'FERTILIZANTE',
-    titulo: 'Fertilizante',
+    titulo: 'Desarrollo Enonómico Social',
     descripcion: 'Gestione beneficiarios, entregas y estadísticas.',
     ruta: '/protected/fertilizante/beneficiarios',
     icono: <Leaf className="h-8 w-8 text-teal-500" />,

@@ -2,7 +2,7 @@ import "./globals.css";
 import { Geist } from "next/font/google";
 import HeaderAuth from "@/components/header-auth";
 import LogoLink from "@/components/ui/LogoLink";
-import AutoLogoutWrapper from '@/components/ui/AutoLogoutWrapper';
+//import AutoLogoutWrapper from '@/components/ui/AutoLogoutWrapper';
 import FechaHoraActual from '@/components/ui/FechaHoraActual';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -35,7 +35,7 @@ export default function RootLayout({
     <html lang="es" className={geistSans.className} suppressHydrationWarning>
       <body className="bg-background text-foreground min-h-screen flex flex-col">
         <LoadingAnimation /> {/* <-- 2. AÑADIR EL COMPONENTE AQUÍ */}
-        <AutoLogoutWrapper />
+        {/*<AutoLogoutWrapper />*/}
 
         {/* Header */}
         <nav className="w-full flex border-b border-b-foreground/10 h-40">
