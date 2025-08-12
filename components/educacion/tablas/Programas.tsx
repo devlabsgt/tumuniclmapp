@@ -106,7 +106,7 @@ export default function Programas({
         {programasParaMostrar.map(programa => {
           const isProgramaOpen = openProgramaId === programa.id;
           const nivelesDelPrograma = todosLosProgramas.filter(p => p.parent_id === programa.id).sort((a, b) => a.nombre.localeCompare(b.nombre));
-          const alumnosDelPrograma = alumnos.filter(a => nivelesDelPrograma.some(n => n.id === a.programa_id));
+          const alumnosDelPrograma = alumnos?.filter(a => nivelesDelPrograma.some(n => n.id === a.programa_id)) || [];
           const maestroIdsEnPrograma = [...new Set(nivelesDelPrograma.map(n => n.maestro_id).filter(id => id != null))];
           const maestrosDelPrograma = maestros.filter(m => maestroIdsEnPrograma.includes(m.id));
 
@@ -114,7 +114,7 @@ export default function Programas({
             <motion.div 
               key={programa.id} 
               layout 
-              className={`border rounded-lg bg-white shadow-sm ${openNivelMenuId === null ? 'overflow-hidden' : ''}`}
+              className={`border rounded-lg bg-white shadow-sm`}
             >
               <div className="p-4 cursor-pointer hover:bg-gray-50" onClick={() => handleProgramaToggle(programa.id)}>
                 <div className="flex items-center justify-between gap-2">
@@ -154,6 +154,7 @@ export default function Programas({
                           
                           {activeTab === 'niveles' && (
                             <div className="space-y-6 px-4">
+                                {/* Se pasa un array vacío si la prop 'alumnos' es undefined */}
                                 <EstadisticasNiveles
                                   niveles={nivelesDelPrograma}
                                   alumnos={alumnosDelPrograma}
@@ -189,7 +190,7 @@ export default function Programas({
                                 <AnimatePresence>
                                   {nivelesDelPrograma.filter(nivel => nivel.nombre.toLowerCase().includes(searchTerm.toLowerCase())).map(nivel => {
                                     const isNivelOpen = openNivelId === nivel.id;
-                                    const alumnosEnNivel = alumnos.filter(a => a.programa_id === nivel.id).length;
+                                    const alumnosEnNivel = alumnos?.filter(a => a.programa_id === nivel.id).length;
 
                                     if (openNivelId !== null && openNivelId !== nivel.id) {
                                       return null;
@@ -232,7 +233,7 @@ export default function Programas({
                                         </div>
                                         <AnimatePresence>
                                           {isNivelOpen && (
-                                            <DetallesAlumnos alumnos={alumnos.filter(a => a.programa_id === nivel.id)} nivel={nivel} onEditar={onEditarAlumno} onDataChange={onDataChange} />
+                                            <DetallesAlumnos alumnos={alumnos?.filter(a => a.programa_id === nivel.id) || []} nivel={nivel} onEditar={onEditarAlumno} onDataChange={onDataChange} />
                                           )}
                                         </AnimatePresence>
                                       </motion.div>

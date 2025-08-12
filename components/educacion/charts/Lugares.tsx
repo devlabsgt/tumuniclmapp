@@ -10,7 +10,6 @@ interface EstadisticasLugaresProps {
 
 export default function EstadisticasLugares({ alumnos }: EstadisticasLugaresProps) {
   const alumnosPorLugar = useMemo(() => {
-    // Contar alumnos por lugar usando la propiedad ubicacion del alumno
     const conteo = new Map<string, number>();
 
     alumnos.forEach(a => {
@@ -19,7 +18,6 @@ export default function EstadisticasLugares({ alumnos }: EstadisticasLugaresProp
       }
     });
 
-    // Convertir a formato de array y ordenar
     return Array.from(conteo.entries())
       .map(([nombre, alumnos]) => ({ nombre, alumnos }))
       .sort((a, b) => b.alumnos - a.alumnos);
@@ -44,21 +42,23 @@ export default function EstadisticasLugares({ alumnos }: EstadisticasLugaresProp
       className="p-6 bg-white border rounded-xl shadow-lg"
     >
       <h3 className="text-xl font-bold text-gray-800 mb-4">Alumnos por Lugar</h3>
-      <div className="space-y-4">
-        {alumnosPorLugar.map((item) => (
-          <div key={item.nombre} className="flex items-center gap-4">
-            <span className="w-1/4 sm:w-1/5 text-sm font-medium text-gray-600 truncate">{item.nombre}</span>
-            <div className="relative flex-grow bg-gray-200 rounded-full h-6">
-              <motion.div
-                className="bg-purple-600 h-full rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${(item.alumnos / maxAlumnos) * 100}%` }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-              />
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-white font-semibold text-xs drop-shadow-sm">{item.alumnos}</span>
+      <div className="overflow-x-auto">
+        <div className="space-y-4 min-w-[300px]">
+          {alumnosPorLugar.map((item) => (
+            <div key={item.nombre} className="flex items-center gap-4">
+              <span className="w-1/4 sm:w-1/5 text-sm font-medium text-gray-600 truncate">{item.nombre}</span>
+              <div className="relative flex-grow bg-gray-200 rounded-full h-6">
+                <motion.div
+                  className="bg-purple-600 h-full rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(item.alumnos / maxAlumnos) * 100}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                />
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-white font-semibold text-xs drop-shadow-sm">{item.alumnos}</span>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </motion.div>
   );

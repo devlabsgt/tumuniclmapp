@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import {
   BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, Tooltip, ResponsiveContainer,
+  XAxis, YAxis, Tooltip,
   LabelList, CartesianGrid, Legend
 } from 'recharts';
 import type { Alumno, Programa } from '../lib/esquemas';
@@ -25,7 +25,6 @@ const COLORS = {
 export default function EstadisticasNiveles({ niveles, alumnos }: Props) {
   const [isClient, setIsClient] = useState(false);
   const [nivelSeleccionado, setNivelSeleccionado] = useState<Programa | null>(null);
-  // --- CAMBIO: Estado para el buscador de la gráfica ---
   const [filtroGrafica, setFiltroGrafica] = useState('');
 
   useEffect(() => {
@@ -36,11 +35,9 @@ export default function EstadisticasNiveles({ niveles, alumnos }: Props) {
     setNivelSeleccionado(null);
   }, [niveles]);
 
-  // --- VISTA DE DETALLES DE UN NIVEL ---
   if (nivelSeleccionado) {
-const alumnosDelNivel = alumnos
+    const alumnosDelNivel = alumnos
       .filter(a => a.programa_id === nivelSeleccionado.id)
-      // --- CAMBIO: Nueva lógica de ordenamiento por la primera letra de cada palabra ---
       .sort((a, b) => {
         const getFirstLetters = (name: string) => name.split(' ').map(word => word.charAt(0)).join('');
         const firstLettersA = getFirstLetters(a.nombre_completo);
@@ -73,10 +70,10 @@ const alumnosDelNivel = alumnos
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           <div className="lg:col-span-2 bg-slate-50 p-4 rounded-lg flex flex-col">
             <h4 className="text-md font-semibold text-gray-800 mb-4 text-center">Distribución por Género</h4>
-            <div className="h-64 w-full">
+            <div className="h-64 w-full overflow-x-auto">
               {pieData.length > 0 && isClient ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
+                <div className="min-w-[400px] h-full">
+                  <PieChart width={400} height={256}>
                     <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}/>
                     <Legend iconType="circle" formatter={legendFormatter} />
                     <Pie data={pieData} cx="50%" cy="50%" labelLine={false} outerRadius={80} fill="#8884d8" dataKey="value" nameKey="name"
@@ -89,7 +86,7 @@ const alumnosDelNivel = alumnos
                       {pieData.map((entry) => <Cell key={`cell-${entry.name}`} fill={COLORS[entry.name as keyof typeof COLORS]} />)}
                     </Pie>
                   </PieChart>
-                </ResponsiveContainer>
+                </div>
               ) : <div className="flex items-center justify-center h-full text-sm text-gray-500">No hay datos de género.</div>}
             </div>
             <p className="text-center text-gray-600 font-semibold mt-4">
@@ -156,13 +153,13 @@ const alumnosDelNivel = alumnos
   return (
     <div className="h-auto w-full rounded-lg bg-white p-4">
       <h3 className="text-lg font-semibold text-gray-800 mb-5">Alumnos por Nivel</h3>
-                <div className="mb-6 text-xl text-blue-600 font-semibold">
-                <MensajeAnimado
-                  textos={[
-                    'Haga clic en una barra para ver los detalles del nivel.',
-                  ]}
-                />
-        </div>
+      <div className="mb-6 text-xl text-blue-600 font-semibold">
+        <MensajeAnimado
+          textos={[
+            'Haga clic en una barra para ver los detalles del nivel.',
+          ]}
+        />
+      </div>
       
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -174,22 +171,19 @@ const alumnosDelNivel = alumnos
         />
       </div>
 
-      <div className="w-full overflow-x-auto">
-        <div className="h-[350px] min-w-[600px]">
+      <div className="overflow-x-auto">
+        <div className="min-w-[600px] h-[350px]">
           {barData.length > 0 ? (
             isClient && (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 60 }} onClick={handleBarClick}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  {/* --- CAMBIO: Se reduce el tamaño de la fuente en la etiqueta (tick) --- */}
+              <BarChart width={barData.length * 80} height={350} data={barData} margin={{ top: 20, right: 30, left: 0, bottom: 60 }} onClick={handleBarClick}>
+                <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="nombre" height={40} interval={0} tick={{ fontSize: 11 }} />                 
-                 <YAxis allowDecimals={false} />
-                  <Tooltip cursor={{ fill: 'rgba(239, 246, 255, 0.8)' }} />
-                    <Bar dataKey="alumnos" fill="#3b82f6" radius={[4, 4, 0, 0]} className="cursor-pointer" barSize={60}>
-                        <LabelList dataKey="alumnos" position="top" style={{ fill: '#4a5568', fontSize: 12 }} />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+                <YAxis allowDecimals={false} />
+                <Tooltip cursor={{ fill: 'rgba(239, 246, 255, 0.8)' }} />
+                <Bar dataKey="alumnos" fill="#3b82f6" radius={[4, 4, 0, 0]} className="cursor-pointer" barSize={60}>
+                  <LabelList dataKey="alumnos" position="top" style={{ fill: '#4a5568', fontSize: 12 }} />
+                </Bar>
+              </BarChart>
             )
           ) : (
             <div className="flex items-center justify-center h-full text-gray-500">No se encontraron niveles con ese nombre.</div>

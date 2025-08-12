@@ -23,14 +23,17 @@ export default function Alumnos({ alumnos, nivel, onEditar, onDataChange }: Prop
   }
 
   return (
-    <div className="border-t border-gray-200">
+    <div className="border-t border-gray-200 w-full overflow-x-auto">
       <table className="min-w-full text-sm">
         <thead className="bg-gray-50">
           <tr>
             <th className="px-4 py-2 text-left font-medium text-gray-600 w-12">No.</th>
-            <th className="px-4 py-2 text-left font-medium text-gray-600">Nombre del Alumno</th>
+            <th className="px-4 py-2 text-left font-medium text-gray-600 min-w-[160px]">Nombre del Alumno</th>
             <th className="px-4 py-2 text-left font-medium text-gray-600">Edad</th>
-            <th className="px-4 py-2 text-right font-medium text-gray-600">Acciones</th>
+            <th className="px-4 py-2 text-left font-medium text-gray-600">Teléfono</th>
+            <th className="px-4 py-2 text-left font-medium text-gray-600 min-w-[160px]">Encargado</th>
+            <th className="px-4 py-2 text-left font-medium text-gray-600">Tel. Encargado</th>
+            <th className="px-4 py-2 text-right font-medium text-gray-600 min-w-[100px]">Acciones</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
@@ -46,6 +49,15 @@ export default function Alumnos({ alumnos, nivel, onEditar, onDataChange }: Prop
                 </td>
                 <td className={`px-4 py-3 ${edadClass}`}>
                   {edad}
+                </td>
+                <td className="px-4 py-3 text-gray-500">
+                  {alumno.telefono_alumno || '—'}
+                </td>
+                <td className="px-4 py-3 text-gray-500">
+                  {alumno.nombre_encargado}
+                </td>
+                <td className="px-4 py-3 text-gray-500">
+                  {alumno.telefono_encargado}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end items-center gap-1 sm:gap-2">
