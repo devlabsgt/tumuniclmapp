@@ -53,6 +53,8 @@ FOR ALL
 TO authenticated
 USING (true)
 WITH CHECK (true);
+
+
 --- vistas para el frontend
 CREATE VIEW public.vista_usuarios_detalle AS
 SELECT
