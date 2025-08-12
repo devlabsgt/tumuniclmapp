@@ -14,6 +14,11 @@ import { toast } from 'react-toastify';
 
 type AlumnoFormData = z.infer<typeof alumnoSchema>;
 
+interface Lugar {
+    id: number;
+    nombre: string;
+}
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -26,6 +31,7 @@ interface Props {
 
 export default function Alumno({ isOpen, onClose, onSave, alumnoAEditar, nivelId, todosLosAlumnos, alumnosInscritos }: Props) {
   const isEditMode = !!alumnoAEditar;
+  const [lugares, setLugares] = useState<Lugar[]>([]);
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset, setValue, watch } = useForm<AlumnoFormData>({
     resolver: zodResolver(alumnoSchema),
@@ -39,25 +45,39 @@ export default function Alumno({ isOpen, onClose, onSave, alumnoAEditar, nivelId
 
   useEffect(() => {
     if (isOpen) {
-      if (alumnoAEditar) {
-        const nacimientoFormatted = new Date(alumnoAEditar.fecha_nacimiento).toISOString().split('T')[0];
-        reset({ ...alumnoAEditar, fecha_nacimiento: nacimientoFormatted });
-        setSelectedAlumno(alumnoAEditar);
-        setSearchTerm(alumnoAEditar.nombre_completo);
-      } else {
-        reset({
-          nombre_completo: '',
-          cui_alumno: '',
-          fecha_nacimiento: '',
-          sexo: 'M',
-          nombre_encargado: '',
-          cui_encargado: '',
-          telefono_encargado: '',
-          telefono_alumno: '',
-        });
-        setSelectedAlumno(null);
-        setSearchTerm('');
-      }
+      const supabase = createClient();
+      
+      const fetchAndReset = async () => {
+        const { data: lugaresData, error } = await supabase.from('lugares_clm').select('id, nombre').order('nombre');
+        if (error) {
+          toast.error('No se pudieron cargar los lugares.');
+        } else {
+          setLugares(lugaresData as Lugar[]); // Línea corregida
+        }
+
+        if (alumnoAEditar) {
+          const nacimientoFormatted = new Date(alumnoAEditar.fecha_nacimiento).toISOString().split('T')[0];
+          reset({ ...alumnoAEditar, fecha_nacimiento: nacimientoFormatted });
+          setSelectedAlumno(alumnoAEditar);
+          setSearchTerm(alumnoAEditar.nombre_completo);
+        } else {
+          reset({
+            nombre_completo: '',
+            cui_alumno: '',
+            fecha_nacimiento: '',
+            sexo: 'M',
+            nombre_encargado: '',
+            cui_encargado: '',
+            telefono_encargado: '',
+            telefono_alumno: '',
+            ubicacion: '',
+          });
+          setSelectedAlumno(null);
+          setSearchTerm('');
+        }
+      };
+
+      fetchAndReset();
     }
   }, [isOpen, alumnoAEditar, reset]);
 
@@ -93,7 +113,6 @@ export default function Alumno({ isOpen, onClose, onSave, alumnoAEditar, nivelId
     setValue('nombre_completo', e.target.value);
     
     if (selectedAlumno && !isEditMode) {
-      setSelectedAlumno(null);
       reset({
         nombre_completo: e.target.value,
         cui_alumno: '',
@@ -103,7 +122,9 @@ export default function Alumno({ isOpen, onClose, onSave, alumnoAEditar, nivelId
         cui_encargado: '',
         telefono_encargado: '',
         telefono_alumno: '',
+        ubicacion: '',
       })
+      setSelectedAlumno(null);
     }
   };
 
@@ -247,6 +268,22 @@ export default function Alumno({ isOpen, onClose, onSave, alumnoAEditar, nivelId
                 <label htmlFor="fecha_nacimiento" className="block text-sm font-medium text-gray-700 mb-1">Fecha de Nacimiento</label>
                 <Input id="fecha_nacimiento" type="date" {...register("fecha_nacimiento")} className={errors.fecha_nacimiento ? 'border-red-500' : ''} readOnly={!!selectedAlumno && !isEditMode} />
                 {errors.fecha_nacimiento && <p className="text-sm text-red-500 mt-1">{errors.fecha_nacimiento.message}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="ubicacion" className="block text-sm font-medium text-gray-700 mb-1">Ubicación</label>
+                <select 
+                  id="ubicacion" 
+                  {...register("ubicacion")} 
+                  className={`w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.ubicacion ? 'border-red-500' : ''}`}
+                  disabled={!!selectedAlumno && !isEditMode}
+                >
+                  <option value="">-- Seleccione una ubicación --</option>
+                  {lugares.map(lugar => (
+                      <option key={lugar.id} value={lugar.nombre}>{lugar.nombre}</option>
+                  ))}
+                </select>
+                {errors.ubicacion && <p className="text-sm text-red-500 mt-1">{errors.ubicacion.message}</p>}
               </div>
 
               <div>

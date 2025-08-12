@@ -1,9 +1,10 @@
 'use client';
 
-import { Eye, ArrowDown } from 'lucide-react'; // <-- ICONOS ACTUALIZADOS
+import { Eye, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Alumno, Programa } from '../lib/esquemas';
 import { desinscribirAlumno } from '../lib/acciones';
+import { differenceInYears } from 'date-fns';
 
 interface Props {
   alumnos: Alumno[];
@@ -11,6 +12,10 @@ interface Props {
   onEditar: (alumno: Alumno) => void;
   onDataChange: () => void;
 }
+
+const calcularEdad = (fechaNacimiento: string): number => {
+  return differenceInYears(new Date(), new Date(fechaNacimiento));
+};
 
 export default function Alumnos({ alumnos, nivel, onEditar, onDataChange }: Props) {
   if (alumnos.length === 0) {
@@ -24,42 +29,49 @@ export default function Alumnos({ alumnos, nivel, onEditar, onDataChange }: Prop
           <tr>
             <th className="px-4 py-2 text-left font-medium text-gray-600 w-12">No.</th>
             <th className="px-4 py-2 text-left font-medium text-gray-600">Nombre del Alumno</th>
+            <th className="px-4 py-2 text-left font-medium text-gray-600">Edad</th>
             <th className="px-4 py-2 text-right font-medium text-gray-600">Acciones</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {alumnos.map((alumno, index) => (
-            <tr key={alumno.id} className="hover:bg-gray-50">
-              <td className="px-4 py-3 font-medium text-gray-500">{index + 1}</td>
-              <td className="px-4 py-3">
-                <div className="font-medium text-gray-800">{alumno.nombre_completo}</div>
-              </td>
-              <td className="px-4 py-3 text-right">
-                <div className="flex justify-end items-center gap-1 sm:gap-2">
-                  {/* --- BOTÓN VER --- */}
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    onClick={() => onEditar(alumno)}
-                    className="p-2 h-auto"
-                  >
-                    <Eye className="h-4 w-4" />
-                    <span className="hidden sm:inline sm:ml-2">Ver</span>
-                  </Button>
-                  {/* --- BOTÓN DESASIGNAR --- */}
-                  <Button 
-                    size="sm" 
-                    variant="ghost"
-                    className="p-2 h-auto text-red-600 hover:text-red-700 hover:bg-red-50"
-                    onClick={() => desinscribirAlumno(alumno.id, nivel.id, alumno.nombre_completo, onDataChange)}
-                  >
-                    <ArrowDown className="h-4 w-4" />
-                    <span className="hidden sm:inline sm:ml-2">Desasignar</span>
-                  </Button>
-                </div>
-              </td>
-            </tr>
-          ))}
+          {alumnos.map((alumno, index) => {
+            const edad = calcularEdad(alumno.fecha_nacimiento);
+            const edadClass = edad >= 18 ? 'text-green-600 font-semibold' : 'text-gray-500';
+
+            return (
+              <tr key={alumno.id} className="hover:bg-gray-50">
+                <td className="px-4 py-3 font-medium text-gray-500">{index + 1}</td>
+                <td className="px-4 py-3">
+                  <div className="font-medium text-gray-800">{alumno.nombre_completo}</div>
+                </td>
+                <td className={`px-4 py-3 ${edadClass}`}>
+                  {edad}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <div className="flex justify-end items-center gap-1 sm:gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onEditar(alumno)}
+                      className="p-2 h-auto"
+                    >
+                      <Eye className="h-4 w-4" />
+                      <span className="hidden sm:inline sm:ml-2">Ver</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="p-2 h-auto text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => desinscribirAlumno(alumno.id, nivel.id, alumno.nombre_completo, onDataChange)}
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                      <span className="hidden sm:inline sm:ml-2">Desasignar</span>
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

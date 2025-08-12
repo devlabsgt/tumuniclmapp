@@ -1,16 +1,18 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { Programa, Alumno, Maestro } from '../lib/esquemas';
 import { Pencil, PlusCircle, UserPlus, Search, Users, BookCopy, UserCheck, BarChartHorizontal } from 'lucide-react';
-import DetallesAlumnos from './Alumnos'; // Asegúrese que el nombre del import coincida con su archivo
+import DetallesAlumnos from './Alumnos';
 import TablaMaestros from './Maestros';
 import AsignarMaestro from '../forms/AsignarMaestro';
 import { motion, AnimatePresence } from 'framer-motion';
 import useUserData from '@/hooks/useUserData';
-import EstadisticasNiveles from '../charts/Niveles'; // Renombrado para claridad
+import EstadisticasNiveles from '../charts/Niveles';
+import EstadisticasLugares from '../charts/Lugares';
 
 interface Props {
   programasPrincipales: Programa[];
@@ -42,7 +44,6 @@ export default function Programas({
   const { rol } = useUserData();
   const [openProgramaId, setOpenProgramaId] = useState<number | null>(null);
   const [openNivelId, setOpenNivelId] = useState<number | null>(null);
-  // --- CAMBIO: Se actualiza el estado para las nuevas pestañas ---
   const [activeTab, setActiveTab] = useState<'niveles' | 'maestros' | 'asignaciones'>('niveles');
   const [searchTerm, setSearchTerm] = useState('');
   const [openNivelMenuId, setOpenNivelMenuId] = useState<number | null>(null);
@@ -105,8 +106,7 @@ export default function Programas({
         {programasParaMostrar.map(programa => {
           const isProgramaOpen = openProgramaId === programa.id;
           const nivelesDelPrograma = todosLosProgramas.filter(p => p.parent_id === programa.id).sort((a, b) => a.nombre.localeCompare(b.nombre));
-          const filteredNiveles = nivelesDelPrograma.filter(nivel => nivel.nombre.toLowerCase().includes(searchTerm.toLowerCase()));
-          
+          const alumnosDelPrograma = alumnos.filter(a => nivelesDelPrograma.some(n => n.id === a.programa_id));
           const maestroIdsEnPrograma = [...new Set(nivelesDelPrograma.map(n => n.maestro_id).filter(id => id != null))];
           const maestrosDelPrograma = maestros.filter(m => maestroIdsEnPrograma.includes(m.id));
 
@@ -137,10 +137,9 @@ export default function Programas({
                 {isProgramaOpen && (
                   <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="bg-slate-50 border-t">
                     <div className="py-2 px-0">
-                      {/* --- CAMBIO: Reorganización de las pestañas --- */}
                       <div className="border-b flex mb-4 flex-wrap">
                         <button onClick={() => setActiveTab('niveles')} className={`flex items-center gap-2 px-4 py-2 text-xs lg:text-xl font-semibold ${activeTab === 'niveles' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
-                          <BarChartHorizontal className="h-4 w-4 " /> Niveles
+                          <BarChartHorizontal className="h-4 w-4 " /> Estadísticas
                         </button>
                         <button onClick={() => setActiveTab('maestros')} className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold ${activeTab === 'maestros' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
                           <Users className="h-4 w-4" /> Maestros
@@ -153,15 +152,18 @@ export default function Programas({
                       <AnimatePresence mode="wait">
                         <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                           
-                          {/* --- CAMBIO: El contenido de 'estadisticas' ahora está en la pestaña 'niveles' --- */}
                           {activeTab === 'niveles' && (
-                            <EstadisticasNiveles
-                              niveles={nivelesDelPrograma}
-                              alumnos={alumnos}
-                            />
+                            <div className="space-y-6 px-4">
+                                <EstadisticasNiveles
+                                  niveles={nivelesDelPrograma}
+                                  alumnos={alumnosDelPrograma}
+                                />
+                                <EstadisticasLugares
+                                  alumnos={alumnosDelPrograma}
+                                />
+                            </div>
                           )}
 
-                          {/* El contenido de 'maestros' se queda igual */}
                           {activeTab === 'maestros' && (
                             <div className="space-y-4">
                               {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
@@ -177,7 +179,6 @@ export default function Programas({
                             </div>
                           )}
 
-                          {/* --- CAMBIO: El contenido anterior de 'niveles' ahora está en la pestaña 'asignaciones' --- */}
                           {activeTab === 'asignaciones' && (
                             <div className="space-y-4">
                               <div className="relative">
@@ -186,11 +187,9 @@ export default function Programas({
                               </div>
                               <div className="space-y-2">
                                 <AnimatePresence>
-                                  {filteredNiveles.map(nivel => {
+                                  {nivelesDelPrograma.filter(nivel => nivel.nombre.toLowerCase().includes(searchTerm.toLowerCase())).map(nivel => {
                                     const isNivelOpen = openNivelId === nivel.id;
                                     const alumnosEnNivel = alumnos.filter(a => a.programa_id === nivel.id).length;
-
-
 
                                     if (openNivelId !== null && openNivelId !== nivel.id) {
                                       return null;

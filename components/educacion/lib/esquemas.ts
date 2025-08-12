@@ -38,6 +38,8 @@ export const alumnoSchema = z.object({
     }),
   telefono_encargado: z.string().length(8, { message: 'El teléfono del encargado debe tener 8 dígitos.' }),
   telefono_alumno: z.string().length(8, { message: 'El teléfono del alumno debe tener 8 dígitos.' }).optional().or(z.literal('')),
+  // --- CAMBIO: Campo de ubicación agregado ---
+  ubicacion: z.string().min(3, { message: 'La ubicación es obligatoria.' }),
 });
 
 // --- Esquema para Maestros ---
@@ -51,7 +53,7 @@ export const maestroSchema = z.object({
 export type Programa = z.infer<typeof programaSchema> & {
   id: number;
   lugar?: string | null;
-  maestro_id?: number | null; // Se mantiene por ahora para no romper otras partes
+  maestro_id?: number | null;
 };
 
 export type Alumno = z.infer<typeof alumnoSchema> & {
