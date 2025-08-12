@@ -90,7 +90,7 @@ export default function Programas({
   if (programasPrincipales.length === 0) {
     return (
         <div className="text-center text-gray-500 mt-8 p-6 bg-white border rounded-lg shadow-sm">
-            <h3 className="text-lg font-semibold">No hay programas registrados</h3>
+            <h3 className="text-lg font-semibold">No hay programas educativos asignados a tu perfil</h3>
         </div>
     );
   }

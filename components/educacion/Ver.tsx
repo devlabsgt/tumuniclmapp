@@ -147,7 +147,7 @@ export default function Ver() {
     const programasPrincipales = programas
         .filter(p => p.parent_id === null)
         .filter(p => {
-            if (rol === 'SUPER' || (programasAsignados && programasAsignados.includes('TODOS'))) {
+            if (rol === 'SUPER' || rol === 'ADMINISTRADOR' ||(programasAsignados && programasAsignados.includes('TODOS'))) {
                 return true;
             }
             return programasAsignados && programasAsignados.includes(p.nombre);

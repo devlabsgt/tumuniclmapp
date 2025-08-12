@@ -50,9 +50,9 @@ export default function RootLayout({
         </nav>
 
         {/* Contenido principal que se expande */}
-        <main className="flex flex-col gap-5 max-w-5xl p-5 flex-grow w-full self-center min-h-[100vh]">
-          {children}
-        </main>
+      <main className="flex flex-col  items-center gap-5 p-4 flex-grow w-full self-center min-h-[100vh]">
+        {children}
+      </main>
 
         {/* Footer */}
         <footer className="pt-5 border-t border-foreground/10 bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-gray-300 px-6 pb-6">

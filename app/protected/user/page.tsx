@@ -66,8 +66,9 @@ export default function UserDashboard() {
   };
 
   return (
-    <section className="w-full max-w-6xl mx-auto px-4 md:px-8 pt-8">
+    <section className="w-full max-w-6xl p-0">
       {vistaActiva === 'modulos' && (
+
         <motion.div
           className="w-full flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8"
           initial={{ opacity: 0, y: -20 }}
@@ -85,20 +86,17 @@ export default function UserDashboard() {
         </motion.div>
       )}
 
-      {/* --- BLOQUE DE TÍTULO Y BOTÓN "VOLVER" MODIFICADO --- */}
-      <div className="relative mb-6">
+      <div className="relative text-center mb-6">
         {vistaActiva !== 'modulos' && (
           <motion.div 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }} 
-            // En pantallas grandes (sm), se posiciona a la izquierda. En móvil, ocupa su espacio normal.
             className="sm:absolute sm:left-0 sm:top-1/2 sm:-translate-y-1/2 mb-4 sm:mb-0"
           >
             <Button
               variant="link"
               onClick={() => setVistaActiva('modulos')}
-              // Ancho completo en móvil, automático en pantallas grandes.
               className="w-full sm:w-auto text-blue-600 text-xl flex items-center gap-2 px-0 justify-center sm:justify-start"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -123,12 +121,26 @@ export default function UserDashboard() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {modulosFiltrados.length > 0 ? modulosFiltrados.map((modulo) => (
-                <div key={modulo.nombre} className="bg-white border rounded-xl p-6 flex flex-col justify-between h-full hover:shadow-md transition-shadow">
+                // --- CAMBIOS AQUÍ ---
+                <div 
+                  key={modulo.nombre} 
+                  onClick={() => irA(modulo.nombre, modulo.ruta)}
+                  className="bg-white border rounded-xl p-6 flex flex-col justify-between h-full hover:shadow-lg transition-shadow cursor-pointer"
+                >
                   <div>
                     <div className="flex items-center gap-4 mb-3">{modulo.icono}<h2 className="text-xl font-bold text-gray-800">{modulo.titulo}</h2></div>
                     <p className="text-gray-600 mb-6">{modulo.descripcion}</p>
                   </div>
-                  <Button onClick={() => irA(modulo.nombre, modulo.ruta)} className="w-full mt-auto">Entrar<ArrowRight className="h-4 w-4 ml-2" /></Button>
+                  <Button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); // Evita que el clic se propague al div padre
+                      irA(modulo.nombre, modulo.ruta) 
+                    }} 
+                    className="w-full mt-auto"
+                  >
+                    Entrar
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
                 </div>
               )) : <p className='col-span-full text-center text-gray-500'>No tiene módulos asignados.</p>}
             </div>

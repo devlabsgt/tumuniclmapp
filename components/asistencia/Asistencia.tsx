@@ -6,67 +6,68 @@ import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
 import useUserData from '@/hooks/useUserData';
 import { es } from 'date-fns/locale';
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, isToday, addDays, subDays, getYear, getMonth, isSameDay } from 'date-fns';
-import { X } from 'lucide-react';
+import { format, isToday } from 'date-fns';
+import { X, Clock, CalendarCheck } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Resumen from './Resumen';
+import Calendario from './Calendario';
 
 const supabase = createClient();
 
+const GUATEMALA_TIMEZONE_OFFSET = -6; // UTC-6
+
 interface Registro {
-  fecha: string;
-  hora: string;
+  created_at: string;
   tipo_registro: string | null;
   ubicacion: { lat: number; lng: number } | null;
 }
 
-const esRegistroAnomalo = (registro: Registro): boolean => {
+export const esRegistroAnomalo = (registro: Registro): boolean => {
   if (!registro.tipo_registro) return false;
-  // HORAS UTC: 08:09 AM GT = 14:09 UTC | 04:00 PM GT = 22:00 UTC
-  const esEntradaTardia = registro.tipo_registro === 'Entrada' && registro.hora > '14:09:59';
-  const esSalidaTemprana = registro.tipo_registro === 'Salida' && registro.hora < '22:00:00';
+
+  const registroFechaUtc = new Date(registro.created_at);
+  const horaRegistroGt = registroFechaUtc.getUTCHours() + GUATEMALA_TIMEZONE_OFFSET;
+  const horaEnMinutos = horaRegistroGt * 60 + registroFechaUtc.getUTCMinutes();
+
+  // Horas límite en minutos (08:10 = 8*60+10, 16:00 = 22*60)
+  const horaLimiteEntrada = 8 * 60 + 10;
+  const horaLimiteSalida = 14 * 60;
+
+  const esEntradaTardia = registro.tipo_registro === 'Entrada' && horaEnMinutos > horaLimiteEntrada;
+  const esSalidaTemprana = registro.tipo_registro === 'Salida' && horaEnMinutos < horaLimiteSalida;
+
   return esEntradaTardia || esSalidaTemprana;
 };
 
 export default function Asistencia() {
   const { userId, nombre, cargando: cargandoUsuario } = useUserData();
-  
+
   const [ubicacion, setUbicacion] = useState<{ lat: number; lng: number } | null>(null);
   const [mensaje, setMensaje] = useState('');
   const [cargando, setCargando] = useState(false);
-  const [fechaHora, setFechaHora] = useState(new Date());
+
+  const [fechaHoraGt, setFechaHoraGt] = useState(new Date());
 
   const [registrosHoy, setRegistrosHoy] = useState<Registro[]>([]);
   const [cargandoHoy, setCargandoHoy] = useState(true);
-  
-  const [registrosDeLaSemana, setRegistrosDeLaSemana] = useState<Registro[]>([]);
-  const [cargandoSemana, setCargandoSemana] = useState(true);
 
-  const [fechaDeReferencia, setFechaDeReferencia] = useState(new Date());
-  const [diaSeleccionado, setDiaSeleccionado] = useState<Date | undefined>(undefined);
+  const [todosLosRegistros, setTodosLosRegistros] = useState<Registro[]>([]);
+  const [cargandoRegistros, setCargandoRegistros] = useState(true);
 
   const [modalAbierto, setModalAbierto] = useState(false);
   const [registroSeleccionado, setRegistroSeleccionado] = useState<Registro | null>(null);
 
-  const inicioDeSemana = startOfWeek(fechaDeReferencia, { locale: es });
-  const diasDeLaSemana = eachDayOfInterval({ start: inicioDeSemana, end: endOfWeek(fechaDeReferencia, { locale: es }) });
+  const [activeTab, setActiveTab] = useState<'controlResumen' | 'semanal'>('controlResumen');
 
-  const irSemanaSiguiente = () => setFechaDeReferencia(addDays(fechaDeReferencia, 7));
-  const irSemanaAnterior = () => setFechaDeReferencia(subDays(fechaDeReferencia, 7));
-  
-  const handleSeleccionFecha = (anio: number, mes: number) => {
-    const nuevaFecha = new Date(anio, mes, 1);
-    setFechaDeReferencia(startOfWeek(nuevaFecha, { locale: es }));
-  };
-  
-  const handleSeleccionDia = (dia: Date) => {
-    const yaEstaSeleccionado = diaSeleccionado ? isSameDay(dia, diaSeleccionado) : false;
-    setDiaSeleccionado(yaEstaSeleccionado ? undefined : dia);
-  };
+  const [fechaDeReferencia, setFechaDeReferencia] = useState(new Date());
 
   useEffect(() => {
-    const timerId = setInterval(() => setFechaHora(new Date()), 1000);
+    const timerId = setInterval(() => {
+      setFechaHoraGt(new Date());
+    }, 1000);
     return () => clearInterval(timerId);
   }, []);
-  
+
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -76,43 +77,45 @@ export default function Asistencia() {
     }
   }, []);
 
-  useEffect(() => {
+  const verificarAsistenciaHoy = async () => {
     if (!userId) return;
-    const verificarAsistenciaHoy = async () => {
-      setCargandoHoy(true);
-      const { data } = await supabase
-        .from('registros_asistencia')
-        .select('fecha, hora, tipo_registro, ubicacion')
-        .eq('user_id', userId)
-        .eq('fecha', format(new Date(), 'yyyy-MM-dd'));
-      setRegistrosHoy(data || []);
-      setCargandoHoy(false);
-    };
-    verificarAsistenciaHoy();
+    setCargandoHoy(true);
+    const hoyEnGt = new Date();
+
+    const inicioDelDiaUtc = new Date(hoyEnGt.getFullYear(), hoyEnGt.getMonth(), hoyEnGt.getDate()).toISOString();
+    const finDelDiaUtc = new Date(hoyEnGt.getFullYear(), hoyEnGt.getMonth(), hoyEnGt.getDate() + 1).toISOString();
+
+    const { data } = await supabase
+      .from('registros_asistencia')
+      .select('created_at, tipo_registro, ubicacion')
+      .eq('user_id', userId)
+      .gte('created_at', inicioDelDiaUtc)
+      .lt('created_at', finDelDiaUtc);
+
+    setRegistrosHoy(data || []);
+    setCargandoHoy(false);
+  };
+
+  useEffect(() => {
+    if (userId) {
+      verificarAsistenciaHoy();
+    }
   }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
-    const consultarSemana = async () => {
-      setDiaSeleccionado(undefined);
-      setCargandoSemana(true);
-      
-      const inicio = startOfWeek(fechaDeReferencia, { locale: es });
-      const fin = endOfWeek(fechaDeReferencia, { locale: es });
-      
+    const consultarTodosLosRegistros = async () => {
+      setCargandoRegistros(true);
       const { data } = await supabase
         .from('registros_asistencia')
-        .select('fecha, hora, tipo_registro, ubicacion')
+        .select('created_at, tipo_registro, ubicacion')
         .eq('user_id', userId)
-        .gte('fecha', format(inicio, 'yyyy-MM-dd'))
-        .lte('fecha', format(fin, 'yyyy-MM-dd'))
-        .order('fecha', { ascending: true })
-        .order('hora', { ascending: true });
-      setRegistrosDeLaSemana(data || []);
-      setCargandoSemana(false);
+        .order('created_at', { ascending: true });
+      setTodosLosRegistros(data || []);
+      setCargandoRegistros(false);
     };
-    consultarSemana();
-  }, [userId, fechaDeReferencia]);
+    consultarTodosLosRegistros();
+  }, [userId]);
 
   const handleMarcarAsistencia = async (tipo: string) => {
     if (!ubicacion) {
@@ -121,16 +124,15 @@ export default function Asistencia() {
     }
     setCargando(true);
     setMensaje('');
-    const hoy = new Date();
+
     const { data: nuevoRegistro, error } = await supabase
       .from('registros_asistencia')
-      .insert({ 
-        tipo_registro: tipo, 
-        ubicacion: ubicacion, 
+      .insert({
+        tipo_registro: tipo,
+        ubicacion: ubicacion,
         user_id: userId,
-        fecha: format(hoy, 'yyyy-MM-dd')
       })
-      .select('fecha, hora, tipo_registro, ubicacion')
+      .select('created_at, tipo_registro, ubicacion')
       .single();
 
     if (error) {
@@ -138,9 +140,7 @@ export default function Asistencia() {
     } else if (nuevoRegistro) {
       setMensaje(`¡${tipo} marcada con éxito para ${nombre}!`);
       setRegistrosHoy(prev => [...prev, nuevoRegistro]);
-      if (isSameDay(hoy, fechaDeReferencia)) {
-          setRegistrosDeLaSemana(prev => [...prev, nuevoRegistro].sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime()));
-      }
+      setTodosLosRegistros(prev => [...prev, nuevoRegistro].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
     }
     setCargando(false);
   };
@@ -151,12 +151,12 @@ export default function Asistencia() {
       setModalAbierto(true);
     }
   };
-  
+
   const handleAbrirMapaActual = () => {
     if (ubicacion) {
+      const hoy = new Date();
       const registroActual = {
-        fecha: format(new Date(), 'yyyy-MM-dd'),
-        hora: new Date().toTimeString().split(' ')[0],
+        created_at: hoy.toISOString(),
         tipo_registro: 'Ubicación Actual',
         ubicacion: ubicacion
       };
@@ -168,136 +168,111 @@ export default function Asistencia() {
   const entradaMarcada = registrosHoy.some(r => r.tipo_registro === 'Entrada');
   const salidaMarcada = registrosHoy.some(r => r.tipo_registro === 'Salida');
 
-  const registrosAgrupadosPorDia = registrosDeLaSemana.reduce((acc, registro) => {
-    const fecha = registro.fecha;
-    if (!acc[fecha]) {
-      acc[fecha] = [];
-    }
-    acc[fecha].push(registro);
-    return acc;
-  }, {} as Record<string, Registro[]>);
-  
-  const registrosAMostrar = diaSeleccionado 
-    ? { [format(diaSeleccionado, 'yyyy-MM-dd')]: registrosAgrupadosPorDia[format(diaSeleccionado, 'yyyy-MM-dd')] || [] }
-    : registrosAgrupadosPorDia;
-
-
-  if (cargandoUsuario || cargandoHoy) {
-    return <div className="text-center p-6">Cargando...</div>;
+  if (cargandoUsuario || cargandoHoy || cargandoRegistros) {
+    return <div className="text-center p-6 text-xl lg:text-3xl">Cargando...</div>;
   }
-  
+
   return (
     <>
-      {/* --- CAMBIO: Este div ahora controla el layout principal --- */}
-      <div className="flex flex-col lg:flex-row justify-center items-start gap-8">
-        {/* Columna Izquierda: Control de Asistencia */}
-        <div className="max-w-md p-6 bg-white rounded-lg shadow-md space-y-4 w-full">
-          <h2 className="text-2xl font-bold text-center">Control de Asistencia</h2>
-          <div className="text-center bg-slate-100 p-3 rounded-md">
-            <p className="font-semibold text-lg">{nombre || 'Usuario no identificado'}</p>
-          </div>
-          
-          <div className="text-center border-y py-4 space-y-2">
-            <p className="text-lg capitalize text-slate-600">
-              {format(fechaHora, "eeee, dd/MM/yyyy", { locale: es })}
-            </p>
-            <p className="font-mono text-3xl font-bold">
-              {fechaHora.toLocaleTimeString('es-GT')}
-            </p>
-            <div className="text-sm pt-1">
-              {ubicacion ? (
-                <button onClick={handleAbrirMapaActual} className="font-semibold text-blue-600 hover:underline">
-                  Ver mi ubicación actual
-                </button>
-              ) : (
-                <span className="text-gray-500">Obteniendo ubicación...</span>
-              )}
-            </div>
-          </div>
-          
-          <div className="flex gap-4">
-            {!entradaMarcada ? (
-              <Button onClick={() => handleMarcarAsistencia('Entrada')} disabled={cargando || !ubicacion} className="w-full bg-green-600 hover:bg-green-700">
-                {cargando ? 'Marcando...' : 'Marcar Entrada'}
-              </Button>
-            ) : (
-              <Button onClick={() => handleMarcarAsistencia('Salida')} disabled={cargando || !ubicacion || salidaMarcada} className="w-full bg-red-600 hover:bg-red-700">
-                {salidaMarcada ? 'Salida ya marcada' : (cargando ? 'Marcando...' : 'Marcar Salida')}
-              </Button>
-            )}
-          </div>
+      <div className="w-full max-w-4xl mx-auto">
+        <div className="border-b flex mb-4 flex-wrap justify-center">
+          <button onClick={() => setActiveTab('controlResumen')} className={`flex items-center gap-2 px-4 py-2 font-semibold text-sm lg:text-xl  ${activeTab === 'controlResumen' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
+            <Clock className="h-4 w-4" /> Asistencia
+          </button>
+          <button onClick={() => setActiveTab('semanal')} className={`flex items-center gap-2 px-4 py-2 font-semibold text-sm lg:text-xl ${activeTab === 'semanal' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
+            <CalendarCheck className="h-4 w-4" /> Registro Semanal
+          </button>
         </div>
 
-        {/* Columna Derecha: Registro Semanal */}
-        <div className="max-w-md p-6 bg-white rounded-lg shadow-md space-y-4 w-full">
-          <h3 className="text-xl font-bold text-center">Registro Semanal</h3>
-          <div className="flex justify-between items-center gap-2 p-2 bg-slate-50 rounded-lg">
-            <button onClick={irSemanaAnterior} className="p-2 rounded-full hover:bg-slate-200" aria-label="Semana anterior"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg></button>
-            <div className='flex gap-2'>
-              <select value={getMonth(fechaDeReferencia)} onChange={(e) => handleSeleccionFecha(getYear(fechaDeReferencia), parseInt(e.target.value))} className="p-1 border rounded-md text-sm bg-white" aria-label="Seleccionar mes">
-                {Array.from({ length: 12 }).map((_, i) => (<option key={i} value={i} className="capitalize">{format(new Date(2000, i, 1), 'LLLL', { locale: es })}</option>))}
-              </select>
-              <select value={getYear(fechaDeReferencia)} onChange={(e) => handleSeleccionFecha(parseInt(e.target.value), getMonth(fechaDeReferencia))} className="p-1 border rounded-md text-sm bg-white" aria-label="Seleccionar año">
-                {Array.from({ length: 10 }).map((_, i) => { const anio = getYear(new Date()) - 5 + i; return <option key={anio} value={anio}>{anio}</option>; })}
-              </select>
-            </div>
-            <button onClick={irSemanaSiguiente} className="p-2 rounded-full hover:bg-slate-200" aria-label="Siguiente semana"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg></button>
-          </div>
+        <AnimatePresence mode="wait">
+          {activeTab === 'controlResumen' ? (
+            <motion.div key="controlResumen" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
+              <div className="flex flex-col gap-8 w-full">
+                <div className="p-6 bg-white rounded-lg shadow-md space-y-4">
+                  <div className="text-center bg-slate-100 p-3 rounded-md">
+                    <p className="font-semibold text-xl lg:text-3xl">{nombre || 'Usuario no identificado'}</p>
+                  </div>
 
-          <div className="flex justify-around items-center">
-            {diasDeLaSemana.map((dia) => {
-              const esDiaSeleccionado = diaSeleccionado ? isSameDay(dia, diaSeleccionado) : false;
-              return (
-                <div key={dia.toString()} onClick={() => handleSeleccionDia(dia)} className={`flex flex-col items-center justify-center w-12 h-12 rounded-md transition-all cursor-pointer ${isToday(dia) && !esDiaSeleccionado ? 'bg-blue-100 text-blue-800' : ''} ${esDiaSeleccionado ? 'bg-blue-600 text-white font-bold shadow-lg scale-110' : 'hover:bg-slate-100 text-slate-600'}`}>
-                  <span className="text-xs uppercase">{format(dia, 'eee', { locale: es })}</span>
-                  <span className="text-lg">{format(dia, 'd')}</span>
+                  <div className="text-center border-y py-4 space-y-2">
+                    <p className="text-xl lg:text-3xl capitalize text-slate-600">
+                      {format(fechaHoraGt, "eeee, dd/MM/yyyy", { locale: es })}
+                    </p>
+                    <p className="font-mono text-xl lg:text-3xl font-bold">
+                      {fechaHoraGt.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </p>
+                    <div className="text-xl lg:text-3xl pt-5">
+                      {ubicacion ? (
+                        <button onClick={handleAbrirMapaActual} className="font-semibold text-blue-600 hover:underline">
+                          Ver mi ubicación actual
+                        </button>
+                      ) : (
+                        <span className="text-gray-500">Obteniendo ubicación...</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    {!entradaMarcada ? (
+                      <Button
+                        onClick={() => handleMarcarAsistencia('Entrada')}
+                        disabled={cargando || !ubicacion}
+                        className="w-full bg-green-600 hover:bg-green-700 text-xl lg:text-3xl py-12"
+                      >
+                        {cargando ? 'Marcando...' : 'Marcar Entrada'}
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => handleMarcarAsistencia('Salida')}
+                        disabled={cargando || !ubicacion || salidaMarcada}
+                        className="w-full bg-red-600 hover:bg-red-700 text-xl lg:text-3xl py-12"
+                      >
+                        {salidaMarcada ? 'Salida ya marcada' : (cargando ? 'Marcando...' : 'Marcar Salida')}
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="mt-6 border-t pt-4 ">
+                    <h4 className="text-xl lg:text-3xl font-semibold mb-2">Registros de hoy:</h4>
+                    {registrosHoy.length > 0 ? (
+                      <ul className="space-y-1 text-xl lg:text-3xl  ">
+                        {registrosHoy.map((reg, index) => (
+                          <li key={index} className={`flex justify-between p-2 rounded-md ${esRegistroAnomalo(reg) ? 'bg-rose-100' : 'bg-slate-100'}`}>
+                            <span className="font-mono text-xl lg:text-3xl ">{new Date(reg.created_at).toLocaleTimeString('es-GT')}</span>
+                            <span className="font-medium text-xl lg:text-3xl ">{reg.tipo_registro}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-xl lg:text-3xl text-gray-500">No hay registros hoy.</p>
+                    )}
+                  </div>
                 </div>
-              );
-            })}
-          </div>
-          
-          <div className="border-t pt-4 mt-4">
-            <h4 className='text-md font-semibold text-center mb-2'>{diaSeleccionado ? `Registros para el ${format(diaSeleccionado, 'eeee d', { locale: es })}` : 'Todos los registros de la semana'}</h4>
-            {cargandoSemana ? (<p className="text-center text-gray-500">Cargando registros...</p>) : Object.keys(registrosAMostrar).length > 0 && Object.values(registrosAMostrar).some(arr => arr && arr.length > 0) ? (
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-left">
-                  <tr>
-                    <th className="px-4 py-2">Hora</th>
-                    <th className="px-4 py-2">Registro</th>
-                    <th className="px-4 py-2">Ubicación</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.keys(registrosAMostrar).map(fecha => (
-                    <React.Fragment key={fecha}>
-                      {!diaSeleccionado && (<tr><td colSpan={3} className="bg-slate-100 px-4 py-2 font-bold text-slate-700 border-t border-b border-slate-200">{format(new Date(fecha + 'T00:00:00'), 'eeee, d \'de\' LLLL', { locale: es })}</td></tr>)}
-                      {(registrosAMostrar[fecha] || []).map((registro, index) => (
-                        <tr key={index} className={`border-b ${esRegistroAnomalo(registro) ? 'bg-rose-50 text-rose-800' : ''}`}>
-                          <td className="px-4 py-2 font-mono">{new Date(`1970-01-01T${registro.hora}Z`).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })}</td>
-                          <td className="px-4 py-2">{registro.tipo_registro}</td>
-                          <td className="px-4 py-2">{registro.ubicacion && (<button onClick={() => handleAbrirMapa(registro)} className="text-blue-600 hover:underline font-medium">Ver mapa</button>)}</td>
-                        </tr>
-                      ))}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-            ) : (<p className="text-center text-gray-500">{diaSeleccionado ? 'No hay registros para este día.' : 'No hay registros para esta semana.'}</p>)}
-          </div>
-        </div>
+
+                <Resumen registros={todosLosRegistros} fechaDeReferencia={fechaDeReferencia} />
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div key="semanal" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
+              <Calendario
+                todosLosRegistros={todosLosRegistros}
+                onAbrirMapa={handleAbrirMapa}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {modalAbierto && registroSeleccionado?.ubicacion && createPortal(
         <div onClick={() => setModalAbierto(false)} className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div 
-            onClick={(e) => e.stopPropagation()} 
+          <div
+            onClick={(e) => e.stopPropagation()}
             className="bg-white rounded-lg shadow-2xl w-full max-w-4xl"
           >
             <div className="flex justify-between items-center p-4 border-b">
-              <h3 className="text-base font-semibold">
-                {registroSeleccionado.tipo_registro === 'Ubicación Actual' 
+              <h3 className="text-xl font-semibold">
+                {registroSeleccionado.tipo_registro === 'Ubicación Actual'
                   ? `Ubicación Actual de ${nombre}`
-                  : `Asistencia de ${nombre} - ${format(new Date(registroSeleccionado.fecha + 'T00:00:00'), 'PPP', { locale: es })}`
+                  : `Asistencia de ${nombre} - ${format(new Date(registroSeleccionado.created_at), 'PPP', { locale: es })}`
                 }
               </h3>
               <button onClick={() => setModalAbierto(false)} className="text-gray-500 hover:text-gray-800"><X className="h-5 w-5"/></button>
