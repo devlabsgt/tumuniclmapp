@@ -7,7 +7,7 @@ import FechaHoraActual from '@/components/ui/FechaHoraActual';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import type { Metadata, Viewport } from "next";
-import LoadingAnimation from "@/components/ui/animations/LoadingAnimation"; // <-- 1. IMPORTAR EL COMPONENTE
+import LoadingAnimation from "@/components/ui/animations/LoadingAnimation"; 
 
 export const metadata: Metadata = {
   title: "Gestión Municipal",
@@ -50,7 +50,7 @@ export default function RootLayout({
         </nav>
 
         {/* Contenido principal que se expande */}
-      <main className="flex flex-col  items-center gap-5 p-4 flex-grow w-full self-center min-h-[100vh]">
+      <main className="flex flex-col gap-5 p-4 flex-grow w-full self-center min-h-[100vh]">
         {children}
       </main>
 
@@ -74,7 +74,7 @@ export default function RootLayout({
 
             <div className="text-right text-xs md:text-sm leading-tight">
               <p>© {new Date().getFullYear()} - Todos los derechos reservados.</p>
-              <p className="text-[10px] md:text-xs mt-1">Versión 1.3.7</p>
+              <p className="text-[10px] md:text-xs mt-1">Versión 1.4.7</p>
             </div>
           </div>
         </footer>

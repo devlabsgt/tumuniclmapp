@@ -8,7 +8,7 @@ import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { programaSchema, type Programa as ProgramaType } from '../lib/esquemas';
 import { toast } from 'react-toastify';
 
@@ -106,64 +106,72 @@ export default function Programa({ isOpen, onClose, onSave, programaAEditar, pro
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
       <motion.div
-        className="bg-slate-50 rounded-xl shadow-2xl w-full max-w-lg p-8"
+        className="bg-slate-50 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 30 }}
       >
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">{isEditMode ? 'Editar' : (isNivel ? 'Nuevo Nivel' : 'Nuevo Programa')}</h2>
-            <p className="text-sm text-gray-500">Proporcione los detalles requeridos.</p>
-          </div>
-          <Button size="icon" variant="ghost" onClick={onClose} className="rounded-full -mt-2 -mr-2">
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
-        
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="space-y-4 p-6 bg-white rounded-lg border border-gray-200">
+        <div className="p-8">
+          <div className="flex justify-between items-start mb-6">
             <div>
-              <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-              <Input id="nombre" {...register("nombre")} placeholder="Nombre del programa o nivel" className={errors.nombre ? 'border-red-500' : ''} />
-              {errors.nombre && <p className="text-sm text-red-500 mt-1">{errors.nombre.message}</p>}
+              <h2 className="text-2xl font-bold text-gray-800">{isEditMode ? 'Editar' : (isNivel ? 'Nuevo Nivel' : 'Nuevo Programa')}</h2>
+              <p className="text-sm text-gray-500">Proporcione los detalles requeridos.</p>
             </div>
-
-            <div>
-              <label htmlFor="descripcion" className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-              <Input id="descripcion" {...register("descripcion")} placeholder="Descripción breve" className={errors.descripcion ? 'border-red-500' : ''} />
-              {errors.descripcion && <p className="text-sm text-red-500 mt-1">{errors.descripcion.message}</p>}
-            </div>
-            
-            {isNivel && (
-              <div>
-                <label htmlFor="lugar" className="block text-sm font-medium text-gray-700 mb-1">Lugar</label>
-                <select id="lugar" {...register("lugar")} className={`w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.lugar ? 'border-red-500' : ''}`}>
-                  <option value="">-- Seleccione un lugar --</option>
-                  {lugares.map(lugar => (<option key={lugar.id} value={lugar.nombre}>{lugar.nombre}</option>))}
-                </select>
-                {errors.lugar && <p className="text-sm text-red-500 mt-1">{errors.lugar.message}</p>}
-              </div>
-            )}
-
-            <div>
-              <label htmlFor="anio" className="block text-sm font-medium text-gray-700 mb-1">Año</label>
-              <select id="anio" {...register("anio", { valueAsNumber: true })} className={`w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.anio ? 'border-red-500' : ''}`}>
-                {yearOptions.map(year => (<option key={year} value={year}>{year}</option>))}
-              </select>
-              {errors.anio && <p className="text-sm text-red-500 mt-1">{errors.anio.message}</p>}
-            </div>
-          </div>
-          
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700">
-              {isSubmitting ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Crear')}
+            <Button size="icon" variant="ghost" onClick={onClose} className="rounded-full -mt-2 -mr-2">
+              <X className="h-5 w-5" />
             </Button>
           </div>
-        </form>
+          
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <div className="space-y-4 p-6 bg-white rounded-lg border border-gray-200">
+              <div>
+                <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                <Input id="nombre" {...register("nombre")} placeholder="Nombre del programa o nivel" className={errors.nombre ? 'border-red-500' : ''} />
+                {errors.nombre && <p className="text-sm text-red-500 mt-1">{errors.nombre.message}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="descripcion" className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                <Input id="descripcion" {...register("descripcion")} placeholder="Descripción breve" className={errors.descripcion ? 'border-red-500' : ''} />
+                {errors.descripcion && <p className="text-sm text-red-500 mt-1">{errors.descripcion.message}</p>}
+              </div>
+              
+              {isNivel && (
+                <div>
+                  <label htmlFor="lugar" className="block text-sm font-medium text-gray-700 mb-1">Lugar</label>
+                  <select id="lugar" {...register("lugar")} className={`w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.lugar ? 'border-red-500' : ''}`}>
+                    <option value="">-- Seleccione un lugar --</option>
+                    {lugares.map(lugar => (<option key={lugar.id} value={lugar.nombre}>{lugar.nombre}</option>))}
+                  </select>
+                  {errors.lugar && <p className="text-sm text-red-500 mt-1">{errors.lugar.message}</p>}
+                </div>
+              )}
+
+              <div>
+                <label htmlFor="anio" className="block text-sm font-medium text-gray-700 mb-1">Año</label>
+                <select id="anio" {...register("anio", { valueAsNumber: true })} className={`w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.anio ? 'border-red-500' : ''}`}>
+                  {yearOptions.map(year => (<option key={year} value={year}>{year}</option>))}
+                </select>
+                {errors.anio && <p className="text-sm text-red-500 mt-1">{errors.anio.message}</p>}
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-3 pt-4">
+              <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+              <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700">
+                {isSubmitting ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Crear')}
+              </Button>
+            </div>
+          </form>
+        </div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }

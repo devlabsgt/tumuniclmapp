@@ -8,7 +8,7 @@ import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { alumnoSchema, type Alumno as AlumnoType } from '../lib/esquemas';
 import { toast } from 'react-toastify';
 
@@ -52,7 +52,7 @@ export default function Alumno({ isOpen, onClose, onSave, alumnoAEditar, nivelId
         if (error) {
           toast.error('No se pudieron cargar los lugares.');
         } else {
-          setLugares(lugaresData as Lugar[]); // Línea corregida
+          setLugares(lugaresData as Lugar[]);
         }
 
         if (alumnoAEditar) {
@@ -198,12 +198,17 @@ export default function Alumno({ isOpen, onClose, onSave, alumnoAEditar, nivelId
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+    <motion.div 
+      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
       <motion.div 
-        className="bg-slate-50 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" 
-        initial={{ opacity: 0, y: -30 }} 
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 30 }}
+        className="bg-slate-50 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        initial={{ scale: 0.9, y: 30 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 30 }}
       >
         <div className="p-8">
           <div className="flex justify-between items-start mb-6">
@@ -328,6 +333,6 @@ export default function Alumno({ isOpen, onClose, onSave, alumnoAEditar, nivelId
           </form>
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }

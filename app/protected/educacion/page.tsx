@@ -1,6 +1,4 @@
-// protected/admin/organos/page.tsx
-'use client';
-
+// protected/educacion/page.tsx
 import { Suspense } from 'react';
 import VerEducacion from '@/components/educacion/Ver';
 

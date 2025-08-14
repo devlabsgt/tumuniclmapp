@@ -18,7 +18,7 @@ const TODOS_LOS_MODULOS = [
     nombre: 'EDUCACION',
     titulo: 'Educación',
     descripcion: 'Administre programas, niveles, maestros y alumnos.',
-    ruta: '/protected/admin/educacion',
+    ruta: '/protected/educacion',
     icono: <BookOpen className="h-8 w-8 text-blue-500" />,
   },
   {

@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react';
 
-// Es una buena práctica definir una interfaz para los datos que devuelve el hook
 interface UserData {
   userId: string | null;
   nombre: string;
-  email: string; // <-- AÑADIDO
+  email: string; 
   rol: string;
   permisos: string[];
   modulos: string[];
@@ -17,7 +16,7 @@ interface UserData {
 export default function useUserData(): UserData {
   const [userId, setUserId] = useState<string | null>(null);
   const [nombre, setNombre] = useState('');
-  const [email, setEmail] = useState(''); // <-- AÑADIDO: Estado para el email
+  const [email, setEmail] = useState(''); 
   const [rol, setRol] = useState('');
   const [permisos, setPermisos] = useState<string[]>([]);
   const [modulos, setModulos] = useState<string[]>([]);
@@ -32,7 +31,7 @@ export default function useUserData(): UserData {
         
         setUserId(data.id || null);
         setNombre(data.nombre || '');
-        setEmail(data.email || ''); // <-- AÑADIDO: Se asigna el email desde la API
+        setEmail(data.email || ''); 
         setRol(data.rol || '');
         setPermisos(data.permisos || []);
         setModulos(data.modulos || []);

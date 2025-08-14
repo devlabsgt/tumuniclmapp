@@ -27,30 +27,3 @@ export const eliminarPrograma = async (programa: Programa, onEliminado: () => vo
     }
 };
 
-export const desinscribirAlumno = async (alumnoId: string, programaId: number, alumnoNombre: string, onComplete: () => void) => {
-    const confirmacion = await Swal.fire({
-        title: '¿Está seguro?',
-        text: `Se desasignará a "${alumnoNombre}" de este nivel. El registro del alumno no se eliminará.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#6c757d',  // Botón de confirmar en gris
-        cancelButtonColor: '#007bff',   // Botón de cancelar en azul
-        confirmButtonText: 'Sí, ¡desasignar!',
-        cancelButtonText: 'Cancelar'
-    });
-
-    if (confirmacion.isConfirmed) {
-        const supabase = createClient();
-        const { error } = await supabase
-            .from('alumnos_inscripciones')
-            .delete()
-            .match({ alumno_id: alumnoId, programa_id: programaId });
-
-        if (error) {
-            toast.error('No se pudo quitar la inscripción.');
-        } else {
-            toast.error(`"${alumnoNombre}" ha sido desasignado de este nivel.`);
-            onComplete();
-        }
-    }
-};
