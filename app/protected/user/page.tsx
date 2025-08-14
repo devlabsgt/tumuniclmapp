@@ -121,7 +121,6 @@ export default function UserDashboard() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {modulosFiltrados.length > 0 ? modulosFiltrados.map((modulo) => (
-                // --- CAMBIOS AQUÍ ---
                 <div 
                   key={modulo.nombre} 
                   onClick={() => irA(modulo.nombre, modulo.ruta)}

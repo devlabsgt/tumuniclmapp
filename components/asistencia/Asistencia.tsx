@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
 import useUserData from '@/hooks/useUserData';
@@ -11,6 +10,7 @@ import { X, Clock, CalendarCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Resumen from './Resumen';
 import Calendario from './Calendario';
+import Mapa from './modal/Mapa';
 
 const supabase = createClient();
 
@@ -68,6 +68,7 @@ export default function Asistencia() {
     return () => clearInterval(timerId);
   }, []);
 
+  // Hook para obtener la ubicación
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -76,6 +77,18 @@ export default function Asistencia() {
       );
     }
   }, []);
+
+  // Hook para controlar el scroll del body
+  useEffect(() => {
+    if (modalAbierto) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [modalAbierto]);
 
   const verificarAsistenciaHoy = async () => {
     if (!userId) return;
@@ -261,37 +274,16 @@ export default function Asistencia() {
           )}
         </AnimatePresence>
       </div>
-
-      {modalAbierto && registroSeleccionado?.ubicacion && createPortal(
-        <div onClick={() => setModalAbierto(false)} className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-lg shadow-2xl w-full max-w-4xl"
-          >
-            <div className="flex justify-between items-center p-4 border-b">
-              <h3 className="text-xl font-semibold">
-                {registroSeleccionado.tipo_registro === 'Ubicación Actual'
-                  ? `Ubicación Actual de ${nombre}`
-                  : `Asistencia de ${nombre} - ${format(new Date(registroSeleccionado.created_at), 'PPP', { locale: es })}`
-                }
-              </h3>
-              <button onClick={() => setModalAbierto(false)} className="text-gray-500 hover:text-gray-800"><X className="h-5 w-5"/></button>
-            </div>
-            <div className="p-2">
-              <iframe
-                  width="100%"
-                  height="450"
-                  style={{ border: 0 }}
-                  loading="lazy"
-                  allowFullScreen
-                  referrerPolicy="no-referrer-when-downgrade"
-                  src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_Maps_API_KEY}&q=${registroSeleccionado.ubicacion.lat},${registroSeleccionado.ubicacion.lng}&zoom=16&maptype=satellite`}              >
-              </iframe>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      <AnimatePresence>
+        {modalAbierto && registroSeleccionado?.ubicacion && (
+          <Mapa
+            isOpen={modalAbierto}
+            onClose={() => setModalAbierto(false)}
+            registro={registroSeleccionado}
+            nombreUsuario={nombre}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }

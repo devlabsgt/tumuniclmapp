@@ -1,40 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-
 import UsersTable from '@/components/admin/users/UsersTable';
 import SearchBar from '@/components/admin/users/SearchBar';
 import { Usuario } from '@/components/admin/users/types';
 import { Plus } from 'lucide-react';
+import { useListaUsuarios } from '@/hooks/usuarios/useListarUsuarios'; // Importa el nuevo hook
 
 export default function VerUsuarios() {
-  const [todosLosUsuarios, setTodosLosUsuarios] = useState<Usuario[]>([]);
+  const router = useRouter();
+  const { todosLosUsuarios, loading } = useListaUsuarios(); // Usa el hook
+  
   const [usuariosFiltrados, setUsuariosFiltrados] = useState<Usuario[]>([]);
   const [busqueda, setBusqueda] = useState('');
   const [campoBusqueda, setCampoBusqueda] = useState<'nombre' | 'email'>('email');
   const [rolFiltro, setRolFiltro] = useState<string>('');
   const [orden, setOrden] = useState<'alfabetico' | 'creacion'>('alfabetico');
   const [rolActual, setRolActual] = useState<string | null>(null);
-  const router = useRouter();
 
   useEffect(() => {
-    const obtenerUsuarios = async () => {
-      try {
-        const res = await fetch('/api/users/listar');
-        const json = await res.json();
-        if (!res.ok) {
-          console.error('Error al obtener usuarios:', json.error);
-          return;
-        }
-        setTodosLosUsuarios(json.data ?? []);
-      } catch (error) {
-        console.error('Error inesperado al obtener usuarios:', error);
-      }
-    };
-
     const obtenerRolUsuario = async () => {
       try {
         const res = await fetch('/api/getuser');
@@ -46,8 +33,6 @@ export default function VerUsuarios() {
         console.error('Error al obtener rol del usuario:', err);
       }
     };
-
-    obtenerUsuarios();
     obtenerRolUsuario();
   }, []);
 
@@ -74,16 +59,23 @@ export default function VerUsuarios() {
   }, [busqueda, campoBusqueda, rolFiltro, orden, todosLosUsuarios]);
 
   // Extraer roles únicos y filtrar SUPER si no corresponde
-  const rolesUnicos: string[] = [];
-  todosLosUsuarios.forEach((u) => {
-    if (u.rol && !rolesUnicos.includes(u.rol)) {
-      rolesUnicos.push(u.rol);
-    }
-  });
+  const rolesUnicos = useMemo(() => {
+    const roles: string[] = [];
+    todosLosUsuarios.forEach((u) => {
+      if (u.rol && !roles.includes(u.rol)) {
+        roles.push(u.rol);
+      }
+    });
+    return roles;
+  }, [todosLosUsuarios]);
 
   const rolesFiltrados = rolActual === 'SUPER'
     ? rolesUnicos
     : rolesUnicos.filter((rol) => rol !== 'SUPER');
+    
+  if (loading) {
+    return <div className="text-center py-10">Cargando usuarios...</div>;
+  }
 
   return (
     <div className="px-6">
@@ -105,8 +97,6 @@ export default function VerUsuarios() {
           </Button>
         </Link>
       </div>
-
-
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 items-end">
         <div>

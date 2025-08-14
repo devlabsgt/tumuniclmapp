@@ -9,7 +9,7 @@ import CampoNombre from './CampoNombre';
 import CampoEmail from './CampoEmail';
 import DRolSelector from '@/components/ui/DRolSelector';
 import PasswordEditor from './PasswordEditor';
-import { Switch } from '@/components/ui/Switch';
+import { ArrowLeft } from 'lucide-react';
 
 export default function EditarUsuarioForm() {
   const router = useRouter();
@@ -33,37 +33,37 @@ export default function EditarUsuarioForm() {
     activo: true,
   });
 
-useEffect(() => {
-  if (!id) return;
+  useEffect(() => {
+    if (!id) return;
 
-  const cargarUsuario = async () => {
-    const res = await fetch('/api/users/ver', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    });
+    const cargarUsuario = async () => {
+      const res = await fetch('/api/users/ver', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
 
-    const json = await res.json();
-    if (!res.ok || !json.usuario) {
-      Swal.fire('Error', json.error || 'No se pudo obtener el usuario.', 'error');
-      return router.push('/protected/admin/users');
-    }
+      const json = await res.json();
+      if (!res.ok || !json.usuario) {
+        Swal.fire('Error', json.error || 'No se pudo obtener el usuario.', 'error');
+        return router.push('/protected/admin/users');
+      }
 
-    const user = json.usuario;
-    setNombre(user.nombre || '');
-    setEmail(user.email || '');
-    setRol(user.rol_id || null); // ← AQUÍ
-    setActivo(user.activo === true || user.activo === 'true');
-    setOriginal({
-      nombre: user.nombre || '',
-      email: user.email || '',
-      rol: user.rol_id || '', // ← TAMBIÉN AQUÍ si quiere detectar cambios correctamente
-      activo: user.activo === true || user.activo === 'true',
-    });
-  };
+      const user = json.usuario;
+      setNombre(user.nombre || '');
+      setEmail(user.email || '');
+      setRol(user.rol_id || null);
+      setActivo(user.activo === true || user.activo === 'true');
+      setOriginal({
+        nombre: user.nombre || '',
+        email: user.email || '',
+        rol: user.rol_id || '',
+        activo: user.activo === true || user.activo === 'true',
+      });
+    };
 
-  cargarUsuario();
-}, [id, router]);
+    cargarUsuario();
+  }, [id, router]);
 
   const hayCambios =
     nombre !== original.nombre ||
@@ -100,10 +100,9 @@ useEffect(() => {
       id,
       email,
       nombre,
-      rol, // ✅ ya no lo envíe como array
+      rol,
       activo,
     };
-
 
     if (mostrarPassword) {
       payload.password = password;
@@ -131,13 +130,36 @@ useEffect(() => {
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between mb-6">
+        <Button variant="link" onClick={() => router.back()} className="text-blue-600 text-base underline flex items-center gap-2 px-0">
+          <ArrowLeft className="w-5 h-5" />
+          Volver
+        </Button>
+        <h1 className="text-2xl font-bold text-gray-800">Editar Información de usuario</h1>
+      </div>
       <CampoNombre value={nombre} onChange={setNombre} />
       <CampoEmail value={email} onChange={setEmail} />
       <DRolSelector rol={rol} onChange={setRol} />
 
-      <div className="flex items-center justify-between mt-2">
-        <Label className="text-base">Activo</Label>
-        <Switch checked={activo} onCheckedChange={setActivo} />
+      <div className={`flex rounded-md border p-1 bg-gray-50 mt-2`}>
+        <button
+          type="button"
+          onClick={() => setActivo(true)}
+          className={`flex-1 rounded-md py-2 text-sm font-semibold transition-colors duration-200 ${
+            activo ? 'bg-green-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          Activo
+        </button>
+        <button
+          type="button"
+          onClick={() => setActivo(false)}
+          className={`flex-1 rounded-md py-2 text-sm font-semibold transition-colors duration-200 ${
+            !activo ? 'bg-red-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          Inactivo
+        </button>
       </div>
 
       <Button

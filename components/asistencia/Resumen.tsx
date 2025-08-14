@@ -1,8 +1,9 @@
+'use client';
+
 import React from 'react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { motion } from 'framer-motion';
-import { esRegistroAnomalo } from './Asistencia';
 
 interface Registro {
   created_at: string;
@@ -14,6 +15,25 @@ interface ResumenProps {
   registros: Registro[];
   fechaDeReferencia: Date;
 }
+
+const GUATEMALA_TIMEZONE_OFFSET = -6; // UTC-6
+
+export const esRegistroAnomalo = (registro: Registro): boolean => {
+  if (!registro.tipo_registro) return false;
+
+  const registroFechaUtc = new Date(registro.created_at);
+  const horaRegistroGt = registroFechaUtc.getUTCHours() + GUATEMALA_TIMEZONE_OFFSET;
+  const horaEnMinutos = horaRegistroGt * 60 + registroFechaUtc.getUTCMinutes();
+
+  // Horas límite en minutos (08:10 = 8*60+10, 16:00 = 22*60)
+  const horaLimiteEntrada = 8 * 60 + 10;
+  const horaLimiteSalida = 14 * 60;
+
+  const esEntradaTardia = registro.tipo_registro === 'Entrada' && horaEnMinutos > horaLimiteEntrada;
+  const esSalidaTemprana = registro.tipo_registro === 'Salida' && horaEnMinutos < horaLimiteSalida;
+
+  return esEntradaTardia || esSalidaTemprana;
+};
 
 const Resumen: React.FC<ResumenProps> = ({ registros, fechaDeReferencia }) => {
   const inicioSemana = startOfWeek(fechaDeReferencia, { locale: es, weekStartsOn: 1 });

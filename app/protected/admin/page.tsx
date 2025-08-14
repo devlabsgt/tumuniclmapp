@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, ArrowRight, BookOpen, Leaf, Building, Users, Settings, FileText, User, Clock } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, Leaf, Building, Users, Settings, FileText, User, Clock, CheckSquare } from 'lucide-react';
 import { registrarLog } from '@/utils/registrarLog';
 import { motion, AnimatePresence } from 'framer-motion';
 import useUserData from '@/hooks/useUserData';
@@ -88,6 +88,15 @@ export default function AdminDashboard() {
     router.push('/protected/admin/users');
   };
 
+  const irAAsistenciaEmpleados = async () => {
+    await registrarLog({
+      accion: 'INGRESO_MODULO',
+      descripcion: 'Accedió al módulo de asistencia de empleados',
+      nombreModulo: 'ASISTENCIA_EMPLEADOS',
+    });
+    router.push('/protected/admin/asistencia');
+  };
+
   const handlePerfilClick = () => {
     setMostrarUsuarios(false); // Cierra el menú desplegable si está abierto
     setVistaActiva('perfil');
@@ -165,6 +174,13 @@ export default function AdminDashboard() {
                 <Clock size={22} />
                 Marcar Mi Asistencia
               </Button>
+
+              {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
+                <Button onClick={irAAsistenciaEmpleados} className="w-full sm:w-auto text-lg p-6 gap-2 bg-slate-300 hover:bg-slate-400 text-gray-800">
+                  <CheckSquare size={22} />
+                  Asistencia de Empleados
+                </Button>
+              )}
             </div>
 
 
