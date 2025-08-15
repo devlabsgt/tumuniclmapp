@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import TextoHoyConcepcionAvanza from '@/components/ui/TextoHoyConcepcionAvanza';
+import LoadingAnimation from "@/components/ui/animations/LoadingAnimation"; 
 import { useEffect, useState } from 'react';
 
 export default function Hero() {
@@ -17,7 +17,7 @@ export default function Hero() {
 
   return (
     <div className="flex flex-col items-center w-full gap-8 relative">
-  
+  <LoadingAnimation /> 
       <motion.button
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: mostrarBienvenida ? 1 : 0 }}

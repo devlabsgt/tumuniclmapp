@@ -7,7 +7,7 @@ import FechaHoraActual from '@/components/ui/FechaHoraActual';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import type { Metadata, Viewport } from "next";
-import LoadingAnimation from "@/components/ui/animations/LoadingAnimation"; 
+//import LoadingAnimation from "@/components/ui/animations/LoadingAnimation"; 
 
 export const metadata: Metadata = {
   title: "Gestión Municipal",
@@ -34,8 +34,8 @@ export default function RootLayout({
   return (
     <html lang="es" className={geistSans.className} suppressHydrationWarning>
       <body className="bg-background text-foreground min-h-screen flex flex-col">
-        <LoadingAnimation /> {/* <-- 2. AÑADIR EL COMPONENTE AQUÍ */}
-        {/*<AutoLogoutWrapper />*/}
+       {/* 
+        <AutoLogoutWrapper />*/}
 
         {/* Header */}
         <nav className="w-full flex border-b border-b-foreground/10 h-40">

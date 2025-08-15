@@ -5,12 +5,13 @@ import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
 import useUserData from '@/hooks/useUserData';
 import { es } from 'date-fns/locale';
-import { format, isToday } from 'date-fns';
+import { format } from 'date-fns';
 import { X, Clock, CalendarCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Resumen from './Resumen';
 import Calendario from './Calendario';
 import Mapa from './modal/Mapa';
+import Cargando from '@/components/ui/animations/Cargando'; // 1. Componente importado
 
 const supabase = createClient();
 
@@ -29,9 +30,9 @@ export const esRegistroAnomalo = (registro: Registro): boolean => {
   const horaRegistroGt = registroFechaUtc.getUTCHours() + GUATEMALA_TIMEZONE_OFFSET;
   const horaEnMinutos = horaRegistroGt * 60 + registroFechaUtc.getUTCMinutes();
 
-  // Horas límite en minutos (08:10 = 8*60+10, 16:00 = 22*60)
+  // Horas límite en minutos (08:10 = 8*60+10, 16:00 = 16*60)
   const horaLimiteEntrada = 8 * 60 + 10;
-  const horaLimiteSalida = 14 * 60;
+  const horaLimiteSalida = 16 * 60;
 
   const esEntradaTardia = registro.tipo_registro === 'Entrada' && horaEnMinutos > horaLimiteEntrada;
   const esSalidaTemprana = registro.tipo_registro === 'Salida' && horaEnMinutos < horaLimiteSalida;
@@ -181,8 +182,9 @@ export default function Asistencia() {
   const entradaMarcada = registrosHoy.some(r => r.tipo_registro === 'Entrada');
   const salidaMarcada = registrosHoy.some(r => r.tipo_registro === 'Salida');
 
+  // 2. Componente utilizado aquí
   if (cargandoUsuario || cargandoHoy || cargandoRegistros) {
-    return <div className="text-center p-6 text-xl lg:text-3xl">Cargando...</div>;
+    return <Cargando />;
   }
 
   return (
