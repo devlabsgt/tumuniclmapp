@@ -72,15 +72,14 @@ export default function Dashboard() {
         )}
       </div>
 
-      <div className="w-full grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-        <div className="relative" ref={usuariosRef}>
+      <div className="w-full grid grid-cols-1 sm:grid-cols-7 gap-4 mb-4">
+        <div className="relative sm:col-span-2" ref={usuariosRef}>
           <Button onClick={() => { setMostrarUsuarios(p => !p); setMostrarOpciones(false); }} className="w-full gap-2 text-xl h-14">
             <Users size={25} /> Gestionar Usuarios
           </Button>
           {mostrarUsuarios && (
             <motion.div className="absolute top-full mt-2 left-0 z-10 bg-white dark:bg-gray-900 shadow-xl rounded-lg border dark:border-gray-700 p-2 flex flex-col items-start gap-2 w-full" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
              {(rol === 'ADMIN' || rol === 'SUPER') && (
-
               <Button variant="ghost" className="w-full justify-center gap-2 text-xl" onClick={() => irAConLog('/protected/admin/users', 'USUARIOS', 'Accedió al módulo de usuarios')}>
                 <Users size={25} /> Ver Usuarios
               </Button>
@@ -92,7 +91,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="flex rounded-lg border p-1 bg-gray-100 dark:bg-gray-800 h-14">
+        <div className="flex rounded-lg border p-1 bg-gray-100 dark:bg-gray-800 h-14 sm:col-span-3">
           <button
             type="button"
             onClick={() => setVistaActiva('modulos')}
@@ -114,7 +113,7 @@ export default function Dashboard() {
         </div>
 
         {permisos.includes('CONFIGURACION') && (rol === 'ADMIN' || rol === 'SUPER') && (
-          <div className="relative" ref={configRef}>
+          <div className="relative sm:col-span-2" ref={configRef}>
             <Button onClick={() => { setMostrarOpciones(p => !p); setMostrarUsuarios(false); }} className="w-full gap-2 text-xl h-14">
               <Settings size={25} /> Configuraciones
             </Button>
@@ -132,7 +131,6 @@ export default function Dashboard() {
       <AnimatePresence mode="wait">
         {vistaActiva === 'modulos' ? (
           <motion.div key="modulos" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
-
             <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.4 }}>
               {modulosFiltrados.map((modulo, index) => (
                 <motion.div key={modulo.nombre} className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl p-6 flex flex-col justify-between h-full hover:shadow-lg transition-shadow" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 + index * 0.1 }}>

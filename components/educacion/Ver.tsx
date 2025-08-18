@@ -112,28 +112,24 @@ export default function Ver() {
         <>
             <div className="mx-auto w-full lg:w-4/5 max-w-7xl p-4 lg:p-6">
                 <header className="flex flex-col gap-4 mb-6">
-                    <div className="grid grid-cols-2 lg:flex lg:justify-between items-center gap-4">
+                    <div className="flex flex-col sm:flex-row lg:flex-row lg:justify-between items-start lg:items-center gap-4">
                         <BotonVolver ruta="/" />
-                        <div className="flex w-full lg:w-auto gap-2">
+                        <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-2">
                            {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
-                            <>                                <Button onClick={handleOpenAsignarProgramas} variant="outline" className="w-full lg:w-auto gap-2 whitespace-nowrap bg-gray-100 border border-gray-300 text-gray-700 hover:bg-gray-200">
+                            <>
+                                <Button onClick={handleOpenAsignarProgramas} variant="outline" className="w-full sm:w-auto gap-2 whitespace-nowrap bg-gray-100 border border-gray-300 text-gray-700 hover:bg-gray-200">
                                     <Link className="h-4 w-4"/>
                                     Asignar Programas
                                 </Button>
-                                
-                          
-                       
-                                <Button onClick={handleOpenCrearMaestro} className="w-1/2 lg:w-auto gap-2 whitespace-nowrap">
+                                <Button onClick={handleOpenCrearMaestro} className="w-full sm:w-auto gap-2 whitespace-nowrap">
                                     <GraduationCap className="h-4 w-4"/>
                                     Nuevo Maestro
                                 </Button>
-                           
-                            <Button onClick={handleOpenCrearPrograma} className="w-full lg:w-auto gap-2 whitespace-nowrap">
+                                <Button onClick={handleOpenCrearPrograma} className="w-full sm:w-auto gap-2 whitespace-nowrap">
                                     <Plus className="h-4 w-4"/>
                                     Nuevo Programa
                                 </Button>
                             </>
-
                              )}
                         </div>
                     </div>
