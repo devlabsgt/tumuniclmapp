@@ -31,7 +31,8 @@ export default function VerModulos() {
       console.error('Error al cargar módulos:', error);
       return;
     }
-    setModulos(data || []);
+    const modulosFiltrados = data?.filter(modulo => modulo.nombre !== 'AFILIACION') || [];
+    setModulos(modulosFiltrados);
   };
 
   useEffect(() => {
@@ -39,7 +40,9 @@ export default function VerModulos() {
   }, []);
 
   const handleModuloCreado = (nuevoModulo: Modulo) => {
-    setModulos((prev) => [...prev, nuevoModulo]);
+    if (nuevoModulo.nombre !== 'AFILIACION') {
+      setModulos((prev) => [...prev, nuevoModulo]);
+    }
     setMostrarCrear(false);
   };
 

@@ -1,44 +1,34 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
 import useUserData from '@/hooks/useUserData';
 import { es } from 'date-fns/locale';
 import { format } from 'date-fns';
-import { X, Clock, CalendarCheck } from 'lucide-react';
+import { X, Clock, CalendarCheck, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Resumen from './Resumen';
 import Calendario from './Calendario';
 import Mapa from './modal/Mapa';
-import Cargando from '@/components/ui/animations/Cargando'; // 1. Componente importado
+import Cargando from '@/components/ui/animations/Cargando'; 
+import Swal from 'sweetalert2';
+import {
+  Dialog,
+  DialogPanel,
+  DialogTitle,
+  Transition,
+  TransitionChild,
+} from '@headlessui/react';
+
 
 const supabase = createClient();
-
-const GUATEMALA_TIMEZONE_OFFSET = -6; // UTC-6
 
 interface Registro {
   created_at: string;
   tipo_registro: string | null;
   ubicacion: { lat: number; lng: number } | null;
+  notas?: string | null;
 }
-
-export const esRegistroAnomalo = (registro: Registro): boolean => {
-  if (!registro.tipo_registro) return false;
-
-  const registroFechaUtc = new Date(registro.created_at);
-  const horaRegistroGt = registroFechaUtc.getUTCHours() + GUATEMALA_TIMEZONE_OFFSET;
-  const horaEnMinutos = horaRegistroGt * 60 + registroFechaUtc.getUTCMinutes();
-
-  // Horas límite en minutos (08:10 = 8*60+10, 16:00 = 16*60)
-  const horaLimiteEntrada = 8 * 60 + 10;
-  const horaLimiteSalida = 16 * 60;
-
-  const esEntradaTardia = registro.tipo_registro === 'Entrada' && horaEnMinutos > horaLimiteEntrada;
-  const esSalidaTemprana = registro.tipo_registro === 'Salida' && horaEnMinutos < horaLimiteSalida;
-
-  return esEntradaTardia || esSalidaTemprana;
-};
 
 export default function Asistencia() {
   const { userId, nombre, cargando: cargandoUsuario } = useUserData();
@@ -46,6 +36,7 @@ export default function Asistencia() {
   const [ubicacion, setUbicacion] = useState<{ lat: number; lng: number } | null>(null);
   const [mensaje, setMensaje] = useState('');
   const [cargando, setCargando] = useState(false);
+  const [notas, setNotas] = useState('');
 
   const [fechaHoraGt, setFechaHoraGt] = useState(new Date());
 
@@ -55,12 +46,14 @@ export default function Asistencia() {
   const [todosLosRegistros, setTodosLosRegistros] = useState<Registro[]>([]);
   const [cargandoRegistros, setCargandoRegistros] = useState(true);
 
-  const [modalAbierto, setModalAbierto] = useState(false);
+  const [modalMapaAbierto, setModalMapaAbierto] = useState(false);
   const [registroSeleccionado, setRegistroSeleccionado] = useState<Registro | null>(null);
+  
+  const [modalNotasAbierto, setModalNotasAbierto] = useState(false);
+  const [notaSeleccionada, setNotaSeleccionada] = useState('');
+
 
   const [activeTab, setActiveTab] = useState<'controlResumen' | 'semanal'>('controlResumen');
-
-  const [fechaDeReferencia, setFechaDeReferencia] = useState(new Date());
 
   useEffect(() => {
     const timerId = setInterval(() => {
@@ -81,7 +74,7 @@ export default function Asistencia() {
 
   // Hook para controlar el scroll del body
   useEffect(() => {
-    if (modalAbierto) {
+    if (modalMapaAbierto || modalNotasAbierto) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -89,7 +82,7 @@ export default function Asistencia() {
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [modalAbierto]);
+  }, [modalMapaAbierto, modalNotasAbierto]);
 
   const verificarAsistenciaHoy = async () => {
     if (!userId) return;
@@ -101,7 +94,7 @@ export default function Asistencia() {
 
     const { data } = await supabase
       .from('registros_asistencia')
-      .select('created_at, tipo_registro, ubicacion')
+      .select('created_at, tipo_registro, ubicacion, notas')
       .eq('user_id', userId)
       .gte('created_at', inicioDelDiaUtc)
       .lt('created_at', finDelDiaUtc);
@@ -122,7 +115,7 @@ export default function Asistencia() {
       setCargandoRegistros(true);
       const { data } = await supabase
         .from('registros_asistencia')
-        .select('created_at, tipo_registro, ubicacion')
+        .select('created_at, tipo_registro, ubicacion, notas')
         .eq('user_id', userId)
         .order('created_at', { ascending: true });
       setTodosLosRegistros(data || []);
@@ -131,38 +124,62 @@ export default function Asistencia() {
     consultarTodosLosRegistros();
   }, [userId]);
 
+
   const handleMarcarAsistencia = async (tipo: string) => {
     if (!ubicacion) {
       setMensaje('Error: No se ha podido determinar la ubicación.');
       return;
     }
-    setCargando(true);
-    setMensaje('');
 
-    const { data: nuevoRegistro, error } = await supabase
-      .from('registros_asistencia')
-      .insert({
-        tipo_registro: tipo,
-        ubicacion: ubicacion,
-        user_id: userId,
-      })
-      .select('created_at, tipo_registro, ubicacion')
-      .single();
+    const result = await Swal.fire({
+      title: '¿Está seguro?',
+      text: `¿Quiere marcar su ${tipo} ahora?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: `Sí, marcar ${tipo}`,
+      cancelButtonText: 'Cancelar'
+    });
 
-    if (error) {
-      setMensaje(`Error al guardar: ${error.message}`);
-    } else if (nuevoRegistro) {
-      setMensaje(`¡${tipo} marcada con éxito para ${nombre}!`);
-      setRegistrosHoy(prev => [...prev, nuevoRegistro]);
-      setTodosLosRegistros(prev => [...prev, nuevoRegistro].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
+    if (result.isConfirmed) {
+      setCargando(true);
+      setMensaje('');
+
+      const { data: nuevoRegistro, error } = await supabase
+        .from('registros_asistencia')
+        .insert({
+          tipo_registro: tipo,
+          ubicacion: ubicacion,
+          user_id: userId,
+          notas: notas,
+        })
+        .select('created_at, tipo_registro, ubicacion, notas')
+        .single();
+
+      if (error) {
+        setMensaje(`Error al guardar: ${error.message}`);
+      } else if (nuevoRegistro) {
+        Swal.fire({
+          title: `¡${tipo} Marcada!`,
+          text: `Se ha registrado su ${tipo.toLowerCase()} correctamente.`,
+          icon: 'success',
+          confirmButtonText: 'Aceptar',
+        });
+        setMensaje(`¡${tipo} marcada con éxito para ${nombre}!`);
+        setRegistrosHoy(prev => [...prev, nuevoRegistro]);
+        setTodosLosRegistros(prev => [...prev, nuevoRegistro].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
+        setNotas('');
+      }
+      setCargando(false);
     }
-    setCargando(false);
   };
+
 
   const handleAbrirMapa = (registro: Registro) => {
     if (registro.ubicacion) {
       setRegistroSeleccionado(registro);
-      setModalAbierto(true);
+      setModalMapaAbierto(true);
     }
   };
 
@@ -175,16 +192,20 @@ export default function Asistencia() {
         ubicacion: ubicacion
       };
       setRegistroSeleccionado(registroActual);
-      setModalAbierto(true);
+      setModalMapaAbierto(true);
     }
   };
 
+  const handleVerNotas = (nota: string | null) => {
+    setNotaSeleccionada(nota || 'No se han agregado notas para este registro.');
+    setModalNotasAbierto(true);
+  };
+  
   const entradaMarcada = registrosHoy.some(r => r.tipo_registro === 'Entrada');
   const salidaMarcada = registrosHoy.some(r => r.tipo_registro === 'Salida');
 
-  // 2. Componente utilizado aquí
   if (cargandoUsuario || cargandoHoy || cargandoRegistros) {
-    return <Cargando />;
+    return <Cargando texto='Asistencia...'/>;
   }
 
   return (
@@ -212,18 +233,31 @@ export default function Asistencia() {
                     <p className="text-xl lg:text-3xl capitalize text-slate-600">
                       {format(fechaHoraGt, "eeee, dd/MM/yyyy", { locale: es })}
                     </p>
-                    <p className="font-mono text-xl lg:text-3xl font-bold">
-                      {fechaHoraGt.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                    </p>
-                    <div className="text-xl lg:text-3xl pt-5">
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                      <p className="font-mono text-xl lg:text-3xl font-bold">
+                        {fechaHoraGt.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </p>
                       {ubicacion ? (
-                        <button onClick={handleAbrirMapaActual} className="font-semibold text-blue-600 hover:underline">
-                          Ver mi ubicación actual
-                        </button>
+                        <Button
+                          onClick={handleAbrirMapaActual}
+                          className="font-semibold bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                        >
+                          <MapPin className="h-5 w-5" /> Ver mi ubicación actual
+                        </Button>
                       ) : (
                         <span className="text-gray-500">Obteniendo ubicación...</span>
                       )}
                     </div>
+                  </div>
+                  
+                  <div className="w-full">
+                    <textarea 
+                      value={notas}
+                      onChange={(e) => setNotas(e.target.value)}
+                      placeholder="Agregar notas..."
+                      rows={3}
+                      className="w-full p-2 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
                   </div>
 
                   <div className="flex gap-4">
@@ -248,10 +282,14 @@ export default function Asistencia() {
 
                   <div className="mt-6 border-t pt-4 ">
                     <h4 className="text-xl lg:text-3xl font-semibold mb-2">Registros de hoy:</h4>
+                    <p className="text-xs text-gray-500 mb-2">Haga clic en un registro para ver las notas.</p>
                     {registrosHoy.length > 0 ? (
                       <ul className="space-y-1 text-xl lg:text-3xl  ">
                         {registrosHoy.map((reg, index) => (
-                          <li key={index} className={`flex justify-between p-2 rounded-md ${esRegistroAnomalo(reg) ? 'bg-rose-100' : 'bg-slate-100'}`}>
+                          <li 
+                            key={index} 
+                            onClick={() => handleVerNotas(reg.notas || null)} 
+                            className={`flex justify-between p-2 rounded-md bg-slate-100 cursor-pointer hover:bg-slate-200 transition-colors`}>
                             <span className="font-mono text-xl lg:text-3xl ">{new Date(reg.created_at).toLocaleTimeString('es-GT')}</span>
                             <span className="font-medium text-xl lg:text-3xl ">{reg.tipo_registro}</span>
                           </li>
@@ -262,8 +300,6 @@ export default function Asistencia() {
                     )}
                   </div>
                 </div>
-
-                <Resumen registros={todosLosRegistros} fechaDeReferencia={fechaDeReferencia} />
               </div>
             </motion.div>
           ) : (
@@ -271,19 +307,64 @@ export default function Asistencia() {
               <Calendario
                 todosLosRegistros={todosLosRegistros}
                 onAbrirMapa={handleAbrirMapa}
+                onVerNotas={handleVerNotas} // <<-- AGREGADO
               />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+      
+      {/* Modal para Mapa */}
       <AnimatePresence>
-        {modalAbierto && registroSeleccionado?.ubicacion && (
+        {modalMapaAbierto && registroSeleccionado?.ubicacion && (
           <Mapa
-            isOpen={modalAbierto}
-            onClose={() => setModalAbierto(false)}
+            isOpen={modalMapaAbierto}
+            onClose={() => setModalMapaAbierto(false)}
             registro={registroSeleccionado}
             nombreUsuario={nombre}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Modal para Notas */}
+      <AnimatePresence>
+        {modalNotasAbierto && (
+          <Transition show={modalNotasAbierto} as={Fragment}>
+            <Dialog onClose={() => setModalNotasAbierto(false)} className="relative z-50">
+              <TransitionChild
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0"
+                enterTo="opacity-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100"
+                leaveTo="opacity-0"
+              >
+                <div className="fixed inset-0 bg-black/10 backdrop-blur-sm" />
+              </TransitionChild>
+              <div className="fixed inset-0 flex items-center justify-center p-4">
+                <TransitionChild
+                  as={Fragment}
+                  enter="ease-out duration-300"
+                  enterFrom="opacity-0 scale-95"
+                  enterTo="opacity-100 scale-100"
+                  leave="ease-in duration-200"
+                  leaveFrom="opacity-100 scale-100"
+                  leaveTo="opacity-0 scale-95"
+                >
+                  <DialogPanel className="bg-white rounded-lg w-full max-w-md p-6 shadow-xl">
+                    <DialogTitle className="text-xl font-bold mb-4 flex justify-between items-center">
+                      Notas del registro
+                      <button onClick={() => setModalNotasAbierto(false)} className="text-gray-500 hover:text-gray-800">
+                        <X size={24} />
+                      </button>
+                    </DialogTitle>
+                    <p className="text-gray-700 whitespace-pre-line">{notaSeleccionada}</p>
+                  </DialogPanel>
+                </TransitionChild>
+              </div>
+            </Dialog>
+          </Transition>
         )}
       </AnimatePresence>
     </>

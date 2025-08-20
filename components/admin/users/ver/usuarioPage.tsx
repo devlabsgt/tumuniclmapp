@@ -3,7 +3,6 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { useState, Fragment, useEffect } from 'react';
-import Swal from 'sweetalert2';
 import { Button } from '@/components/ui/button';
 import BotonVolver from '@/components/ui/botones/BotonVolver';
 import BotonEditar from '@/components/ui/botones/BotonEditar';
@@ -16,9 +15,8 @@ import {
 } from '@headlessui/react';
 import useUserData from '@/hooks/useUserData'; 
 import { createClient } from '@/utils/supabase/client';
-import { Clock, CalendarCheck, User, AtSign, Briefcase, CheckCircle, XCircle } from 'lucide-react';
+import { User, AtSign, Briefcase, CheckCircle, XCircle, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Resumen from '@/components/asistencia/Resumen';
 import Calendario from '@/components/asistencia/Calendario';
 import Mapa from '@/components/asistencia/modal/Mapa';
 
@@ -27,6 +25,7 @@ interface Registro {
   created_at: string;
   tipo_registro: string | null;
   ubicacion: { lat: number; lng: number } | null;
+  notas?: string | null;
 }
 
 const fetchUsuario = async (id: string) => {
@@ -35,13 +34,11 @@ const fetchUsuario = async (id: string) => {
     body: JSON.stringify({ id }),
     headers: { 'Content-Type': 'application/json' },
   });
-
   const json = await res.json();
   if (!res.ok || !json?.usuario) {
     console.error('Respuesta del backend:', json);
     throw new Error(json.error || 'Error al obtener usuario');
   }
-
   return json.usuario;
 };
 
@@ -55,8 +52,12 @@ export function UsuarioPageContent() {
   const [vistaActiva, setVistaActiva] = useState<'informe' | 'asistencia'>('informe');
   const [registrosAsistencia, setRegistrosAsistencia] = useState<Registro[]>([]);
   const [loadingRegistros, setLoadingRegistros] = useState(false);
+  
+  // Estados para modales de asistencia
   const [modalAbierto, setModalAbierto] = useState(false);
   const [registroSeleccionado, setRegistroSeleccionado] = useState<Registro | null>(null);
+  const [modalNotasAbierto, setModalNotasAbierto] = useState(false);
+  const [notaSeleccionada, setNotaSeleccionada] = useState('');
 
   const { permisos, nombre: nombreUsuarioActual } = useUserData();
 
@@ -72,7 +73,7 @@ export function UsuarioPageContent() {
         setLoadingRegistros(true);
         const { data, error } = await supabase
           .from('registros_asistencia')
-          .select('created_at, tipo_registro, ubicacion')
+          .select('created_at, tipo_registro, ubicacion, notas')
           .eq('user_id', id)
           .order('created_at', { ascending: true });
         
@@ -90,7 +91,7 @@ export function UsuarioPageContent() {
 
   // Hook para controlar el scroll del body
   useEffect(() => {
-    if (modalAbierto) {
+    if (modalAbierto || modalNotasAbierto) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -98,13 +99,18 @@ export function UsuarioPageContent() {
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [modalAbierto]);
+  }, [modalAbierto, modalNotasAbierto]);
 
   const handleAbrirMapa = (registro: Registro) => {
     setRegistroSeleccionado(registro);
     setModalAbierto(true);
   };
   
+  const handleVerNotas = (nota: string | null) => {
+    setNotaSeleccionada(nota || 'No se han agregado notas para este registro.');
+    setModalNotasAbierto(true);
+  };
+
   const handleVolver = () => {
     if (vistaActiva === 'asistencia') {
       setVistaActiva('informe');
@@ -127,39 +133,35 @@ export function UsuarioPageContent() {
     <>
       <div className="max-w-4xl mx-auto p-4 md:p-6 border rounded-xl shadow-lg bg-background text-foreground">
         
-        <div className="flex justify-between items-center mb-6 flex-col md:flex-row gap-4">
-          
-            <div className="mb-6">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-0">
-          <div className="flex gap-2 w-full md:w-auto">
-            <BotonVolver ruta="/protected/admin/users" />
-            {(permisos.includes('TODO') || permisos.includes('EDITAR')) && (
-              <BotonEditar ruta={`/protected/admin/users/editar?id=${usuario.id}`} />
-            )}
-          </div>
-          <div className="flex rounded-md border p-1 bg-gray-50 w-full md:w-auto mt-4 md:mt-0">
-            <button
-              type="button"
-              onClick={() => setVistaActiva('informe')}
-              className={`flex-1 rounded-md py-2 text-sm md:text-base font-semibold transition-colors duration-200 ${
-                vistaActiva === 'informe' ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Datos
-            </button>
-            <button
-              type="button"
-              onClick={() => setVistaActiva('asistencia')}
-              className={`flex-1 rounded-md py-2 text-sm md:text-base font-semibold transition-colors duration-200 ${
-                vistaActiva === 'asistencia' ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Asistencia
-            </button>
-          </div>
-        </div>
-
+        <div className="mb-6">
+          <div className="flex flex-col md:flex-row justify-between items-center mb-0">
+            <div className="flex gap-2 w-full md:w-1/4">
+              <BotonVolver ruta="/protected/admin/users" />
+              {(permisos.includes('TODO') || permisos.includes('EDITAR')) && (
+                <BotonEditar ruta={`/protected/admin/users/editar?id=${usuario.id}`} />
+              )}
             </div>
+            <div className="flex rounded-md border p-1 bg-gray-50 w-full md:w-2/4 mt-4 md:mt-0">
+              <button
+                type="button"
+                onClick={() => setVistaActiva('informe')}
+                className={`flex-1 rounded-md py-2 text-sm md:text-base font-semibold transition-colors duration-200 ${
+                  vistaActiva === 'informe' ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Datos
+              </button>
+              <button
+                type="button"
+                onClick={() => setVistaActiva('asistencia')}
+                className={`flex-1 rounded-md py-2 text-sm md:text-base font-semibold transition-colors duration-200 ${
+                  vistaActiva === 'asistencia' ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Asistencia
+              </button>
+            </div>
+          </div>
         </div>
 
         {vistaActiva === 'informe' ? (
@@ -238,8 +240,7 @@ export function UsuarioPageContent() {
                 <div className="text-center py-10">Cargando registros...</div>
               ) : (
                 <div className="space-y-6">
-                  <Resumen registros={registrosAsistencia} fechaDeReferencia={new Date()} />
-                  <Calendario todosLosRegistros={registrosAsistencia} onAbrirMapa={handleAbrirMapa} />
+                  <Calendario todosLosRegistros={registrosAsistencia} onAbrirMapa={handleAbrirMapa} onVerNotas={handleVerNotas} />
                 </div>
               )}
             </motion.div>
@@ -324,6 +325,48 @@ export function UsuarioPageContent() {
             registro={registroSeleccionado}
             nombreUsuario={usuario.nombre}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Notas */}
+      <AnimatePresence>
+        {modalNotasAbierto && (
+          <Transition show={modalNotasAbierto} as={Fragment}>
+            <Dialog onClose={() => setModalNotasAbierto(false)} className="relative z-50">
+              <TransitionChild
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0"
+                enterTo="opacity-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100"
+                leaveTo="opacity-0"
+              >
+                <div className="fixed inset-0 bg-black/10 backdrop-blur-sm" />
+              </TransitionChild>
+              <div className="fixed inset-0 flex items-center justify-center p-4">
+                <TransitionChild
+                  as={Fragment}
+                  enter="ease-out duration-300"
+                  enterFrom="opacity-0 scale-95"
+                  enterTo="opacity-100 scale-100"
+                  leave="ease-in duration-200"
+                  leaveFrom="opacity-100 scale-100"
+                  leaveTo="opacity-0 scale-95"
+                >
+                  <DialogPanel className="bg-white rounded-lg w-full max-w-md p-6 shadow-xl">
+                    <DialogTitle className="text-xl font-bold mb-4 flex justify-between items-center">
+                      Notas del registro
+                      <button onClick={() => setModalNotasAbierto(false)} className="text-gray-500 hover:text-gray-800">
+                        <XCircle size={24} />
+                      </button>
+                    </DialogTitle>
+                    <p className="text-gray-700 whitespace-pre-line">{notaSeleccionada}</p>
+                  </DialogPanel>
+                </TransitionChild>
+              </div>
+            </Dialog>
+          </Transition>
         )}
       </AnimatePresence>
     </>

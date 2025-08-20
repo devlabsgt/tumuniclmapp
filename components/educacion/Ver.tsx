@@ -121,7 +121,8 @@ export default function Ver() {
                                     <Link className="h-4 w-4"/>
                                     Asignar Programas
                                 </Button>
-                                <Button onClick={handleOpenCrearMaestro} className="w-full sm:w-auto gap-2 whitespace-nowrap">
+                                <Button onClick={handleOpenCrearMaestro} className="w-full sm:w-auto gap-2 whitespace-nowrap bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100"
+>
                                     <GraduationCap className="h-4 w-4"/>
                                     Nuevo Maestro
                                 </Button>

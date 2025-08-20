@@ -62,19 +62,26 @@ export default function Dashboard() {
 
   return (
     <section className="w-full max-w-6xl mx-auto px-4 md:px-8 pt-2">
-      <div className="relative text-center mb-6">
-        {vistaActiva !== 'modulos' && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="sm:absolute sm:left-0 sm:top-1/2 sm:-translate-y-1/2 mb-4 sm:mb-0">
-            <Button variant="link" onClick={() => setVistaActiva('modulos')} className="w-full sm:w-auto text-blue-600 text-xl flex items-center gap-2 px-0 justify-center sm:justify-start">
-              <ArrowLeft className="w-5 h-5" /> Volver
-            </Button>
-          </motion.div>
-        )}
-      </div>
+
 
       <div className="w-full grid grid-cols-1 sm:grid-cols-7 gap-4 mb-4">
+                {permisos.includes('CONFIGURACION') && (rol === 'ADMINISTRADOR' || rol === 'SUPER') && (
+          <div className="relative sm:col-span-2" ref={configRef}>
+            <Button onClick={() => { setMostrarOpciones(p => !p); setMostrarUsuarios(false); }} className="w-full gap-2 text-xl h-14">
+              <Settings size={25} /> Configuraciones
+            </Button>
+            {mostrarOpciones && (
+              <motion.div className="absolute top-full mt-2 right-0 z-10 bg-white dark:bg-gray-900 shadow-xl rounded-lg border dark:border-gray-700 p-2 flex flex-col items-start gap-2 w-full" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
+                <Button variant="ghost" className="w-full justify-center gap-2 text-xl" onClick={() => router.push('/protected/admin/configs/roles')}> <Users size={20} /> Roles </Button>
+                <Button variant="ghost" className="w-full justify-center gap-2 text-xl" onClick={() => router.push('/protected/admin/configs/modulos')}> <Settings size={20} /> Módulos </Button>
+                <Button variant="ghost" className="w-full justify-center gap-2 text-xl" onClick={() => router.push('/protected/admin/logs')}> <FileText size={20} /> Logs </Button>
+              </motion.div>
+            )}
+          </div>
+        )}
+
         <div className="relative sm:col-span-2" ref={usuariosRef}>
-          <Button onClick={() => { setMostrarUsuarios(p => !p); setMostrarOpciones(false); }} className="w-full gap-2 text-xl h-14">
+          <Button onClick={() => { setMostrarUsuarios(p => !p); setMostrarOpciones(false); }} className="w-full gap-2 text-xl h-14 bg-blue-100 text-blue-800 hover:bg-blue-200">
             <Users size={25} /> Gestionar Usuarios
           </Button>
           {mostrarUsuarios && (
@@ -105,27 +112,14 @@ export default function Dashboard() {
             type="button"
             onClick={() => setVistaActiva('asistencia')}
             className={`flex-1 rounded-md text-base font-semibold transition-all duration-200 ${
-              vistaActiva === 'asistencia' ? 'bg-green-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'
+              vistaActiva === 'asistencia' ? 'bg-blue-100 text-blue-800 shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
             Asistencia
           </button>
         </div>
 
-        {permisos.includes('CONFIGURACION') && (rol === 'ADMIN' || rol === 'SUPER') && (
-          <div className="relative sm:col-span-2" ref={configRef}>
-            <Button onClick={() => { setMostrarOpciones(p => !p); setMostrarUsuarios(false); }} className="w-full gap-2 text-xl h-14">
-              <Settings size={25} /> Configuraciones
-            </Button>
-            {mostrarOpciones && (
-              <motion.div className="absolute top-full mt-2 right-0 z-10 bg-white dark:bg-gray-900 shadow-xl rounded-lg border dark:border-gray-700 p-2 flex flex-col items-start gap-2 w-full" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
-                <Button variant="ghost" className="w-full justify-center gap-2 text-xl" onClick={() => router.push('/protected/admin/configs/roles')}> <Users size={20} /> Roles </Button>
-                <Button variant="ghost" className="w-full justify-center gap-2 text-xl" onClick={() => router.push('/protected/admin/configs/modulos')}> <Settings size={20} /> Módulos </Button>
-                <Button variant="ghost" className="w-full justify-center gap-2 text-xl" onClick={() => router.push('/protected/admin/logs')}> <FileText size={20} /> Logs </Button>
-              </motion.div>
-            )}
-          </div>
-        )}
+
       </div>
 
       <AnimatePresence mode="wait">

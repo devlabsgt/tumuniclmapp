@@ -62,21 +62,21 @@ export default function Programa() {
     <>
       <div className="mx-auto w-full lg:w-4/5 max-w-7xl p-4 lg:p-6">
         <header className="flex flex-col gap-4 mb-6">
-            <div className="grid grid-cols-2 lg:flex lg:justify-between items-center gap-4">
-                <Button onClick={() => router.back()} variant="outline" className="w-full lg:w-auto gap-2">
+            <div className="flex flex-col md:flex-row lg:justify-between items-start lg:items-center gap-4">
+                <Button onClick={() => router.back()} variant="link" className="w-full md:w-auto gap-2 p-0 text-blue-600 justify-start">
                     <ArrowLeft className="h-4 w-4"/>
                     Volver
                 </Button>
-                <div className="flex justify-end gap-2 w-full lg:w-auto">
+                <div className="flex flex-col sm:flex-row justify-end gap-2 w-full md:w-auto">
                     <Button 
                         onClick={() => setIsMaestrosModalOpen(true)} 
-                        className="gap-2 whitespace-nowrap bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100"
+                        className="w-full sm:w-auto gap-2 whitespace-nowrap bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100"
                         variant="outline"
                     >
                         <GraduationCap className="h-4 w-4"/>
                         Maestros
                     </Button>
-                    <Button onClick={() => setIsFormNivelOpen(true)} className="gap-2 whitespace-nowrap">
+                    <Button onClick={() => setIsFormNivelOpen(true)} className="w-full sm:w-auto gap-2 whitespace-nowrap">
                         Nuevo Nivel
                     </Button>
                 </div>

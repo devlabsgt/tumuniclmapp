@@ -2,7 +2,9 @@
 
 import { motion } from 'framer-motion';
 
-const text = "Cargando...";
+interface Props {
+  texto?: string; // Hacemos la prop opcional con '?'
+}
 
 // Variantes para el contenedor principal del texto
 const textContainerVariants = {
@@ -46,7 +48,8 @@ const imageVariants = {
   },
 };
 
-export default function Cargando() {
+// Definimos el componente con la prop 'texto'
+export default function Cargando({ texto = "Cargando..." }: Props) { // Usamos el valor por defecto
   return (
     <div className="flex flex-col items-center justify-start min-h-[80vh] w-full pt-20 gap-8">
       <motion.img
@@ -63,7 +66,7 @@ export default function Cargando() {
         initial="hidden"
         animate="visible"
       >
-        {text.split('').map((char, index) => (
+        {texto.split('').map((char, index) => (
           <motion.span
             key={`${char}-${index}`}
             variants={letterVariants}

@@ -1,32 +1,59 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Fragment, useRef, useEffect, useMemo } from 'react';
 import { es } from 'date-fns/locale';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isToday, addDays, subDays, getYear, getMonth, isSameDay, isWithinInterval } from 'date-fns';
-import { esRegistroAnomalo } from './Asistencia';
+import { Button } from '@/components/ui/button';
+import { MapPin, FileText, X } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import {
+  Dialog,
+  DialogPanel,
+  DialogTitle,
+  Transition,
+  TransitionChild,
+} from '@headlessui/react';
 
 interface Registro {
   created_at: string;
   tipo_registro: string | null;
   ubicacion: { lat: number; lng: number } | null;
+  notas?: string | null;
 }
 
 interface CalendarioProps {
   todosLosRegistros: Registro[];
   onAbrirMapa: (registro: Registro) => void;
+  onVerNotas: (nota: string | null) => void;
 }
 
-export default function Calendario({ todosLosRegistros, onAbrirMapa }: CalendarioProps) {
+const getWeekDays = (date: Date) => eachDayOfInterval({
+  start: startOfWeek(date, { locale: es, weekStartsOn: 1 }),
+  end: endOfWeek(date, { locale: es, weekStartsOn: 1 }),
+});
+
+export default function Calendario({ todosLosRegistros, onAbrirMapa, onVerNotas }: CalendarioProps) {
   const [fechaDeReferencia, setFechaDeReferencia] = useState(new Date());
   const [diaSeleccionado, setDiaSeleccionado] = useState<Date | undefined>(undefined);
-  
-  const inicioDeSemana = startOfWeek(fechaDeReferencia, { locale: es, weekStartsOn: 1 });
-  const finDeSemana = endOfWeek(fechaDeReferencia, { locale: es, weekStartsOn: 1 });
-  const diasDeLaSemana = eachDayOfInterval({ start: inicioDeSemana, end: finDeSemana });
+  const [modalOpcionesAbierto, setModalOpcionesAbierto] = useState(false);
+  const [registroSeleccionado, setRegistroSeleccionado] = useState<Registro | null>(null);
 
-  const registrosDeLaSemana = todosLosRegistros.filter(r => 
-    isWithinInterval(new Date(r.created_at), { start: inicioDeSemana, end: finDeSemana })
+  const diasDeLaSemana = useMemo(() => getWeekDays(fechaDeReferencia), [fechaDeReferencia]);
+
+  const registrosDeLaSemana = useMemo(() => 
+    todosLosRegistros.filter(r => 
+      isWithinInterval(new Date(r.created_at), { start: diasDeLaSemana[0], end: diasDeLaSemana[6] })
+    ), [todosLosRegistros, diasDeLaSemana]
   );
+
+  const registrosParaTabla = useMemo(() => 
+    diaSeleccionado 
+      ? todosLosRegistros.filter(r => isSameDay(new Date(r.created_at), diaSeleccionado))
+      : registrosDeLaSemana, 
+    [diaSeleccionado, todosLosRegistros, registrosDeLaSemana]
+  );
+  
+  const diasParaTabla = diaSeleccionado ? [diaSeleccionado] : diasDeLaSemana;
 
   const irSemanaSiguiente = () => setFechaDeReferencia(addDays(fechaDeReferencia, 7));
   const irSemanaAnterior = () => setFechaDeReferencia(subDays(fechaDeReferencia, 7));
@@ -40,13 +67,26 @@ export default function Calendario({ todosLosRegistros, onAbrirMapa }: Calendari
     const yaEstaSeleccionado = diaSeleccionado ? isSameDay(dia, diaSeleccionado) : false;
     setDiaSeleccionado(yaEstaSeleccionado ? undefined : dia);
   };
-  
-  const registrosParaTabla = diaSeleccionado 
-    ? todosLosRegistros.filter(r => isSameDay(new Date(r.created_at), diaSeleccionado))
-    : registrosDeLaSemana;
 
-  const diasParaTabla = diaSeleccionado ? [diaSeleccionado] : diasDeLaSemana;
-  
+  const handleAbrirModalOpciones = (registro: Registro) => {
+    setRegistroSeleccionado(registro);
+    setModalOpcionesAbierto(true);
+  };
+
+  const handleVerUbicacion = () => {
+    setModalOpcionesAbierto(false);
+    if (registroSeleccionado) {
+      onAbrirMapa(registroSeleccionado);
+    }
+  };
+
+  const handleVerNotas = () => {
+    setModalOpcionesAbierto(false);
+    if (registroSeleccionado) {
+      onVerNotas(registroSeleccionado.notas || null);
+    }
+  };
+
   return (
     <div className="p-6 bg-white rounded-lg shadow-md space-y-4 w-full">
       <h3 className="text-xl lg:text-3xl font-bold text-center">Registro Semanal</h3>
@@ -78,45 +118,107 @@ export default function Calendario({ todosLosRegistros, onAbrirMapa }: Calendari
       
       <div className="border-t pt-4 mt-4">
         <h4 className='text-xl lg:text-3xl font-semibold text-center mb-2'>{diaSeleccionado ? `Registros para el ${format(diaSeleccionado, 'eeee d', { locale: es })}` : 'Todos los registros de la semana'}</h4>
+                   <p className="text-xs text-blue-600 text-center mt-4">Seleccione un registro para ver más información.</p>
+
+       
         {todosLosRegistros.length === 0 ? (<p className="text-center text-gray-500 text-xl lg:text-3xl">No hay registros disponibles.</p>) : (
-          <table className="w-full text-sm lg:text-3xl">
-            <thead className="bg-gray-50 text-left">
-              <tr>
-                <th className="px-4 py-2 lg:p-5">Hora</th>
-                <th className="px-4 py-2 lg:p-5">Registro</th>
-                <th className="px-4 py-2 lg:p-5">Ubicación</th>
-              </tr>
-            </thead>
-            <tbody>
-              {diasParaTabla.map((dia) => {
-                const fecha = format(dia, 'yyyy-MM-dd');
-                const registrosDelDia = registrosParaTabla.filter(r => isSameDay(new Date(r.created_at), dia));
-                
-                return (
-                  <React.Fragment key={fecha}>
-                    <tr>
-                      <td colSpan={3} className="bg-slate-100 px-4 py-2 font-bold text-slate-700 border-t border-b border-slate-200">{format(dia, 'eeee, d \'de\' LLLL', { locale: es })}</td>
-                    </tr>
-                    {registrosDelDia.length > 0 ? (
-                      registrosDelDia.map((registro, index) => (
-                        <tr key={index} className={`border-b ${esRegistroAnomalo(registro) ? 'bg-rose-50 text-rose-800' : ''}`}>
-                          <td className="px-4 py-2 font-mono lg:p-5">{new Date(registro.created_at).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })}</td>
-                          <td className="px-4 py-2 lg:p-5">{registro.tipo_registro}</td>
-                          <td className="px-4 py-2 lg:p-5">{registro.ubicacion && (<button onClick={() => onAbrirMapa(registro)} className="text-blue-600 hover:underline font-medium">Ver mapa</button>)}</td>
-                        </tr>
-                      ))
-                    ) : (
+          <>
+            <table className="w-full text-sm lg:text-3xl">
+              <thead className="bg-gray-50 text-left">
+                <tr>
+                  <th className="px-4 py-2 lg:p-5">Hora</th>
+                  <th className="px-4 py-2 lg:p-5">Registro</th>
+                </tr>
+              </thead>
+              <tbody>
+                {diasParaTabla.map((dia) => {
+                  const fecha = format(dia, 'yyyy-MM-dd');
+                  const registrosDelDia = registrosParaTabla.filter(r => isSameDay(new Date(r.created_at), dia));
+                  
+                  return (
+                    <React.Fragment key={fecha}>
                       <tr>
-                        <td colSpan={3} className="px-4 py-2 text-center text-gray-500 italic">No hay registros para este día.</td>
+                        <td colSpan={2} className="bg-slate-100 px-4 py-2 font-bold text-slate-700 border-t border-b border-slate-200">{format(dia, 'eeee, d \'de\' LLLL', { locale: es })}</td>
                       </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
+                      {registrosDelDia.length > 0 ? (
+                        registrosDelDia.map((registro, index) => (
+                          <tr 
+                            key={index} 
+                            onClick={() => handleAbrirModalOpciones(registro)}
+                            className="border-b cursor-pointer transition-colors hover:bg-gray-100"
+                          >
+                            <td className="px-4 py-2 font-mono lg:p-5">{new Date(registro.created_at).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })}</td>
+                            <td className="px-4 py-2 lg:p-5">{registro.tipo_registro}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={2} className="px-4 py-2 text-center text-gray-500 italic">No hay registros para este día.</td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </>
         )}
       </div>
+      <AnimatePresence>
+        {modalOpcionesAbierto && (
+          <Transition show={modalOpcionesAbierto} as={Fragment}>
+            <Dialog onClose={() => setModalOpcionesAbierto(false)} className="relative z-50">
+              <TransitionChild
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0"
+                enterTo="opacity-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100"
+                leaveTo="opacity-0"
+              >
+                <div className="fixed inset-0 bg-black/10 backdrop-blur-sm" />
+              </TransitionChild>
+              <div className="fixed inset-0 flex items-center justify-center p-4">
+                <TransitionChild
+                  as={Fragment}
+                  enter="ease-out duration-300"
+                  enterFrom="opacity-0 scale-95"
+                  enterTo="opacity-100 scale-100"
+                  leave="ease-in duration-200"
+                  leaveFrom="opacity-100 scale-100"
+                  leaveTo="opacity-0 scale-95"
+                >
+                  <DialogPanel className="bg-white rounded-lg w-full max-w-md p-6 shadow-xl">
+                    <DialogTitle className="text-xl font-bold mb-4 flex justify-between items-center">
+                      Opciones
+                      <button onClick={() => setModalOpcionesAbierto(false)} className="text-gray-500 hover:text-gray-800">
+                        <X size={24} />
+                      </button>
+                    </DialogTitle>
+                    <div className="flex flex-col gap-4">
+                      {registroSeleccionado?.ubicacion && (
+                        <Button
+                          onClick={handleVerUbicacion}
+                          className="w-full flex items-center justify-center gap-2"
+                        >
+                          <MapPin size={20} /> Ver Ubicación
+                        </Button>
+                      )}
+                      <Button
+                        onClick={handleVerNotas}
+                        className="w-full flex items-center justify-center gap-2"
+                      >
+                        <FileText size={20} /> Ver Notas
+                      </Button>
+                    </div>
+                  </DialogPanel>
+                </TransitionChild>
+              </div>
+            </Dialog>
+          </Transition>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

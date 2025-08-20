@@ -31,7 +31,8 @@ export default function VerRoles() {
       console.error('Error al cargar roles:', error);
       return;
     }
-    setRoles(data || []);
+    const rolesFiltrados = data?.filter(rol => rol.nombre !== 'AFILIADOR' && rol.nombre !== 'ADMIN-AFILIACION') || [];
+    setRoles(rolesFiltrados);
   };
 
   useEffect(() => {
@@ -39,7 +40,9 @@ export default function VerRoles() {
   }, []);
 
   const handleRolCreado = (nuevoRol: Rol) => {
-    setRoles((prev) => [...prev, nuevoRol]);
+    if (nuevoRol.nombre !== 'AFILIADOR' && nuevoRol.nombre !== 'ADMIN-AFILIACION') {
+      setRoles((prev) => [...prev, nuevoRol]);
+    }
     setMostrarCrear(false);
   };
 

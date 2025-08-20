@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { Loader2, Search } from 'lucide-react';
+import { X, Loader2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -67,7 +67,7 @@ export default function AsignarPrograma({ isOpen, onClose }: Props) {
     }
   }, [isOpen]);
 
-  // Sincronizar checkboxes al seleccionar un programa
+  // Sincronizar switches al seleccionar un programa
   useEffect(() => {
     if (selectedProgram) {
       const usersWithProgram = allUsers.filter(user => 
@@ -83,7 +83,7 @@ export default function AsignarPrograma({ isOpen, onClose }: Props) {
     setSelectedProgram(e.target.value);
   };
 
-  const handleCheckboxChange = (userId: string, isChecked: boolean) => {
+  const handleSwitchChange = (userId: string, isChecked: boolean) => {
     setSelectedUserIds(prevIds => 
       isChecked
         ? [...prevIds, userId]
@@ -136,7 +136,7 @@ export default function AsignarPrograma({ isOpen, onClose }: Props) {
   }
   
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+    <div className="fixed inset-0 bg-white/30 flex justify-center items-center z-50 p-4 backdrop-blur-sm">
       <motion.div 
         className="bg-slate-50 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" 
         initial={{ opacity: 0, y: -30 }} 
@@ -181,26 +181,47 @@ export default function AsignarPrograma({ isOpen, onClose }: Props) {
                   
                   <div className="flex justify-between items-center mb-2">
                     <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        className="form-checkbox h-4 w-4 text-gray-600 rounded"
-                        checked={filterAssigned}
-                        onChange={(e) => setFilterAssigned(e.target.checked)}
-                      />
+                      <button
+                        type="button"
+                        onClick={() => setFilterAssigned(p => !p)}
+                        className={`
+                          relative inline-flex items-center h-6 rounded-full w-11 transition-colors
+                          ${filterAssigned ? 'bg-blue-600' : 'bg-gray-200'}
+                        `}
+                      >
+                        <motion.span
+                          className={`
+                            inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                            ${filterAssigned ? 'translate-x-6' : 'translate-x-1'}
+                          `}
+                          aria-hidden="true"
+                        />
+                      </button>
                       <span className="text-sm text-gray-700">Solo usuarios asignados</span>
                     </div>
                   </div>
                   
                   <div className="space-y-2 max-h-60 overflow-y-auto mb-4">
                       {filteredUsers.map(user => (
-                          <div key={user.user_id} className="flex items-center space-x-2 p-2 bg-slate-50 rounded-md">
-                              <input 
-                                  type="checkbox"
-                                  className="form-checkbox h-4 w-4 text-blue-600 rounded"
-                                  checked={selectedUserIds.includes(user.user_id)}
-                                  onChange={(e) => handleCheckboxChange(user.user_id, e.target.checked)}
-                              />
+                          <div key={user.user_id} className="flex items-center justify-between p-2 bg-slate-50 rounded-md">
                               <span className="text-sm font-medium text-gray-700">{user.email}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleSwitchChange(user.user_id, !selectedUserIds.includes(user.user_id))}
+                                className={`
+                                  relative inline-flex items-center h-6 rounded-full w-11 transition-colors
+                                  ${selectedUserIds.includes(user.user_id) ? 'bg-blue-600' : 'bg-gray-200'}
+                                `}
+                              >
+                                <span className="sr-only">Asignar a {user.email}</span>
+                                <motion.span
+                                  className={`
+                                    inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                                    ${selectedUserIds.includes(user.user_id) ? 'translate-x-6' : 'translate-x-1'}
+                                  `}
+                                  aria-hidden="true"
+                                />
+                              </button>
                           </div>
                       ))}
                       {filteredUsers.length === 0 && (
