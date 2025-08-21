@@ -20,9 +20,10 @@ interface Props {
   onClose: () => void;
   onSave: () => void;
   maestroAEditar?: MaestroType | null;
+  nivelId?: number; // <-- Nuevo prop
 }
 
-export default function Maestro({ isOpen, onClose, onSave, maestroAEditar }: Props) {
+export default function Maestro({ isOpen, onClose, onSave, maestroAEditar, nivelId }: Props) {
   const isEditMode = !!maestroAEditar;
   const [maestrosExistentes, setMaestrosExistentes] = useState<MaestroType[]>([]);
   const [nombreBusqueda, setNombreBusqueda] = useState('');
@@ -39,7 +40,8 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar }: Pro
   const nombreWatch = watch("nombre");
 
   useEffect(() => {
-    if (!isEditMode) {
+    // Solo cargamos maestros si no estamos en modo de edición y estamos en el contexto de un nivel
+    if (!isEditMode && nivelId) {
       const fetchMaestros = async () => {
         const supabase = createClient();
         const { data, error } = await supabase.from('maestros_municipales').select('id, nombre, ctd_alumnos');
@@ -51,7 +53,7 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar }: Pro
       };
       fetchMaestros();
     }
-  }, [isEditMode]);
+  }, [isEditMode, nivelId]);
 
   useEffect(() => {
     if (isOpen) {
@@ -69,6 +71,8 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar }: Pro
 
   const onSubmit = async (formData: MaestroFormData) => {
     const supabase = createClient();
+    
+    // Lógica para modo de edición
     if (isEditMode) {
       const { error } = await supabase.from('maestros_municipales').update(formData).eq('id', maestroAEditar!.id);
       if (error) {
@@ -77,20 +81,53 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar }: Pro
         toast.success('Maestro actualizado correctamente.');
         onSave();
       }
-    } else {
-      const { data: existente } = await supabase.from('maestros_municipales').select('id').eq('nombre', formData.nombre).single();
-      if (existente) {
-        toast.error(`Ya existe un maestro con el nombre "${formData.nombre}".`);
-        return;
-      }
-      const { error } = await supabase.from('maestros_municipales').insert(formData);
-      if (error) {
-        toast.error(`Error al crear: ${error.message}`);
-      } else {
-        toast.success(`Maestro creado correctamente.`);
-        onSave();
-      }
+      return;
     }
+    
+    // Lógica para modo de creación
+    let maestroId: number;
+
+    // Si se seleccionó un maestro existente
+    if (maestroSeleccionado) {
+        maestroId = maestroSeleccionado.id;
+    } else {
+        // Si no se seleccionó, crear uno nuevo
+        const { data: existente } = await supabase.from('maestros_municipales').select('id').eq('nombre', formData.nombre).single();
+        if (existente) {
+            toast.error(`Ya existe un maestro con el nombre "${formData.nombre}".`);
+            return;
+        }
+
+        const { data: nuevoMaestro, error: createError } = await supabase
+            .from('maestros_municipales')
+            .insert({ nombre: formData.nombre, ctd_alumnos: formData.ctd_alumnos })
+            .select('id')
+            .single();
+
+        if (createError) {
+            toast.error(`Error al crear: ${createError.message}`);
+            return;
+        }
+        
+        maestroId = nuevoMaestro.id;
+        toast.success(`Maestro creado correctamente.`);
+    }
+
+    // Lógica de asignación si existe nivelId
+    if (nivelId) {
+        const { error: assignError } = await supabase
+            .from('programas_educativos')
+            .update({ maestro_id: maestroId })
+            .eq('id', nivelId);
+
+        if (assignError) {
+            toast.error(`Error al asignar maestro al nivel: ${assignError.message}`);
+        } else {
+            toast.success('Maestro asignado al nivel correctamente.');
+        }
+    }
+    
+    onSave();
   };
 
   const handleSelectMaestro = (maestro: MaestroType) => {
@@ -140,7 +177,7 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar }: Pro
                        setMaestroSeleccionado(null);
                     }
                   }}
-                  disabled={!!maestroSeleccionado && !isEditMode} // <-- Lógica corregida
+                  disabled={!!maestroSeleccionado && !isEditMode}
                 />
                 <AnimatePresence>
                   {!isEditMode && nombreWatch && maestrosFiltrados.length > 0 && (
@@ -188,7 +225,7 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar }: Pro
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
             <Button type="submit" disabled={isSubmitting || !!maestroSeleccionado && !isEditMode} className="bg-blue-600 hover:bg-blue-700">
-              {isSubmitting ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Crear')}
+              {isSubmitting ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Crear y Asignar')}
             </Button>
           </div>
         </form>

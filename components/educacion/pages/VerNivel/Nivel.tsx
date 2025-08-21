@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import type { Alumno, Programa } from '../../lib/esquemas';
 import { Button } from '@/components/ui/button';
-import { Search, ArrowLeft, Pencil, UserX, Eye } from 'lucide-react';
+import { Search, ArrowLeft, Pencil, UserX, Eye, GraduationCap } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   PieChart, Pie, Cell,
@@ -14,12 +14,14 @@ import {
 import AlumnoCard from '../../forms/AlumnoCard';
 import FormAlumno from '../../forms/Alumno';
 import AsignarMaestro from '../../forms/AsignarMaestro';
+import FormPrograma from '../../forms/Programa'; // Importar el componente del modal del programa
 import { Input } from '@/components/ui/input';
 import useUserData from '@/hooks/useUserData';
 import { useParams, useRouter } from 'next/navigation';
 import { useNivelData } from '@/hooks/educacion/useNivelData';
 import { toast } from 'react-toastify';
 import { createClient } from '@/utils/supabase/client';
+import MensajeAnimado from '../../../ui/Typeanimation';
 
 const COLORS = {
   'Hombres': '#3b82f6',
@@ -44,6 +46,7 @@ export default function Nivel() {
   const [isFormAlumnoOpen, setIsFormAlumnoOpen] = useState(false);
   const [alumnoParaEditar, setAlumnoParaEditar] = useState<Alumno | null>(null);
   const [isAsignarMaestroOpen, setIsAsignarMaestroOpen] = useState(false);
+  const [isFormNivelOpen, setIsFormNivelOpen] = useState(false); // Nuevo estado para el modal de edición de nivel
   const [accionesAbiertas, setAccionesAbiertas] = useState<Alumno | null>(null);
   const [todosLosAlumnos, setTodosLosAlumnos] = useState<Alumno[]>([]);
   const [alumnoPendienteDesasignar, setAlumnoPendienteDesasignar] = useState<Alumno | null>(null);
@@ -63,7 +66,7 @@ export default function Nivel() {
   
   // Hook para controlar el desplazamiento del body
   useEffect(() => {
-    const isModalOpen = isFormAlumnoOpen || alumnoSeleccionado || isAsignarMaestroOpen || accionesAbiertas || alumnoPendienteDesasignar;
+    const isModalOpen = isFormAlumnoOpen || alumnoSeleccionado || isAsignarMaestroOpen || isFormNivelOpen || accionesAbiertas || alumnoPendienteDesasignar;
     if (isModalOpen) {
       document.body.classList.add('overflow-hidden');
     } else {
@@ -74,7 +77,7 @@ export default function Nivel() {
     return () => {
       document.body.classList.remove('overflow-hidden');
     };
-  }, [isFormAlumnoOpen, alumnoSeleccionado, isAsignarMaestroOpen, accionesAbiertas, alumnoPendienteDesasignar]);
+  }, [isFormAlumnoOpen, alumnoSeleccionado, isAsignarMaestroOpen, isFormNivelOpen, accionesAbiertas, alumnoPendienteDesasignar]);
 
 
   const pieData = useMemo(() => {
@@ -140,7 +143,18 @@ export default function Nivel() {
     setIsAsignarMaestroOpen(false);
     fetchData();
   };
-  
+
+  // Función para abrir el modal de edición de nivel
+  const handleOpenEditarNivel = () => {
+      setIsFormNivelOpen(true);
+  };
+
+  // Función para cerrar el modal de nivel y recargar los datos
+  const handleSaveAndCloseNivel = () => {
+      setIsFormNivelOpen(false);
+      fetchData();
+  };
+
   // Función que inicia el proceso de desasignación mostrando el modal de confirmación
   const handleDesinscribirAlumno = (alumno: Alumno) => {
     setAlumnoPendienteDesasignar(alumno);
@@ -188,7 +202,14 @@ export default function Nivel() {
               Volver
           </Button>
           <div className='text-right'>
-            <h3 className="text-xl font-bold text-gray-800">{nivel.nombre}</h3>
+            <div className="flex justify-end items-center gap-2 mb-2">
+                <h3 className="text-xl font-bold text-gray-800">{nivel.nombre}</h3>
+                {(rol === 'SUPER' || rol === 'ADMINISTRADOR' || rol === 'DIGITADOR') && (
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleOpenEditarNivel}>
+                        <Pencil className="h-4 w-4 text-gray-600" />
+                    </Button>
+                )}
+            </div>
             <p className="text-sm text-gray-600">{nivel.descripcion || 'Sin descripción'}</p>
             <p className="text-sm text-gray-600 mt-2">
               <span className="font-semibold">Maestro Encargado:</span>{' '}
@@ -230,6 +251,11 @@ export default function Nivel() {
         <div className="flex flex-col gap-6 mt-4">
           <div className="w-full overflow-x-auto">
             <h4 className="text-md font-semibold text-gray-800 mb-4">Listado de Alumnos ({alumnosDelNivel.length})</h4>
+                    <div className="text-start text-sm text-blue-500 mb-4 mt-4">
+            <MensajeAnimado
+              textos={['Seleccione un alumno para ver más']}
+            />
+        </div>
             <div className="rounded-lg border">
               <table className="w-full text-sm text-left rtl:text-right text-gray-500">
                 <thead className="text-xs text-gray-700 uppercase bg-gray-50">
@@ -390,6 +416,19 @@ export default function Nivel() {
         onSave={handleSaveAndCloseAsignarMaestro}
         nivelId={nivel?.id}
       />
+      <AnimatePresence>
+        {isFormNivelOpen && (
+            <FormPrograma
+                isOpen={isFormNivelOpen}
+                onClose={() => setIsFormNivelOpen(false)}
+                onSave={() => {
+                  setIsFormNivelOpen(false);
+                  fetchData();
+                }}
+                programaAEditar={nivel}
+            />
+        )}
+      </AnimatePresence>
     </>
   );
 }

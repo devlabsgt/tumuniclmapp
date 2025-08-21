@@ -106,29 +106,39 @@ export default function Programa() {
         </header>
         
         <main className="space-y-4">
-          <div className="border rounded-lg bg-white shadow-sm overflow-x-hidden p-4">
-            {nivelesDelPrograma && alumnosDelPrograma ? (
-              <div className="space-y-6">
-                <EstadisticasNiveles
-                  niveles={nivelesDelPrograma}
-                  alumnos={alumnosDelPrograma}
-                  onBarClick={handleBarClick}
-                />
-                <EstadisticasLugares
-                  alumnos={alumnosDelPrograma}
-                />
-              </div>
-            ) : (
-              <div className="text-center py-10 text-gray-500">
-                No hay datos para mostrar.
-              </div>
-            )}
-          </div>
+          {nivelesDelPrograma && alumnosDelPrograma ? (
+            <EstadisticasNiveles
+              niveles={nivelesDelPrograma}
+              alumnos={alumnosDelPrograma}
+              onBarClick={handleBarClick}
+            />
+          ) : (
+            <div className="border rounded-lg bg-white shadow-sm overflow-x-hidden p-4">
+                <div className="text-center py-10 text-gray-500">
+                    No hay datos para mostrar.
+                </div>
+            </div>
+          )}
 
-          <Maestros
-            onEdit={handleOpenEditMaestro}
-            maestros={maestrosDelPrograma}
-          />
+
+
+          {maestrosDelPrograma && (
+            <Maestros
+              onEdit={handleOpenEditMaestro}
+              maestros={maestrosDelPrograma}
+            />
+          )}
+                    {alumnosDelPrograma ? (
+            <EstadisticasLugares
+              alumnos={alumnosDelPrograma}
+            />
+          ) : (
+            <div className="border rounded-lg bg-white shadow-sm overflow-x-hidden p-4">
+                <div className="text-center py-10 text-gray-500">
+                    No hay datos de alumnos para mostrar.
+                </div>
+            </div>
+          )}
         </main>
       </div>
       

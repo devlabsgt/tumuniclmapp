@@ -2,8 +2,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { Alumno } from '../lib/esquemas';
-import { ChevronDown, MapPin } from 'lucide-react';
+import type { Alumno, } from '../lib/esquemas';
+import { ChevronDown, MapPin, Users } from 'lucide-react';
 
 interface EstadisticasLugaresProps {
   alumnos: Alumno[];
@@ -37,7 +37,7 @@ export default function EstadisticasLugares({ alumnos }: EstadisticasLugaresProp
   }
 
   return (
-    <div className="p-6 bg-white border rounded-xl shadow-lg overflow-hidden">
+    <div className="p-6 bg-white border rounded-xl overflow-hidden">
       <div 
         className="flex justify-between items-center cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}

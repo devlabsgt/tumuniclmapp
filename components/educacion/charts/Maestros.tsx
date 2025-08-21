@@ -3,9 +3,9 @@
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, GraduationCap, Pencil } from 'lucide-react';
+import { ChevronDown, User } from 'lucide-react';
+import MensajeAnimado from '../../ui/Typeanimation';
 
-// Tipos para el componente
 interface MaestroAlumnos {
   id: number;
   nombre: string;
@@ -20,7 +20,10 @@ interface MaestrosProps {
 export default function Maestros({ onEdit, maestros }: MaestrosProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Se calcula el máximo de alumnos para normalizar la barra de la gráfica
+  const totalAlumnos = useMemo(() => {
+    return maestros.reduce((sum, maestro) => sum + maestro.ctd_alumnos, 0);
+  }, [maestros]);
+
   const maxAlumnos = useMemo(() => {
     if (maestros.length === 0) return 0;
     return Math.max(...maestros.map(m => m.ctd_alumnos));
@@ -35,14 +38,14 @@ export default function Maestros({ onEdit, maestros }: MaestrosProps) {
   }
 
   return (
-    <div className="p-6 bg-white border rounded-xl shadow-lg overflow-hidden">
+    <div className="p-6 bg-white border rounded-xl overflow-hidden">
       <div 
         className="flex justify-between items-center cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center gap-3">
-          <GraduationCap className="h-6 w-6 text-blue-600" />
-          <h3 className="text-xl font-bold text-gray-800">Maestros del Programa</h3>
+          <User className="h-6 w-6 text-green-600" />
+          <h3 className="text-xl font-bold text-gray-800">Maestros del Programa <span className="text-sm font-bold text-gray-600">Total de alumnos: {totalAlumnos}</span></h3>
         </div>
         <motion.div
           initial={{ rotate: 0 }}
@@ -62,26 +65,25 @@ export default function Maestros({ onEdit, maestros }: MaestrosProps) {
             transition={{ duration: 0.5, ease: "easeInOut" }}
             className="overflow-hidden mt-4"
           >
+            <div className="text-center text-sm text-green-700 mb-4">
+                <MensajeAnimado
+                    textos={['Seleccione un maestro para editar']}
+                />
+            </div>
             <div className="space-y-4">
               {maestros.map((item) => (
-                <div key={item.id} className="space-y-1">
+                <div 
+                  key={item.id} 
+                  className="space-y-1 cursor-pointer"
+                  onClick={() => onEdit(item)}
+                >
                   <div className="flex justify-between items-center text-sm font-medium text-gray-600">
                     <span className="truncate">{item.nombre}</span>
-                    <div className="flex items-center gap-2">
-                        <span className="font-semibold">{item.ctd_alumnos}</span>
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-6 w-6"
-                            onClick={() => onEdit(item)}
-                        >
-                            <Pencil className="h-4 w-4" />
-                        </Button>
-                    </div>
+                    <span className="font-semibold">{item.ctd_alumnos}</span>
                   </div>
                   <div className="relative bg-gray-200 rounded-full h-4">
                     <motion.div
-                      className="bg-blue-600 h-full rounded-full"
+                      className="bg-green-600 h-full rounded-full"
                       initial={{ width: 0 }}
                       animate={{ width: `${(item.ctd_alumnos / maxAlumnos) * 100}%` }}
                       transition={{ duration: 0.8, ease: "easeOut" }}
