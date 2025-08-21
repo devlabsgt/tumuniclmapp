@@ -3,13 +3,20 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, GraduationCap } from 'lucide-react';
+import { ArrowLeft, GraduationCap, Pencil } from 'lucide-react';
 import EstadisticasNiveles from '../charts/Niveles';
 import EstadisticasLugares from '../charts/Lugares';
 import FormPrograma from '../forms/Programa';
 import { useProgramaData } from '@/hooks/educacion/useProgramaData';
 import { AnimatePresence } from 'framer-motion';
 import Maestros from '../charts/Maestros';
+import FormMaestro from '../forms/Maestro';
+
+interface MaestroAlumnos {
+  id: number;
+  nombre: string;
+  ctd_alumnos: number;
+}
 
 export default function Programa() {
   const router = useRouter();
@@ -18,21 +25,20 @@ export default function Programa() {
   
   const { programa, nivelesDelPrograma, alumnosDelPrograma, maestrosDelPrograma, loading, fetchData } = useProgramaData(programaId);
   const [isFormNivelOpen, setIsFormNivelOpen] = useState(false);
-  const [isMaestrosModalOpen, setIsMaestrosModalOpen] = useState(false);
+  const [isFormMaestroOpen, setIsFormMaestroOpen] = useState(false);
+  const [maestroAEditar, setMaestroAEditar] = useState<MaestroAlumnos | null>(null);
 
-  // Hook para controlar el desplazamiento del body
   useEffect(() => {
-    if (isFormNivelOpen || isMaestrosModalOpen) {
+    if (isFormNivelOpen || isFormMaestroOpen) {
       document.body.classList.add('overflow-hidden');
     } else {
       document.body.classList.remove('overflow-hidden');
     }
 
-    // Limpieza al desmontar el componente
     return () => {
       document.body.classList.remove('overflow-hidden');
     };
-  }, [isFormNivelOpen, isMaestrosModalOpen]);
+  }, [isFormNivelOpen, isFormMaestroOpen]);
 
   const handleCloseAndRefresh = () => {
     setIsFormNivelOpen(false);
@@ -44,6 +50,22 @@ export default function Programa() {
       const nivelId = data.activePayload[0].payload.id;
       router.push(`/protected/educacion/programa/${programaId}/nivel/${nivelId}`);
     }
+  };
+
+  const handleOpenEditMaestro = (maestro: MaestroAlumnos) => {
+    setMaestroAEditar(maestro);
+    setIsFormMaestroOpen(true);
+  };
+
+  const handleCloseMaestroForm = () => {
+    setIsFormMaestroOpen(false);
+    setMaestroAEditar(null);
+  };
+  
+  const handleSaveMaestroForm = () => {
+    setIsFormMaestroOpen(false);
+    setMaestroAEditar(null);
+    fetchData();
   };
 
   if (loading) {
@@ -68,13 +90,9 @@ export default function Programa() {
                     Volver
                 </Button>
                 <div className="flex flex-col sm:flex-row justify-end gap-2 w-full md:w-auto">
-                    <Button 
-                        onClick={() => setIsMaestrosModalOpen(true)} 
-                        className="w-full sm:w-auto gap-2 whitespace-nowrap bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100"
-                        variant="outline"
-                    >
+                    <Button onClick={() => setIsFormMaestroOpen(true)} className="w-full sm:w-auto gap-2 whitespace-nowrap bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100" variant="outline">
                         <GraduationCap className="h-4 w-4"/>
-                        Maestros
+                        Nuevo Maestro
                     </Button>
                     <Button onClick={() => setIsFormNivelOpen(true)} className="w-full sm:w-auto gap-2 whitespace-nowrap">
                         Nuevo Nivel
@@ -106,6 +124,11 @@ export default function Programa() {
               </div>
             )}
           </div>
+
+          <Maestros
+            onEdit={handleOpenEditMaestro}
+            maestros={maestrosDelPrograma}
+          />
         </main>
       </div>
       
@@ -122,12 +145,13 @@ export default function Programa() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {isMaestrosModalOpen && (
-            <Maestros
-                isOpen={isMaestrosModalOpen}
-                onClose={() => setIsMaestrosModalOpen(false)}
-                maestros={maestrosDelPrograma}
-            />
+        {isFormMaestroOpen && (
+          <FormMaestro
+            isOpen={isFormMaestroOpen}
+            onClose={handleCloseMaestroForm}
+            onSave={handleSaveMaestroForm}
+            maestroAEditar={maestroAEditar}
+          />
         )}
       </AnimatePresence>
     </>

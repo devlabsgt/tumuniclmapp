@@ -206,7 +206,7 @@ export default function Nivel() {
             >
                 Inscribir Alumno
             </Button>
-            {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
+            {(rol === 'SUPER' || rol === 'ADMINISTRADOR' || rol === 'DIGITADOR') && (
               <Button
                   variant="outline"
                   className="w-full sm:w-1/2 gap-2 text-blue-600 border-blue-600 shadow-sm hover:bg-blue-50 hover:shadow-md"

@@ -1,7 +1,7 @@
 import Swal from 'sweetalert2';
 import { createClient } from '@/utils/supabase/client';
 import { toast } from 'react-toastify';
-import type { Alumno, Programa } from './esquemas';
+import type { Alumno, Programa, Maestro } from './esquemas';
 
 export const eliminarPrograma = async (programa: Programa, onEliminado: () => void) => {
     const confirmacion = await Swal.fire({
@@ -27,3 +27,25 @@ export const eliminarPrograma = async (programa: Programa, onEliminado: () => vo
     }
 };
 
+// Función para editar un maestro
+export const editarMaestro = async (maestro: Maestro) => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+        .from('maestros_municipales')
+        .update({
+            nombre: maestro.nombre,
+            ctd_alumnos: maestro.ctd_alumnos,
+        })
+        .eq('id', maestro.id)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error al actualizar el maestro:', error.message);
+        toast.error('Error al actualizar el maestro.');
+        return null;
+    }
+
+    toast.success('Maestro actualizado con éxito.');
+    return data;
+};

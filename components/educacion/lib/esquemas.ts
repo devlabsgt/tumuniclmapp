@@ -45,7 +45,7 @@ export const alumnoSchema = z.object({
 // --- Esquema para Maestros ---
 export const maestroSchema = z.object({
     nombre: z.string().min(3, { message: 'El nombre es obligatorio.' }),
-    ctd_alumnos: z.number().int().min(0, { message: 'Debe ser un número positivo.' }).optional().nullable(),
+    ctd_alumnos: z.number().int().min(0, { message: 'Debe ser un número positivo.' }),
 });
 
 

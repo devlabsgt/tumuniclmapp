@@ -39,17 +39,19 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar }: Pro
   const nombreWatch = watch("nombre");
 
   useEffect(() => {
-    const fetchMaestros = async () => {
-      const supabase = createClient();
-      const { data, error } = await supabase.from('maestros_municipales').select('id, nombre, ctd_alumnos');
-      if (error) {
-        toast.error(`Error al cargar maestros: ${error.message}`);
-      } else {
-        setMaestrosExistentes(data as MaestroType[]);
-      }
-    };
-    fetchMaestros();
-  }, []);
+    if (!isEditMode) {
+      const fetchMaestros = async () => {
+        const supabase = createClient();
+        const { data, error } = await supabase.from('maestros_municipales').select('id, nombre, ctd_alumnos');
+        if (error) {
+          toast.error(`Error al cargar maestros: ${error.message}`);
+        } else {
+          setMaestrosExistentes(data as MaestroType[]);
+        }
+      };
+      fetchMaestros();
+    }
+  }, [isEditMode]);
 
   useEffect(() => {
     if (isOpen) {
@@ -94,10 +96,10 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar }: Pro
   const handleSelectMaestro = (maestro: MaestroType) => {
     setMaestroSeleccionado(maestro);
     setValue('nombre', maestro.nombre, { shouldValidate: true });
-    setNombreBusqueda('');
+    setValue('ctd_alumnos', maestro.ctd_alumnos, { shouldValidate: true });
   };
 
-  const maestrosFiltrados = nombreWatch 
+  const maestrosFiltrados = !isEditMode && nombreWatch 
     ? maestrosExistentes.filter(m => m.nombre.toLowerCase().includes(nombreWatch.toLowerCase()))
     : [];
 
@@ -134,12 +136,14 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar }: Pro
                   onChange={(e) => {
                     const value = e.target.value;
                     setValue("nombre", value);
-                    setMaestroSeleccionado(null);
+                    if (!isEditMode) {
+                       setMaestroSeleccionado(null);
+                    }
                   }}
-                  disabled={!!maestroSeleccionado}
+                  disabled={!!maestroSeleccionado && !isEditMode} // <-- Lógica corregida
                 />
                 <AnimatePresence>
-                  {nombreWatch && !maestroSeleccionado && maestrosFiltrados.length > 0 && (
+                  {!isEditMode && nombreWatch && maestrosFiltrados.length > 0 && (
                     <motion.ul
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -158,7 +162,7 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar }: Pro
                     </motion.ul>
                   )}
                 </AnimatePresence>
-                {maestroSeleccionado && (
+                {!isEditMode && maestroSeleccionado && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500">
                     <Check className="h-5 w-5" />
                   </div>
@@ -175,7 +179,7 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar }: Pro
                 {...register("ctd_alumnos", { valueAsNumber: true })} 
                 placeholder="0" 
                 className={errors.ctd_alumnos ? 'border-red-500' : ''} 
-                disabled={!!maestroSeleccionado || isEditMode}
+                disabled={!isEditMode && !!maestroSeleccionado}
               />
               {errors.ctd_alumnos && <p className="text-sm text-red-500 mt-1">{errors.ctd_alumnos.message}</p>}
             </div>
@@ -183,7 +187,7 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar }: Pro
           
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button type="submit" disabled={isSubmitting || !!maestroSeleccionado} className="bg-blue-600 hover:bg-blue-700">
+            <Button type="submit" disabled={isSubmitting || !!maestroSeleccionado && !isEditMode} className="bg-blue-600 hover:bg-blue-700">
               {isSubmitting ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Crear')}
             </Button>
           </div>

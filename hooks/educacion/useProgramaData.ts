@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import type { Programa, Alumno } from '@/components/educacion/lib/esquemas';
 
 interface MaestroAlumnos {
+  id: number;
   nombre: string;
   ctd_alumnos: number;
 }
@@ -63,12 +64,13 @@ export function useProgramaData(programaId: string | number) {
             if (maestrosIds.length > 0) {
               const { data: maestrosDataRes, error: maestrosDataError } = await supabase
                   .from('maestros_municipales')
-                  .select('nombre, ctd_alumnos')
+                  .select('id, nombre, ctd_alumnos') // <-- Se añade el ID en la consulta
                   .in('id', maestrosIds);
 
               if (maestrosDataError) throw maestrosDataError;
               
               const maestrosFormatted: MaestroAlumnos[] = (maestrosDataRes || []).map(maestro => ({
+                  id: maestro.id, // <-- Se mapea el ID
                   nombre: maestro.nombre,
                   ctd_alumnos: maestro.ctd_alumnos,
               })).sort((a, b) => b.ctd_alumnos - a.ctd_alumnos);
