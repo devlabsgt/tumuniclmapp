@@ -82,7 +82,7 @@ export default function Ver() {
 
     // Filtra los programas según el rol. Si es SUPER o ADMINISTRADOR, ve todos, si no, solo los asignados.
     const programasFiltrados = useMemo(() => {
-        if (rol === 'SUPER' || rol === 'ADMINISTRADOR') {
+        if (rol === 'SUPER' || rol === 'ADMINISTRADOR'|| rol === 'ADMINISTRADOR'|| rol === 'DIGITADOR') {
             return programas
                 .filter(p => p.parent_id === null && p.anio?.toString() === filtroAnio && p.nombre.toLowerCase().includes(searchTerm.toLowerCase()))
                 .sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -115,7 +115,7 @@ export default function Ver() {
                     <div className="flex flex-col sm:flex-row lg:flex-row lg:justify-between items-start lg:items-center gap-4">
                         <BotonVolver ruta="/" />
                         <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-2">
-                           {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
+                           {(rol === 'SUPER' || rol === 'ADMINISTRADOR'|| rol === 'DIGITADOR') && (
                             <>
                                 <Button onClick={handleOpenAsignarProgramas} variant="outline" className="w-full sm:w-auto gap-2 whitespace-nowrap bg-gray-100 border border-gray-300 text-gray-700 hover:bg-gray-200">
                                     <Link className="h-4 w-4"/>
@@ -179,7 +179,7 @@ export default function Ver() {
                                             {programa.descripcion || 'Este programa no tiene una descripción.'}
                                         </p>
                                     </div>
-                                    {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
+                                    {(rol === 'SUPER' || rol === 'ADMINISTRADOR'|| rol === 'ADMINISTRADOR') && (
                                         <Button
                                             variant="outline"
                                             size="sm"

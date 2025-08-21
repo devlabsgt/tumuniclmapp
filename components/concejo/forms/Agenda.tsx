@@ -1,119 +1,33 @@
-// forms/Agenda.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useForm, UseFormSetValue } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
-import { crearAgenda, editarAgenda, type AgendaFormData, type AgendaConsejo } from '../lib/acciones';
+import { crearAgenda, editarAgenda, type AgendaFormData, type AgendaConcejo, getTodayDate, getNowTime } from '../lib/acciones';
 import { agendaSchema } from '../lib/esquemas';
-import { toast } from 'react-toastify';
-import { es } from 'date-fns/locale';
-import {
-  format,
-  isToday,
-  isSameDay,
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
-  addMonths,
-  subMonths,
-} from 'date-fns';
 
-interface Props {
+import Calendario from '@/components/ui/Calendario';
+
+interface AgendaProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: () => void;
-  agendaAEditar?: AgendaConsejo | null;
+  agendaAEditar?: AgendaConcejo | null;
 }
 
-const getTodayDate = () => {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = (today.getMonth() + 1).toString().padStart(2, '0');
-  const day = today.getDate().toString().padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
-interface CalendarioSelectorProps {
-  fechaSeleccionada: string;
-  onSelectDate: (date: string) => void;
-}
-
-const CalendarioSelector = ({ fechaSeleccionada, onSelectDate }: CalendarioSelectorProps) => {
-  const [fechaDeReferencia, setFechaDeReferencia] = useState(new Date(fechaSeleccionada + 'T00:00:00'));
-
-  const inicioDeMes = startOfMonth(fechaDeReferencia);
-  const finDeMes = endOfMonth(fechaDeReferencia);
-  const diasDelMes = eachDayOfInterval({ start: inicioDeMes, end: finDeMes });
-
-  const irMesSiguiente = () => setFechaDeReferencia(addMonths(fechaDeReferencia, 1));
-  const irMesAnterior = () => setFechaDeReferencia(subMonths(fechaDeReferencia, 1));
-
-  const handleSeleccionFecha = (dia: Date) => {
-    onSelectDate(format(dia, 'yyyy-MM-dd'));
-  };
-
-  return (
-    <div className="p-4 bg-white rounded-lg shadow-md space-y-4">
-      <div className="flex justify-between items-center p-2 rounded-lg">
-        <button type="button" onClick={irMesAnterior} className="p-2 rounded-full hover:bg-slate-200" aria-label="Mes anterior">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-        </button>
-        <div className='flex gap-2 text-lg lg:text-xl'>
-          <span>{format(fechaDeReferencia, 'LLLL', { locale: es })}</span>
-          <span>{format(fechaDeReferencia, 'yyyy')}</span>
-        </div>
-        <button type="button" onClick={irMesSiguiente} className="p-2 rounded-full hover:bg-slate-200" aria-label="Siguiente mes">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
-        </button>
-      </div>
-      
-      <div className="grid grid-cols-7 gap-1 text-center">
-        {['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'].map((dia) => (
-          <span key={dia} className="text-xs uppercase font-semibold text-gray-500">{dia}</span>
-        ))}
-        {Array.from({ length: inicioDeMes.getDay() === 0 ? 6 : inicioDeMes.getDay() - 1 }, (_, i) => (
-          <div key={`empty-${i}`} className="w-8 h-8"></div>
-        ))}
-        {diasDelMes.map((dia) => {
-          const isSelected = isSameDay(dia, new Date(fechaSeleccionada + 'T00:00:00'));
-          const isTodayDate = isToday(dia);
-          const isPastDate = dia.setHours(0,0,0,0) < new Date().setHours(0,0,0,0);
-          return (
-            <button
-              type="button"
-              key={dia.toString()}
-              onClick={() => handleSeleccionFecha(dia)}
-              className={`w-8 h-8 flex items-center justify-center rounded-md transition-all cursor-pointer text-sm
-                ${isPastDate && isSelected ? 'bg-slate-200 text-slate-600' : ''}
-                ${isPastDate && !isSelected ? 'text-slate-600' : ''}
-                ${!isPastDate && isSelected ? 'bg-blue-600 text-white' : ''}
-                ${isTodayDate && !isSelected ? 'bg-blue-100 text-blue-800' : ''}
-                ${!isPastDate && !isSelected && !isTodayDate ? 'hover:bg-slate-100 text-slate-600' : ''}
-              `}
-            >
-              {format(dia, 'd')}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-
-export default function Agenda({ isOpen, onClose, onSave, agendaAEditar }: Props) {
+export default function Agenda({ isOpen, onClose, onSave, agendaAEditar }: AgendaProps) {
   const isEditMode = !!agendaAEditar;
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset, watch, setValue } = useForm<AgendaFormData>({
     resolver: zodResolver(agendaSchema),
     defaultValues: {
       titulo: isEditMode ? agendaAEditar.titulo : '',
-      fecha_reunion: isEditMode ? agendaAEditar.fecha_reunion : getTodayDate(),
+      descripcion: isEditMode ? agendaAEditar.descripcion : '',
+      fecha_reunion: isEditMode ? agendaAEditar.fecha_reunion.split('T')[0] : getTodayDate(),
+      hora_reunion: isEditMode ? agendaAEditar.fecha_reunion.split('T')[1].substring(0, 5) : getNowTime(),
     }
   });
 
@@ -124,12 +38,16 @@ export default function Agenda({ isOpen, onClose, onSave, agendaAEditar }: Props
       if (isEditMode) {
         reset({
           titulo: agendaAEditar.titulo,
-          fecha_reunion: agendaAEditar.fecha_reunion,
+          descripcion: agendaAEditar.descripcion,
+          fecha_reunion: agendaAEditar.fecha_reunion.split('T')[0],
+          hora_reunion: agendaAEditar.fecha_reunion.split('T')[1].substring(0, 5),
         });
       } else {
         reset({
           titulo: '',
+          descripcion: '',
           fecha_reunion: getTodayDate(),
+          hora_reunion: getNowTime(),
         });
       }
     }
@@ -137,10 +55,15 @@ export default function Agenda({ isOpen, onClose, onSave, agendaAEditar }: Props
 
   const onSubmit = async (formData: AgendaFormData) => {
     let result = null;
+    const combinedFormData = {
+      ...formData,
+      fecha_reunion: `${formData.fecha_reunion}T${formData.hora_reunion}:00-06:00`,
+    };
+
     if (isEditMode) {
-        result = await editarAgenda(agendaAEditar!.id, formData);
+        result = await editarAgenda(agendaAEditar!.id, combinedFormData);
     } else {
-        result = await crearAgenda(formData);
+        result = await crearAgenda(combinedFormData);
     }
     
     if (result) {
@@ -148,8 +71,6 @@ export default function Agenda({ isOpen, onClose, onSave, agendaAEditar }: Props
       onClose();
     }
   };
-
-  if (!isOpen) return null;
 
   return (
     <AnimatePresence>
@@ -170,25 +91,47 @@ export default function Agenda({ isOpen, onClose, onSave, agendaAEditar }: Props
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
                 <div className="space-y-4 p-4 bg-white rounded-lg border border-gray-200">
                   <h3 className="text-lg font-semibold text-gray-700">
-                    {isEditMode ? 'Editar Agenda' : 'Crear Nueva Agenda'}
+                    {isEditMode ? 'Editar Sesión' : 'Crear Nueva Sesión'}
                   </h3>
 
                   <div>
                     <Input
                       id="titulo"
                       {...register("titulo")}
-                      placeholder="Ej. Nombre: Sesión Ordinaria de agosto"
+                      placeholder="Ej. Nombre: Sesión Ordinaria de enero"
                       className={errors.titulo ? 'border-red-500' : ''}
                     />
                     {errors.titulo && <p className="text-sm text-red-500 mt-1">{errors.titulo.message}</p>}
                   </div>
+
+                  <div>
+                    <textarea
+                      id="descripcion"
+                      {...register('descripcion')}
+                      placeholder="Agregue una descripción..."
+                      rows={4}
+                      className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 ${errors.descripcion ? 'border-red-500' : ''}`}
+                    />
+                    {errors.descripcion && <p className="text-sm text-red-500 mt-1">{errors.descripcion.message}</p>}
+                  </div>
                   
                   <div>
-                    <CalendarioSelector
-                      fechaSeleccionada={fechaReunion}
+                    <Calendario
+                      fechaSeleccionada={watch('fecha_reunion')}
                       onSelectDate={(date) => setValue('fecha_reunion', date, { shouldValidate: true })}
                     />
                     {errors.fecha_reunion && <p className="text-sm text-red-500 mt-1">{errors.fecha_reunion.message}</p>}
+                  </div>
+
+                  <div>
+                    <label htmlFor="hora_reunion" className="block text-sm font-medium text-gray-700">Hora de la reunión</label>
+                    <Input
+                      id="hora_reunion"
+                      type="time"
+                      {...register("hora_reunion")}
+                      className={`mt-1 ${errors.hora_reunion ? 'border-red-500' : ''}`}
+                    />
+                    {errors.hora_reunion && <p className="text-sm text-red-500 mt-1">{errors.hora_reunion.message}</p>}
                   </div>
                 </div>
                 

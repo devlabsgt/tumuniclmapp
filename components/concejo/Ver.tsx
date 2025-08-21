@@ -1,9 +1,8 @@
-// components/concejo/Ver.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import useUserData from '@/hooks/useUserData';
-import { cargarAgendas, type AgendaConsejo } from './lib/acciones';
+import { cargarAgendas, type AgendaConcejo } from './lib/acciones';
 import AgendaForm from './forms/Agenda';
 import { CalendarPlus, Pencil, Trash2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,12 +16,12 @@ import BotonVolver from '@/components/ui/botones/BotonVolver';
 export default function Ver() {
   const router = useRouter();
   const { rol, cargando: cargandoUsuario } = useUserData();
-  const [agendas, setAgendas] = useState<AgendaConsejo[]>([]);
-  const [agendasFiltradas, setAgendasFiltradas] = useState<AgendaConsejo[]>([]);
+  const [agendas, setAgendas] = useState<AgendaConcejo[]>([]);
+  const [agendasFiltradas, setAgendasFiltradas] = useState<AgendaConcejo[]>([]);
   const [cargandoAgendas, setCargandoAgendas] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [agendaAEditar, setAgendaAEditar] = useState<AgendaConsejo | null>(null);
+  const [agendaAEditar, setAgendaAEditar] = useState<AgendaConcejo | null>(null);
   const [filtroAnio, setFiltroAnio] = useState<string>(getYear(new Date()).toString());
   const [filtroMes, setFiltroMes] = useState<string | null>(getMonth(new Date()).toString());
 
@@ -36,7 +35,7 @@ export default function Ver() {
     try {
       const data = await cargarAgendas();
       setAgendas(data);
-    } catch (e) {
+    } catch (e: any) {
       console.error("Error al cargar las agendas:", e);
       setError("Ocurrió un error al cargar las agendas.");
     } finally {
@@ -74,7 +73,7 @@ export default function Ver() {
     };
   }, [isModalOpen]);
   
-  const handleOpenEditModal = (agenda: AgendaConsejo) => {
+  const handleOpenEditModal = (agenda: AgendaConcejo) => {
     setAgendaAEditar(agenda);
     setIsModalOpen(true);
   };
@@ -102,147 +101,109 @@ export default function Ver() {
     );
   }
 
-  if (rol === 'CONCEJAL') {
-    return (
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-6">Mis Agendas del Concejo</h1>
-        <p className="mb-4">Bienvenido, Concejal. A continuación, se muestran las agendas disponibles para usted.</p>
-        
-        {agendasFiltradas.length === 0 ? (
-          <div className="text-center py-10 border-2 border-dashed border-gray-300 rounded-lg">
-            <p className="text-gray-500">Aún no hay agendas disponibles.</p>
+  return (
+    <div className="container mx-auto p-4">
+      <header className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+        <div className="flex w-full sm:w-auto items-center justify-between sm:justify-start gap-4">
+          <BotonVolver ruta="/protected/" />
+          <div className="flex gap-2">
+            <select
+                value={filtroAnio}
+                onChange={(e) => setFiltroAnio(e.target.value)}
+                className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+                {anios.map(anio => (
+                    <option key={anio} value={anio}>{anio}</option>
+                ))}
+            </select>
+            <select
+                value={filtroMes !== null ? filtroMes : ''}
+                onChange={(e) => setFiltroMes(e.target.value === '' ? null : e.target.value)}
+                className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+                <option value="">Todos los meses</option>
+                {meses.map(mes => (
+                    <option key={mes.numero} value={mes.numero}>{mes.nombre.charAt(0).toUpperCase() + mes.nombre.slice(1)}</option>
+                ))}
+            </select>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {agendasFiltradas.map((agenda) => (
-              <div key={agenda.id} className="bg-white p-6 rounded-lg shadow-md border-t-4 border-blue-500">
-                <h2 className="text-xl font-semibold">{agenda.titulo}</h2>
-                <p className="text-sm text-gray-500 mt-1">Fecha: {new Date(agenda.fecha_reunion).toLocaleDateString()}</p>
-                <p className="text-sm mt-2">Estado: <span className="font-bold text-blue-600">{agenda.estado}</span></p>
-                <button
-                    onClick={() => handleGoToAgenda(agenda.id)}
-                    className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-1"
-                  >
-                    <ArrowRight className="h-4 w-4" /> Entrar
-                </button>
-              </div>
-            ))}
-          </div>
+        </div>
+        {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
+            <Button
+              onClick={() => {
+                  setAgendaAEditar(null);
+                  setIsModalOpen(true);
+              }}
+              className="w-full sm:w-auto px-6 py-2 bg-green-500 text-white rounded-lg shadow-sm hover:bg-green-600 transition-colors flex items-center space-x-2"
+            >
+              <CalendarPlus size={20} />
+              <span>Nueva Sesión</span>
+            </Button>
         )}
-        <AnimatePresence>
-          {isModalOpen && (
-              <AgendaForm
-                isOpen={isModalOpen}
-                onClose={handleCloseModal}
-                onSave={() => {
-                  fetchAgendas();
-                }}
-                agendaAEditar={agendaAEditar}
-              />
-          )}
-        </AnimatePresence>
-      </div>
-    );
-  }
-
-  if (rol === 'SUPER' || rol === 'ADMINISTRADOR') {
-    return (
-      <div className="container mx-auto p-4">
-        <header className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-          <div className="flex w-full sm:w-auto items-center justify-between sm:justify-start gap-4">
-            <BotonVolver ruta="/protected/" />
-            <div className="flex gap-2">
-              <select
-                  value={filtroAnio}
-                  onChange={(e) => setFiltroAnio(e.target.value)}
-                  className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              >
-                  {anios.map(anio => (
-                      <option key={anio} value={anio}>{anio}</option>
-                  ))}
-              </select>
-              <select
-                  value={filtroMes !== null ? filtroMes : ''}
-                  onChange={(e) => setFiltroMes(e.target.value === '' ? null : e.target.value)}
-                  className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              >
-                  <option value="">Todos los meses</option>
-                  {meses.map(mes => (
-                      <option key={mes.numero} value={mes.numero}>{mes.nombre.charAt(0).toUpperCase() + mes.nombre.slice(1)}</option>
-                  ))}
-              </select>
+      </header>
+      
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="w-full">
+          {agendasFiltradas.length === 0 ? (
+            <div className="text-center py-10 border-2 border-dashed border-gray-300 rounded-lg">
+              <p className="text-gray-500">Aún no hay agendas creadas.</p>
             </div>
-          </div>
-          <Button
-            onClick={() => {
-                setAgendaAEditar(null);
-                setIsModalOpen(true);
-            }}
-            className="w-full sm:w-auto px-6 py-2 bg-green-500 text-white rounded-lg shadow-sm hover:bg-green-600 transition-colors flex items-center space-x-2"
-          >
-            <CalendarPlus size={20} />
-            <span>Nueva Agenda</span>
-          </Button>
-        </header>
-        
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="w-full">
-            {agendasFiltradas.length === 0 ? (
-              <div className="text-center py-10 border-2 border-dashed border-gray-300 rounded-lg">
-                <p className="text-gray-500">Aún no hay agendas creadas.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {agendasFiltradas.map((agenda) => (
-                  <div key={agenda.id} className="bg-white p-6 rounded-lg shadow-md border-t-4 border-green-500">
-                    <h2 className="text-xl font-semibold">{agenda.titulo}</h2>
-                    <p className="text-sm text-gray-500 mt-1">Fecha: {new Date(agenda.fecha_reunion).toLocaleDateString()}</p>
-                    <p className="text-sm mt-2">Estado: <span className="font-bold text-green-600">{agenda.estado}</span></p>
-                    <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                      {rol === 'SUPER' && (
-                        <button className="px-3 py-2 bg-blue-100 text-sm text-blue-600 rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-1">
-                          <Trash2 className="h-4 w-4" /> Eliminar
-                        </button>
-                      )}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+              {agendasFiltradas.map((agenda) => (
+                <div key={agenda.id} className="bg-white p-6 rounded-lg shadow-md border-t-4 border-green-500">
+                  <div className="text-xl font-semibold">{agenda.titulo}
+                    <span className="text-sm text-gray-500 mt-1 ml-1"> 
+                      {format(new Date(agenda.fecha_reunion), "PPP", { locale: es })}, {format(new Date(agenda.fecha_reunion), "h:mm a", { locale: es })}
+                    </span>
+                    <span className="text-sm mt-2">
+                      {agenda.descripcion}
+                      </span>
+
+
+                  </div>
+                  <p className="text-sm mt-2">Estado: <span className="font-bold text-green-600">{agenda.estado}</span></p>
+                  <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                    {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
+                      <>
+                      <button className="px-3 py-2 bg-blue-100 text-sm text-blue-600 rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-1">
+                        <Trash2 className="h-4 w-4" /> Eliminar
+                      </button>
                       <button
                         onClick={() => handleOpenEditModal(agenda)}
                         className="px-3 py-2 bg-blue-100 text-sm text-blue-600 rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-1"
                       >
                         <Pencil className="h-4 w-4" /> Editar
                       </button>
-                      <button
-                        onClick={() => handleGoToAgenda(agenda.id)}
-                        className="px-3 py-2 bg-blue-100 text-sm text-blue-600 rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-1"
-                      >
-                        <ArrowRight className="h-4 w-4" /> Entrar
-                      </button>
-                    </div>
+                    </>
+                    )}
+
+                    <button
+                      onClick={() => handleGoToAgenda(agenda.id)}
+                      className="px-3 py-2 bg-blue-100 text-sm text-blue-600 rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-1"
+                    >
+                      <ArrowRight className="h-4 w-4" /> Entrar
+                    </button>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <AnimatePresence>
-          {isModalOpen && (
-              <AgendaForm
-                isOpen={isModalOpen}
-                onClose={handleCloseModal}
-                onSave={() => {
-                  fetchAgendas();
-                }}
-                agendaAEditar={agendaAEditar}
-              />
+                </div>
+              ))}
+            </div>
           )}
-        </AnimatePresence>
+        </div>
       </div>
-    );
-  }
 
-  return (
-    <div className="text-center py-10 text-gray-500">
-      <p>No tienes permisos para acceder a esta sección.</p>
+      <AnimatePresence>
+        {isModalOpen && (
+            <AgendaForm
+              isOpen={isModalOpen}
+              onClose={handleCloseModal}
+              onSave={() => {
+                fetchAgendas();
+              }}
+              agendaAEditar={agendaAEditar}
+            />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
