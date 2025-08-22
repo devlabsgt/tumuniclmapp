@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import supabaseAdmin from '@/utils/supabase/admin';
 import { registrarLogServer } from '@/utils/registrarLogServer';
 import { obtenerFechaYFormatoGT } from '@/utils/formatoFechaGT';
+import { revalidatePath } from 'next/cache'; // 👈 1. Se importa la función clave
 
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
@@ -137,48 +138,45 @@ export const signInAction = async (formData: FormData) => {
     .eq('user_id', user?.id)
     .maybeSingle();
 
+  // Se corrige para manejar el array que devuelve Supabase y evitar errores
   const rol =
-    relacion?.roles && 'nombre' in relacion.roles
-      ? (relacion.roles as { nombre: string }).nombre
+    relacion?.roles && Array.isArray(relacion.roles) && relacion.roles.length > 0
+      ? relacion.roles[0].nombre
       : '';
 
-    // --- SECCIÓN CORREGIDA ---
-    if (!['SUPER', 'ADMINISTRADOR', 'USUARIO'].includes(rol)) {
-      const ahora = new Date();
-      
-      const horaUTC = ahora.getUTCHours();
-      const hora = (horaUTC - 6 + 24) % 24;
-      
-      const dia = ahora.getUTCDay();
-      const esLaboral = dia >= 1 && dia <= 5;
-      const enHorario = hora >= 8 && hora < 20;
+  // --- SECCIÓN CORREGIDA ---
+  if (!['SUPER', 'ADMINISTRADOR', 'USUARIO'].includes(rol)) {
+    const ahora = new Date();
+    
+    const horaUTC = ahora.getUTCHours();
+    const hora = (horaUTC - 6 + 24) % 24;
+    
+    const dia = ahora.getUTCDay();
+    const esLaboral = dia >= 1 && dia <= 5;
+    const enHorario = hora >= 8 && hora < 20;
 
-      const { fecha, formateada } = obtenerFechaYFormatoGT(); // <-- Se usa 'formateada'
+    const { fecha, formateada } = obtenerFechaYFormatoGT();
 
-      if (!esLaboral || !enHorario) {
-        await registrarLogServer({
-          accion: 'FUERA_DE_HORARIO',
-          descripcion: `Intento de acceso fuera de horario: ${formateada}`,
-          nombreModulo: 'SISTEMA',
-          fecha,
-          user_id: user?.id,
-        });
+    if (!esLaboral || !enHorario) {
+      await registrarLogServer({
+        accion: 'FUERA_DE_HORARIO',
+        descripcion: `Intento de acceso fuera de horario: ${formateada}`,
+        nombreModulo: 'SISTEMA',
+        fecha,
+        user_id: user?.id,
+      });
 
-        await supabase.auth.signOut();
-        return encodedRedirect(
-          'error',
-          '/sign-in',
-          `Fuera de horario (${formateada}): intenta de nuevo en horario hábil: lunes - viernes, 08:00 - 20:00.`
-        );
-      }
+      await supabase.auth.signOut();
+      return encodedRedirect(
+        'error',
+        '/sign-in',
+        `Fuera de horario (${formateada}): intenta de nuevo en horario hábil: lunes - viernes, 08:00 - 20:00.`
+      );
     }
+  }
 
   // Log de inicio de sesión
-  const {
-    data: { user: usuarioActual },
-  } = await supabase.auth.getUser();
-
-  const user_id_log = usuarioActual?.id;
+  const user_id_log = user?.id;
   const { fecha } = obtenerFechaYFormatoGT();
 
   await registrarLogServer({
@@ -189,7 +187,16 @@ export const signInAction = async (formData: FormData) => {
     user_id: user_id_log,
   });
 
-  return redirect('/protected');
+  // 👇 2. SOLUCIÓN APLICADA
+  // Invalidamos la caché de toda la aplicación para que la UI se actualice.
+  revalidatePath('/', 'layout');
+
+  // Redirigimos al dashboard correcto según el rol.
+  if (rol === 'SUPER' || rol === 'ADMINISTRADOR') {
+    return redirect('/protected/admin');
+  } else {
+    return redirect('/protected/user');
+  }
 };
 
 export const resetPasswordAction = async (formData: FormData) => {
@@ -223,7 +230,6 @@ export const signOutAction = async () => {
     data: { user: usuarioActual },
   } = await supabase.auth.getUser();
 
-  const emailActual = usuarioActual?.email ?? 'correo_desconocido';
   const user_id_log = usuarioActual?.id;
 
   await registrarLogServer({
@@ -235,6 +241,10 @@ export const signOutAction = async () => {
   });
  
   await supabase.auth.signOut();
+
+  // 👇 3. SOLUCIÓN APLICADA TAMBIÉN AQUÍ
+  // Se invalida la caché para que el botón de "Iniciar Sesión" aparezca al instante.
+  revalidatePath('/', 'layout');
 
   return redirect("/");
 };

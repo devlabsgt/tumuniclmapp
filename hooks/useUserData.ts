@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation'; // 👈 1. Importar usePathname
 
 interface UserData {
   userId: string | null;
@@ -22,30 +23,27 @@ export default function useUserData(): UserData {
   const [modulos, setModulos] = useState<string[]>([]);
   const [programas, setProgramas] = useState<string[]>([]); 
   const [cargando, setCargando] = useState(true);
+  
+  const pathname = usePathname(); // 👈 2. Obtener la ruta actual
 
   useEffect(() => {
     const obtenerUsuario = async () => {
-      try {
-        const res = await fetch('/api/getuser');
-        const data = await res.json();
-        
-        setUserId(data.id || null);
-        setNombre(data.nombre || '');
-        setEmail(data.email || ''); 
-        setRol(data.rol || '');
-        setPermisos(data.permisos || []);
-        setModulos(data.modulos || []);
-        setProgramas(data.programas || []);
-      } catch (error) {
-        console.error('Error al obtener sesión:', error);
-      } finally {
-        setCargando(false);
-      }
+      // Forzamos a no usar la caché para obtener siempre los datos más recientes
+      const res = await fetch('/api/getuser', { cache: 'no-store' });
+      const data = await res.json();
+      
+      setUserId(data.id || null);
+      setNombre(data.nombre || '');
+      setEmail(data.email || ''); 
+      setRol(data.rol || '');
+      setPermisos(data.permisos || []);
+      setModulos(data.modulos || []);
+      setProgramas(data.programas || []);
+      setCargando(false);
     };
 
     obtenerUsuario();
-  }, []);
+  }, [pathname]); // 👈 3. LA SOLUCIÓN: El hook se re-ejecuta cada vez que cambia la ruta
 
-  // Se retorna el email junto con los demás datos
   return { userId, nombre, email, rol, permisos, modulos, programas, cargando };
 }

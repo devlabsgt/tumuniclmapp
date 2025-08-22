@@ -39,7 +39,7 @@ export default function RootLayout({
 
         {/* Header */}
         <nav className="w-full flex border-b border-b-foreground/10 h-40">
-          <div className="w-full flex bg-gray-100 items-center justify-between px-5 py-3 text-sm">
+          <div className="w-full flex bg-gray-100 items-center justify-between px-1 pt-1 pb-0 text-sm">
             <div className="flex items-center gap-3">
               <LogoLink />
             </div>

@@ -10,7 +10,6 @@ export default function LogoLink() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const isBaseRoute = pathname === '/' || pathname === '/admin' || pathname === '/user';
 
   return (
     <div className="flex items-center gap-1 font-semibold">
@@ -43,7 +42,10 @@ export default function LogoLink() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
         >
-          Municipalidad de <br /> Concepción Las Minas
+          <span className="text-blue-600">Municipalidad de</span> <br />
+          <span> Concepción Las Minas </span><br />
+
+
         </motion.span>
       </motion.div>
     </div>
