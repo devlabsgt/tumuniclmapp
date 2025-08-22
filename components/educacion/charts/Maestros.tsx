@@ -45,7 +45,7 @@ export default function Maestros({ onEdit, maestros }: MaestrosProps) {
       >
         <div className="flex items-center gap-3">
           <User className="h-6 w-6 text-green-600" />
-          <h3 className="text-xl font-bold text-gray-800">Maestros del Programa <span className="text-sm font-bold text-gray-600">Total de alumnos: {totalAlumnos}</span></h3>
+          <h3 className="text-xl font-bold text-gray-800">Maestros del Programa </h3>
         </div>
         <motion.div
           initial={{ rotate: 0 }}
@@ -65,7 +65,7 @@ export default function Maestros({ onEdit, maestros }: MaestrosProps) {
             transition={{ duration: 0.5, ease: "easeInOut" }}
             className="overflow-hidden mt-4"
           >
-            <div className="text-center text-sm text-green-700 mb-4">
+            <div className="text-sm text-green-700 my-4">
                 <MensajeAnimado
                     textos={['Seleccione un maestro para editar']}
                 />
@@ -74,7 +74,7 @@ export default function Maestros({ onEdit, maestros }: MaestrosProps) {
               {maestros.map((item) => (
                 <div 
                   key={item.id} 
-                  className="space-y-1 cursor-pointer"
+                  className="space-y-4 cursor-pointer bg-gray-50 p-4 rounded-md shadow-sm transition-transform duration-200 hover:bg-green-50 hover:scale-105 mx-3"
                   onClick={() => onEdit(item)}
                 >
                   <div className="flex justify-between items-center text-sm font-medium text-gray-600">
@@ -92,6 +92,10 @@ export default function Maestros({ onEdit, maestros }: MaestrosProps) {
                 </div>
               ))}
             </div>
+
+          <div className="border-b-4 border-gray-200 mt-4"></div>
+          <div className="text-end text-sm font-bold text-gray-600 pt-6">Total de alumnos: {totalAlumnos}</div>
+
           </motion.div>
         )}
       </AnimatePresence>

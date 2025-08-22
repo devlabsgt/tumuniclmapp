@@ -15,7 +15,7 @@ interface Props {
 
 export default function EstadisticasNiveles({ niveles, alumnos, onBarClick }: Props) {
   const [filtroGrafica, setFiltroGrafica] = useState('');
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true); // Se inicia como true
 
   if (!niveles || !alumnos) {
     return (
@@ -42,17 +42,18 @@ export default function EstadisticasNiveles({ niveles, alumnos, onBarClick }: Pr
 
   return (
     <div className="h-auto w-full bg-white">
-
-
       <div className="p-4 bg-white border rounded-xl">
         <div 
           className="flex justify-between items-center cursor-pointer"
           onClick={() => setIsExpanded(!isExpanded)}
         >
-        <div className="flex items-center gap-3">
-          <ClipboardList className="h-6 w-6 text-blue-600" />
-          <h3 className="text-xl font-bold text-gray-800">Niveles </h3>
-        </div>
+          <div className="flex items-center gap-3">
+            <ClipboardList className="h-6 w-6 text-blue-600" />
+            <div className="flex flex-col">
+              <h3 className="text-xl font-bold text-gray-800">Niveles </h3>
+              <p className="text-gray-600 text-xs mt-1">Total de niveles: {niveles.length}</p>
+            </div>
+          </div>
           <motion.div
             initial={{ rotate: 0 }}
             animate={{ rotate: isExpanded ? 180 : 0 }}
@@ -72,39 +73,51 @@ export default function EstadisticasNiveles({ niveles, alumnos, onBarClick }: Pr
               transition={{ duration: 0.5, ease: "easeInOut" }}
               className="overflow-hidden"
             >
-                    <div className="my-6 text-lg text-blue-600 font-semibold">
-                        <MensajeAnimado
-                          textos={[
-                            'Haga clic en una barra para ver los detalles del nivel.',
-                          ]}
-                        />
-                      </div>
+
                       
-                    <div className="relative mb-4 w-4/5 mx-auto">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w- text-gray-400" />
-                      <Input
-                          placeholder="Buscar nivel..."
-                          value={filtroGrafica}
-                          onChange={(e) => setFiltroGrafica(e.target.value)}
-                          className="pl-9"
-                      />
-                    </div>
+            <div className="my-6 relative w-4/5 mx-auto">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w- text-gray-400" />
+              <Input
+                  placeholder="Buscar nivel..."
+                  value={filtroGrafica}
+                  onChange={(e) => setFiltroGrafica(e.target.value)}
+                  className="pl-9"
+              />
+
+            </div>
               {barData.length > 0 ? (
-                <div className="space-y-4 pt-4">
+
+
+
+
+
+
+                <div className="space-y-4">
+                            <div className="border-b-4 border-gray-200 mt-4"></div>
+               <div className="my-2 text-xs text-blue-600 ">
+                  <MensajeAnimado
+                    textos={[
+                      'Seleccione una barra para ver los detalles del nivel.',
+                    ]}
+                  />
+              </div>
                   {barData.map((item) => (
-                    <div key={item.id} className="space-y-1 cursor-pointer" onClick={() => onBarClick({ activePayload: [{ payload: item }] })}>
-                      <div className="flex justify-between text-sm font-medium text-gray-600">
-                        <span className="truncate">{item.nombre}</span>
-                        <span className="font-semibold">{item.alumnos_count}</span>
-                      </div>
-                      <div className="relative bg-gray-200 rounded-full h-4">
-                        <motion.div
-                          className="bg-blue-600 h-full rounded-full"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${(item.alumnos_count / maxAlumnos) * 100}%` }}
-                          transition={{ duration: 0.8, ease: "easeOut" }}
-                        />
-                      </div>
+                    <div key={item.id} className="space-y-4 cursor-pointer bg-gray-50 p-4 rounded-md shadow-sm transition-transform duration-200 hover:bg-blue-50 hover:scale-105 mx-5" onClick={() => onBarClick({ activePayload: [{ payload: item }] })}>
+                        <div className="flex justify-between items-start text-sm font-medium text-gray-600">
+                            <div>
+                                <span className="text-lg truncate font-bold">{item.nombre}</span>
+                                <div className="text-xs text-gray-500">{item.descripcion || ' '}</div>
+                            </div>
+                            <span className="font-bold">{item.alumnos_count}</span>
+                        </div>
+                        <div className="relative bg-gray-200 rounded-full h-4">
+                            <motion.div
+                                className="bg-blue-600 h-full rounded-full"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${(item.alumnos_count / maxAlumnos) * 100}%` }}
+                                transition={{ duration: 0.8, ease: "easeOut" }}
+                            />
+                        </div>
                     </div>
                   ))}
                 </div>

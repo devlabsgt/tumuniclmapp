@@ -192,32 +192,38 @@ export default function Nivel() {
   return (
     <>
       <div className="mx-auto w-full lg:w-4/5 max-w-7xl p-4 lg:p-6">
-        <header className="flex justify-between items-start mb-4">
-          <Button
-              variant="outline"
-              className="gap-2 text-blue-600 border-blue-600 shadow-sm hover:bg-blue-50 hover:shadow-md"
-              onClick={() => router.back()}
-          >
-              <ArrowLeft className="h-4 w-4"/>
-              Volver
-          </Button>
-          <div className='text-right'>
-            <div className="flex justify-end items-center gap-2 mb-2">
-                <h3 className="text-xl font-bold text-gray-800">{nivel.nombre}</h3>
-                {(rol === 'SUPER' || rol === 'ADMINISTRADOR' || rol === 'DIGITADOR') && (
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleOpenEditarNivel}>
-                        <Pencil className="h-4 w-4 text-gray-600" />
-                    </Button>
-                )}
-            </div>
-            <p className="text-sm text-gray-600">{nivel.descripcion || 'Sin descripción'}</p>
-            <p className="text-sm text-gray-600 mt-2">
-              <span className="font-semibold">Maestro Encargado:</span>{' '}
-              {maestroAsignado ? maestroAsignado.nombre : 'No asignado'}
-            </p>
+      <header className="flex justify-between items-start mb-4">
+          <div className="flex-shrink-0">
+              <Button
+                  variant="link"
+                  className="gap-2 text-blue-600 justify-start p-0"
+                  onClick={() => router.back()}
+              >
+                  <ArrowLeft className="h-4 w-4"/>
+                  Volver
+              </Button>
           </div>
-        </header>
-        
+          <div className='flex flex-col text-right'>
+              <div className="flex justify-end items-center gap-2 mb-2">
+                  <Button
+                      onClick={handleOpenEditarNivel}
+                      className="w-auto gap-2 whitespace-nowrap bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100"
+                      variant="outline"
+                  >
+                      <h3 className="text-xl">
+                          {nivel.nombre}
+                      </h3>
+                      <Pencil className="h-4 w-4 text-blue-700" />
+                  </Button>
+              </div>
+              <p className="text-sm text-gray-600">{nivel.descripcion || 'Sin descripción'}</p>
+              <p className="text-sm text-gray-600 mt-2">
+                  <span className="font-semibold">Maestro Encargado:</span>{' '}
+                  {maestroAsignado ? maestroAsignado.nombre : 'No asignado'}
+              </p>
+          </div>
+      </header>
+              
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row gap-2">
             <Button
