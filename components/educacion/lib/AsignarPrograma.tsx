@@ -32,6 +32,7 @@ export default function AsignarPrograma({ isOpen, onClose }: Props) {
   
   const [selectedProgram, setSelectedProgram] = useState<string>('');
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [originalUserIds, setOriginalUserIds] = useState<string[]>([]); // Nuevo estado
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [filterAssigned, setFilterAssigned] = useState(false);
 
@@ -73,9 +74,12 @@ export default function AsignarPrograma({ isOpen, onClose }: Props) {
       const usersWithProgram = allUsers.filter(user => 
         (user.programas_asignados || []).includes(selectedProgram)
       );
-      setSelectedUserIds(usersWithProgram.map(user => user.user_id));
+      const ids = usersWithProgram.map(user => user.user_id);
+      setSelectedUserIds(ids);
+      setOriginalUserIds(ids); // <-- Agregado
     } else {
       setSelectedUserIds([]);
+      setOriginalUserIds([]); // <-- Agregado
     }
   }, [selectedProgram, allUsers]);
 
@@ -134,6 +138,8 @@ export default function AsignarPrograma({ isOpen, onClose }: Props) {
   if (filterAssigned) {
     filteredUsers = filteredUsers.filter(user => (user.programas_asignados || []).includes(selectedProgram));
   }
+  
+  const hasChanges = JSON.stringify(selectedUserIds.sort()) !== JSON.stringify(originalUserIds.sort());
   
   return (
     <div className="fixed inset-0 bg-white/30 flex justify-center items-center z-50 p-4 backdrop-blur-sm">
@@ -230,14 +236,19 @@ export default function AsignarPrograma({ isOpen, onClose }: Props) {
                   </div>
 
                   <div className="flex justify-end gap-3 pt-4">
-                    <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-                    <Button onClick={handleUpdate} disabled={saving || !selectedProgram}>
+                    <Button type="button" variant="outline" onClick={onClose}>Salir</Button>
+                    <Button onClick={handleUpdate} disabled={saving || !hasChanges}>
                         <span className="inline">Actualizar</span>
                     </Button>
                   </div>
                 </motion.div>
             )}
             </AnimatePresence>
+            {!selectedProgram && (
+                <div className="flex justify-end pt-4">
+                    <Button type="button" variant="outline" onClick={onClose}>Salir</Button>
+                </div>
+            )}
         </div>
       </motion.div>
     </div>
