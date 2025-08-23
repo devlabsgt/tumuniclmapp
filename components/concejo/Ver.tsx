@@ -23,7 +23,10 @@ export default function Ver() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [agendaAEditar, setAgendaAEditar] = useState<AgendaConcejo | null>(null);
   const [filtroAnio, setFiltroAnio] = useState<string>(getYear(new Date()).toString());
-  const [filtroMes, setFiltroMes] = useState<string | null>(getMonth(new Date()).toString());
+  
+  // --- CAMBIO APLICADO AQUÍ ---
+  // Se inicializa el mes como 'null' para mostrar todos los meses por defecto.
+  const [filtroMes, setFiltroMes] = useState<string | null>(null);
 
   const anios = Array.from({ length: 10 }, (_, i) => getYear(new Date()) - 5 + i);
   const meses = Array.from({ length: 12 }, (_, i) => ({
@@ -89,7 +92,7 @@ export default function Ver() {
 
   if (cargandoUsuario || cargandoAgendas) {
     return (
-      <CargandoAnimacion texto="Cargando Agendas..." />
+      <CargandoAnimacion texto="Cargando Agenda..." />
     );
   }
 
@@ -146,7 +149,7 @@ export default function Ver() {
         <div className="w-full">
           {agendasFiltradas.length === 0 ? (
             <div className="text-center py-10 border-2 border-dashed border-gray-300 rounded-lg">
-              <p className="text-gray-500">Aún no hay agendas creadas.</p>
+              <p className="text-gray-500">Aún no hay sesiones en este mes</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">

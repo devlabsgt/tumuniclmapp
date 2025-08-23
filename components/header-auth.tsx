@@ -5,7 +5,6 @@ import Link from "next/link";
 import EmailAnimado from './ui/Typeanimation';
 import { usePathname } from "next/navigation";
 import { ArrowLeft, LogIn, LogOut } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import useUserData from '@/hooks/useUserData';
 import Swal from 'sweetalert2';
 
@@ -56,38 +55,27 @@ export default function AuthButton() {
         </span>
         {rol && (
           <div className="text-[#06c] text-xs font-medium">
-            Rol: <strong><span className="underline">{rol}</span></strong>
+            Rol: <strong><span className="mt-2 underline">{rol}</span></strong>
           </div>
         )}
       </div>
 
-      <div className="flex flex-col items-end gap-1">
+      <div className="flex flex-col lg:flex-row-reverse lg:items-center lg:gap-4">
         <button
           type="button"
           onClick={handleSignOut}
-          className={`${linkStyles} w-40 justify-end text-red-500`}
+          className={`${linkStyles} justify-end mt-2 text-blue-500`}
         >
           Cerrar Sesión
           <LogOut className="h-4 w-4 ml-2" />
         </button>
         
-        <AnimatePresence>
-          {!esInicio && (
-            <motion.div
-              key="volver-inicio-btn"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Link href={rutaInicio} className={`${linkStyles} w-40 justify-end text-blue-600 mr-5`}>
-                              <ArrowLeft className="h-4 w-4 ml-2" />
-
-                Volver a Inicio
-              </Link>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {!esInicio && (
+          <Link href={rutaInicio} className={`${linkStyles} justify-end mt-2 text-blue-600`}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver a Inicio
+          </Link>
+        )}
       </div>
     </div>
   ) : (

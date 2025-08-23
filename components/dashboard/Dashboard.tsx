@@ -3,18 +3,18 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, BookOpen, Leaf, Building, Users, Settings, FileText, User } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, Leaf, Building, Users, Settings, FileText, User, CalendarDays } from 'lucide-react';
 import { registrarLog } from '@/utils/registrarLog';
 import { motion, AnimatePresence } from 'framer-motion';
 import useUserData from '@/hooks/useUserData';
 import Asistencia from '@/components/asistencia/Asistencia';
 import Ver from '@/components/perfil/Ver';
 
-// --- CONSTANTES ---
 const TODOS_LOS_MODULOS = [
   { nombre: 'EDUCACION', titulo: 'Educación', descripcion: 'Administre programas, niveles, maestros y alumnos.', ruta: '/protected/educacion', icono: <BookOpen className="h-8 w-8 text-blue-500" /> },
   { nombre: 'FERTILIZANTE', titulo: 'Desarrollo Económico Social', descripcion: 'Gestione beneficiarios, entregas y estadísticas.', ruta: '/protected/fertilizante/beneficiarios', icono: <Leaf className="h-8 w-8 text-teal-500" /> },
   { nombre: 'ORGANOS', titulo: 'Jerarquía Municipal', descripcion: 'Gestione Órganos y políticas municipales.', ruta: '/protected/admin/organos', icono: <Building className="h-8 w-8 text-orange-700" /> },
+  { nombre: 'AGENDA_CONCEJO', titulo: 'Agenda de Concejo', descripcion: 'Consulte y gestione las próximas reuniones del concejo.', ruta: '/protected/concejo/', icono: <CalendarDays className="h-8 w-8 text-purple-500" /> },
 ];
 
 type Vistas = 'modulos' | 'asistencia' | 'perfil';
@@ -51,7 +51,13 @@ export default function Dashboard() {
 
   const modulosDisponibles = useMemo(() =>
     TODOS_LOS_MODULOS
-      .filter(m => rol === 'SUPER' || modulos.includes(m.nombre))
+      .filter(m => {
+        if (rol === 'SUPER') return true;
+        if (m.nombre === 'AGENDA_CONCEJO') {
+          return ['ADMINISTRADOR', 'CONCEJAL'].includes(rol);
+        }
+        return modulos.includes(m.nombre);
+      })
       .sort((a, b) => a.titulo.localeCompare(b.titulo))
   , [rol, modulos]);
 
@@ -62,10 +68,8 @@ export default function Dashboard() {
 
   return (
     <section className="w-full max-w-6xl mx-auto px-4 md:px-8 pt-2">
-
-
       <div className="w-full grid grid-cols-1 sm:grid-cols-7 gap-4 mb-4">
-                {permisos.includes('CONFIGURACION') && (rol === 'ADMINISTRADOR' || rol === 'SUPER') && (
+        {permisos.includes('CONFIGURACION') && (rol === 'ADMINISTRADOR' || rol === 'SUPER') && (
           <div className="relative sm:col-span-2" ref={configRef}>
             <Button onClick={() => { setMostrarOpciones(p => !p); setMostrarUsuarios(false); }} className="w-full gap-2 text-xl h-14">
               <Settings size={25} /> Configuraciones
@@ -118,8 +122,6 @@ export default function Dashboard() {
             Asistencia
           </button>
         </div>
-
-
       </div>
 
       <AnimatePresence mode="wait">

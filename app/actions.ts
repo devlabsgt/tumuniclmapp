@@ -152,7 +152,7 @@ export const signInAction = async (formData: FormData) => {
     const hora = (horaUTC - 6 + 24) % 24;
     
     const dia = ahora.getUTCDay();
-    const esLaboral = dia >= 1 && dia <= 5;
+    const esLaboral = dia >= 1 && dia <= 7;
     const enHorario = hora >= 8 && hora < 20;
 
     const { fecha, formateada } = obtenerFechaYFormatoGT();
