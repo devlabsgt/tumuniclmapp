@@ -138,23 +138,24 @@ export const signInAction = async (formData: FormData) => {
     .eq('user_id', user?.id)
     .maybeSingle();
 
-  // Se corrige para manejar el array que devuelve Supabase y evitar errores
   const rol =
     relacion?.roles && Array.isArray(relacion.roles) && relacion.roles.length > 0
       ? relacion.roles[0].nombre
       : '';
 
-  // --- SECCIÓN CORREGIDA ---
-  if (!['SUPER', 'ADMINISTRADOR', 'USUARIO'].includes(rol)) {
+  // La verificación de horario solo se aplica si el rol NO es SUPER y NO es ADMINISTRADOR.
+  if (rol !== 'SUPER' && rol !== 'ADMINISTRADOR') {
     const ahora = new Date();
     
+    // Calcula la hora local de Guatemala (UTC-6)
     const horaUTC = ahora.getUTCHours();
     const hora = (horaUTC - 6 + 24) % 24;
     
-    const dia = ahora.getUTCDay();
-    const esLaboral = dia >= 1 && dia <= 7;
+    const dia = ahora.getDay(); // 0=Domingo, 1=Lunes, ..., 6=Sábado
+    const esLaboral = dia >= 1 && dia <= 5; // Lunes a Viernes
     const enHorario = hora >= 8 && hora < 20;
 
+    // Obtiene la fecha y hora formateada para el mensaje
     const { fecha, formateada } = obtenerFechaYFormatoGT();
 
     if (!esLaboral || !enHorario) {
@@ -170,7 +171,7 @@ export const signInAction = async (formData: FormData) => {
       return encodedRedirect(
         'error',
         '/sign-in',
-        `Fuera de horario (${formateada}): intenta de nuevo en horario hábil: lunes - viernes, 08:00 - 20:00.`
+        `Acceso fuera de horario (${formateada}). Horario hábil: lunes - viernes, de 08:00 a 20:00.`
       );
     }
   }
@@ -187,7 +188,6 @@ export const signInAction = async (formData: FormData) => {
     user_id: user_id_log,
   });
 
-  // 👇 2. SOLUCIÓN APLICADA
   // Invalidamos la caché de toda la aplicación para que la UI se actualice.
   revalidatePath('/', 'layout');
 
@@ -198,7 +198,6 @@ export const signInAction = async (formData: FormData) => {
     return redirect('/protected/user');
   }
 };
-
 export const resetPasswordAction = async (formData: FormData) => {
   const supabase = await createClient();
 
