@@ -8,7 +8,6 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// Define las interfaces necesarias para los datos
 export interface CategoriaItem {
   id: string;
   nombre: string;
@@ -25,11 +24,11 @@ export interface Tarea {
   fecha_vencimiento: string | null;
 }
 
-// Función para obtener las categorías de la base de datos.
 export const fetchCategorias = async (): Promise<CategoriaItem[]> => {
   const { data, error } = await supabase
-    .from('categorias_agenda_concejo')
-    .select('id, nombre');
+    .from('categorias_tareas_concejo')
+    .select('id, nombre')
+    .order('nombre', { ascending: true });
 
   if (error) {
     console.error('Error al cargar categorías:', error.message);
@@ -38,8 +37,37 @@ export const fetchCategorias = async (): Promise<CategoriaItem[]> => {
   return data as CategoriaItem[];
 };
 
+export const crearCategoria = async (nombre: string): Promise<CategoriaItem | null> => {
+  const { data, error } = await supabase
+    .from('categorias_tareas_concejo')
+    .insert({ nombre })
+    .select()
+    .single();
 
-// Función para obtener los detalles de las tareas de una agenda.
+  if (error) {
+    toast.error(`Error al crear categoría: ${error.message}`);
+    return null;
+  }
+  toast.success('Categoría creada con éxito.');
+  return data;
+};
+
+export const editarCategoria = async (id: string, nombre: string): Promise<CategoriaItem | null> => {
+  const { data, error } = await supabase
+    .from('categorias_tareas_concejo')
+    .update({ nombre })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    toast.error(`Error al editar categoría: ${error.message}`);
+    return null;
+  }
+  toast.success('Categoría actualizada con éxito.');
+  return data;
+};
+
 export const fetchTareasDeAgenda = async (agendaId: string): Promise<Tarea[]> => {
   const { data, error } = await supabase
     .from('tareas_concejo')
@@ -47,7 +75,7 @@ export const fetchTareasDeAgenda = async (agendaId: string): Promise<Tarea[]> =>
       id,
       agenda_concejo_id,
       titulo_item,
-      categoria:categorias_agenda_concejo(id, nombre),
+      categoria:categorias_tareas_concejo(id, nombre),
       estado,
       created_at,
       notas,
@@ -61,7 +89,6 @@ export const fetchTareasDeAgenda = async (agendaId: string): Promise<Tarea[]> =>
     return [];
   }
   
-  // Corregimos el tipo del join para cada objeto en el array
   const formattedData = data.map((item: any) => ({
     ...item,
     categoria: item.categoria[0]
@@ -70,7 +97,6 @@ export const fetchTareasDeAgenda = async (agendaId: string): Promise<Tarea[]> =>
   return formattedData;
 };
 
-// Función para crear una nueva tarea en la base de datos.
 export const crearTarea = async (formData: TareaFormData, agendaId: string): Promise<Tarea | null> => {
   const { data, error } = await supabase
     .from('tareas_concejo')
@@ -106,7 +132,6 @@ export const crearTarea = async (formData: TareaFormData, agendaId: string): Pro
   return data as Tarea;
 };
 
-// Función para editar una tarea existente.
 export const editarTarea = async (id: string, formData: TareaFormData): Promise<Tarea | null> => {
   const { data, error } = await supabase
     .from('tareas_concejo')
@@ -141,7 +166,6 @@ export const editarTarea = async (id: string, formData: TareaFormData): Promise<
   return data as Tarea;
 };
 
-// Función para eliminar una tarea.
 export const eliminarTarea = async (id: string) => {
   const { error } = await supabase
     .from('tareas_concejo')

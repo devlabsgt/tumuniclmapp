@@ -14,7 +14,7 @@ const TODOS_LOS_MODULOS = [
   { nombre: 'EDUCACION', titulo: 'Educación', descripcion: 'Administre programas, niveles, maestros y alumnos.', ruta: '/protected/educacion', icono: <BookOpen className="h-8 w-8 text-blue-500" /> },
   { nombre: 'FERTILIZANTE', titulo: 'Desarrollo Económico Social', descripcion: 'Gestione beneficiarios, entregas y estadísticas.', ruta: '/protected/fertilizante/beneficiarios', icono: <Leaf className="h-8 w-8 text-teal-500" /> },
   { nombre: 'ORGANOS', titulo: 'Jerarquía Municipal', descripcion: 'Gestione Órganos y políticas municipales.', ruta: '/protected/admin/organos', icono: <Building className="h-8 w-8 text-orange-700" /> },
-  { nombre: 'AGENDA_CONCEJO', titulo: 'Agenda de Concejo', descripcion: 'Consulte y gestione las próximas reuniones del concejo.', ruta: '/protected/concejo/', icono: <CalendarDays className="h-8 w-8 text-purple-500" /> },
+  { nombre: 'AGENDA_CONCEJO', titulo: 'Agenda de Concejo', descripcion: 'Consulte y gestione las próximas reuniones del concejo.', ruta: '/protected/concejo/agenda/', icono: <CalendarDays className="h-8 w-8 text-purple-500" /> },
 ];
 
 type Vistas = 'modulos' | 'asistencia' | 'perfil';

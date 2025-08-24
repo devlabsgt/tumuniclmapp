@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react';
 import useUserData from '@/hooks/useUserData';
 import { cargarAgendas, type AgendaConcejo } from './lib/acciones';
-import AgendaForm from './forms/Agenda';
-import { CalendarPlus, Pencil, Trash2, ArrowRight } from 'lucide-react';
+import AgendaForm from './forms/Sesion';
+import { CalendarPlus, Pencil, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatePresence } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
 import { useRouter } from 'next/navigation';
-import { getYear, getMonth, setMonth, format } from 'date-fns';
+import { getYear, setMonth, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import BotonVolver from '@/components/ui/botones/BotonVolver';
 
@@ -23,9 +23,6 @@ export default function Ver() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [agendaAEditar, setAgendaAEditar] = useState<AgendaConcejo | null>(null);
   const [filtroAnio, setFiltroAnio] = useState<string>(getYear(new Date()).toString());
-  
-  // --- CAMBIO APLICADO AQUÍ ---
-  // Se inicializa el mes como 'null' para mostrar todos los meses por defecto.
   const [filtroMes, setFiltroMes] = useState<string | null>(null);
 
   const anios = Array.from({ length: 10 }, (_, i) => getYear(new Date()) - 5 + i);
@@ -35,6 +32,7 @@ export default function Ver() {
   }));
 
   const fetchAgendas = async () => {
+    setCargandoAgendas(true);
     try {
       const data = await cargarAgendas();
       setAgendas(data);
@@ -87,13 +85,11 @@ export default function Ver() {
   };
 
   const handleGoToAgenda = (id: string) => {
-    router.push(`/protected/concejo/${id}`);
+    router.push(`/protected/concejo/agenda/${id}`);
   };
 
   if (cargandoUsuario || cargandoAgendas) {
-    return (
-      <CargandoAnimacion texto="Cargando Agenda..." />
-    );
+    return <CargandoAnimacion texto="Cargando Agenda..." />;
   }
 
   if (error) {
@@ -115,9 +111,7 @@ export default function Ver() {
                 onChange={(e) => setFiltroAnio(e.target.value)}
                 className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
-                {anios.map(anio => (
-                    <option key={anio} value={anio}>{anio}</option>
-                ))}
+                {anios.map(anio => <option key={anio} value={anio}>{anio}</option>)}
             </select>
             <select
                 value={filtroMes !== null ? filtroMes : ''}
@@ -125,9 +119,7 @@ export default function Ver() {
                 className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
                 <option value="">Todos los meses</option>
-                {meses.map(mes => (
-                    <option key={mes.numero} value={mes.numero}>{mes.nombre.charAt(0).toUpperCase() + mes.nombre.slice(1)}</option>
-                ))}
+                {meses.map(mes => <option key={mes.numero} value={mes.numero}>{mes.nombre.charAt(0).toUpperCase() + mes.nombre.slice(1)}</option>)}
             </select>
           </div>
         </div>
@@ -145,54 +137,56 @@ export default function Ver() {
         )}
       </header>
       
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="w-full">
-          {agendasFiltradas.length === 0 ? (
-            <div className="text-center py-10 border-2 border-dashed border-gray-300 rounded-lg">
-              <p className="text-gray-500">Aún no hay sesiones en este mes</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-              {agendasFiltradas.map((agenda) => (
-                <div key={agenda.id} className="bg-white p-6 rounded-lg shadow-md border-t-4 border-green-500">
-                  <div className="text-xl font-semibold">{agenda.titulo}
-                    <span className="text-sm text-gray-500 mt-1 ml-1"> 
-                      {format(new Date(agenda.fecha_reunion), "PPP", { locale: es })}, {format(new Date(agenda.fecha_reunion), "h:mm a", { locale: es })}
-                    </span>
-                    <span className="text-sm mt-2">
-                      {agenda.descripcion}
-                      </span>
+      <div className="w-full">
+        {agendasFiltradas.length === 0 ? (
+          <div className="text-center py-10 border-2 border-dashed border-gray-300 rounded-lg">
+            <p className="text-gray-500">Aún no hay sesiones para estas fechas.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4">
+            {agendasFiltradas.map((agenda) => {
+              const isEnProgreso = agenda.estado === 'En Progreso';
+              const borderColorClass = isEnProgreso ? 'border-green-500' : 'border-gray-400';
+              const textColorClass = isEnProgreso ? 'text-green-600' : 'text-gray-500';
 
+              return (
+                // ========= INICIO DE LA SECCIÓN CORREGIDA =========
+                <div key={agenda.id} className={`bg-white p-4 rounded-lg shadow-md border-l-4 ${borderColorClass} flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4`}>
+                  
+                  <div className="flex-grow">
+                    <div className="flex items-baseline gap-x-3 flex-wrap">
+                      <p className="text-base font-semibold text-gray-800">{agenda.titulo}</p>
+                      <span className="text-sm text-gray-500 font-normal whitespace-nowrap">{format(new Date(agenda.fecha_reunion), "PPP", { locale: es })}</span>
+                      <span className="text-sm text-gray-600 font-normal">{agenda.descripcion}</span>
+                    </div>
 
+                    <p className="text-sm mt-2">
+                      Estado: <span className={`font-bold ${textColorClass}`}>{agenda.estado}</span>
+                    </p>
                   </div>
-                  <p className="text-sm mt-2">Estado: <span className="font-bold text-green-600">{agenda.estado}</span></p>
-                  <div className="mt-4 flex flex-wrap gap-2 justify-center">
+
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
                     {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
-                      <>
-                      <button className="px-3 py-2 bg-blue-100 text-sm text-blue-600 rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-1">
-                        <Trash2 className="h-4 w-4" /> Eliminar
-                      </button>
                       <button
                         onClick={() => handleOpenEditModal(agenda)}
-                        className="px-3 py-2 bg-blue-100 text-sm text-blue-600 rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-1"
+                        className="px-3 py-2 text-sm text-blue-600 rounded-lg hover:bg-blue-200 transition-colors flex items-center justify-center gap-1"
                       >
                         <Pencil className="h-4 w-4" /> Editar
                       </button>
-                    </>
                     )}
-
                     <button
                       onClick={() => handleGoToAgenda(agenda.id)}
-                      className="px-3 py-2 bg-blue-100 text-sm text-blue-600 rounded-lg hover:bg-blue-200 transition-colors flex items-center gap-1"
+                      className="px-3 py-2 text-sm text-blue-600 rounded-lg hover:bg-blue-200 transition-colors flex items-center justify-center gap-1"
                     >
                       <ArrowRight className="h-4 w-4" /> Entrar
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                // ========= FIN DE LA SECCIÓN CORREGIDA =========
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <AnimatePresence>
