@@ -4,7 +4,7 @@ import { signOutAction } from "@/app/actions";
 import Link from "next/link";
 import EmailAnimado from './ui/Typeanimation';
 import { usePathname } from "next/navigation";
-import { ArrowLeft, LogIn, LogOut } from 'lucide-react';
+import { ArrowLeft, LogOut } from 'lucide-react';
 import useUserData from '@/hooks/useUserData';
 import Swal from 'sweetalert2';
 
@@ -14,7 +14,7 @@ export default function AuthButton() {
   
   const esAdmin = rol === 'SUPER' || rol === 'ADMINISTRADOR';
   const rutaInicio = esAdmin ? '/protected/admin' : '/protected/user';
-  const esInicio = pathname === '/protected/admin' || pathname === '/protected/user';
+  const esInicio = pathname === '/protected/';
 
   const linkStyles = "inline-flex items-center text-sm font-medium transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
 
@@ -78,12 +78,5 @@ export default function AuthButton() {
         )}
       </div>
     </div>
-  ) : (
-    <div className="flex items-center justify-end mr-10">
-      <Link href="/sign-in" className={`${linkStyles} text-primary`}>
-        Iniciar Sesión
-        <LogIn className="h-4 w-4 ml-2" />
-      </Link>
-    </div>
-  );
+  ) : null;
 }
