@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import useUserData from '@/hooks/useUserData';
 import { es } from 'date-fns/locale';
 import { format } from 'date-fns';
-import { X, Clock, CalendarCheck, MapPin } from 'lucide-react';
+import { X, Clock, CalendarCheck, MapPin, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Calendario from './Calendario';
 import Mapa from './modal/Mapa';
@@ -51,6 +51,9 @@ export default function Asistencia() {
   
   const [modalNotasAbierto, setModalNotasAbierto] = useState(false);
   const [notaSeleccionada, setNotaSeleccionada] = useState('');
+  
+  // Nuevo estado para el modal de opciones
+  const [modalOpcionesAbierto, setModalOpcionesAbierto] = useState(false);
 
 
   const [activeTab, setActiveTab] = useState<'controlResumen' | 'semanal'>('controlResumen');
@@ -60,16 +63,6 @@ export default function Asistencia() {
       setFechaHoraGt(new Date());
     }, 1000);
     return () => clearInterval(timerId);
-  }, []);
-
-  // Hook para obtener la ubicación
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => { setUbicacion({ lat: position.coords.latitude, lng: position.coords.longitude }); },
-        () => { setMensaje('Error: No se pudo obtener la ubicación.'); }
-      );
-    }
   }, []);
 
   // Hook para controlar el scroll del body
@@ -126,8 +119,8 @@ export default function Asistencia() {
 
 
   const handleMarcarAsistencia = async (tipo: string) => {
-    if (!ubicacion) {
-      setMensaje('Error: No se ha podido determinar la ubicación.');
+    if (!navigator.geolocation) {
+      Swal.fire('Error', 'Su navegador no soporta la geolocalización.', 'error');
       return;
     }
 
@@ -146,32 +139,43 @@ export default function Asistencia() {
       setCargando(true);
       setMensaje('');
 
-      const { data: nuevoRegistro, error } = await supabase
-        .from('registros_asistencia')
-        .insert({
-          tipo_registro: tipo,
-          ubicacion: ubicacion,
-          user_id: userId,
-          notas: notas,
-        })
-        .select('created_at, tipo_registro, ubicacion, notas')
-        .single();
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const ubicacionActual = { lat: position.coords.latitude, lng: position.coords.longitude };
+          setUbicacion(ubicacionActual);
 
-      if (error) {
-        setMensaje(`Error al guardar: ${error.message}`);
-      } else if (nuevoRegistro) {
-        Swal.fire({
-          title: `¡${tipo} Marcada!`,
-          text: `Se ha registrado su ${tipo.toLowerCase()} correctamente.`,
-          icon: 'success',
-          confirmButtonText: 'Aceptar',
-        });
-        setMensaje(`¡${tipo} marcada con éxito para ${nombre}!`);
-        setRegistrosHoy(prev => [...prev, nuevoRegistro]);
-        setTodosLosRegistros(prev => [...prev, nuevoRegistro].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
-        setNotas('');
-      }
-      setCargando(false);
+          const { data: nuevoRegistro, error } = await supabase
+            .from('registros_asistencia')
+            .insert({
+              tipo_registro: tipo,
+              ubicacion: ubicacionActual,
+              user_id: userId,
+              notas: notas,
+            })
+            .select('created_at, tipo_registro, ubicacion, notas')
+            .single();
+
+          if (error) {
+            Swal.fire('Error', `Error al guardar: ${error.message}`, 'error');
+          } else if (nuevoRegistro) {
+            Swal.fire({
+              title: `¡${tipo} Marcada!`,
+              text: `Se ha registrado su ${tipo.toLowerCase()} correctamente.`,
+              icon: 'success',
+              confirmButtonText: 'Aceptar',
+            });
+            setMensaje(`¡${tipo} marcada con éxito para ${nombre}!`);
+            setRegistrosHoy(prev => [...prev, nuevoRegistro]);
+            setTodosLosRegistros(prev => [...prev, nuevoRegistro].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()));
+            setNotas('');
+          }
+          setCargando(false);
+        },
+        () => {
+          Swal.fire('Error', 'No se pudo obtener la ubicación. Por favor, asegúrese de que la geolocalización esté habilitada.', 'error');
+          setCargando(false);
+        }
+      );
     }
   };
 
@@ -183,20 +187,22 @@ export default function Asistencia() {
     }
   };
 
-  const handleAbrirMapaActual = () => {
-    if (ubicacion) {
-      const hoy = new Date();
-      const registroActual = {
-        created_at: hoy.toISOString(),
-        tipo_registro: 'Ubicación Actual',
-        ubicacion: ubicacion
-      };
-      setRegistroSeleccionado(registroActual);
-      setModalMapaAbierto(true);
+  // Funciones para el nuevo modal de opciones
+  const handleAbrirModalOpciones = (registro: Registro) => {
+    setRegistroSeleccionado(registro);
+    setModalOpcionesAbierto(true);
+  };
+
+  const handleVerUbicacion = () => {
+    setModalOpcionesAbierto(false);
+    if (registroSeleccionado) {
+      handleAbrirMapa(registroSeleccionado);
     }
   };
 
+
   const handleVerNotas = (nota: string | null) => {
+    setModalOpcionesAbierto(false); // Cierra el modal de opciones si se llama desde él
     setNotaSeleccionada(nota || 'No se han agregado notas para este registro.');
     setModalNotasAbierto(true);
   };
@@ -237,16 +243,6 @@ export default function Asistencia() {
                       <p className="font-mono text-xl lg:text-3xl font-bold">
                         {fechaHoraGt.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                       </p>
-                      {ubicacion ? (
-                        <Button
-                          onClick={handleAbrirMapaActual}
-                          className="font-semibold bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
-                        >
-                          <MapPin className="h-5 w-5" /> Ver mi ubicación actual
-                        </Button>
-                      ) : (
-                        <span className="text-gray-500">Obteniendo ubicación...</span>
-                      )}
                     </div>
                   </div>
                   
@@ -264,7 +260,7 @@ export default function Asistencia() {
                     {!entradaMarcada ? (
                       <Button
                         onClick={() => handleMarcarAsistencia('Entrada')}
-                        disabled={cargando || !ubicacion}
+                        disabled={cargando}
                         className="w-full bg-green-600 hover:bg-green-700 text-xl lg:text-3xl py-12"
                       >
                         {cargando ? 'Marcando...' : 'Marcar Entrada'}
@@ -272,7 +268,7 @@ export default function Asistencia() {
                     ) : (
                       <Button
                         onClick={() => handleMarcarAsistencia('Salida')}
-                        disabled={cargando || !ubicacion || salidaMarcada}
+                        disabled={cargando || salidaMarcada}
                         className="w-full bg-red-600 hover:bg-red-700 text-xl lg:text-3xl py-12"
                       >
                         {salidaMarcada ? 'Salida ya marcada' : (cargando ? 'Marcando...' : 'Marcar Salida')}
@@ -288,7 +284,7 @@ export default function Asistencia() {
                         {registrosHoy.map((reg, index) => (
                           <li 
                             key={index} 
-                            onClick={() => handleVerNotas(reg.notas || null)} 
+                            onClick={() => handleAbrirModalOpciones(reg)} 
                             className={`flex justify-between p-2 rounded-md bg-slate-100 cursor-pointer hover:bg-slate-200 transition-colors`}>
                             <span className="font-mono text-xl lg:text-3xl ">{new Date(reg.created_at).toLocaleTimeString('es-GT')}</span>
                             <span className="font-medium text-xl lg:text-3xl ">{reg.tipo_registro}</span>
@@ -307,7 +303,7 @@ export default function Asistencia() {
               <Calendario
                 todosLosRegistros={todosLosRegistros}
                 onAbrirMapa={handleAbrirMapa}
-                onVerNotas={handleVerNotas} // <<-- AGREGADO
+                onVerNotas={handleVerNotas}
               />
             </motion.div>
           )}
@@ -325,7 +321,6 @@ export default function Asistencia() {
           />
         )}
       </AnimatePresence>
-
       {/* Modal para Notas */}
       <AnimatePresence>
         {modalNotasAbierto && (
@@ -360,6 +355,63 @@ export default function Asistencia() {
                       </button>
                     </DialogTitle>
                     <p className="text-gray-700 whitespace-pre-line">{notaSeleccionada}</p>
+                  </DialogPanel>
+                </TransitionChild>
+              </div>
+            </Dialog>
+          </Transition>
+        )}
+      </AnimatePresence>
+
+      {/* Nuevo Modal de Opciones */}
+      <AnimatePresence>
+        {modalOpcionesAbierto && (
+          <Transition show={modalOpcionesAbierto} as={Fragment}>
+            <Dialog onClose={() => setModalOpcionesAbierto(false)} className="relative z-50">
+              <TransitionChild
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0"
+                enterTo="opacity-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100"
+                leaveTo="opacity-0"
+              >
+                <div className="fixed inset-0 bg-black/10 backdrop-blur-sm" />
+              </TransitionChild>
+              <div className="fixed inset-0 flex items-center justify-center p-4">
+                <TransitionChild
+                  as={Fragment}
+                  enter="ease-out duration-300"
+                  enterFrom="opacity-0 scale-95"
+                  enterTo="opacity-100 scale-100"
+                  leave="ease-in duration-200"
+                  leaveFrom="opacity-100 scale-100"
+                  leaveTo="opacity-0 scale-95"
+                >
+                  <DialogPanel className="bg-white rounded-lg w-full max-w-md p-6 shadow-xl">
+                    <DialogTitle className="text-xl font-bold mb-4 flex justify-between items-center">
+                      Opciones
+                      <button onClick={() => setModalOpcionesAbierto(false)} className="text-gray-500 hover:text-gray-800">
+                        <X size={24} />
+                      </button>
+                    </DialogTitle>
+                    <div className="flex flex-col gap-4">
+                      {registroSeleccionado?.ubicacion && (
+                        <Button
+                          onClick={handleVerUbicacion}
+                          className="w-full flex items-center justify-center gap-2"
+                        >
+                          <MapPin size={20} /> Ver Ubicación
+                        </Button>
+                      )}
+                      <Button
+                        onClick={() => handleVerNotas(registroSeleccionado?.notas || null)}
+                        className="w-full flex items-center justify-center gap-2"
+                      >
+                        <FileText size={20} /> Ver Notas
+                      </Button>
+                    </div>
                   </DialogPanel>
                 </TransitionChild>
               </div>

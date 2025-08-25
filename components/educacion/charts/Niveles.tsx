@@ -4,8 +4,8 @@ import React, { useState, useMemo } from 'react';
 import type { Alumno, Programa } from '../lib/esquemas';
 import { Input } from '@/components/ui/input';
 import { Search, ChevronDown, ClipboardList } from 'lucide-react';
-import MensajeAnimado from '../../ui/Typeanimation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Typewriter } from 'react-simple-typewriter';
 
 interface Props {
   niveles: Programa[];
@@ -15,7 +15,7 @@ interface Props {
 
 export default function EstadisticasNiveles({ niveles, alumnos, onBarClick }: Props) {
   const [filtroGrafica, setFiltroGrafica] = useState('');
-  const [isExpanded, setIsExpanded] = useState(true); // Se inicia como true
+  const [isExpanded, setIsExpanded] = useState(true);
 
   if (!niveles || !alumnos) {
     return (
@@ -86,19 +86,17 @@ export default function EstadisticasNiveles({ niveles, alumnos, onBarClick }: Pr
 
             </div>
               {barData.length > 0 ? (
-
-
-
-
-
-
                 <div className="space-y-4">
                             <div className="border-b-4 border-gray-200 mt-4"></div>
                <div className="my-2 text-xs text-blue-600 ">
-                  <MensajeAnimado
-                    textos={[
+                  <Typewriter
+                    words={[
                       'Seleccione una barra para ver los detalles del nivel.',
                     ]}
+                    loop={1}
+                    cursor
+                    cursorStyle="_"
+                    typeSpeed={40}
                   />
               </div>
                   {barData.map((item) => (

@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, User } from 'lucide-react';
-import MensajeAnimado from '../../ui/Typeanimation';
+import { Typewriter } from 'react-simple-typewriter';
 
 interface MaestroAlumnos {
   id: number;
@@ -66,8 +66,12 @@ export default function Maestros({ onEdit, maestros }: MaestrosProps) {
             className="overflow-hidden mt-4"
           >
             <div className="text-sm text-green-700 my-4">
-                <MensajeAnimado
-                    textos={['Seleccione un maestro para editar']}
+                <Typewriter
+                    words={['Seleccione un maestro para editar']}
+                    loop={1}
+                    cursor
+                    cursorStyle="_"
+                    typeSpeed={40}
                 />
             </div>
             <div className="space-y-4">
