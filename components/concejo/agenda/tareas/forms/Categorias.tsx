@@ -2,7 +2,7 @@
 
 import React, { Fragment, useEffect, useState, useMemo } from 'react';
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
-import { fetchCategorias, crearCategoria, editarCategoria, CategoriaItem } from '../lib/acciones';
+import { fetchCategorias, crearCategoria, editarCategoria, CategoriaItem } from '../../lib/acciones';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X, Pencil, PlusCircle } from 'lucide-react';
@@ -18,7 +18,7 @@ interface CategoriasProps {
 export default function Categorias({ isOpen, onClose, onSelectCategoria }: CategoriasProps) {
   const [categorias, setCategorias] = useState<CategoriaItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [busqueda, setBusqueda] = useState('');
+  const [nuevaCategoriaNombre, setNuevaCategoriaNombre] = useState('');
 
   const cargarCategorias = async () => {
     setLoading(true);
@@ -33,28 +33,14 @@ export default function Categorias({ isOpen, onClose, onSelectCategoria }: Categ
     }
   }, [isOpen]);
 
-  const categoriasFiltradas = useMemo(() =>
-    categorias.filter(cat => cat.nombre.toLowerCase().includes(busqueda.toLowerCase()))
-  , [categorias, busqueda]);
+  const categoriasOrdenadas = useMemo(() =>
+    [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre))
+  , [categorias]);
 
-  const handleNuevaCategoria = async () => {
-    const { value: nombre } = await Swal.fire({
-      title: 'Nueva Categoría',
-      input: 'text',
-      inputLabel: 'Nombre de la nueva categoría',
-      inputPlaceholder: 'Ej. Asuntos Legales',
-      showCancelButton: true,
-      confirmButtonText: 'Crear',
-      cancelButtonText: 'Cancelar',
-      inputValidator: (value) => {
-        if (!value) {
-          return '¡Necesita escribir un nombre!';
-        }
-      }
-    });
-
-    if (nombre) {
-      await crearCategoria(nombre);
+  const handleCrearCategoria = async () => {
+    if (nuevaCategoriaNombre.trim() !== '') {
+      await crearCategoria(nuevaCategoriaNombre);
+      setNuevaCategoriaNombre('');
       cargarCategorias();
     }
   };
@@ -88,21 +74,21 @@ export default function Categorias({ isOpen, onClose, onSelectCategoria }: Categ
         </TransitionChild>
         <div className="fixed inset-0 flex items-center justify-center p-4">
           <TransitionChild as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
-            <DialogPanel className="bg-white rounded-lg w-full max-w-md p-6 shadow-xl flex flex-col h-[70vh]">
-              <DialogTitle className="text-xl font-bold mb-4 flex justify-between items-center">
-                Gestionar Categorías
-                <button onClick={onClose} className="text-gray-500 hover:text-gray-800"><X size={24} /></button>
-              </DialogTitle>
-              
+            <DialogPanel className="bg-white rounded-lg w-full max-w-md p-6 shadow-xl flex flex-col h-[600px]">
               <div className="flex gap-2 mb-4">
                 <Input
                   type="text"
-                  placeholder="Buscar categoría..."
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
+                  placeholder="Escriba aquí la nueva categoría..."
+                  value={nuevaCategoriaNombre}
+                  onChange={(e) => setNuevaCategoriaNombre(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCrearCategoria();
+                    }
+                  }}
                   className="flex-grow"
                 />
-                <Button onClick={handleNuevaCategoria} className="bg-green-500 hover:bg-green-600">
+                <Button onClick={handleCrearCategoria} className="bg-green-500 hover:bg-green-600" size="icon">
                   <PlusCircle size={20} />
                 </Button>
               </div>
@@ -110,7 +96,7 @@ export default function Categorias({ isOpen, onClose, onSelectCategoria }: Categ
               <div className="flex-grow overflow-y-auto">
                 {loading ? <CargandoAnimacion texto="Cargando..." /> : (
                   <ul className="space-y-2">
-                    {categoriasFiltradas.map(cat => (
+                    {categoriasOrdenadas.map(cat => (
                       <li key={cat.id} className="flex items-center justify-between p-2 rounded-md hover:bg-gray-100">
                         <span
                           className="flex-grow cursor-pointer"
@@ -121,13 +107,18 @@ export default function Categorias({ isOpen, onClose, onSelectCategoria }: Categ
                         >
                           {cat.nombre}
                         </span>
-                        <Button variant="ghost" size="sm" onClick={() => handleEditarCategoria(cat)}>
+                        <Button variant="ghost" size="icon" onClick={() => handleEditarCategoria(cat)}>
                           <Pencil size={16} />
                         </Button>
                       </li>
                     ))}
                   </ul>
                 )}
+              </div>
+              <div className="mt-4 flex justify-end">
+  <Button variant="link" onClick={onClose} className="w-full">
+  Salir
+</Button>
               </div>
             </DialogPanel>
           </TransitionChild>

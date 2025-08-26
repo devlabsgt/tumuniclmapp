@@ -87,7 +87,7 @@ export default function Dashboard() {
       .filter(m => {
         if (rol === 'SUPER') return true;
         if (m.nombre === 'AGENDA_CONCEJO') {
-          return ['ADMINISTRADOR', 'CONCEJAL'].includes(rol as string);
+          return ['ADMINISTRADOR', 'CONCEJAL', 'SECRETARIA'].includes(rol as string);
         }
         return modulos.includes(m.nombre);
       })

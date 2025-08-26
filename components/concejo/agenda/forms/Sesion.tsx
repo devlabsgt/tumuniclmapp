@@ -175,7 +175,7 @@ export default function Sesion({ isOpen, onClose, onSave, agendaAEditar }: Sesio
                   </Button>
                 </div>
               </form>
-            </div>
+            </div> 
           </motion.div>
         </motion.div>
       )}

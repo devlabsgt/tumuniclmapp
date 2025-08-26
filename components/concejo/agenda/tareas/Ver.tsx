@@ -1,44 +1,43 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect } from 'react';
 import useUserData from '@/hooks/useUserData';
-import { fetchTareasDeAgenda, Tarea, eliminarTarea } from './lib/acciones';
+import { fetchTareasDeAgenda, Tarea, fetchAgendaConcejoPorId, AgendaConcejo } from '../lib/acciones';
 import TareaForm from './forms/Tarea';
-import { CalendarPlus, Pencil, Trash2, X } from 'lucide-react';
+import Notas from './forms/Notas';
+import Seguimiento from './forms/Seguimiento';
+import { CalendarPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
 import BotonVolver from '@/components/ui/botones/BotonVolver';
-import Swal from 'sweetalert2';
-import { format, differenceInDays, parseISO } from 'date-fns';
+import Tabla from './Tabla';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Dialog, DialogPanel, DialogTitle, TransitionChild } from '@headlessui/react';
-
 
 const statusStyles: Record<string, string> = {
-  'Aprobado': 'bg-green-100 text-green-800',
-  'No aprobado': 'bg-red-100 text-red-800',
-  'En Progreso': 'bg-blue-100 text-blue-800',
-  'En Comisión': 'bg-gray-500 text-white',
-  'En Espera': 'bg-yellow-100 text-yellow-800',
+  'Aprobado': 'bg-green-200 text-green-800',
+  'No aprobado': 'bg-red-200 text-red-800',
+  'En progreso': 'bg-blue-200 text-blue-800',
+  'En comisión': 'bg-gray-300 text-gray-700',
+  'En espera': 'bg-yellow-200 text-yellow-800',
   'No iniciado': 'bg-gray-200 text-gray-700',
-  'Realizado': 'bg-indigo-100 text-indigo-800',
+  'Realizado': 'bg-indigo-200 text-indigo-800',
 };
 
-const getStatusClasses = (status: string) => statusStyles[status] || 'bg-gray-100 text-gray-800';
+const getStatusClasses = (status: string) => statusStyles[status] || 'bg-gray-200 text-gray-700';
 
-const calcularDiasRestantes = (fechaVencimiento: string | null): string => {
-  if (!fechaVencimiento) return '-';
-  const dias = differenceInDays(parseISO(fechaVencimiento), new Date());
-  if (dias < 0) return 'Vencido';
-  if (dias === 0) return 'Hoy';
-  return `${dias + 1} días`;
+const calcularResumenDeEstados = (tareas: Tarea[]) => {
+  const resumen: Record<string, number> = {};
+  tareas.forEach(tarea => {
+    const estado = tarea.estado;
+    resumen[estado] = (resumen[estado] || 0) + 1;
+  });
+  return resumen;
 };
-
 
 export default function Ver() {
-  const router = useRouter();
   const params = useParams();
   const agendaId = params.id as string;
   const { rol, cargando: cargandoUsuario } = useUserData();
@@ -47,18 +46,24 @@ export default function Ver() {
   const [cargandoTareas, setCargandoTareas] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-  const [tareaAEditar, setTareaAEditar] = useState<Tarea | null>(null);
-  const [selectedTaskForActions, setSelectedTaskForActions] = useState<Tarea | null>(null);
+  const [isNotasModalOpen, setIsNotasModalOpen] = useState(false);
+  const [isSeguimientoModalOpen, setIsSeguimientoModalOpen] = useState(false);
+  const [tareaSeleccionada, setTareaSeleccionada] = useState<Tarea | null>(null);
+  const [agenda, setAgenda] = useState<AgendaConcejo | null>(null);
+  const [filtrosActivos, setFiltrosActivos] = useState<string[]>([]);
 
-
-  const fetchTareas = async () => {
+  const fetchDatos = async () => {
     setCargandoTareas(true);
     try {
-      const data = await fetchTareasDeAgenda(agendaId);
-      setTareas(data);
+      const [dataTareas, dataAgenda] = await Promise.all([
+        fetchTareasDeAgenda(agendaId),
+        fetchAgendaConcejoPorId(agendaId)
+      ]);
+      setTareas(dataTareas);
+      setAgenda(dataAgenda);
     } catch (e: any) {
-      console.error('Error al cargar las tareas:', e);
-      setError('Ocurrió un error al cargar las tareas.');
+      console.error('Error al cargar los datos:', e);
+      setError('Ocurrió un error al cargar los datos.');
     } finally {
       setCargandoTareas(false);
     }
@@ -66,35 +71,82 @@ export default function Ver() {
 
   useEffect(() => {
     if (agendaId) {
-      fetchTareas();
+      fetchDatos();
     }
   }, [agendaId]);
 
-  useEffect(() => {
-    const isAnyModalOpen = isFormModalOpen || !!selectedTaskForActions;
-    if (isAnyModalOpen) {
-      document.body.classList.add('overflow-hidden');
-    } else {
-      document.body.classList.remove('overflow-hidden');
-    }
-    return () => {
-      document.body.classList.remove('overflow-hidden');
-    };
-  }, [isFormModalOpen, selectedTaskForActions]);
-
-  const handleOpenNewModal = () => {
-    setTareaAEditar(null);
-    setIsFormModalOpen(true);
-  };
-
   const handleOpenEditModal = (tarea: Tarea) => {
-    setTareaAEditar(tarea);
+    setTareaSeleccionada(tarea);
     setIsFormModalOpen(true);
   };
 
   const handleCloseFormModal = () => {
     setIsFormModalOpen(false);
-    setTareaAEditar(null);
+    setTareaSeleccionada(null);
+  };
+
+  const handleOpenNotasModal = (tarea: Tarea) => {
+    setTareaSeleccionada(tarea);
+    setIsNotasModalOpen(true);
+  };
+
+  const handleCloseNotasModal = (hasChanged: boolean) => {
+    setIsNotasModalOpen(false);
+    setTareaSeleccionada(null);
+    if (hasChanged) {
+      fetchDatos();
+    }
+  };
+
+  const handleOpenSeguimientoModal = (tarea: Tarea) => {
+    setTareaSeleccionada(tarea);
+    setIsSeguimientoModalOpen(true);
+  };
+
+  const handleCloseSeguimientoModal = (hasChanged: boolean) => {
+    setIsSeguimientoModalOpen(false);
+    setTareaSeleccionada(null);
+    if (hasChanged) {
+      fetchDatos();
+    }
+  };
+
+  const resumenDeEstados = calcularResumenDeEstados(tareas);
+
+  const estadoOrden = ['En progreso', 'En espera', 'No aprobado', 'Aprobado', 'En comisión', 'No iniciado', 'Realizado'];
+
+  const getTipoSesionStyle = (estado: string) => {
+    if (estado === 'Ordinaria') return 'text-green-600';
+    if (estado === 'Extraordinaria') return 'text-orange-600';
+    return 'text-gray-600';
+  };
+
+  const toggleFiltro = (estado: string) => {
+    setFiltrosActivos(prevFiltros =>
+      prevFiltros.includes(estado)
+        ? prevFiltros.filter(f => f !== estado)
+        : [...prevFiltros, estado]
+    );
+  };
+
+  const tareasFiltradas = filtrosActivos.length > 0
+    ? tareas.filter(tarea => filtrosActivos.includes(tarea.estado))
+    : tareas;
+
+  const getFiltroStyle = (estado: string) => {
+    const classes = getStatusClasses(estado);
+    const activeClass = filtrosActivos.includes(estado) ? 'border-t-4 border-blue-500' : '';
+
+    let colorComision = '';
+    if (estado === 'En comisión' && filtrosActivos.includes(estado)) {
+      colorComision = 'border-t-4 border-slate-300';
+    }
+
+    return `${classes} ${activeClass} ${colorComision} cursor-pointer hover:opacity-80 transition-opacity`;
+  };
+
+  const handleClearFilters = () => {
+    setFiltrosActivos([]);
   };
 
   if (cargandoUsuario || cargandoTareas) {
@@ -111,57 +163,65 @@ export default function Ver() {
 
   return (
     <div className="container mx-auto p-4">
-      <header className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+      <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
         <BotonVolver ruta="/protected/concejo/agenda" />
-        <div className="flex w-full sm:w-auto items-center justify-end gap-2">
-          <Button
-            onClick={handleOpenNewModal}
-            className="w-full sm:w-auto px-6 py-2 bg-green-500 text-white rounded-lg shadow-sm hover:bg-green-600 transition-colors flex items-center space-x-2"
-          >
-            <CalendarPlus size={20} />
-            <span>Nueva Tarea</span>
-          </Button>
-        </div>
-      </header>
-      
-      <div className="w-full overflow-x-auto">
-        {tareas.length === 0 ? (
-          <div className="text-center py-10 border-2 border-dashed border-gray-300 rounded-lg">
-            <p className="text-gray-500">Aún no hay tareas creadas para esta agenda.</p>
+        {agenda && (
+          <div className="flex-grow flex flex-col items-center text-center">
+            <h1 className="text-xl font-bold text-gray-800">Agenda del Concejo Municipal</h1>
+            <h2 className={`text-lg font-bold ${getTipoSesionStyle(agenda.estado)}`}>
+              {agenda.titulo}
+            </h2>
+            <p className="text-sm text-gray-500">
+              {`${format(new Date(agenda.fecha_reunion), 'PPPP', { locale: es })} • ${agenda.descripcion}`}
+            </p>
           </div>
-        ) : (
-          <table className="min-w-full bg-white divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Punto a Tratar</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estatus</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vencimiento</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Días Restantes</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {tareas.map((tarea, index) => (
-                <tr key={tarea.id} onClick={() => setSelectedTaskForActions(tarea)} className="hover:bg-gray-100 cursor-pointer">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">{tarea.titulo_item}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{tarea.categoria?.nombre}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClasses(tarea.estado)}`}>
-                      {tarea.estado}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {tarea.fecha_vencimiento ? format(parseISO(tarea.fecha_vencimiento), 'd MMM, yyyy', { locale: es }) : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{calcularDiasRestantes(tarea.fecha_vencimiento)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         )}
+        <Button
+          onClick={() => {
+            setTareaSeleccionada(null);
+            setIsFormModalOpen(true);
+          }}
+          className="px-4 py-2 bg-green-500 text-white rounded-lg shadow-sm hover:bg-green-600 transition-colors flex items-center space-x-2"
+        >
+          <CalendarPlus size={20} />
+          <span>Nueva Tarea</span>
+        </Button>
+      </header>
+
+      <div className="mb-4 grid grid-cols-3 gap-2 md:flex md:flex-wrap md:justify-start">
+        {estadoOrden.map(estado => (
+          <motion.button
+            key={estado}
+            onClick={() => toggleFiltro(estado)}
+            className={`px-3 py-2 rounded-md shadow-sm text-center ${getStatusClasses(estado)} text-xs md:text-xs ${filtrosActivos.includes(estado) ? 'border-t-4 border-blue-500' : ''}`}
+            whileHover={{ y: -5 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <span className="font-semibold">{estado}:</span>
+            <span className="text-sm font-bold ml-1">{resumenDeEstados[estado] || 0}</span>
+          </motion.button>
+        ))}
+        <AnimatePresence>
+          {filtrosActivos.length > 0 && (
+            <motion.button
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              onClick={handleClearFilters}
+              className="px-3 py-2 rounded-md shadow-sm text-center bg-gray-400 text-white text-xs md:text-xs"
+            >
+              Quitar filtros
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
+
+      <Tabla
+        tareas={tareasFiltradas}
+        handleOpenEditModal={handleOpenEditModal}
+        handleOpenNotasModal={handleOpenNotasModal}
+        handleOpenSeguimientoModal={handleOpenSeguimientoModal}
+      />
 
       <AnimatePresence>
         {isFormModalOpen && (
@@ -169,42 +229,26 @@ export default function Ver() {
             isOpen={isFormModalOpen}
             onClose={handleCloseFormModal}
             onSave={async () => {
-              await fetchTareas();
+              await fetchDatos();
               handleCloseFormModal();
             }}
             agendaConcejoId={agendaId}
-            tareaAEditar={tareaAEditar}
+            tareaAEditar={tareaSeleccionada}
           />
         )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {selectedTaskForActions && (
-          <Dialog open={!!selectedTaskForActions} onClose={() => setSelectedTaskForActions(null)} className="relative z-50">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
-            <div className="fixed inset-0 flex items-center justify-center p-4">
-              <DialogPanel as={motion.div} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
-                <DialogTitle className="text-lg font-bold text-gray-800 flex justify-between items-center">
-                  Acciones para la Tarea
-                  <button onClick={() => setSelectedTaskForActions(null)}><X className="h-5 w-5 text-gray-400 hover:text-gray-700" /></button>
-                </DialogTitle>
-                <p className="mt-1 text-sm text-gray-600 truncate">"{selectedTaskForActions.titulo_item}"</p>
-                <div className="mt-6 space-y-2">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start gap-2"
-                    onClick={() => {
-                      handleOpenEditModal(selectedTaskForActions);
-                      setSelectedTaskForActions(null);
-                    }}
-                  >
-                    <Pencil className="h-4 w-4" />
-                    Editar Tarea
-                  </Button>
-                </div>
-              </DialogPanel>
-            </div>
-          </Dialog>
+        {isNotasModalOpen && tareaSeleccionada && (
+          <Notas
+            isOpen={isNotasModalOpen}
+            onClose={handleCloseNotasModal}
+            tarea={tareaSeleccionada}
+          />
+        )}
+        {isSeguimientoModalOpen && tareaSeleccionada && (
+          <Seguimiento
+            isOpen={isSeguimientoModalOpen}
+            onClose={handleCloseSeguimientoModal}
+            tarea={tareaSeleccionada}
+          />
         )}
       </AnimatePresence>
     </div>

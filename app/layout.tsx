@@ -31,7 +31,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const pathname = (await headers()).get("x-pathname") || "";
-  const isAuthPage = pathname === "/sign-in";
+  const isAuthPage = pathname === "/";
 
   return (
     <html lang="es" className={geistSans.className} suppressHydrationWarning>
@@ -54,7 +54,7 @@ export default async function RootLayout({
               </div>
             </nav>
 
-            <main className="flex flex-col gap-5 p-4 flex-grow w-full max-w-7xl mx-auto">
+            <main className="flex flex-col gap-5 p-4 flex-grow w-full mx-auto">
               {children}
             </main>
 
