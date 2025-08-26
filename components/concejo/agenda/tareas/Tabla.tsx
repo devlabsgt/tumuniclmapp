@@ -7,9 +7,7 @@ import {
   flexRender,
   ColumnDef,
 } from '@tanstack/react-table';
-import { format, differenceInDays, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { Tarea } from '../lib/acciones';
+import { Tarea } from '../lib/esquemas';
 
 const statusStyles: Record<string, string> = {
   'Aprobado': 'bg-green-100 text-green-800',
@@ -49,125 +47,108 @@ const getStatusTextClasses = (status: string) => {
   return 'text-gray-800';
 };
 
-const calcularDiasRestantes = (fechaVencimiento: string | null): string => {
-  if (!fechaVencimiento) return '-';
-  const dias = differenceInDays(parseISO(fechaVencimiento), new Date());
-  if (dias < 0) return 'Vencido';
-  if (dias === 0) return 'Hoy';
-  return `${dias + 1} días`;
-};
-
 interface TablaProps {
   tareas: Tarea[];
   handleOpenEditModal: (tarea: Tarea) => void;
   handleOpenNotasModal: (tarea: Tarea) => void;
   handleOpenSeguimientoModal: (tarea: Tarea) => void;
+  estadoAgenda: string;
 }
 
-export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModal, handleOpenSeguimientoModal }: TablaProps) {
+export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModal, handleOpenSeguimientoModal, estadoAgenda }: TablaProps) {
     const sCol = 100;
     const lCol = 250;
-    const totalWidth = 50 + (sCol * 5) + (lCol * 2);
+    const totalWidth = 50 + (sCol * 3) + (lCol * 3);
 
-    const columns = useMemo<ColumnDef<Tarea>[]>(() => [
-    {
-      accessorKey: 'id',
-      header: '#',
-      size: 30,
-      minSize: 30,
-      cell: (info) => (
-        <div className="flex justify-center items-center">
-          {info.row.index + 1}
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'titulo_item',
-      header: 'Punto a Tratar',
-      size: lCol,
-      minSize: sCol,
-      cell: info => <>{info.getValue() as string}</>,
-    },
-    {
-      accessorKey: 'estado',
-      header: 'Estado',
-      size: sCol,
-      minSize: sCol,
-      cell: info => (
-        <div className={`flex justify-center w-full`}>
-          <span className={`text-xs leading-5 font-semibold ${getStatusTextClasses(info.getValue() as string)}`}>
-            {info.getValue() as string}
-          </span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'votacion',
-      header: 'Votación',
-      size: sCol,
-      minSize: sCol,
-      cell: info => (
-        <div className={`flex justify-center w-full`}>
-          <span className={`text-xs leading-5 font-semibold`}>
-            {info.getValue() as string}
-          </span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'categoria.nombre',
-      header: 'Categoría',
-      size: sCol,
-      minSize: sCol,
-      cell: info => <div className="whitespace-nowrap overflow-hidden text-ellipsis">{info.getValue() as string}</div>,
-    },
-    {
-      accessorKey: 'fecha_vencimiento',
-      header: 'Vencimiento',
-      size: sCol,
-      minSize: sCol,
-      cell: info => {
-        const date = info.getValue() as string;
-        return <div className="whitespace-nowrap">{date ? format(parseISO(date), 'd MMM, yyyy', { locale: es }) : '-'}</div>;
+  const columns = useMemo<ColumnDef<Tarea>[]>(() => {
+    const baseColumns: ColumnDef<Tarea>[] = [
+      {
+        accessorKey: 'id',
+        header: '#',
+        size: 30,
+        minSize: 30,
+        cell: (info) => (
+          <div className="flex justify-center items-center">
+            {info.row.index + 1}
+          </div>
+        ),
       },
-    },
-    {
-      accessorKey: 'diasRestantes',
-      header: 'Días Restantes',
-      size: sCol,
-      minSize: sCol,
-      cell: info => {
-        const fechaVencimiento = info.row.original.fecha_vencimiento;
-        return <div className="whitespace-nowrap">{calcularDiasRestantes(fechaVencimiento)}</div>;
+      {
+        accessorKey: 'titulo_item',
+        header: 'Punto a Tratar',
+        size: 250,
+        minSize: 100,
+        cell: info => <>{info.getValue() as string}</>,
       },
-    },
-    {
-      accessorKey: 'notas',
-      header: 'Notas',
-      size: lCol,
-      minSize: lCol,
-      cell: info => (
-        <>
-          {(info.getValue() as string[] | null)?.map((nota, index) => (
-            <p key={index} className="border-b border-gray-200 first:pt-0 last:border-b-0">{nota}</p>
-          ))}
-        </>
-      ),
-    },
-    {
-      accessorKey: 'seguimiento',
-      header: 'Seguimiento',
-      size: lCol,
-      minSize: lCol,
-      cell: info => (
-        <>
-          {(info.getValue() as string[] | null)?.map((seg, index) => (
-            <p key={index} className="border-b border-gray-200 first:pt-0 last:border-b-0">{seg}</p>
-          ))}
-        </>
-      ),
-    },
-  ], []);
+      {
+        accessorKey: 'estado',
+        header: 'Estado',
+        size: 100,
+        minSize: 100,
+        cell: info => (
+          <div className={`flex justify-center w-full`}>
+            <span className={`text-xs leading-5 font-semibold ${getStatusTextClasses(info.getValue() as string)}`}>
+              {info.getValue() as string}
+            </span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'votacion',
+        header: 'Votación',
+        size: 100,
+        minSize: 100,
+        cell: info => (
+          <div className={`flex justify-center w-full`}>
+            <span className={`text-xs leading-5 font-semibold`}>
+              {info.getValue() as string}
+            </span>
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'categoria.nombre',
+        header: 'Categoría',
+        size: 100,
+        minSize: 100,
+        cell: info => <div className="whitespace-nowrap overflow-hidden text-ellipsis">{info.getValue() as string}</div>,
+      },
+    ];
+
+    if (estadoAgenda === 'En progreso' || estadoAgenda === 'Finalizada') {
+      baseColumns.push(
+        {
+          accessorKey: 'notas',
+          header: 'Notas',
+          size: 250,
+          minSize: 250,
+          cell: info => (
+            <>
+              {(info.getValue() as string[] | null)?.map((nota, index) => (
+                <p key={index} className="border-b border-gray-200 first:pt-0 last:border-b-0">{nota}</p>
+              ))}
+            </>
+          ),
+        },
+        {
+          accessorKey: 'seguimiento',
+          header: 'Seguimiento',
+          size: 250,
+          minSize: 250,
+          cell: info => (
+            <>
+              {(info.getValue() as string[] | null)?.map((seg, index) => (
+                <p key={index} className="border-b border-gray-200 first:pt-0 last:border-b-0">{seg}</p>
+              ))}
+            </>
+          ),
+        }
+      );
+    }
+
+    return baseColumns;
+  }, [estadoAgenda]);
+
 
   const table = useReactTable({
     data: tareas,
@@ -211,6 +192,9 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
                     className={`p-1 border border-gray-300 align-top cursor-pointer transition-colors hover:bg-gray-100 ${cell.column.id === 'estado' ? getStatusClasses(row.original.estado) : ''} ${cell.column.id === 'votacion' ? getVotacionClasses(row.original.votacion || null) : ''}`}
                     style={{ width: cell.column.getSize() }}
                     onClick={() => {
+                      if (estadoAgenda === 'Finalizada') {
+                        return;
+                      }
                       if (cell.column.id === 'notas') {
                         handleOpenNotasModal(row.original);
                       } else if (cell.column.id === 'seguimiento') {

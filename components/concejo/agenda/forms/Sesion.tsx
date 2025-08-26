@@ -1,13 +1,16 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
-import { crearAgenda, editarAgenda, type AgendaConcejo, getTodayDate } from '../lib/acciones';
-import { sesionSchema, type SesionFormData } from '../lib/esquemas'; 
+import { crearAgenda, editarAgenda, getTodayDate } from '../lib/acciones';
+import {type AgendaConcejo } from '../lib/esquemas';
+import { parseISO, getHours, getMinutes, format } from 'date-fns';
+
+import { sesionSchema, type SesionFormData } from '../lib/esquemas';
 import Calendario from '@/components/ui/Calendario';
 
 interface SesionProps {
@@ -26,6 +29,22 @@ const parseDescripcion = (descripcion: string) => {
   return { acta: '', libro: '' };
 };
 
+// Función de ayuda para convertir de 24h a 12h
+const convert24to12 = (h24: number): { hora12: string; periodo: string } => {
+  const periodo = h24 >= 12 ? 'PM' : 'AM';
+  let hora12 = h24 % 12;
+  if (hora12 === 0) hora12 = 12;
+  return { hora12: String(hora12).padStart(2, '0'), periodo };
+};
+
+// Función de ayuda para convertir de 12h a 24h
+const convert12to24 = (hora12: string, periodo: string): string => {
+  let h24 = parseInt(hora12, 10);
+  if (periodo === 'PM' && h24 < 12) h24 += 12;
+  if (periodo === 'AM' && h24 === 12) h24 = 0;
+  return String(h24).padStart(2, '0');
+};
+
 export default function Sesion({ isOpen, onClose, onSave, agendaAEditar }: SesionProps) {
   const isEditMode = !!agendaAEditar;
 
@@ -37,14 +56,16 @@ export default function Sesion({ isOpen, onClose, onSave, agendaAEditar }: Sesio
       acta: '',
       libro: '',
       fecha_reunion: getTodayDate(),
-      // SOLUCIÓN: Usar una hora fija por defecto en lugar de la actual.
       hora_reunion: '08:00',
     }
   });
 
+  const [hora, setHora] = useState('08');
+  const [minuto, setMinuto] = useState('00');
+  const [periodo, setPeriodo] = useState('AM');
+
   const actaForm = watch('acta');
   const libroForm = watch('libro');
-  const horaReunionForm = watch('hora_reunion');
 
   useEffect(() => {
     if (actaForm && libroForm) {
@@ -53,20 +74,29 @@ export default function Sesion({ isOpen, onClose, onSave, agendaAEditar }: Sesio
       setValue('descripcion', '');
     }
   }, [actaForm, libroForm, setValue]);
-  
-  // Lógica para llenar o limpiar el formulario
+
   useEffect(() => {
     if (isOpen) {
       if (isEditMode && agendaAEditar) {
         const { acta, libro } = parseDescripcion(agendaAEditar.descripcion);
+        const fechaHoraDB = parseISO(agendaAEditar.fecha_reunion);
+        const h24 = getHours(fechaHoraDB);
+        const m = getMinutes(fechaHoraDB);
+
+        const { hora12: newHora12, periodo: newPeriodo } = convert24to12(h24);
+
         reset({
           titulo: agendaAEditar.titulo,
           descripcion: agendaAEditar.descripcion,
           acta: acta,
           libro: libro,
-          fecha_reunion: agendaAEditar.fecha_reunion.split('T')[0],
-          hora_reunion: agendaAEditar.fecha_reunion.split('T')[1].substring(0, 5),
+          fecha_reunion: format(fechaHoraDB, 'yyyy-MM-dd'),
+          hora_reunion: `${String(h24).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
         });
+
+        setHora(newHora12);
+        setMinuto(String(m).padStart(2, '0'));
+        setPeriodo(newPeriodo);
       } else {
         reset({
           titulo: '',
@@ -74,25 +104,23 @@ export default function Sesion({ isOpen, onClose, onSave, agendaAEditar }: Sesio
           acta: '',
           libro: '',
           fecha_reunion: getTodayDate(),
-          hora_reunion: '08:00', // Usar la misma hora fija al resetear
+          hora_reunion: '08:00',
         });
+        setHora('08');
+        setMinuto('00');
+        setPeriodo('AM');
       }
     }
   }, [isOpen, reset, isEditMode, agendaAEditar]);
 
-  // SOLUCIÓN: Lógica de la hora simplificada para evitar bucles infinitos
-  const [h24, m] = horaReunionForm.split(':').map(Number);
-  const periodo = h24 >= 12 ? 'PM' : 'AM';
-  let hora12 = h24 % 12;
-  if (hora12 === 0) hora12 = 12;
-
-  const handleTimeChange = (newHour: number, newMinute: number, newPeriod: string) => {
-    let newH24 = newHour;
-    if (newPeriod === 'PM' && newHour < 12) newH24 = newHour + 12;
-    if (newPeriod === 'AM' && newHour === 12) newH24 = 0;
-    
-    const nuevaHoraForm = `${String(newH24).padStart(2, '0')}:${String(newMinute).padStart(2, '0')}`;
+  const handleTimeChange = (newHour: string, newMinute: string, newPeriod: string) => {
+    const h24 = convert12to24(newHour, newPeriod);
+    const nuevaHoraForm = `${h24}:${newMinute}`;
     setValue('hora_reunion', nuevaHoraForm, { shouldValidate: true });
+
+    setHora(newHour);
+    setMinuto(newMinute);
+    setPeriodo(newPeriod);
   };
 
   const onSubmit = async (formData: SesionFormData) => {
@@ -102,25 +130,25 @@ export default function Sesion({ isOpen, onClose, onSave, agendaAEditar }: Sesio
     };
 
     const result = isEditMode
-      ? await editarAgenda(agendaAEditar!.id, combinedFormData as any) 
+      ? await editarAgenda(agendaAEditar!.id, combinedFormData as any)
       : await crearAgenda(combinedFormData as any);
-    
+
     if (result) {
       onSave();
       onClose();
     }
   };
-  
+
   const selectClassName = "h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2";
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div 
+        <motion.div
           className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         >
-          <motion.div 
+          <motion.div
             className="bg-slate-50 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
             initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 30 }}
           >
@@ -145,14 +173,14 @@ export default function Sesion({ isOpen, onClose, onSave, agendaAEditar }: Sesio
                       {errors.libro && <p className="text-sm text-red-500 mt-1">{errors.libro.message}</p>}
                     </div>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Hora de la reunión</label>
                     <div className="flex items-center gap-2">
-                      <Input type="number" min="1" max="12" value={hora12} onChange={(e) => handleTimeChange(parseInt(e.target.value, 10) || 1, m, periodo)} className="w-20 text-center" />
+                      <Input type="text" value={hora} onChange={(e) => handleTimeChange(e.target.value, minuto, periodo)} className="w-20 text-center" />
                       <span>:</span>
-                      <Input type="number" min="0" max="59" value={String(m).padStart(2, '0')} onChange={(e) => handleTimeChange(hora12, parseInt(e.target.value, 10) || 0, periodo)} className="w-20 text-center" />
-                      <select value={periodo} onChange={(e) => handleTimeChange(hora12, m, e.target.value)} className={selectClassName}>
+                      <Input type="text" value={minuto} onChange={(e) => handleTimeChange(hora, e.target.value, periodo)} className="w-20 text-center" />
+                      <select value={periodo} onChange={(e) => handleTimeChange(hora, minuto, e.target.value)} className={selectClassName}>
                         <option value="AM">AM</option>
                         <option value="PM">PM</option>
                       </select>
@@ -167,7 +195,7 @@ export default function Sesion({ isOpen, onClose, onSave, agendaAEditar }: Sesio
                   </div>
 
                 </div>
-                
+
                 <div className="flex justify-end gap-3 pt-4">
                   <Button type="button" variant="outline" onClick={onClose} className="w-1/2">Cancelar</Button>
                   <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 w-1/2">
@@ -175,7 +203,7 @@ export default function Sesion({ isOpen, onClose, onSave, agendaAEditar }: Sesio
                   </Button>
                 </div>
               </form>
-            </div> 
+            </div>
           </motion.div>
         </motion.div>
       )}

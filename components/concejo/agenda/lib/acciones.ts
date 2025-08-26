@@ -2,47 +2,13 @@
 
 import { createBrowserClient } from '@supabase/ssr';
 import { toast } from 'react-toastify';
-import { TareaFormData } from './esquemas';
+import { TareaFormData, AgendaConcejo, AgendaFormData, CategoriaItem, Tarea } from './esquemas';
 
 // Inicialización del cliente Supabase.
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
-
-// Define una interfaz para los datos de la agenda.
-export interface AgendaConcejo {
-  id: string;
-  created_at: string;
-  fecha_reunion: string;
-  titulo: string;
-  descripcion: string;
-  estado: string;
-}
-
-export interface CategoriaItem {
-  id: string;
-  nombre: string;
-}
-
-export interface Tarea {
-  id: string;
-  titulo_item: string;
-  categoria: CategoriaItem;
-  estado: string;
-  notas: string[] | null;
-  seguimiento: string[] | null;
-  fecha_vencimiento: string | null;
-  votacion: string | null; // Nuevo campo 'votacion'
-}
-
-// Interfaz para los datos del formulario de creación.
-export interface AgendaFormData {
-  titulo: string;
-  descripcion: string;
-  fecha_reunion: string;
-  hora_reunion: string;
-}
 
 // === Funciones de la Agenda ===
 export const cargarAgendas = async (): Promise<AgendaConcejo[]> => {
@@ -79,7 +45,7 @@ export const crearAgenda = async (formData: AgendaFormData): Promise<AgendaConce
       titulo: formData.titulo,
       descripcion: formData.descripcion,
       fecha_reunion: formData.fecha_reunion,
-      estado: 'En Progreso',
+      estado: 'En Preparación',
     })
     .select()
     .single();
@@ -100,6 +66,7 @@ export const editarAgenda = async (id: string, formData: AgendaFormData): Promis
       titulo: formData.titulo,
       descripcion: formData.descripcion,
       fecha_reunion: formData.fecha_reunion,
+      estado: formData.estado,
     })
     .eq('id', id)
     .select()
@@ -112,6 +79,21 @@ export const editarAgenda = async (id: string, formData: AgendaFormData): Promis
   }
   toast.success('Agenda actualizada con éxito.');
   return data as AgendaConcejo;
+};
+
+// Nueva función para actualizar solo el estado de la agenda
+export const actualizarEstadoAgenda = async (id: string, estado: string): Promise<void> => {
+  const { error } = await supabase
+    .from('agenda_concejo')
+    .update({ estado })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error al actualizar el estado de la agenda:', error.message);
+    toast.error('Error al actualizar el estado de la agenda.');
+  } else {
+    toast.success('Estado de la agenda actualizado con éxito.');
+  }
 };
 
 // === Funciones de las Categorías ===
@@ -164,8 +146,7 @@ export const crearTarea = async (formData: TareaFormData, agendaId: string): Pro
       estado: formData.estado,
       notas: formData.notas,
       seguimiento: formData.seguimiento,
-      fecha_vencimiento: formData.fecha_vencimiento,
-      votacion: formData.votacion, // Añadir el nuevo campo
+      votacion: formData.votacion,
       agenda_concejo_id: agendaId,
     })
     .select()
@@ -189,8 +170,7 @@ export const editarTarea = async (id: string, formData: TareaFormData): Promise<
       estado: formData.estado,
       notas: formData.notas,
       seguimiento: formData.seguimiento,
-      fecha_vencimiento: formData.fecha_vencimiento,
-      votacion: formData.votacion, // Añadir el nuevo campo
+      votacion: formData.votacion,
     })
     .eq('id', id)
     .select()

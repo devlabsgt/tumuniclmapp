@@ -3,7 +3,8 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import useUserData from '@/hooks/useUserData';
-import { fetchTareasDeAgenda, Tarea, fetchAgendaConcejoPorId, AgendaConcejo } from '../lib/acciones';
+import { fetchTareasDeAgenda, fetchAgendaConcejoPorId, actualizarEstadoAgenda } from '../lib/acciones';
+import { Tarea, AgendaConcejo, AgendaFormData } from '../lib/esquemas';
 import TareaForm from './forms/Tarea';
 import Notas from './forms/Notas';
 import Seguimiento from './forms/Seguimiento';
@@ -13,8 +14,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
 import BotonVolver from '@/components/ui/botones/BotonVolver';
 import Tabla from './Tabla';
-import { format } from 'date-fns';
+import { format, differenceInDays, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
+import Swal from 'sweetalert2';
+import { toast } from 'react-toastify';
 
 const statusStyles: Record<string, string> = {
   'Aprobado': 'bg-green-200 text-green-800',
@@ -37,7 +40,19 @@ const calcularResumenDeEstados = (tareas: Tarea[]) => {
   return resumen;
 };
 
-export default function Ver() {
+const calcularDiasRestantes = (fechaReunion: string): string => {
+  const fecha = new Date(fechaReunion);
+  if (isToday(fecha)) {
+    return 'Hoy';
+  }
+  const dias = differenceInDays(fecha, new Date());
+  if (dias < 0) {
+    return 'Vencido';
+  }
+  return `${dias + 1} días`;
+};
+
+export default function VerTareas() {
   const params = useParams();
   const agendaId = params.id as string;
   const { rol, cargando: cargandoUsuario } = useUserData();
@@ -111,14 +126,61 @@ export default function Ver() {
     }
   };
 
+  const handleActualizarEstadoAgenda = async () => {
+    if (!agenda) return;
+
+    let nuevoEstado = '';
+    let mensaje = '';
+
+    if (agenda.estado === 'En preparación') {
+      nuevoEstado = 'En progreso';
+      mensaje = '¿Está seguro de que desea iniciar el progreso de esta agenda?';
+    } else if (agenda.estado === 'En progreso') {
+      nuevoEstado = 'Finalizada';
+      mensaje = '¿Está seguro de que desea finalizar esta agenda?';
+    } else {
+      return;
+    }
+
+    const { isConfirmed } = await Swal.fire({
+      title: 'Confirmar cambio de estado',
+      text: mensaje,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, cambiar',
+      cancelButtonText: 'Cancelar',
+    });
+
+    if (isConfirmed) {
+      try {
+        await actualizarEstadoAgenda(agenda.id, nuevoEstado);
+        fetchDatos();
+      } catch (error) {
+        toast.error('Error al actualizar el estado de la agenda.');
+        console.error('Error al actualizar el estado de la agenda:', error);
+      }
+    }
+  };
+
   const resumenDeEstados = calcularResumenDeEstados(tareas);
 
   const estadoOrden = ['En progreso', 'En espera', 'No aprobado', 'Aprobado', 'En comisión', 'No iniciado', 'Realizado'];
 
-  const getTipoSesionStyle = (estado: string) => {
-    if (estado === 'Ordinaria') return 'text-green-600';
-    if (estado === 'Extraordinaria') return 'text-orange-600';
-    return 'text-gray-600';
+  const getEstadoAgendaStyle = (estado: string) => {
+    if (estado === 'En preparación') {
+      return 'bg-blue-500 text-white hover:bg-blue-600';
+    } else if (estado === 'En progreso') {
+      return 'bg-green-500 text-white hover:bg-green-600';
+    } else if (estado === 'Finalizada') {
+      return 'bg-gray-300 text-gray-700 cursor-not-allowed';
+    }
+    return '';
+  };
+  
+  const getEstadoAgendaText = (estado: string) => {
+    return estado;
   };
 
   const toggleFiltro = (estado: string) => {
@@ -149,18 +211,6 @@ export default function Ver() {
     setFiltrosActivos([]);
   };
 
-  if (cargandoUsuario || cargandoTareas) {
-    return <CargandoAnimacion texto="Cargando Tareas..." />;
-  };
-
-  if (error) {
-    return (
-      <div className="text-center py-10 text-red-500">
-        <p>{error}</p>
-      </div>
-    );
-  };
-
   return (
     <div className="container mx-auto p-4">
       <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
@@ -168,7 +218,7 @@ export default function Ver() {
         {agenda && (
           <div className="flex-grow flex flex-col items-center text-center">
             <h1 className="text-xl font-bold text-gray-800">Agenda del Concejo Municipal</h1>
-            <h2 className={`text-lg font-bold ${getTipoSesionStyle(agenda.estado)}`}>
+            <h2 className={`text-lg font-bold text-gray-600`}>
               {agenda.titulo}
             </h2>
             <p className="text-sm text-gray-500">
@@ -176,16 +226,29 @@ export default function Ver() {
             </p>
           </div>
         )}
-        <Button
-          onClick={() => {
-            setTareaSeleccionada(null);
-            setIsFormModalOpen(true);
-          }}
-          className="px-4 py-2 bg-green-500 text-white rounded-lg shadow-sm hover:bg-green-600 transition-colors flex items-center space-x-2"
-        >
-          <CalendarPlus size={20} />
-          <span>Nueva Tarea</span>
-        </Button>
+        {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {agenda && (
+              <Button
+                onClick={handleActualizarEstadoAgenda}
+                disabled={agenda.estado === 'Finalizada'}
+                className={`px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 ${getEstadoAgendaStyle(agenda.estado)}`}
+              >
+                <span>{getEstadoAgendaText(agenda.estado)}</span>
+              </Button>
+            )}
+            <Button
+              onClick={() => {
+                setTareaSeleccionada(null);
+                setIsFormModalOpen(true);
+              }}
+              className="px-5 py-6 bg-green-500 text-white rounded-lg shadow-sm hover:bg-green-600 transition-colors flex items-center space-x-2"
+            >
+              <CalendarPlus size={20} />
+              <span>Nuevo Punto <br /> a tratar</span>
+            </Button>
+          </div>
+        )}
       </header>
 
       <div className="mb-4 grid grid-cols-3 gap-2 md:flex md:flex-wrap md:justify-start">
@@ -221,6 +284,7 @@ export default function Ver() {
         handleOpenEditModal={handleOpenEditModal}
         handleOpenNotasModal={handleOpenNotasModal}
         handleOpenSeguimientoModal={handleOpenSeguimientoModal}
+        estadoAgenda={agenda?.estado || ''}
       />
 
       <AnimatePresence>
