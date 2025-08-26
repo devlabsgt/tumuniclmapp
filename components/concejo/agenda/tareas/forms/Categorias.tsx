@@ -2,7 +2,10 @@
 
 import React, { Fragment, useEffect, useState, useMemo } from 'react';
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
-import { fetchCategorias, crearCategoria, editarCategoria, CategoriaItem } from '../../lib/acciones';
+// Cambie la línea de abajo para importar 'CategoriaItem' de 'esquemas'
+import { fetchCategorias, crearCategoria, editarCategoria } from '../../lib/acciones';
+import { CategoriaItem } from '../../lib/esquemas'; // <-- Línea corregida
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X, Pencil, PlusCircle } from 'lucide-react';

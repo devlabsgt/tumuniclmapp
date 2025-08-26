@@ -4,7 +4,8 @@ import React, { Fragment, useState } from 'react';
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
 import { X, Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Tarea, actualizarSeguimiento } from '../../lib/acciones';
+import { actualizarSeguimiento } from '../../lib/acciones';
+import { Tarea } from '../../lib/esquemas';
 import { Input } from '@/components/ui/input';
 import Swal from 'sweetalert2';
 
