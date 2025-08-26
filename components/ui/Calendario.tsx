@@ -33,7 +33,7 @@ export default function Calendario({ fechaSeleccionada, onSelectDate }: Calendar
   };
 
   return (
-    <div className="p-4 bg-white rounded-lg shadow-md space-y-4">
+    <div className="p-4 bg-white rounded-lg shadow-[0_0_15px_rgba(0,0,0,0.1)] space-y-4">
       <div className="flex justify-between items-center p-2 rounded-lg">
         <button type="button" onClick={irMesAnterior} className="p-2 rounded-full hover:bg-slate-200" aria-label="Mes anterior">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>

@@ -20,6 +20,7 @@ export const tareaSchema = z.object({
   notas: z.array(z.string()).optional().nullable(),
   seguimiento: z.array(z.string()).optional().nullable(),
   fecha_vencimiento: z.string().min(1, { message: 'La fecha de vencimiento es obligatoria.' }),
+  votacion: z.string().optional(), // Nuevo campo 'votacion'
 });
 
 export type TareaFormData = z.infer<typeof tareaSchema>;

@@ -24,18 +24,27 @@ interface TareaProps {
 }
 
 const estadoOpciones = ['No iniciado', 'Aprobado', 'No aprobado', 'En progreso', 'En comisión', 'En espera', 'Realizado'];
+const votacionOpciones = ['P1', 'Unanimidad', 'Ver Notas', 'Realizado'];
 
 const statusStyles: Record<string, string> = {
-  'Aprobado': 'bg-green-200 text-green-800 hover:bg-green-300',
-  'No aprobado': 'bg-red-200 text-red-800 hover:bg-red-300',
-  'En progreso': 'bg-blue-200 text-blue-800 hover:bg-blue-300',
-  'En comisión': 'bg-gray-300 text-gray-700 hover:bg-gray-400',
-  'En espera': 'bg-yellow-200 text-yellow-800 hover:bg-yellow-300',
-  'No iniciado': 'bg-gray-200 text-gray-700 hover:bg-gray-300',
-  'Realizado': 'bg-indigo-200 text-indigo-800 hover:bg-indigo-300',
+  'Aprobado': 'bg-green-100 text-green-800 hover:bg-green-200',
+  'No aprobado': 'bg-red-100 text-red-800 hover:bg-red-200',
+  'En progreso': 'bg-blue-100 text-blue-800 hover:bg-blue-200',
+  'En comisión': 'bg-gray-100 text-gray-800 hover:bg-gray-200',
+  'En espera': 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200',
+  'No iniciado': 'bg-gray-100 text-gray-800 hover:bg-gray-200',
+  'Realizado': 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200',
+};
+
+const votacionStyles: Record<string, string> = {
+  'P1': 'bg-red-100 text-red-800 hover:bg-red-200',
+  'Unanimidad': 'bg-green-100 text-green-800 hover:bg-green-200',
+  'Ver Notas': 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200',
+  'Realizado': 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200',
 };
 
 const getStatusClasses = (status: string) => statusStyles[status] || 'bg-gray-200 text-gray-700 hover:bg-gray-300';
+const getVotacionClasses = (votacion: string) => votacionStyles[votacion] || 'bg-gray-200 text-gray-700 hover:bg-gray-300';
 
 export default function Tarea({ isOpen, onClose, onSave, agendaConcejoId, tareaAEditar }: TareaProps) {
   const isEditing = !!tareaAEditar;
@@ -53,17 +62,20 @@ export default function Tarea({ isOpen, onClose, onSave, agendaConcejoId, tareaA
       categoria_id: tareaAEditar.categoria.id,
       estado: tareaAEditar.estado,
       fecha_vencimiento: tareaAEditar.fecha_vencimiento || '',
+      votacion: tareaAEditar.votacion || '',
     } : {
       titulo_item: '',
       categoria_id: '',
       estado: 'No iniciado',
       fecha_vencimiento: format(new Date(), 'yyyy-MM-dd'),
+      votacion: '',
     },
   });
 
   const [categorias, setCategorias] = useState<CategoriaItem[]>([]);
   const [isCategoriaModalOpen, setIsCategoriaModalOpen] = useState(false);
   const [isEstadoModalOpen, setIsEstadoModalOpen] = useState(false);
+  const [isVotacionModalOpen, setIsVotacionModalOpen] = useState(false);
 
   useEffect(() => {
     async function loadCategorias() {
@@ -86,8 +98,9 @@ export default function Tarea({ isOpen, onClose, onSave, agendaConcejoId, tareaA
   const fechaVencimientoValue = watch('fecha_vencimiento');
   const categoriaIdValue = watch('categoria_id');
   const estadoValue = watch('estado');
+  const votacionValue = watch('votacion');
   const categoriaSeleccionada = categorias.find(c => c.id === categoriaIdValue);
-
+  
   const valoresActuales = watch();
   
   const tieneCambios = useMemo(() => {
@@ -97,7 +110,8 @@ export default function Tarea({ isOpen, onClose, onSave, agendaConcejoId, tareaA
       valoresActuales.titulo_item !== tareaAEditar.titulo_item ||
       valoresActuales.categoria_id !== tareaAEditar.categoria.id ||
       valoresActuales.estado !== tareaAEditar.estado ||
-      valoresActuales.fecha_vencimiento !== (tareaAEditar.fecha_vencimiento || '')
+      valoresActuales.fecha_vencimiento !== (tareaAEditar.fecha_vencimiento || '') ||
+      valoresActuales.votacion !== (tareaAEditar.votacion || '')
     );
   }, [valoresActuales, isEditing, tareaAEditar]);
 
@@ -161,6 +175,20 @@ export default function Tarea({ isOpen, onClose, onSave, agendaConcejoId, tareaA
                       {errors.fecha_vencimiento && <p className="mt-1 text-sm text-red-600">{errors.fecha_vencimiento.message}</p>}
                     </div>
                   </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Votación
+                    </label>
+                    <Button
+                      type="button"
+                      className={`mt-1 w-full justify-start ${getVotacionClasses(votacionValue || '')}`}
+                      onClick={() => setIsVotacionModalOpen(true)}
+                    >
+                      {votacionValue || 'Seleccione una votación'}
+                    </Button>
+                    {errors.votacion && <p className="mt-1 text-sm text-red-600">{errors.votacion.message}</p>}
+                  </div>
                   
                   <hr className="my-4" />
 
@@ -222,6 +250,50 @@ export default function Tarea({ isOpen, onClose, onSave, agendaConcejoId, tareaA
                 <hr className="my-4" />
                 <div >
                   <Button variant="link" onClick={() => setIsEstadoModalOpen(false)} className="w-full">
+                    Salir
+                  </Button>
+                </div>
+              </DialogPanel>
+            </TransitionChild>
+          </div>
+        </Dialog>
+      </Transition>
+
+      {/* Modal para seleccionar la votación */}
+      <Transition show={isVotacionModalOpen} as={Fragment}>
+        <Dialog onClose={() => setIsVotacionModalOpen(false)} className="relative z-50">
+          <TransitionChild as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
+            <div className="fixed inset-0 bg-black/10 backdrop-blur-sm" />
+          </TransitionChild>
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <TransitionChild as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
+              <DialogPanel className="bg-white rounded-lg w-full max-w-sm p-6 shadow-xl flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-bold">Seleccionar Votación</h2>
+                    <button onClick={() => setIsVotacionModalOpen(false)} className="text-gray-500 hover:text-gray-800"><X size={24} /></button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2">
+                    {votacionOpciones.map(votacion => (
+                      <motion.button
+                        key={votacion}
+                        type="button"
+                        onClick={() => {
+                          setValue('votacion', votacion, { shouldValidate: true });
+                          setIsVotacionModalOpen(false);
+                        }}
+                        className={`w-full px-3 py-2 rounded-md shadow-sm text-center ${getVotacionClasses(votacion)} text-base`}
+                        whileHover={{ y: -2 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <span className="font-semibold">{votacion}</span>
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+                <hr className="my-4" />
+                <div>
+                  <Button variant="link" onClick={() => setIsVotacionModalOpen(false)} className="w-full">
                     Salir
                   </Button>
                 </div>

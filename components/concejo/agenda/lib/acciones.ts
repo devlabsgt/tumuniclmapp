@@ -33,6 +33,7 @@ export interface Tarea {
   notas: string[] | null;
   seguimiento: string[] | null;
   fecha_vencimiento: string | null;
+  votacion: string | null; // Nuevo campo 'votacion'
 }
 
 // Interfaz para los datos del formulario de creación.
@@ -164,6 +165,7 @@ export const crearTarea = async (formData: TareaFormData, agendaId: string): Pro
       notas: formData.notas,
       seguimiento: formData.seguimiento,
       fecha_vencimiento: formData.fecha_vencimiento,
+      votacion: formData.votacion, // Añadir el nuevo campo
       agenda_concejo_id: agendaId,
     })
     .select()
@@ -188,6 +190,7 @@ export const editarTarea = async (id: string, formData: TareaFormData): Promise<
       notas: formData.notas,
       seguimiento: formData.seguimiento,
       fecha_vencimiento: formData.fecha_vencimiento,
+      votacion: formData.votacion, // Añadir el nuevo campo
     })
     .eq('id', id)
     .select()
