@@ -89,13 +89,6 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
       cell: info => <>{info.getValue() as string}</>,
     },
     {
-      accessorKey: 'categoria.nombre',
-      header: 'Categoría',
-      size: sCol,
-      minSize: sCol,
-      cell: info => <div className="whitespace-nowrap overflow-hidden text-ellipsis">{info.getValue() as string}</div>,
-    },
-    {
       accessorKey: 'estado',
       header: 'Estado',
       size: sCol,
@@ -120,6 +113,13 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
           </span>
         </div>
       ),
+    },
+    {
+      accessorKey: 'categoria.nombre',
+      header: 'Categoría',
+      size: sCol,
+      minSize: sCol,
+      cell: info => <div className="whitespace-nowrap overflow-hidden text-ellipsis">{info.getValue() as string}</div>,
     },
     {
       accessorKey: 'fecha_vencimiento',
