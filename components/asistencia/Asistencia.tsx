@@ -96,11 +96,23 @@ export default function Asistencia() {
     setCargandoHoy(false);
   };
 
+  // 💡 Nuevo useEffect para verificar la asistencia cada día
   useEffect(() => {
     if (userId) {
-      verificarAsistenciaHoy();
+      const hoyEnGt = new Date();
+      const fechaHoyFormato = hoyEnGt.toISOString().split('T')[0]; // Ejemplo: '2025-08-28'
+      
+      const interval = setInterval(() => {
+        const nuevaFechaHoy = new Date().toISOString().split('T')[0];
+        if (nuevaFechaHoy !== fechaHoyFormato) {
+          verificarAsistenciaHoy();
+        }
+      }, 60000); // 💡 Verifica cada minuto
+      
+      verificarAsistenciaHoy(); // 💡 Llama a la función al inicio
+      return () => clearInterval(interval);
     }
-  }, [userId]);
+  }, [userId, fechaHoraGt.toISOString().split('T')[0]]);
 
   useEffect(() => {
     if (!userId) return;
