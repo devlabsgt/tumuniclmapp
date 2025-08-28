@@ -2,9 +2,8 @@
 
 import React, { Fragment, useEffect, useState, useMemo } from 'react';
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
-// Cambie la línea de abajo para importar 'CategoriaItem' de 'esquemas'
 import { fetchCategorias, crearCategoria, editarCategoria } from '../../lib/acciones';
-import { CategoriaItem } from '../../lib/esquemas'; // <-- Línea corregida
+import { CategoriaItem } from '../../lib/esquemas';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -78,6 +77,16 @@ export default function Categorias({ isOpen, onClose, onSelectCategoria }: Categ
         <div className="fixed inset-0 flex items-center justify-center p-4">
           <TransitionChild as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
             <DialogPanel className="bg-white rounded-lg w-full max-w-md p-6 shadow-xl flex flex-col h-[600px]">
+              
+              <div className="flex justify-between items-center mb-4">
+                <DialogTitle className="text-lg font-bold text-gray-900">
+                  Categorías
+                </DialogTitle>
+                <Button onClick={onClose} variant="link">
+                  Cerrar
+                </Button>
+              </div>
+
               <div className="flex gap-2 mb-4">
                 <Input
                   type="text"
@@ -117,11 +126,6 @@ export default function Categorias({ isOpen, onClose, onSelectCategoria }: Categ
                     ))}
                   </ul>
                 )}
-              </div>
-              <div className="mt-4 flex justify-end">
-  <Button variant="link" onClick={onClose} className="w-full">
-  Salir
-</Button>
               </div>
             </DialogPanel>
           </TransitionChild>

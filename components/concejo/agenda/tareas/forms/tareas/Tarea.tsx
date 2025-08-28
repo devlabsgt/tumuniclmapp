@@ -1,16 +1,16 @@
 'use client';
 
 import React, { Fragment, useEffect, useState, useMemo } from 'react';
-import { Dialog, DialogPanel, Transition, TransitionChild } from '@headlessui/react';
+import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { tareaSchema, TareaFormData, CategoriaItem, Tarea as TareaType } from '../../lib/esquemas';
-import { crearTarea, editarTarea, fetchCategorias } from '../../lib/acciones';
+import { tareaSchema, TareaFormData, CategoriaItem, Tarea as TareaType } from '../../../lib/esquemas';
+import { crearTarea, editarTarea, fetchCategorias } from '../../../lib/acciones';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import Categorias from './Categorias';
-import Swal from 'sweetalert2';
+import Categorias from '../Categorias';
+import Estado from './Estado';
+import { X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 interface TareaProps {
@@ -20,9 +20,6 @@ interface TareaProps {
   agendaConcejoId: string;
   tareaAEditar?: TareaType | null;
 }
-
-const estadoOpciones = ['No iniciado', 'Aprobado', 'No aprobado', 'En progreso', 'En comisión', 'En espera', 'Realizado'];
-const votacionOpciones = ['P1', 'Unanimidad', 'Ver Notas', 'Realizado', 'No Emitido'];
 
 const statusStyles: Record<string, string> = {
   'Aprobado': 'bg-green-100 text-green-800 hover:bg-green-200',
@@ -53,7 +50,6 @@ export default function Tarea({ isOpen, onClose, onSave, agendaConcejoId, tareaA
     setValue,
     watch,
     formState: { errors, isSubmitting },
-    reset,
   } = useForm<TareaFormData>({
     resolver: zodResolver(tareaSchema),
     defaultValues: isEditing ? {
@@ -110,6 +106,16 @@ export default function Tarea({ isOpen, onClose, onSave, agendaConcejoId, tareaA
     );
   }, [valoresActuales, isEditing, tareaAEditar]);
 
+  const handleSelectEstado = (estado: string) => {
+    setValue('estado', estado, { shouldValidate: true });
+    setIsEstadoModalOpen(false);
+  };
+
+  const handleSelectVotacion = (votacion: string) => {
+    setValue('votacion', votacion, { shouldValidate: true });
+    setIsVotacionModalOpen(false);
+  };
+  
   return (
     <>
       <Transition show={isOpen} as={Fragment}>
@@ -121,6 +127,13 @@ export default function Tarea({ isOpen, onClose, onSave, agendaConcejoId, tareaA
             <TransitionChild as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
               <DialogPanel className="bg-white rounded-lg w-full max-w-lg p-6 shadow-xl">
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <DialogTitle className="text-xl font-bold">{isEditing ? 'Editar Punto a Tratar' : 'Crear Nuevo Punto a Tratar'}</DialogTitle>
+                    <Button variant="link" onClick={onClose}>
+                      Salir
+                    </Button>
+                  </div>
+
                   <div>
                     <label htmlFor="titulo_item" className="block text-sm font-medium text-gray-700">Título del punto a tratar</label>
                     <Input
@@ -163,22 +176,19 @@ export default function Tarea({ isOpen, onClose, onSave, agendaConcejoId, tareaA
                       </label>
                       <Button
                         type="button"
-                        className={`mt-1 w-full justify-start ${getVotacionClasses(votacionValue || '')}`}
-                        onClick={() => setIsVotacionModalOpen(true)}
-                      >
-                        {votacionValue || 'Seleccione una votación'}
-                      </Button>
-                      {errors.votacion && <p className="mt-1 text-sm text-red-600">{errors.votacion.message}</p>}
+                          className={`mt-1 w-full justify-start ${getVotacionClasses(votacionValue || '')}`}
+                          onClick={() => setIsVotacionModalOpen(true)}
+                        >
+                          {votacionValue || 'Seleccione una votación'}
+                        </Button>
+                        {errors.votacion && <p className="mt-1 text-sm text-red-600">{errors.votacion.message}</p>}
                     </div>
                   )}
                   
                   <hr className="my-4" />
 
                   <div className="mt-6 flex justify-end gap-2">
-                    <Button type="button" variant="link" onClick={onClose} disabled={isSubmitting} className="w-1/2">
-                      Salir
-                    </Button>
-                    <Button type="submit" disabled={isSubmitting || (isEditing && !tieneCambios)} className="w-1/2">
+                    <Button type="submit" disabled={isSubmitting || (isEditing && !tieneCambios)} className="w-full">
                       {isSubmitting ? 'Guardando...' : (isEditing ? 'Guardar Cambios' : 'Crear Tarea')}
                     </Button>
                   </div>
@@ -198,92 +208,22 @@ export default function Tarea({ isOpen, onClose, onSave, agendaConcejoId, tareaA
       />
       
       {/* Modal para seleccionar el estado */}
-      <Transition show={isEstadoModalOpen} as={Fragment}>
-        <Dialog onClose={() => setIsEstadoModalOpen(false)} className="relative z-50">
-          <TransitionChild as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-            <div className="fixed inset-0 bg-black/10 backdrop-blur-sm" />
-          </TransitionChild>
-          <div className="fixed inset-0 flex items-center justify-center p-4">
-            <TransitionChild as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
-              <DialogPanel className="bg-white rounded-lg w-full max-w-sm p-6 shadow-xl flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold">Seleccionar Estado</h2>
-                    <button onClick={() => setIsEstadoModalOpen(false)} className="text-gray-500 hover:text-gray-800"><X size={24} /></button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {estadoOpciones.map(estado => (
-                      <motion.button
-                        key={estado}
-                        type="button"
-                        onClick={() => {
-                          setValue('estado', estado, { shouldValidate: true });
-                          setIsEstadoModalOpen(false);
-                        }}
-                        className={`w-full px-3 py-2 rounded-md shadow-sm text-center ${getStatusClasses(estado)} text-xs md:text-xs ${estadoValue === estado ? 'border-t-4 border-blue-500' : ''}`}
-                        whileHover={{ y: -5 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <span className="font-semibold">{estado}</span>
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
-                <hr className="my-4" />
-                <div >
-                  <Button variant="link" onClick={() => setIsEstadoModalOpen(false)} className="w-full">
-                    Salir
-                  </Button>
-                </div>
-              </DialogPanel>
-            </TransitionChild>
-          </div>
-        </Dialog>
-      </Transition>
+      <Estado
+        isOpen={isEstadoModalOpen}
+        onClose={() => setIsEstadoModalOpen(false)}
+        onSelect={handleSelectEstado}
+        type="estado"
+        currentValue={estadoValue}
+      />
 
       {/* Modal para seleccionar la votación */}
-      <Transition show={isVotacionModalOpen} as={Fragment}>
-        <Dialog onClose={() => setIsVotacionModalOpen(false)} className="relative z-50">
-          <TransitionChild as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-            <div className="fixed inset-0 bg-black/10 backdrop-blur-sm" />
-          </TransitionChild>
-          <div className="fixed inset-0 flex items-center justify-center p-4">
-            <TransitionChild as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
-              <DialogPanel className="bg-white rounded-lg w-full max-w-sm p-6 shadow-xl flex flex-col justify-between">
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold">Seleccionar Votación</h2>
-                    <button onClick={() => setIsVotacionModalOpen(false)} className="text-gray-500 hover:text-gray-800"><X size={24} /></button>
-                  </div>
-                  <div className="grid grid-cols-1 gap-2">
-                    {votacionOpciones.map(votacion => (
-                      <motion.button
-                        key={votacion}
-                        type="button"
-                        onClick={() => {
-                          setValue('votacion', votacion, { shouldValidate: true });
-                          setIsVotacionModalOpen(false);
-                        }}
-                        className={`w-full px-3 py-2 rounded-md shadow-sm text-center ${getVotacionClasses(votacion)} text-base`}
-                        whileHover={{ y: -2 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <span className="font-semibold">{votacion}</span>
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
-                <hr className="my-4" />
-                <div>
-                  <Button variant="link" onClick={() => setIsVotacionModalOpen(false)} className="w-full">
-                    Salir
-                  </Button>
-                </div>
-              </DialogPanel>
-            </TransitionChild>
-          </div>
-        </Dialog>
-      </Transition>
+      <Estado
+        isOpen={isVotacionModalOpen}
+        onClose={() => setIsVotacionModalOpen(false)}
+        onSelect={handleSelectVotacion}
+        type="votacion"
+        currentValue={votacionValue || ''}
+      />
     </>
   );
 }

@@ -5,9 +5,8 @@ import { useState, useEffect } from 'react';
 import useUserData from '@/hooks/useUserData';
 import { fetchTareasDeAgenda, fetchAgendaConcejoPorId, actualizarEstadoAgenda } from '../lib/acciones';
 import { Tarea, AgendaConcejo, AgendaFormData } from '../lib/esquemas';
-import TareaForm from './forms/Tarea';
-import Notas from './forms/Notas';
-import Seguimiento from './forms/Seguimiento';
+import TareaForm from './forms/tareas/Tarea';
+import NotaSeguimiento from './forms/NotaSeguimiento';
 import { CalendarPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -39,19 +38,6 @@ const calcularResumenDeEstados = (tareas: Tarea[]) => {
   });
   return resumen;
 };
-
-const calcularDiasRestantes = (fechaReunion: string): string => {
-  const fecha = new Date(fechaReunion);
-  if (isToday(fecha)) {
-    return 'Hoy';
-  }
-  const dias = differenceInDays(fecha, new Date());
-  if (dias < 0) {
-    return 'Vencido';
-  }
-  return `${dias + 1} días`;
-};
-
 export default function VerTareas() {
   const params = useParams();
   const agendaId = params.id as string;
@@ -61,11 +47,13 @@ export default function VerTareas() {
   const [cargandoTareas, setCargandoTareas] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
-  const [isNotasModalOpen, setIsNotasModalOpen] = useState(false);
-  const [isSeguimientoModalOpen, setIsSeguimientoModalOpen] = useState(false);
   const [tareaSeleccionada, setTareaSeleccionada] = useState<Tarea | null>(null);
   const [agenda, setAgenda] = useState<AgendaConcejo | null>(null);
   const [filtrosActivos, setFiltrosActivos] = useState<string[]>([]);
+
+  // Nuevos estados unificados para el modal de notas/seguimiento
+  const [isNotaSeguimientoModalOpen, setIsNotaSeguimientoModalOpen] = useState(false);
+  const [modalType, setModalType] = useState<'notas' | 'seguimiento' | null>(null);
 
   const fetchDatos = async () => {
     setCargandoTareas(true);
@@ -100,27 +88,23 @@ export default function VerTareas() {
     setTareaSeleccionada(null);
   };
 
+  // Funciones unificadas para abrir el nuevo modal
   const handleOpenNotasModal = (tarea: Tarea) => {
     setTareaSeleccionada(tarea);
-    setIsNotasModalOpen(true);
-  };
-
-  const handleCloseNotasModal = (hasChanged: boolean) => {
-    setIsNotasModalOpen(false);
-    setTareaSeleccionada(null);
-    if (hasChanged) {
-      fetchDatos();
-    }
+    setModalType('notas');
+    setIsNotaSeguimientoModalOpen(true);
   };
 
   const handleOpenSeguimientoModal = (tarea: Tarea) => {
     setTareaSeleccionada(tarea);
-    setIsSeguimientoModalOpen(true);
+    setModalType('seguimiento');
+    setIsNotaSeguimientoModalOpen(true);
   };
 
-  const handleCloseSeguimientoModal = (hasChanged: boolean) => {
-    setIsSeguimientoModalOpen(false);
+  const handleCloseNotaSeguimientoModal = (hasChanged: boolean) => {
+    setIsNotaSeguimientoModalOpen(false);
     setTareaSeleccionada(null);
+    setModalType(null);
     if (hasChanged) {
       fetchDatos();
     }
@@ -211,6 +195,8 @@ export default function VerTareas() {
     setFiltrosActivos([]);
   };
 
+  const isAgendaFinalizada = agenda?.estado === 'Finalizada';
+
   return (
     <div className="container mx-auto p-4">
       <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
@@ -231,7 +217,7 @@ export default function VerTareas() {
             {agenda && (
               <Button
                 onClick={handleActualizarEstadoAgenda}
-                disabled={agenda.estado === 'Finalizada'}
+                disabled={isAgendaFinalizada}
                 className={`px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 ${getEstadoAgendaStyle(agenda.estado)}`}
               >
                 <span>{getEstadoAgendaText(agenda.estado)}</span>
@@ -242,7 +228,8 @@ export default function VerTareas() {
                 setTareaSeleccionada(null);
                 setIsFormModalOpen(true);
               }}
-              className="px-5 py-6 bg-green-500 text-white rounded-lg shadow-sm hover:bg-green-600 transition-colors flex items-center space-x-2"
+              disabled={isAgendaFinalizada}
+              className={`px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 ${isAgendaFinalizada ? 'bg-gray-300 text-gray-700 cursor-not-allowed' : 'bg-green-500 text-white hover:bg-green-600'}`}
             >
               <CalendarPlus size={20} />
               <span>Nuevo Punto <br /> a tratar</span>
@@ -300,20 +287,15 @@ export default function VerTareas() {
             tareaAEditar={tareaSeleccionada}
           />
         )}
-        {isNotasModalOpen && tareaSeleccionada && (
-          <Notas
-            isOpen={isNotasModalOpen}
-            onClose={handleCloseNotasModal}
-            tarea={tareaSeleccionada}
-          />
-        )}
-        {isSeguimientoModalOpen && tareaSeleccionada && (
-          <Seguimiento
-            isOpen={isSeguimientoModalOpen}
-            onClose={handleCloseSeguimientoModal}
-            tarea={tareaSeleccionada}
-          />
-        )}
+     {isNotaSeguimientoModalOpen && tareaSeleccionada && modalType && (
+        <NotaSeguimiento
+          isOpen={isNotaSeguimientoModalOpen}
+          onClose={handleCloseNotaSeguimientoModal}
+          tarea={tareaSeleccionada}
+          estadoAgenda={agenda?.estado || ''}
+          tipo={modalType}
+        />
+      )}
       </AnimatePresence>
     </div>
   );

@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import {
   useReactTable,
-  getCoreRowModel,
+  getCoreRowModel, // <--- Error de escritura corregido
   flexRender,
   ColumnDef,
 } from '@tanstack/react-table';
@@ -56,9 +56,8 @@ interface TablaProps {
 }
 
 export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModal, handleOpenSeguimientoModal, estadoAgenda }: TablaProps) {
-    const sCol = 100;
-    const lCol = 250;
-    const totalWidth = 50 + (sCol * 3) + (lCol * 3);
+  const sCol = 150;
+  const lCol = 250;
 
   const columns = useMemo<ColumnDef<Tarea>[]>(() => {
     const baseColumns: ColumnDef<Tarea>[] = [
@@ -66,9 +65,8 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
         accessorKey: 'id',
         header: '#',
         size: 30,
-        minSize: 30,
         cell: (info) => (
-          <div className="flex justify-center items-center">
+          <div className="flex justify-center items-center h-full">
             {info.row.index + 1}
           </div>
         ),
@@ -76,18 +74,16 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
       {
         accessorKey: 'titulo_item',
         header: 'Punto a Tratar',
-        size: 250,
-        minSize: 100,
-        cell: info => <>{info.getValue() as string}</>,
+        size: lCol,
+        cell: info => <div className="flex justify-start items-center h-full text-left">{info.getValue() as string}</div>,
       },
       {
         accessorKey: 'estado',
         header: 'Estado',
-        size: 100,
-        minSize: 100,
+        size: sCol,
         cell: info => (
-          <div className={`flex justify-center w-full`}>
-            <span className={`text-xs leading-5 font-semibold ${getStatusTextClasses(info.getValue() as string)}`}>
+          <div className="flex justify-center items-center h-full">
+            <span className={`text-sm leading-5 font-bold ${getStatusTextClasses(info.getValue() as string)}`}>
               {info.getValue() as string}
             </span>
           </div>
@@ -96,11 +92,10 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
       {
         accessorKey: 'votacion',
         header: 'Votación',
-        size: 100,
-        minSize: 100,
+        size: sCol,
         cell: info => (
-          <div className={`flex justify-center w-full`}>
-            <span className={`text-xs leading-5 font-semibold`}>
+          <div className="flex justify-center items-center h-full">
+            <span className={`text-sm leading-5 font-bold`}>
               {info.getValue() as string}
             </span>
           </div>
@@ -109,9 +104,8 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
       {
         accessorKey: 'categoria.nombre',
         header: 'Categoría',
-        size: 100,
-        minSize: 100,
-        cell: info => <div className="whitespace-nowrap overflow-hidden text-ellipsis">{info.getValue() as string}</div>,
+        size: sCol,
+        cell: info => <div className="flex justify-start items-center h-full whitespace-nowrap overflow-hidden text-ellipsis text-left">{info.getValue() as string}</div>,
       },
     ];
 
@@ -120,27 +114,45 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
         {
           accessorKey: 'notas',
           header: 'Notas',
-          size: 250,
-          minSize: 250,
+          size: lCol,
           cell: info => (
-            <>
+            <div className="flex flex-col gap-2 w-full justify-start items-start">
               {(info.getValue() as string[] | null)?.map((nota, index) => (
-                <p key={index} className="border-b border-gray-200 first:pt-0 last:border-b-0">{nota}</p>
+                <div key={index} className="bg-transparent w-full">
+                  <div className="flex items-center w-full">
+                    <div className="flex-1 h-px bg-gray-300"></div>
+
+                    <span className="flex-shrink-0 text-xs text-gray-500 font-semibold">{index + 1}</span>
+                    
+                    <div className="flex-1 h-px bg-gray-300"></div>
+                  </div>
+                  <div className="p-2 text-sm leading-relaxed">
+                    {nota}
+                  </div>
+                </div>
               ))}
-            </>
+            </div>
           ),
         },
         {
           accessorKey: 'seguimiento',
           header: 'Seguimiento',
-          size: 250,
-          minSize: 250,
+          size: lCol,
           cell: info => (
-            <>
+            <div className="flex flex-col gap-2 w-full justify-start items-start">
               {(info.getValue() as string[] | null)?.map((seg, index) => (
-                <p key={index} className="border-b border-gray-200 first:pt-0 last:border-b-0">{seg}</p>
+                <div key={index} className="bg-transparent w-full">
+                  <div className="flex items-center w-full">
+                    <div className="flex-1 h-px bg-gray-300"></div>
+                    <span className="flex-shrink-0 text-xs text-gray-500 font-semibold">{index + 1}</span>
+                    <div className="flex-1 h-px bg-gray-300"></div>
+                  </div>
+                  <div className="p-2 text-sm leading-relaxed">
+                    {seg}
+                  </div>
+                </div>
               ))}
-            </>
+            </div>
           ),
         }
       );
@@ -148,7 +160,6 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
 
     return baseColumns;
   }, [estadoAgenda]);
-
 
   const table = useReactTable({
     data: tareas,
@@ -163,7 +174,7 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
           <p className="text-gray-500">Aún no hay tareas creadas para esta agenda.</p>
         </div>
       ) : (
-        <table className="min-w-[1250px] w-full border border-gray-300">
+        <table className="min-w-max w-full border border-gray-300 table-fixed">
           <thead>
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id} className="bg-gray-50">
@@ -172,7 +183,7 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
                     key={header.id}
                     colSpan={header.colSpan}
                     className="p-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border border-gray-300"
-                    style={{ width: header.getSize() }}
+                    style={{ width: `${header.getSize()}px` }}
                   >
                     {header.isPlaceholder ? null : flexRender(
                       header.column.columnDef.header,
@@ -187,14 +198,11 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
             {table.getRowModel().rows.map(row => (
               <tr key={row.id} className="divide-y divide-gray-200">
                 {row.getVisibleCells().map(cell => (
-                  <td 
-                    key={cell.id} 
+                  <td
+                    key={cell.id}
                     className={`p-1 border border-gray-300 align-top cursor-pointer transition-colors hover:bg-gray-100 ${cell.column.id === 'estado' ? getStatusClasses(row.original.estado) : ''} ${cell.column.id === 'votacion' ? getVotacionClasses(row.original.votacion || null) : ''}`}
-                    style={{ width: cell.column.getSize() }}
+                    style={{ width: `${cell.column.getSize()}px` }}
                     onClick={() => {
-                      if (estadoAgenda === 'Finalizada') {
-                        return;
-                      }
                       if (cell.column.id === 'notas') {
                         handleOpenNotasModal(row.original);
                       } else if (cell.column.id === 'seguimiento') {

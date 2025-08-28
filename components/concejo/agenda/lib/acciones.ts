@@ -4,13 +4,11 @@ import { createBrowserClient } from '@supabase/ssr';
 import { toast } from 'react-toastify';
 import { TareaFormData, AgendaConcejo, AgendaFormData, CategoriaItem, Tarea } from './esquemas';
 
-// Inicialización del cliente Supabase.
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// === Funciones de la Agenda ===
 export const cargarAgendas = async (): Promise<AgendaConcejo[]> => {
   const { data, error } = await supabase
     .from('agenda_concejo')
@@ -81,7 +79,6 @@ export const editarAgenda = async (id: string, formData: AgendaFormData): Promis
   return data as AgendaConcejo;
 };
 
-// Nueva función para actualizar solo el estado de la agenda
 export const actualizarEstadoAgenda = async (id: string, estado: string): Promise<void> => {
   const { error } = await supabase
     .from('agenda_concejo')
@@ -96,7 +93,6 @@ export const actualizarEstadoAgenda = async (id: string, estado: string): Promis
   }
 };
 
-// === Funciones de las Categorías ===
 export const fetchCategorias = async (): Promise<CategoriaItem[]> => {
   const { data, error } = await supabase
     .from('categorias_tareas_concejo')
@@ -136,7 +132,6 @@ export const editarCategoria = async (id: string, nombre: string): Promise<void>
   }
 };
 
-// === Funciones de las Tareas ===
 export const crearTarea = async (formData: TareaFormData, agendaId: string): Promise<Tarea | null> => {
   const { data, error } = await supabase
     .from('tareas_concejo')
