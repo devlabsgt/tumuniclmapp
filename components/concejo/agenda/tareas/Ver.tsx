@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import useUserData from '@/hooks/useUserData';
+import useUserData from '@/hooks/sesion/useUserData';
 import { fetchTareasDeAgenda, fetchAgendaConcejoPorId, actualizarEstadoAgenda } from '../lib/acciones';
 import { Tarea, AgendaConcejo, AgendaFormData } from '../lib/esquemas';
 import TareaForm from './forms/tareas/Tarea';

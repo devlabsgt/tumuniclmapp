@@ -1,7 +1,7 @@
 'use client';
 
 import React, { Fragment, useEffect, useState } from 'react';
-import useUserData from '@/hooks/useUserData';
+import useUserData from '@/hooks/sesion/useUserData';
 import { cargarAgendas} from './lib/acciones';
 import {type AgendaConcejo } from './lib/esquemas';
 

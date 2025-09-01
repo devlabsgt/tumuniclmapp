@@ -139,7 +139,7 @@ export default function Tarea({ isOpen, onClose, onSave, agendaConcejoId, tareaA
                     <Input
                       id="titulo_item"
                       {...register('titulo_item')}
-                      placeholder="Ej. Nombre de la Tarea"
+                      placeholder="Ej. Nombre del punto a tratar"
                       className={errors.titulo_item ? 'border-red-500' : ''}
                     />
                     {errors.titulo_item && <p className="mt-1 text-sm text-red-600">{errors.titulo_item.message}</p>}
@@ -189,7 +189,7 @@ export default function Tarea({ isOpen, onClose, onSave, agendaConcejoId, tareaA
 
                   <div className="mt-6 flex justify-end gap-2">
                     <Button type="submit" disabled={isSubmitting || (isEditing && !tieneCambios)} className="w-full">
-                      {isSubmitting ? 'Guardando...' : (isEditing ? 'Guardar Cambios' : 'Crear Tarea')}
+                      {isSubmitting ? 'Guardando...' : (isEditing ? 'Guardar Cambios' : 'Crear Punto a Tratar')}
                     </Button>
                   </div>
                 </form>

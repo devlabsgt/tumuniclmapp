@@ -43,7 +43,7 @@ export const crearAgenda = async (formData: AgendaFormData): Promise<AgendaConce
       titulo: formData.titulo,
       descripcion: formData.descripcion,
       fecha_reunion: formData.fecha_reunion,
-      estado: 'En Preparación',
+      estado: 'En preparación',
     })
     .select()
     .single();
