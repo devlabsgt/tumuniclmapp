@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, Fragment, useRef, useEffect, useMemo } from 'react';
+import React, { useState, Fragment, useMemo } from 'react';
 import { es } from 'date-fns/locale';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isToday, addDays, subDays, getYear, getMonth, isSameDay, isWithinInterval } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { MapPin, FileText, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import {
   Dialog,
@@ -13,18 +13,13 @@ import {
   Transition,
   TransitionChild,
 } from '@headlessui/react';
+import Mapa from './modal/Mapa';
 
-interface Registro {
-  created_at: string;
-  tipo_registro: string | null;
-  ubicacion: { lat: number; lng: number } | null;
-  notas?: string | null;
-}
 
 interface CalendarioProps {
-  todosLosRegistros: Registro[];
-  onAbrirMapa: (registro: Registro) => void;
-  onVerNotas: (nota: string | null) => void;
+  todosLosRegistros: any[];
+  onAbrirMapa: (registro: any) => void;
+  fechaHoraGt: Date;
 }
 
 const getWeekDays = (date: Date) => eachDayOfInterval({
@@ -32,58 +27,50 @@ const getWeekDays = (date: Date) => eachDayOfInterval({
   end: endOfWeek(date, { locale: es, weekStartsOn: 1 }),
 });
 
-export default function Calendario({ todosLosRegistros, onAbrirMapa, onVerNotas }: CalendarioProps) {
+export default function Calendario({ todosLosRegistros, onAbrirMapa, fechaHoraGt }: CalendarioProps) {
   const [fechaDeReferencia, setFechaDeReferencia] = useState(new Date());
   const [diaSeleccionado, setDiaSeleccionado] = useState<Date | undefined>(undefined);
-  const [modalOpcionesAbierto, setModalOpcionesAbierto] = useState(false);
-  const [registroSeleccionado, setRegistroSeleccionado] = useState<Registro | null>(null);
 
   const diasDeLaSemana = useMemo(() => getWeekDays(fechaDeReferencia), [fechaDeReferencia]);
 
   const registrosDeLaSemana = useMemo(() => 
-    todosLosRegistros.filter(r => 
+    todosLosRegistros.filter((r: any) => 
       isWithinInterval(new Date(r.created_at), { start: diasDeLaSemana[0], end: diasDeLaSemana[6] })
     ), [todosLosRegistros, diasDeLaSemana]
   );
 
   const registrosParaTabla = useMemo(() => 
     diaSeleccionado 
-      ? todosLosRegistros.filter(r => isSameDay(new Date(r.created_at), diaSeleccionado))
+      ? todosLosRegistros.filter((r: any) => isSameDay(new Date(r.created_at), diaSeleccionado))
       : registrosDeLaSemana, 
     [diaSeleccionado, todosLosRegistros, registrosDeLaSemana]
   );
   
   const diasParaTabla = diaSeleccionado ? [diaSeleccionado] : diasDeLaSemana;
 
-  const irSemanaSiguiente = () => setFechaDeReferencia(addDays(fechaDeReferencia, 7));
-  const irSemanaAnterior = () => setFechaDeReferencia(subDays(fechaDeReferencia, 7));
+  const irSemanaSiguiente = () => {
+    setFechaDeReferencia(addDays(fechaDeReferencia, 7));
+    setDiaSeleccionado(undefined);
+  };
+  const irSemanaAnterior = () => {
+    setFechaDeReferencia(subDays(fechaDeReferencia, 7));
+    setDiaSeleccionado(undefined);
+  };
   
   const handleSeleccionFecha = (anio: number, mes: number) => {
     const nuevaFecha = new Date(anio, mes, 1);
     setFechaDeReferencia(startOfWeek(nuevaFecha, { locale: es, weekStartsOn: 1 }));
+    setDiaSeleccionado(undefined);
   };
   
   const handleSeleccionDia = (dia: Date) => {
     const yaEstaSeleccionado = diaSeleccionado ? isSameDay(dia, diaSeleccionado) : false;
     setDiaSeleccionado(yaEstaSeleccionado ? undefined : dia);
   };
-
-  const handleAbrirModalOpciones = (registro: Registro) => {
-    setRegistroSeleccionado(registro);
-    setModalOpcionesAbierto(true);
-  };
-
-  const handleVerUbicacion = () => {
-    setModalOpcionesAbierto(false);
-    if (registroSeleccionado) {
-      onAbrirMapa(registroSeleccionado);
-    }
-  };
-
-  const handleVerNotas = () => {
-    setModalOpcionesAbierto(false);
-    if (registroSeleccionado) {
-      onVerNotas(registroSeleccionado.notas || null);
+  
+  const handleAbrirMapaDirecto = (registro: any) => {
+    if (registro.ubicacion) {
+      onAbrirMapa(registro);
     }
   };
 
@@ -144,7 +131,7 @@ export default function Calendario({ todosLosRegistros, onAbrirMapa, onVerNotas 
                         registrosDelDia.map((registro, index) => (
                           <tr 
                             key={index} 
-                            onClick={() => handleAbrirModalOpciones(registro)}
+                            onClick={() => handleAbrirMapaDirecto(registro)}
                             className="border-b cursor-pointer transition-colors hover:bg-gray-100"
                           >
                             <td className="px-4 py-2 font-mono lg:p-5">{new Date(registro.created_at).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })}</td>
@@ -164,61 +151,6 @@ export default function Calendario({ todosLosRegistros, onAbrirMapa, onVerNotas 
           </>
         )}
       </div>
-      <AnimatePresence>
-        {modalOpcionesAbierto && (
-          <Transition show={modalOpcionesAbierto} as={Fragment}>
-            <Dialog onClose={() => setModalOpcionesAbierto(false)} className="relative z-50">
-              <TransitionChild
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0"
-                enterTo="opacity-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100"
-                leaveTo="opacity-0"
-              >
-                <div className="fixed inset-0 bg-black/10 backdrop-blur-sm" />
-              </TransitionChild>
-              <div className="fixed inset-0 flex items-center justify-center p-4">
-                <TransitionChild
-                  as={Fragment}
-                  enter="ease-out duration-300"
-                  enterFrom="opacity-0 scale-95"
-                  enterTo="opacity-100 scale-100"
-                  leave="ease-in duration-200"
-                  leaveFrom="opacity-100 scale-100"
-                  leaveTo="opacity-0 scale-95"
-                >
-                  <DialogPanel className="bg-white rounded-lg w-full max-w-md p-6 shadow-xl">
-                    <DialogTitle className="text-xl font-bold mb-4 flex justify-between items-center">
-                      Opciones
-                      <button onClick={() => setModalOpcionesAbierto(false)} className="text-gray-500 hover:text-gray-800">
-                        <X size={24} />
-                      </button>
-                    </DialogTitle>
-                    <div className="flex flex-col gap-4">
-                      {registroSeleccionado?.ubicacion && (
-                        <Button
-                          onClick={handleVerUbicacion}
-                          className="w-full flex items-center justify-center gap-2"
-                        >
-                          <MapPin size={20} /> Ver Ubicación
-                        </Button>
-                      )}
-                      <Button
-                        onClick={handleVerNotas}
-                        className="w-full flex items-center justify-center gap-2"
-                      >
-                        <FileText size={20} /> Ver Notas
-                      </Button>
-                    </div>
-                  </DialogPanel>
-                </TransitionChild>
-              </div>
-            </Dialog>
-          </Transition>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

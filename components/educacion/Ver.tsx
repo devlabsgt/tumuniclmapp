@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import useUserData from '@/hooks/useUserData';
+import useUserData from '@/hooks/sesion/useUserData';
 import type { Programa } from './lib/esquemas';
 import FormPrograma from './forms/Programa';
 import FormMaestro from './forms/Maestro';

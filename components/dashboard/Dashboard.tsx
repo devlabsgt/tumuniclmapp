@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Users, Settings, FileText, User } from 'lucide-react';
 import { registrarLog } from '@/utils/registrarLog';
 import { motion, AnimatePresence } from 'framer-motion';
-import useUserData from '@/hooks/useUserData';
+import useUserData from '@/hooks/sesion/useUserData';
 import Asistencia from '@/components/asistencia/Asistencia';
 import Ver from '@/components/perfil/Ver';
 import AnimatedIcon from '@/components/ui/AnimatedIcon';

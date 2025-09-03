@@ -11,7 +11,7 @@ import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.css';
 
 import { useNivelData } from '@/hooks/educacion/useNivelData';
-import useUserData from '@/hooks/useUserData';
+import useUserData from '@/hooks/sesion/useUserData';
 import { createClient } from '@/utils/supabase/client';
 
 import { Button } from '@/components/ui/button';

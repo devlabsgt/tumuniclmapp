@@ -9,7 +9,7 @@ export async function middleware(request: NextRequest) {
   const isProtectedRoute = request.nextUrl.pathname.startsWith('/protected');
 
   if (!user && isProtectedRoute) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    return NextResponse.redirect(new URL('/', request.url));
   }
   
   if (user && isProtectedRoute) {

@@ -24,11 +24,10 @@ export default function useUserData(): UserData {
   const [programas, setProgramas] = useState<string[]>([]); 
   const [cargando, setCargando] = useState(true);
   
-  const pathname = usePathname(); // 👈 2. Obtener la ruta actual
+  const pathname = usePathname(); 
 
   useEffect(() => {
     const obtenerUsuario = async () => {
-      // Forzamos a no usar la caché para obtener siempre los datos más recientes
       const res = await fetch('/api/getuser', { cache: 'no-store' });
       const data = await res.json();
       
@@ -43,7 +42,7 @@ export default function useUserData(): UserData {
     };
 
     obtenerUsuario();
-  }, [pathname]); // 👈 3. LA SOLUCIÓN: El hook se re-ejecuta cada vez que cambia la ruta
+  }, [pathname]); 
 
   return { userId, nombre, email, rol, permisos, modulos, programas, cargando };
 }

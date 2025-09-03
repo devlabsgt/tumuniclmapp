@@ -42,7 +42,7 @@ export function useAutoLogout(minutos: number = 60) {
           confirmButtonText: 'Aceptar',
         });
 
-        router.push('/login');
+        router.push('/');
       }, minutos * 60 * 1000);
     };
 

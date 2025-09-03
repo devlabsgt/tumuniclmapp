@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowLeft, LogOut } from 'lucide-react';
-import useUserData from '@/hooks/useUserData';
+import useUserData from '@/hooks/sesion/useUserData';
 import Swal from 'sweetalert2';
 import { Typewriter } from 'react-simple-typewriter';
 import { signOutAction } from "@/app/actions";

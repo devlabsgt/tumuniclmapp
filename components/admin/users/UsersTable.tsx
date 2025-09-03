@@ -1,73 +1,75 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-
-export interface Usuario {
-  id: string;
-  email: string;
-  nombre: string;
-  rol: string;
-  activo: boolean;
-}
+import { Usuario } from '@/lib/usuarios/esquemas';
+import { Input } from '@/components/ui/input';
 
 type Props = {
   usuarios: Usuario[];
+  rolActual: string | null;
 };
 
-export default function UsersTable({ usuarios }: Props) {
+export default function UsersTable({ usuarios, rolActual }: Props) {
   const router = useRouter();
   const [paginaActual, setPaginaActual] = useState(1);
   const [usuariosPorPagina, setUsuariosPorPagina] = useState(10);
-  const [rolActual, setRolActual] = useState<string | null>(null);
-  const [cargando, setCargando] = useState(true);
+  const [terminoBusqueda, setTerminoBusqueda] = useState('');
 
-  useEffect(() => {
-    const obtenerRolUsuario = async () => {
-      try {
-        const res = await fetch('/api/getuser');
-        const data = await res.json();
-        setRolActual(data?.rol || null);
-      } catch (error) {
-        console.error('Error al obtener el rol del usuario:', error);
-      } finally {
-        setCargando(false);
-      }
-    };
+  const usuariosFiltrados = useMemo(() => {
+    let usuariosOrdenados = [...usuarios].sort((a, b) =>
+      (a.nombre || '').localeCompare(b.nombre || '')
+    );
 
-    obtenerRolUsuario();
-  }, []);
-
-  if (cargando) {
-    return <div className="text-center p-4 text-sm text-gray-500">Cargando usuarios...</div>;
-  }
-
-  const usuariosFiltrados = usuarios.filter((u) =>
-    rolActual === 'SUPER' || u.rol !== 'SUPER'
-  );
+    if (terminoBusqueda) {
+      const termino = terminoBusqueda.toLowerCase();
+      usuariosOrdenados = usuariosOrdenados.filter(
+        (usuario) =>
+          (usuario.nombre?.toLowerCase() || '').includes(termino) ||
+          (usuario.email?.toLowerCase() || '').includes(termino) ||
+          (usuario.rol?.toLowerCase() || '').includes(termino)
+      );
+    }
+    return usuariosOrdenados;
+  }, [usuarios, terminoBusqueda]);
 
   const totalPaginas = Math.ceil(usuariosFiltrados.length / usuariosPorPagina);
   const inicio = (paginaActual - 1) * usuariosPorPagina;
   const usuariosPaginados = usuariosFiltrados.slice(inicio, inicio + usuariosPorPagina);
 
+  const handleVerUsuario = (id: string) => {
+    router.push(`/protected/admin/users/ver?id=${id}`);
+  };
+
   return (
     <div className="w-full">
+      <div className="flex mb-4">
+        <Input
+          type="text"
+          placeholder="Buscar por nombre, correo o rol..."
+          value={terminoBusqueda}
+          onChange={(e) => {
+            setTerminoBusqueda(e.target.value);
+            setPaginaActual(1);
+          }}
+          className="w-full"
+        />
+      </div>
+
       <div className="w-full overflow-x-auto border-[2.5px] border-gray-400">
         <table className="w-full border-collapse border-[2.5px] border-gray-300 text-lg">
           <thead>
             <tr className="text-left text-[15px] font-semibold bg-gray-200 border-b-[2.5px] border-gray-400">
               <th className="p-2 border-[1.5px] border-gray-300 text-center">No.</th>
-              <th className="p-2 border-[1.5px] border-gray-300">Correo</th>
               <th className="p-2 border-[1.5px] border-gray-300">Nombre</th>
+              <th className="p-2 border-[1.5px] border-gray-300">Correo</th>
               <th className="p-2 border-[1.5px] border-gray-300">Rol</th>
-              <th className="p-2 border-[1.5px] border-gray-300 text-center">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {usuariosPaginados.length === 0 ? (
               <tr>
-                <td colSpan={5} className="p-3 text-center text-muted-foreground border-[1.5px] border-gray-300">
+                <td colSpan={4} className="p-3 text-center text-muted-foreground border-[1.5px] border-gray-300">
                   No hay resultados
                 </td>
               </tr>
@@ -75,24 +77,15 @@ export default function UsersTable({ usuarios }: Props) {
               usuariosPaginados.map((usuario, index) => (
                 <tr
                   key={usuario.id}
-                  className="hover:bg-gray-50 border-[1.5px] border-gray-300"
+                  onClick={() => handleVerUsuario(usuario.id)}
+                  className="hover:bg-gray-50 border-[1.5px] border-gray-300 cursor-pointer"
                 >
                   <td className="p-2 border-[1.5px] border-gray-300 text-center">
                     {inicio + index + 1}
                   </td>
-                  <td className="p-2 border-[1.5px] border-gray-300">{usuario.email}</td>
                   <td className="p-2 border-[1.5px] border-gray-300">{usuario.nombre || '—'}</td>
+                  <td className="p-2 border-[1.5px] border-gray-300">{usuario.email}</td>
                   <td className="p-2 border-[1.5px] border-gray-300">{usuario.rol || '—'}</td>
-                  <td className="p-2 text-center border-[1.5px] border-gray-300">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => router.push(`/protected/admin/users/ver?id=${usuario.id}`)}
-                      className="text-blue-600 text-xs"
-                    >
-                      Ver Usuario
-                    </Button>
-                  </td>
                 </tr>
               ))
             )}
@@ -106,7 +99,7 @@ export default function UsersTable({ usuarios }: Props) {
           value={usuariosPorPagina}
           onChange={(e) => {
             setUsuariosPorPagina(parseInt(e.target.value));
-            setPaginaActual(1); // Reiniciar página al cambiar tamaño
+            setPaginaActual(1);
           }}
           className="border border-gray-300 rounded px-2 py-1"
         >

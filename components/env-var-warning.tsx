@@ -16,19 +16,8 @@ export function EnvVarWarning() {
           disabled
           className="opacity-75 cursor-none pointer-events-none"
         >
-          <Link href="/login">Sign in</Link>
+          <Link href="/">Sign in</Link>
         </Button>
-{/* 
-        <Button
-          asChild
-          size="sm"
-          variant={"default"}
-          disabled
-          className="opacity-75 cursor-none pointer-events-none"
-        >
-          <Link href="/sign-up">Sign up</Link>
-        </Button>
-*/}
       </div>
     </div>
   );
