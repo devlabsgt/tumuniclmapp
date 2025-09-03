@@ -85,7 +85,13 @@ export default function Dashboard() {
   const modulosDisponibles = useMemo(() =>
     TODOS_LOS_MODULOS
       .filter(m => {
-        if (rol === 'SUPER') return true;
+        if (rol === 'SUPER' || rol === 'RRHH') {
+          // 💡 Los roles SUPER y RRHH tienen acceso a todos excepto a los módulos específicos.
+          if (rol === 'RRHH' && (m.nombre === 'ORGANOS' || m.nombre === 'AGENDA_CONCEJO')) {
+            return false;
+          }
+          return true;
+        }
         if (m.nombre === 'AGENDA_CONCEJO') {
           return ['ADMINISTRADOR', 'CONCEJAL', 'SECRETARIA'].includes(rol as string);
         }
@@ -94,12 +100,10 @@ export default function Dashboard() {
       .sort((a, b) => a.titulo.localeCompare(b.titulo))
   , [rol, modulos]);
 
-  const esAdminOSuper = rol === 'ADMINISTRADOR' || rol === 'SUPER';
-
   return (
     <section className="w-full max-w-4xl mx-auto px-4 md:px-8 pt-2">
       <div className="w-full grid grid-cols-1 sm:grid-cols-7 gap-4 mb-8">
-        {permisos.includes('CONFIGURACION') && esAdminOSuper && (
+        {(permisos.includes('CONFIGURACION') && (rol === 'ADMINISTRADOR' || rol === 'SUPER')) && (
           <div 
             className="relative sm:col-span-2" 
             ref={configRef}
@@ -120,7 +124,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {esAdminOSuper ? (
+        {(rol === 'ADMINISTRADOR' || rol === 'SUPER' || rol === 'RRHH') ? (
           <div 
             className="relative sm:col-span-2" 
             ref={usuariosRef}

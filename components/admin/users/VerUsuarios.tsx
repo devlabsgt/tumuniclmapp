@@ -9,6 +9,7 @@ import AsistenciaTable from '@/components/admin/users/AsistenciaTable';
 import useUserData from '@/hooks/sesion/useUserData';
 import { useObtenerAsistencias } from '@/hooks/asistencia/useObtenerAsistencias';
 import { useListaUsuarios } from '@/hooks/usuarios/useListarUsuarios';
+import { Usuario } from '@/lib/usuarios/esquemas';
 
 
 type Vistas = 'usuarios' | 'asistencia';
@@ -71,6 +72,16 @@ export default function VerUsuarios() {
             Asistencia
           </button>
         </div>
+        
+        {/* 💡 Nuevo botón de "Nuevo Usuario" */}
+        {(rolActual === 'ADMINISTRADOR' || rolActual === 'SUPER' || rolActual === 'RRHH') && (
+          <Button
+            onClick={() => router.push("/protected/admin/sign-up")}
+            className="w-full md:w-auto px-4 py-2 text-white bg-green-600 rounded-lg h-14 font-semibold hover:bg-green-700 transition-colors duration-200"
+          >
+            Nuevo Usuario
+          </Button>
+        )}
       </div>
 
       <AnimatePresence mode="wait">

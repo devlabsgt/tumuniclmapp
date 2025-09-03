@@ -102,10 +102,6 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
 };
 
 
-
-
-
-
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();

@@ -63,7 +63,7 @@ export function SignupForm() {
       <div className="flex justify-start">
         <Button
           variant="ghost"
-          onClick={() => router.push('/')}
+          onClick={() => router.back()}
           className="text-blue-600 text-base underline"
         >
           Volver
