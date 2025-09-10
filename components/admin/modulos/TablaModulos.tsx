@@ -9,7 +9,7 @@ import {
   TransitionChild,
 } from '@headlessui/react';
 import { Pencil, Users } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import EditarModuloForm from './EditarModuloForm';
 import AsignarRolesModuloForm from './AsignarRolesModuloForm';
 

@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 import VerificarBeneficiario from '@/components/fertilizante/beneficiario/verificar/verificarBeneficiario';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
 import Cargando from '@/components/ui/animations/Cargando'; // 1. Importar el componente
 

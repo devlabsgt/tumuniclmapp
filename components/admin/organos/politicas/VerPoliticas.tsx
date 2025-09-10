@@ -3,7 +3,7 @@
 import { useEffect, useState, Fragment } from 'react';
 import { Dialog, DialogPanel, DialogTitle, Transition } from '@headlessui/react';
 import { createClient } from '@/utils/supabase/client';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { ToastContainer, toast } from 'react-toastify'; // ¡CAMBIO AQUÍ! Importar de 'react-toastify'
 
 // Importe TablaPoliticas y CrearPoliticaForm una vez que los haya creado

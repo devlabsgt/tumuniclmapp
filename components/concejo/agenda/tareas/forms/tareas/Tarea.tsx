@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { tareaSchema, TareaFormData, CategoriaItem, Tarea as TareaType } from '../../../lib/esquemas';
 import { crearTarea, editarTarea, fetchCategorias } from '../../../lib/acciones';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import Categorias from '../Categorias';
 import Estado from './Estado';
@@ -129,7 +129,7 @@ export default function Tarea({ isOpen, onClose, onSave, agendaConcejoId, tareaA
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                   <div className="flex justify-between items-center mb-4">
                     <DialogTitle className="text-xl font-bold">{isEditing ? 'Editar Punto a Tratar' : 'Crear Nuevo Punto a Tratar'}</DialogTitle>
-                    <Button variant="link" onClick={onClose}>
+                    <Button type="button" variant="link" onClick={onClose}>
                       Salir
                     </Button>
                   </div>

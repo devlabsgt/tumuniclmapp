@@ -6,7 +6,7 @@ import { signUpAction } from '@/app/actions';
 import { SubmitButton } from '@/components/submit-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import Swal from 'sweetalert2';
 import DRolSelector from '@/components/ui/DRolSelector';
 import PasswordSection from '@/components/admin/sign-up/PasswordSection';

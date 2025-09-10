@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 import EditarBeneficiarioForm from '@/components/fertilizante/beneficiario/editar/EditarBeneficiarioForm';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { useRouter } from 'next/navigation';
 import Cargando from '@/components/ui/animations/Cargando'; // Ruta corregida
 

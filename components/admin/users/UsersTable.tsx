@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { Usuario } from '@/lib/usuarios/esquemas';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/Button';
 
 type Props = {
   usuarios: Usuario[];
@@ -37,13 +38,24 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
   const inicio = (paginaActual - 1) * usuariosPorPagina;
   const usuariosPaginados = usuariosFiltrados.slice(inicio, inicio + usuariosPorPagina);
 
+  const usuariosAgrupados = useMemo(() => {
+    return usuariosPaginados.reduce((acc, usuario) => {
+      const primeraLetra = (usuario.nombre || '#').charAt(0).toUpperCase();
+      if (!acc[primeraLetra]) {
+        acc[primeraLetra] = [];
+      }
+      acc[primeraLetra].push(usuario);
+      return acc;
+    }, {} as Record<string, Usuario[]>);
+  }, [usuariosPaginados]);
+
   const handleVerUsuario = (id: string) => {
     router.push(`/protected/admin/users/ver?id=${id}`);
   };
 
   return (
-    <div className="w-full">
-      <div className="flex mb-4">
+    <div className="w-full md:w-4/5 mx-auto">
+      <div className="flex justify-between items-center mb-4 gap-4">
         <Input
           type="text"
           placeholder="Buscar por nombre, correo o rol..."
@@ -52,8 +64,16 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
             setTerminoBusqueda(e.target.value);
             setPaginaActual(1);
           }}
-          className="w-full"
+          className="flex-grow"
         />
+        {(rolActual === 'ADMINISTRADOR' || rolActual === 'SUPER' || rolActual === 'RRHH') && (
+          <Button
+            onClick={() => router.push("/protected/admin/sign-up")}
+            className="px-4 py-2 text-white bg-green-600 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 flex-shrink-0"
+          >
+            Nuevo Usuario
+          </Button>
+        )}
       </div>
 
       <div className="w-full overflow-x-auto border-[2.5px] border-gray-400">
@@ -74,19 +94,28 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                 </td>
               </tr>
             ) : (
-              usuariosPaginados.map((usuario, index) => (
-                <tr
-                  key={usuario.id}
-                  onClick={() => handleVerUsuario(usuario.id)}
-                  className="hover:bg-gray-50 border-[1.5px] border-gray-300 cursor-pointer"
-                >
-                  <td className="p-2 border-[1.5px] border-gray-300 text-center">
-                    {inicio + index + 1}
-                  </td>
-                  <td className="p-2 border-[1.5px] border-gray-300">{usuario.nombre || '—'}</td>
-                  <td className="p-2 border-[1.5px] border-gray-300">{usuario.email}</td>
-                  <td className="p-2 border-[1.5px] border-gray-300">{usuario.rol || '—'}</td>
-                </tr>
+              Object.keys(usuariosAgrupados).sort().map((letra) => (
+                <Fragment key={letra}>
+                  <tr className="bg-slate-100">
+                    <td colSpan={4} className="px-2 py-1 font-bold text-slate-700 text-base text-center">
+                      {letra}
+                    </td>
+                  </tr>
+                  {usuariosAgrupados[letra].map((usuario) => (
+                    <tr
+                      key={usuario.id}
+                      onClick={() => handleVerUsuario(usuario.id)}
+                      className="hover:bg-gray-50 border-[1.5px] border-gray-300 cursor-pointer"
+                    >
+                      <td className="p-2 border-[1.5px] border-gray-300 text-center">
+                        {usuariosFiltrados.findIndex(u => u.id === usuario.id) + 1}
+                      </td>
+                      <td className="p-2 border-[1.5px] border-gray-300">{usuario.nombre || '—'}</td>
+                      <td className="p-2 border-[1.5px] border-gray-300">{usuario.email}</td>
+                      <td className="p-2 border-[1.5px] border-gray-300">{usuario.rol || '—'}</td>
+                    </tr>
+                  ))}
+                </Fragment>
               ))
             )}
           </tbody>

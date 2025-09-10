@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import {
   useReactTable,
-  getCoreRowModel, // <--- Error de escritura corregido
+  getCoreRowModel,
   flexRender,
   ColumnDef,
 } from '@tanstack/react-table';
@@ -15,7 +15,7 @@ const statusStyles: Record<string, string> = {
   'En progreso': 'bg-blue-100 text-blue-800',
   'En comisión': 'bg-gray-100 text-gray-800',
   'En espera': 'bg-yellow-100 text-yellow-800',
-  'No iniciado': 'bg-gray-100 text-gray-800',
+  'No iniciado': 'bg-transparent text-gray-800', // Changed bg-gray-100 to bg-transparent
   'Realizado': 'bg-indigo-100 text-indigo-800',
 };
 
@@ -27,13 +27,13 @@ const votacionStyles: Record<string, string> = {
 };
 
 const getStatusClasses = (status: string | null) => {
-  if (!status) return 'bg-white';
-  return statusStyles[status] || 'bg-white';
+  if (!status) return 'bg-transparent'; // Also changed default to bg-transparent for consistency
+  return statusStyles[status] || 'bg-transparent'; // Also changed default to bg-transparent for consistency
 };
 
 const getVotacionClasses = (votacion: string | null) => {
-  if (!votacion) return 'bg-white';
-  return votacionStyles[votacion] || 'bg-white';
+  if (!votacion) return 'bg-transparent'; // Changed default to bg-transparent
+  return votacionStyles[votacion] || 'bg-transparent'; // Changed default to bg-transparent
 };
 
 const getStatusTextClasses = (status: string) => {
@@ -83,7 +83,7 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
         size: sCol,
         cell: info => (
           <div className="flex justify-center items-center h-full">
-            <span className={`text-sm leading-5 font-bold ${getStatusTextClasses(info.getValue() as string)}`}>
+            <span className={`text-sm leading-5 font-semibold ${getStatusTextClasses(info.getValue() as string)}`}>
               {info.getValue() as string}
             </span>
           </div>
@@ -95,7 +95,7 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
         size: sCol,
         cell: info => (
           <div className="flex justify-center items-center h-full">
-            <span className={`text-sm leading-5 font-bold`}>
+            <span className={`text-sm leading-5 font-semibold`}>
               {info.getValue() as string}
             </span>
           </div>

@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import useUserData from '@/hooks/sesion/useUserData';
 import { es } from 'date-fns/locale';
 import { format, isSameDay } from 'date-fns';
-import { Clock, CalendarCheck, MapPin } from 'lucide-react';
+import { Clock, CalendarCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Calendario from './Calendario';
 import Mapa from './modal/Mapa';
@@ -13,48 +13,51 @@ import Cargando from '@/components/ui/animations/Cargando';
 import Swal from 'sweetalert2';
 
 import {
-  marcarNuevaAsistencia,
-  Registro
+  marcarNuevaAsistencia
 } from '@/lib/asistencia/acciones';
 import useFechaHora from '@/hooks/utility/useFechaHora';
 import { useAsistenciaUsuario } from '@/hooks/asistencia/useAsistenciaUsuario';
 import useGeolocalizacion from '@/hooks/utility/useGeolocalizacion';
 
 export default function Asistencia() {
-  const { userId, nombre, cargando: cargandoUsuario, rol } = useUserData();
-
+  const { userId, nombre, cargando: cargandoUsuario } = useUserData();
   const { asistencias: todosLosRegistros, loading: cargandoRegistros, fetchAsistencias } = useAsistenciaUsuario(userId);
-
   const fechaHoraGt = useFechaHora();
-  
-  const registrosHoy = useMemo(() => {
-    if (!todosLosRegistros) return [];
-    return todosLosRegistros.filter((r: any) => isSameDay(new Date(r.created_at), new Date()));
-  }, [todosLosRegistros]);
-
   const { ubicacion, cargando: cargandoGeo, obtenerUbicacion } = useGeolocalizacion();
 
-  const [mensaje, setMensaje] = useState('');
   const [cargando, setCargando] = useState(false);
   const [notas, setNotas] = useState('');
-  
   const [modalMapaAbierto, setModalMapaAbierto] = useState(false);
-  const [registroSeleccionado, setRegistroSeleccionado] = useState<any | null>(null);
   
+  const [registrosSeleccionadosParaMapa, setRegistrosSeleccionadosParaMapa] = useState<{ entrada: any | null, salida: any | null }>({ entrada: null, salida: null });
+
   const [activeTab, setActiveTab] = useState<'controlResumen' | 'semanal'>('controlResumen');
   const [tipoRegistroPendiente, setTipoRegistroPendiente] = useState<'Entrada' | 'Salida' | null>(null);
 
-  useEffect(() => {
-      if (modalMapaAbierto) {
-        document.body.style.overflow = 'hidden';
-      } else {
-        document.body.style.overflow = 'unset';
-      }
-      return () => {
-        document.body.style.overflow = 'unset';
-      };
-  }, [modalMapaAbierto]);
+  const registroEntradaHoy = useMemo(() => {
+    if (!todosLosRegistros) return null;
+    return todosLosRegistros.find((r: any) =>
+      isSameDay(new Date(r.created_at), new Date()) && r.tipo_registro === 'Entrada'
+    );
+  }, [todosLosRegistros]);
 
+  const registroSalidaHoy = useMemo(() => {
+    if (!todosLosRegistros) return null;
+    return todosLosRegistros.find((r: any) =>
+      isSameDay(new Date(r.created_at), new Date()) && r.tipo_registro === 'Salida'
+    );
+  }, [todosLosRegistros]);
+
+  useEffect(() => {
+    if (modalMapaAbierto) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [modalMapaAbierto]);
 
   useEffect(() => {
     if (ubicacion && tipoRegistroPendiente) {
@@ -83,42 +86,58 @@ export default function Asistencia() {
 
   const handleMarcarAsistencia = async (tipo: string, ubicacionActual: { lat: number; lng: number }) => {
     setCargando(true);
-    setMensaje('');
-    
     if (!userId) {
-        Swal.fire('Error', 'No se encontró el ID de usuario.', 'error');
-        setCargando(false);
-        return;
+      Swal.fire('Error', 'No se encontró el ID de usuario.', 'error');
+      setCargando(false);
+      return;
     }
 
     const nuevoRegistro = await marcarNuevaAsistencia(userId, tipo, ubicacionActual, notas);
 
     if (nuevoRegistro) {
-      Swal.fire({
-        title: `¡${tipo} Marcada!`,
-        text: `Se ha registrado su ${tipo.toLowerCase()} correctamente.`,
-        icon: 'success',
-        confirmButtonText: 'Aceptar',
-      });
+      Swal.fire(`¡${tipo} Marcada!`, `Se ha registrado su ${tipo.toLowerCase()} correctamente.`, 'success');
       fetchAsistencias();
-      // 💡 Se vacía el cuadro de notas aquí
       setNotas('');
     }
     setCargando(false);
   };
 
   const handleAbrirMapa = (registro: any) => {
-    if (registro.ubicacion) {
-      setRegistroSeleccionado(registro);
+    if (!registro?.ubicacion) return;
+
+    const fechaRegistro = new Date(registro.created_at);
+    const registrosDeEseDia = todosLosRegistros.filter((r: any) => isSameDay(new Date(r.created_at), fechaRegistro));
+
+    const entrada = registrosDeEseDia.find(r => r.tipo_registro === 'Entrada') || null;
+    const salida = registrosDeEseDia.find(r => r.tipo_registro === 'Salida') || null;
+
+    setRegistrosSeleccionadosParaMapa({ entrada, salida });
+    setModalMapaAbierto(true);
+  };
+  
+  const handleAbrirMapaHoy = () => {
+    if (registroEntradaHoy || registroSalidaHoy) {
+      setRegistrosSeleccionadosParaMapa({
+        entrada: registroEntradaHoy || null,
+        salida: registroSalidaHoy || null,
+      });
       setModalMapaAbierto(true);
     }
   };
   
-  const entradaMarcada = registrosHoy.some(r => r.tipo_registro === 'Entrada');
-  const salidaMarcada = registrosHoy.some(r => r.tipo_registro === 'Salida');
+  const formatTimeWithAMPM = (dateString: string | undefined) => {
+    if (!dateString) return '---';
+    const date = new Date(dateString);
+    const hora = format(date, 'hh:mm', { locale: es });
+    const periodo = format(date, 'a', { locale: es }).replace(/\./g, '').toUpperCase();
+    return `${hora} ${periodo}`;
+  };
+
+  const entradaMarcada = !!registroEntradaHoy;
+  const salidaMarcada = !!registroSalidaHoy;
 
   if (cargandoUsuario || cargandoRegistros) {
-    return <Cargando texto='Asistencia...'/>;
+    return <Cargando texto='Asistencia...' />;
   }
 
   return (
@@ -146,60 +165,47 @@ export default function Asistencia() {
                     <p className="text-xl lg:text-3xl capitalize text-slate-600">
                       {format(fechaHoraGt, "eeee, dd/MM/yyyy", { locale: es })}
                     </p>
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                      <p className="font-mono text-xl lg:text-3xl font-bold">
-                        {fechaHoraGt.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                      </p>
-                    </div>
+                    <p className="font-mono text-xl lg:text-3xl font-bold">
+                      {fechaHoraGt.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </p>
                   </div>
                   
                   {!salidaMarcada && (
                     <div className="w-full">
-                      <textarea 
-                        value={notas}
-                        onChange={(e) => setNotas(e.target.value)}
-                        placeholder="Agregar notas..."
-                        rows={3}
-                        className="w-full p-2 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
+                      <textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Agregar notas..." rows={3} className="w-full p-2 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"/>
                     </div>
                   )}
 
                   <div className="flex gap-4">
                     {!entradaMarcada ? (
-                      <Button
-                        onClick={() => handleIniciarMarcado('Entrada')}
-                        disabled={cargando || cargandoGeo}
-                        className="w-full bg-green-600 hover:bg-green-700 text-xl lg:text-3xl py-12"
-                      >
+                      <Button onClick={() => handleIniciarMarcado('Entrada')} disabled={cargando || cargandoGeo} className="w-full bg-green-600 hover:bg-green-700 text-xl lg:text-3xl py-12">
                         {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Marcando...' : 'Marcar Entrada')}
                       </Button>
                     ) : (
-                      <Button
-                        onClick={() => handleIniciarMarcado('Salida')}
-                        disabled={cargando || salidaMarcada || cargandoGeo}
-                        className="w-full bg-red-600 hover:bg-red-700 text-xl lg:text-3xl py-12"
-                      >
+                      <Button onClick={() => handleIniciarMarcado('Salida')} disabled={cargando || salidaMarcada || cargandoGeo} className="w-full bg-red-600 hover:bg-red-700 text-xl lg:text-3xl py-12">
                         {cargandoGeo ? 'Obteniendo ubicación...' : (salidaMarcada ? 'Salida ya marcada' : (cargando ? 'Marcando...' : 'Marcar Salida'))}
                       </Button>
                     )}
                   </div>
 
-                  <div className="mt-6 border-t pt-4 ">
+                  {/* **SECCIÓN DE REGISTROS DE HOY ACTUALIZADA** */}
+                  <div className="mt-6 border-t pt-4">
                     <h4 className="text-xl lg:text-3xl font-semibold mb-2">Registros de hoy:</h4>
-                    <p className="text-xs text-gray-500 mb-2">Haga clic en un registro para ver la ubicación.</p>
-                    {registrosHoy.length > 0 ? (
-                      <ul className="space-y-1 text-xl lg:text-3xl  ">
-                        {registrosHoy.map((reg, index) => (
-                          <li 
-                            key={index} 
-                            onClick={() => handleAbrirMapa(reg)} 
-                            className={`flex justify-between p-2 rounded-md bg-slate-100 cursor-pointer hover:bg-slate-200 transition-colors`}>
-                            <span className="font-mono text-xl lg:text-3xl ">{new Date(reg.created_at).toLocaleTimeString('es-GT')}</span>
-                            <span className="font-medium text-xl lg:text-3xl ">{reg.tipo_registro}</span>
-                          </li>
-                        ))}
-                      </ul>
+                    {(registroEntradaHoy || registroSalidaHoy) ? (
+                      <>
+                        <p className="text-xs text-gray-500 mb-2">Haga clic en el registro para ver las ubicaciones.</p>
+                        <div 
+                          onClick={handleAbrirMapaHoy}
+                          className="p-3 rounded-md bg-slate-100 cursor-pointer hover:bg-slate-200 transition-colors flex justify-between items-center gap-4"
+                        >
+                          <p className="text-lg lg:text-xl font-mono">
+                            <span className="font-semibold">Entrada:</span> {formatTimeWithAMPM(registroEntradaHoy?.created_at)}
+                          </p>
+                          <p className="text-lg lg:text-xl font-mono">
+                            <span className="font-semibold">Salida:</span> {formatTimeWithAMPM(registroSalidaHoy?.created_at)}
+                          </p>
+                        </div>
+                      </>
                     ) : (
                       <p className="text-xl lg:text-3xl text-gray-500">No hay registros hoy.</p>
                     )}
@@ -219,13 +225,12 @@ export default function Asistencia() {
         </AnimatePresence>
       </div>
       
-      {/* Modal para Mapa */}
       <AnimatePresence>
-        {modalMapaAbierto && registroSeleccionado?.ubicacion && (
+        {modalMapaAbierto && (
           <Mapa
             isOpen={modalMapaAbierto}
             onClose={() => setModalMapaAbierto(false)}
-            registro={registroSeleccionado}
+            registros={registrosSeleccionadosParaMapa}
             nombreUsuario={nombre}
           />
         )}

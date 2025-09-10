@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import Swal from 'sweetalert2';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Formulario } from './Formulario';
 import CampoDPI from './CampoDPI';
 import CampoSexo from './CampoSexo';

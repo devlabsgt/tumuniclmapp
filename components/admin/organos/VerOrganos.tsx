@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import TablaOrganos from './TablaOrganos';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import Swal from 'sweetalert2';
 import { crear } from './Acciones';
 import { Plus, FileText } from 'lucide-react';

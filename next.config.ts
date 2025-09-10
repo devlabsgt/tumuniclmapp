@@ -1,20 +1,20 @@
-// next.config.ts
+// next.config.ts (Modificado para la prueba de diagnóstico)
 
 import type { NextConfig } from "next";
-import withPWAInit from "next-pwa";
+// import withPWAInit from "next-pwa"; // Se comenta la importación
 
-// 1. Definir la configuración de la PWA
+/*
 const withPWA = withPWAInit({
   dest: "public",
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === "development",
 });
+*/
 
-// 2. Su configuración existente de Next.js
 const nextConfig: NextConfig = {
   /* config options here */
 };
 
-// 3. Envolver su configuración con la de PWA y exportar
-export default withPWA(nextConfig);
+// Se exporta la configuración directamente, sin el envoltorio de PWA
+export default nextConfig;

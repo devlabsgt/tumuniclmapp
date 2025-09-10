@@ -3,18 +3,6 @@
 import React, { useState, Fragment, useMemo } from 'react';
 import { es } from 'date-fns/locale';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isToday, addDays, subDays, getYear, getMonth, isSameDay, isWithinInterval } from 'date-fns';
-import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
-import {
-  Dialog,
-  DialogPanel,
-  DialogTitle,
-  Transition,
-  TransitionChild,
-} from '@headlessui/react';
-import Mapa from './modal/Mapa';
-
 
 interface CalendarioProps {
   todosLosRegistros: any[];
@@ -27,35 +15,52 @@ const getWeekDays = (date: Date) => eachDayOfInterval({
   end: endOfWeek(date, { locale: es, weekStartsOn: 1 }),
 });
 
-export default function Calendario({ todosLosRegistros, onAbrirMapa, fechaHoraGt }: CalendarioProps) {
+export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaHoraGt }: CalendarioProps) {
   const [fechaDeReferencia, setFechaDeReferencia] = useState(new Date());
   const [diaSeleccionado, setDiaSeleccionado] = useState<Date | undefined>(undefined);
 
   const diasDeLaSemana = useMemo(() => getWeekDays(fechaDeReferencia), [fechaDeReferencia]);
 
-  const registrosDeLaSemana = useMemo(() => 
-    todosLosRegistros.filter((r: any) => 
-      isWithinInterval(new Date(r.created_at), { start: diasDeLaSemana[0], end: diasDeLaSemana[6] })
-    ), [todosLosRegistros, diasDeLaSemana]
-  );
-
-  const registrosParaTabla = useMemo(() => 
-    diaSeleccionado 
+  const registrosVisibles = useMemo(() => {
+    const registrosBase = diaSeleccionado 
       ? todosLosRegistros.filter((r: any) => isSameDay(new Date(r.created_at), diaSeleccionado))
-      : registrosDeLaSemana, 
-    [diaSeleccionado, todosLosRegistros, registrosDeLaSemana]
-  );
-  
-  const diasParaTabla = diaSeleccionado ? [diaSeleccionado] : diasDeLaSemana;
+      : todosLosRegistros.filter((r: any) => 
+          isWithinInterval(new Date(r.created_at), { start: diasDeLaSemana[0], end: diasDeLaSemana[6] })
+        );
+    
+    const agrupadosPorDiaYUsuario: Record<string, Record<string, { entrada: any | null, salida: any | null, nombre: string }>> = {};
 
-  const irSemanaSiguiente = () => {
-    setFechaDeReferencia(addDays(fechaDeReferencia, 7));
-    setDiaSeleccionado(undefined);
-  };
-  const irSemanaAnterior = () => {
-    setFechaDeReferencia(subDays(fechaDeReferencia, 7));
-    setDiaSeleccionado(undefined);
-  };
+    registrosBase.forEach(registro => {
+      const diaString = format(new Date(registro.created_at), 'yyyy-MM-dd');
+      const userId = registro.user_id;
+
+      if (!agrupadosPorDiaYUsuario[diaString]) {
+        agrupadosPorDiaYUsuario[diaString] = {};
+      }
+      if (!agrupadosPorDiaYUsuario[diaString][userId]) {
+        agrupadosPorDiaYUsuario[diaString][userId] = {
+          entrada: null,
+          salida: null,
+          nombre: registro.nombre
+        };
+      }
+
+      if (registro.tipo_registro === 'Entrada') {
+        agrupadosPorDiaYUsuario[diaString][userId].entrada = registro;
+      } else if (registro.tipo_registro === 'Salida') {
+        agrupadosPorDiaYUsuario[diaString][userId].salida = registro;
+      }
+    });
+
+    return agrupadosPorDiaYUsuario;
+  }, [todosLosRegistros, diaSeleccionado, diasDeLaSemana]);
+
+  const diasParaTabla = useMemo(() => {
+    return Object.keys(registrosVisibles).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  }, [registrosVisibles]);
+  
+  const irSemanaSiguiente = () => setFechaDeReferencia(addDays(fechaDeReferencia, 7));
+  const irSemanaAnterior = () => setFechaDeReferencia(subDays(fechaDeReferencia, 7));
   
   const handleSeleccionFecha = (anio: number, mes: number) => {
     const nuevaFecha = new Date(anio, mes, 1);
@@ -68,12 +73,6 @@ export default function Calendario({ todosLosRegistros, onAbrirMapa, fechaHoraGt
     setDiaSeleccionado(yaEstaSeleccionado ? undefined : dia);
   };
   
-  const handleAbrirMapaDirecto = (registro: any) => {
-    if (registro.ubicacion) {
-      onAbrirMapa(registro);
-    }
-  };
-
   return (
     <div className="p-6 bg-white rounded-lg shadow-md space-y-4 w-full">
       <h3 className="text-xl lg:text-3xl font-bold text-center">Registro Semanal</h3>
@@ -105,50 +104,53 @@ export default function Calendario({ todosLosRegistros, onAbrirMapa, fechaHoraGt
       
       <div className="border-t pt-4 mt-4">
         <h4 className='text-xl lg:text-3xl font-semibold text-center mb-2'>{diaSeleccionado ? `Registros para el ${format(diaSeleccionado, 'eeee d', { locale: es })}` : 'Todos los registros de la semana'}</h4>
-                   <p className="text-xs text-blue-600 text-center mt-4">Seleccione un registro para ver más información.</p>
+        <p className="text-xs text-blue-600 text-center mt-4">Seleccione un registro para ver más información.</p>
 
-       
-        {todosLosRegistros.length === 0 ? (<p className="text-center text-gray-500 text-xl lg:text-3xl">No hay registros disponibles.</p>) : (
-          <>
-            <table className="w-full text-sm lg:text-3xl">
-              <thead className="bg-gray-50 text-left">
-                <tr>
-                  <th className="px-4 py-2 lg:p-5">Hora</th>
-                  <th className="px-4 py-2 lg:p-5">Registro</th>
-                </tr>
-              </thead>
-              <tbody>
-                {diasParaTabla.map((dia) => {
-                  const fecha = format(dia, 'yyyy-MM-dd');
-                  const registrosDelDia = registrosParaTabla.filter(r => isSameDay(new Date(r.created_at), dia));
-                  
-                  return (
-                    <React.Fragment key={fecha}>
-                      <tr>
-                        <td colSpan={2} className="bg-slate-100 px-4 py-2 font-bold text-slate-700 border-t border-b border-slate-200">{format(dia, 'eeee, d \'de\' LLLL', { locale: es })}</td>
-                      </tr>
-                      {registrosDelDia.length > 0 ? (
-                        registrosDelDia.map((registro, index) => (
-                          <tr 
-                            key={index} 
-                            onClick={() => handleAbrirMapaDirecto(registro)}
-                            className="border-b cursor-pointer transition-colors hover:bg-gray-100"
-                          >
-                            <td className="px-4 py-2 font-mono lg:p-5">{new Date(registro.created_at).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })}</td>
-                            <td className="px-4 py-2 lg:p-5">{registro.tipo_registro}</td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan={2} className="px-4 py-2 text-center text-gray-500 italic">No hay registros para este día.</td>
+        {diasParaTabla.length === 0 ? (<p className="text-center text-gray-500 text-xl lg:text-3xl">No hay registros disponibles.</p>) : (
+          <table className="w-full text-sm lg:text-base">
+            <thead className="bg-gray-50 text-left">
+              <tr>
+                <th className="px-4 py-2">Usuario</th>
+                <th className="px-4 py-2">Entrada</th>
+                <th className="px-4 py-2">Salida</th>
+              </tr>
+            </thead>
+            <tbody>
+              {diasParaTabla.map((diaString) => {
+                const usuariosDelDia = Object.values(registrosVisibles[diaString]);
+                return (
+                  <Fragment key={diaString}>
+                    <tr>
+                      <td colSpan={3} className="bg-slate-100 px-4 py-2 font-bold text-slate-700 border-t border-b border-slate-200">
+                        {format(new Date(diaString + 'T00:00:00'), 'eeee, d \'de\' LLLL', { locale: es })}
+                      </td>
+                    </tr>
+                    {usuariosDelDia.length > 0 ? (
+                      usuariosDelDia.map((usuario, index) => (
+                        <tr 
+                          key={index} 
+                          onClick={() => onAbrirMapa(usuario.entrada || usuario.salida)}
+                          className="border-b cursor-pointer transition-colors hover:bg-gray-100"
+                        >
+                          <td className="px-4 py-2">{usuario.nombre}</td>
+                          <td className="px-4 py-2 font-mono">
+                            {usuario.entrada ? new Date(usuario.entrada.created_at).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' }) : <span className="text-red-400 underline">Sin registro</span>}
+                          </td>
+                          <td className="px-4 py-2 font-mono">
+                            {usuario.salida ? new Date(usuario.salida.created_at).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' }) : <span className="text-red-400 underline">Sin registro</span>}
+                          </td>
                         </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={3} className="px-4 py-2 text-center text-gray-500 italic">No hay registros para este día.</td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
     </div>

@@ -3,7 +3,7 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { useState, Fragment } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import BotonVolver from '@/components/ui/botones/BotonVolver';
 import BotonEditar from '@/components/ui/botones/BotonEditar';
 import {

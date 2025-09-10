@@ -8,7 +8,7 @@ import { Tarea, AgendaConcejo, AgendaFormData } from '../lib/esquemas';
 import TareaForm from './forms/tareas/Tarea';
 import NotaSeguimiento from './forms/NotaSeguimiento';
 import { CalendarPlus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { AnimatePresence, motion } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
 import BotonVolver from '@/components/ui/botones/BotonVolver';
@@ -51,7 +51,6 @@ export default function VerTareas() {
   const [agenda, setAgenda] = useState<AgendaConcejo | null>(null);
   const [filtrosActivos, setFiltrosActivos] = useState<string[]>([]);
 
-  // Nuevos estados unificados para el modal de notas/seguimiento
   const [isNotaSeguimientoModalOpen, setIsNotaSeguimientoModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'notas' | 'seguimiento' | null>(null);
 
@@ -78,9 +77,16 @@ export default function VerTareas() {
     }
   }, [agendaId]);
 
+  const isAgendaFinalizada = agenda?.estado === 'Finalizada';
+
+  // 💡 Se actualizó la función para verificar si la agenda está finalizada antes de abrir el modal
   const handleOpenEditModal = (tarea: Tarea) => {
-    setTareaSeleccionada(tarea);
-    setIsFormModalOpen(true);
+    if (!isAgendaFinalizada) {
+      setTareaSeleccionada(tarea);
+      setIsFormModalOpen(true);
+    } else {
+      toast.info('No se pueden editar puntos de una agenda finalizada.');
+    }
   };
 
   const handleCloseFormModal = () => {
@@ -88,7 +94,6 @@ export default function VerTareas() {
     setTareaSeleccionada(null);
   };
 
-  // Funciones unificadas para abrir el nuevo modal
   const handleOpenNotasModal = (tarea: Tarea) => {
     setTareaSeleccionada(tarea);
     setModalType('notas');
@@ -118,22 +123,22 @@ export default function VerTareas() {
 
     if (agenda.estado === 'En preparación') {
       nuevoEstado = 'En progreso';
-      mensaje = '¿Está seguro de que desea iniciar el progreso de esta agenda?';
+      mensaje = '¿Está todo listo para aperturar la sesión?';
     } else if (agenda.estado === 'En progreso') {
       nuevoEstado = 'Finalizada';
-      mensaje = '¿Está seguro de que desea finalizar esta agenda?';
+      mensaje = '¿Está seguro de que deseas cerrar la sesión? ya no podrás agregar o editar puntos de la agenda.';
     } else {
       return;
     }
 
     const { isConfirmed } = await Swal.fire({
-      title: 'Confirmar cambio de estado',
+      title: 'Confirmar',
       text: mensaje,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#3085d6',
       cancelButtonColor: '#d33',
-      confirmButtonText: 'Sí, cambiar',
+      confirmButtonText: 'Continuar',
       cancelButtonText: 'Cancelar',
     });
 
@@ -154,9 +159,9 @@ export default function VerTareas() {
 
   const getEstadoAgendaStyle = (estado: string) => {
     if (estado === 'En preparación') {
-      return 'bg-blue-500 text-white hover:bg-blue-600';
-    } else if (estado === 'En progreso') {
       return 'bg-green-500 text-white hover:bg-green-600';
+    } else if (estado === 'En progreso') {
+      return 'bg-blue-500 text-white hover:bg-blue-600';
     } else if (estado === 'Finalizada') {
       return 'bg-gray-300 text-gray-700 cursor-not-allowed';
     }
@@ -164,6 +169,11 @@ export default function VerTareas() {
   };
   
   const getEstadoAgendaText = (estado: string) => {
+    if (estado === 'En preparación') {
+        return 'Se apertura la sesión';
+    } else if (estado === 'En progreso') {
+        return 'Se cierra la sesión';
+    }
     return estado;
   };
 
@@ -195,7 +205,13 @@ export default function VerTareas() {
     setFiltrosActivos([]);
   };
 
-  const isAgendaFinalizada = agenda?.estado === 'Finalizada';
+  if (cargandoUsuario || cargandoTareas) {
+    return <CargandoAnimacion texto="Cargando agenda..." />;
+  }
+
+  if (error) {
+    return <div className="text-center text-red-500">{error}</div>;
+  }
 
   return (
     <div className="container mx-auto p-4">
@@ -203,7 +219,7 @@ export default function VerTareas() {
         <BotonVolver ruta="/protected/concejo/agenda" />
         {agenda && (
           <div className="flex-grow flex flex-col items-center text-center">
-            <h1 className="text-xl font-bold text-gray-800">Agenda del Concejo Municipal</h1>
+            <h1 className="text-xl font-bold text-gray-800"> Agenda del Concejo Municipal </h1>
             <h2 className={`text-lg font-bold text-gray-600`}>
               {agenda.titulo}
             </h2>
@@ -220,20 +236,24 @@ export default function VerTareas() {
                 disabled={isAgendaFinalizada}
                 className={`px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 ${getEstadoAgendaStyle(agenda.estado)}`}
               >
-                <span>{getEstadoAgendaText(agenda.estado)}</span>
+                <span>
+                  {getEstadoAgendaText(agenda.estado)}
+                </span>
               </Button>
             )}
-            <Button
-              onClick={() => {
-                setTareaSeleccionada(null);
-                setIsFormModalOpen(true);
-              }}
-              disabled={isAgendaFinalizada}
-              className={`px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 ${isAgendaFinalizada ? 'bg-gray-300 text-gray-700 cursor-not-allowed' : 'bg-green-500 text-white hover:bg-green-600'}`}
-            >
-              <CalendarPlus size={20} />
-              <span>Nuevo Punto <br /> a tratar</span>
-            </Button>
+            {!isAgendaFinalizada && (
+              <Button
+                onClick={() => {
+                  setTareaSeleccionada(null);
+                  setIsFormModalOpen(true);
+                }}
+                className={`px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 bg-purple-500 text-white hover:bg-purple-600`}
+              >
+                <CalendarPlus size={20} />
+                <span>Nuevo Punto <br /> a tratar</span>
+              </Button>
+              
+            )}
           </div>
         )}
       </header>

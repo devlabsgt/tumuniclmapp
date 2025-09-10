@@ -3,7 +3,7 @@
 import React, { Fragment, useState, useEffect } from 'react';
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
 import { X, Plus, Pencil, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { actualizarNotas, actualizarSeguimiento } from '../../lib/acciones'; 
 import { Tarea } from '../../lib/esquemas'; 
 import { Input } from '@/components/ui/input';
@@ -25,8 +25,8 @@ export default function NotaSeguimiento({ isOpen, onClose, tarea, estadoAgenda, 
   const isAgendaFinalizada = estadoAgenda === 'Finalizada';
 
   // Título del modal corregido
-  const tituloModal = tipo === 'notas' ? `Agregar Nota al punto` : `Agregar Seguimiento al punto`;
-  const placeholder = tipo === 'notas' ? 'Añadir nueva nota...' : 'Añadir nuevo seguimiento...';
+  const tituloModal = tipo === 'notas' ? `Notas` : `Seguimiento`;
+  const placeholder = tipo === 'notas' ? 'Nueva nota...' : 'Nuevo seguimiento...';
 
   useEffect(() => {
     if (tipo === 'notas') {

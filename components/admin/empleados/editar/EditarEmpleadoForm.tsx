@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { createClient } from '@/utils/supabase/client';
 import { camposFormulario } from '../EmpleadoCampos';
 import { EmpleadoForm } from '../EmpleadoForm';

@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { MdErrorOutline } from 'react-icons/md';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 
 export default function NotFoundPage() {
   const router = useRouter();

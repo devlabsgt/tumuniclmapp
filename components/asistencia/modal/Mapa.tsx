@@ -1,16 +1,15 @@
-
 'use client';
 
-import React, { ReactNode } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { X, NotebookText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface Registro {
   created_at: string;
-  tipo_registro: string | null;
+  tipo_registro: 'Entrada' | 'Salida' | null;
   ubicacion: { lat: number; lng: number } | null;
   notas?: string | null;
 }
@@ -18,57 +17,145 @@ interface Registro {
 interface MapaModalProps {
   isOpen: boolean;
   onClose: () => void;
-  registro: Registro | null;
+  registros: {
+    entrada: Registro | null;
+    salida: Registro | null;
+  };
   nombreUsuario: string;
 }
 
-export default function Mapa({ isOpen, onClose, registro, nombreUsuario }: MapaModalProps) {
-  if (!isOpen || !registro?.ubicacion) return null;
+export default function Mapa({ isOpen, onClose, registros, nombreUsuario }: MapaModalProps) {
+  const [activeTab, setActiveTab] = useState<'Entrada' | 'Salida'>('Entrada');
+  const [notasAbiertas, setNotasAbiertas] = useState(false);
 
-  const fecha = format(new Date(registro.created_at), 'PPPP', { locale: es });
-  const hora = format(new Date(registro.created_at), 'hh:mm a', { locale: es });
-  const tipoRegistro = registro.tipo_registro;
+  useEffect(() => {
+    if (isOpen) {
+      if (registros.entrada) {
+        setActiveTab('Entrada');
+      } else if (registros.salida) {
+        setActiveTab('Salida');
+      }
+      setNotasAbiertas(false);
+    }
+  }, [isOpen, registros]);
+
+  const registroActivo = activeTab === 'Entrada' ? registros.entrada : registros.salida;
+  const fechaRegistro = registros.entrada?.created_at || registros.salida?.created_at;
+  const fechaFormateada = fechaRegistro ? format(new Date(fechaRegistro), 'PPPP', { locale: es }) : '';
+
+  const formatTimeWithAMPM = (dateString: string | undefined | null) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const hora = format(date, 'hh:mm', { locale: es });
+    const periodo = format(date, 'a', { locale: es }).replace(/\./g, '').toUpperCase();
+    return `${hora} ${periodo}`;
+  };
+
+  const horaEntrada = formatTimeWithAMPM(registros.entrada?.created_at);
+  const horaSalida = formatTimeWithAMPM(registros.salida?.created_at);
+  
+  if (!isOpen || !fechaRegistro) {
+    return null;
+  }
 
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <motion.div 
-          onClick={onClose} 
-          className="fixed inset-0 bg-black/0 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+        <motion.div
+          onClick={onClose}
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <div
+          <motion.div
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-lg shadow-2xl w-full max-w-6xl h-[70vh] flex flex-col m-auto"
+            className="bg-white rounded-lg shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col m-auto"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           >
-            <div className="flex flex-col p-4 border-b">
-              <div className="flex justify-between items-start">
-                <h3 className="text-xl font-semibold">{nombreUsuario}</h3>
-                <button onClick={onClose} className="text-gray-500 hover:text-gray-800"><X className="h-5 w-5"/></button>
+            <div className="flex flex-col md:flex-row md:items-center justify-between p-3 md:p-4 border-b flex-shrink-0 gap-2 md:gap-4">
+              <div className="flex-shrink-0">
+                <h3 className="text-lg md:text-xl font-semibold">{nombreUsuario}</h3>
+                <p className="text-xs md:text-sm text-gray-600">{fechaFormateada}</p>
               </div>
-              <p className="text-sm text-gray-600">{fecha} a las {hora}</p>
-              <p className="text-sm text-gray-600 font-medium">Tipo de registro: {tipoRegistro}</p>
+
+              <div className="flex items-center gap-2 md:ml-auto">
+                <div className="bg-slate-100 p-1 rounded-lg flex items-center gap-1">
+                  <button
+                    onClick={() => setActiveTab('Entrada')}
+                    disabled={!registros.entrada}
+                    className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${activeTab === 'Entrada' ? 'bg-white shadow-sm text-blue-600' : 'bg-transparent text-gray-600'}`}
+                  >
+                    Entrada {horaEntrada && <span className="font-normal text-xs md:text-sm">{horaEntrada}</span>}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('Salida')}
+                    disabled={!registros.salida}
+                    className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${activeTab === 'Salida' ? 'bg-white shadow-sm text-blue-600' : 'bg-transparent text-gray-600'}`}
+                  >
+                    Salida {horaSalida && <span className="font-normal text-xs md:text-sm">{horaSalida}</span>}
+                  </button>
+                </div>
+                <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0">
+                  <X className="h-6 w-6 text-gray-600" />
+                </button>
+              </div>
             </div>
-            <div className="flex-grow p-4 overflow-y-auto flex flex-col">
-              <div className="flex-grow">
+            
+            {registroActivo && registroActivo.ubicacion ? (
+              <div className="flex-grow relative min-h-0">
+                
                 <iframe
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    loading="lazy"
-                    allowFullScreen
-                    referrerPolicy="no-referrer-when-downgrade"
-src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_Maps_API_KEY}&q=${registro.ubicacion.lat},${registro.ubicacion.lng}&zoom=16&maptype=satellite`}   >
-                </iframe>
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                  src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_Maps_API_KEY}&q=${registroActivo.ubicacion.lat},${registroActivo.ubicacion.lng}&zoom=16&maptype=satellite`}
+                ></iframe>
+
+                <div className="absolute top-3 right-3 flex items-start justify-end gap-2 pointer-events-none">
+                  <AnimatePresence>
+                    {notasAbiertas && registroActivo.notas && (
+                      <motion.div
+                        className="w-80 bg-white/90 backdrop-blur-sm p-4 rounded-lg shadow-lg pointer-events-auto"
+                        initial={{ x: "110%", opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: "110%", opacity: 0 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                      >
+                        <h4 className="text-sm font-semibold text-gray-600 mb-1">NOTAS DEL REGISTRO</h4>
+                        <p className="whitespace-pre-wrap text-gray-800 text-sm max-h-32 overflow-y-auto">
+                            {registroActivo.notas}
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <motion.button
+                      layout
+                      onClick={() => setNotasAbiertas(prev => !prev)}
+                      disabled={!registroActivo.notas}
+                      className="flex items-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg pointer-events-auto disabled:opacity-70 disabled:cursor-not-allowed hover:bg-white transition-colors"
+                    >
+                      <NotebookText size={18} className="text-gray-600" />
+                      <span className="text-sm font-semibold text-gray-800">
+                          {registroActivo.notas ? (notasAbiertas ? 'Ocultar' : 'Ver Notas') : 'No hay notas'}
+                      </span>
+                  </motion.button>
+                </div>
+
               </div>
-              <div className="mt-4 p-4 border rounded-lg bg-gray-50">
-                <h4 className="text-2xl font-bold">Notas del registro:</h4>
-                <p className="whitespace-pre-line text-2xl mt-1">{registro.notas || 'No hay notas'}</p>
+            ) : (
+              <div className="flex-grow flex items-center justify-center">
+                <p className="text-gray-500 p-8 text-center">No hay datos de ubicación para este registro.</p>
               </div>
-            </div>
-          </div>
+            )}
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>,

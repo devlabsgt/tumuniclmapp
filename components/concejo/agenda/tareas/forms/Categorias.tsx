@@ -5,7 +5,7 @@ import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@
 import { fetchCategorias, crearCategoria, editarCategoria } from '../../lib/acciones';
 import { CategoriaItem } from '../../lib/esquemas';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/input';
 import { X, Pencil, PlusCircle } from 'lucide-react';
 import Swal from 'sweetalert2';

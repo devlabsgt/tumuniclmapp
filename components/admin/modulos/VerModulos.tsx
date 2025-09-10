@@ -11,7 +11,7 @@ import {
 import { useRouter } from 'next/navigation';
 import TablaModulos from './TablaModulos';
 import CrearModuloForm from './CrearModuloForm';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { createClient } from '@/utils/supabase/client';
 
 type Modulo = {

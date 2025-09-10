@@ -1,4 +1,9 @@
-// middleware.ts
+// middleware.ts (en la raíz del proyecto)
+
+// --- ESTA ES LA LÍNEA QUE SOLUCIONA TODO ---
+export const runtime = 'nodejs';
+// -----------------------------------------
+
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/utils/supabase/middleware'
 
@@ -24,10 +29,8 @@ export async function middleware(request: NextRequest) {
         return response;
       }
       
-      // LA LÍNEA CORREGIDA PARA FORZAR LA SOLUCIÓN
       const rolNombre = (relacion?.roles as any)?.nombre ?? null;
 
-      // El resto de su lógica de roles
       if (
         request.nextUrl.pathname.startsWith("/protected/admin/configs") &&
         rolNombre !== "SUPER"
@@ -66,6 +69,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 }

@@ -14,7 +14,7 @@ import { useNivelData } from '@/hooks/educacion/useNivelData';
 import useUserData from '@/hooks/sesion/useUserData';
 import { createClient } from '@/utils/supabase/client';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import FormAlumno from '../../forms/Alumno';
 import AsignarMaestro from '../../forms/AsignarMaestro';
 import FormPrograma from '../../forms/Programa';
