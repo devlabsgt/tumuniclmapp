@@ -11,3 +11,6 @@ declare global {
     }
   }
 }
+
+// Se necesita esta línea vacía para que el archivo sea tratado como un módulo.
+export {};
