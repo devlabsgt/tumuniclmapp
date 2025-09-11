@@ -2,16 +2,10 @@
 
 import { useRouter } from 'next/navigation';
 import { MdErrorOutline } from 'react-icons/md';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/input'; // <-- SE AÑADE ESTA LÍNEA PARA LA PRUEBA
+import { Button } from '@/components/ui/button';
 
 export default function NotFoundPage() {
   const router = useRouter();
-
-  // Se añade un Input invisible para asegurar que el compilador lo procese
-  if (typeof window === 'undefined') {
-    return <Input style={{ display: 'none' }} />;
-  }
 
   return (
     <div className="w-full flex flex-col items-center justify-center text-center px-4 mt-20">

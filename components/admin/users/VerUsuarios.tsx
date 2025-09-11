@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import UsersTable from '@/components/admin/users/UsersTable';
 import { motion, AnimatePresence } from 'framer-motion';
 import AsistenciaTable from '@/components/admin/users/AsistenciaTable';

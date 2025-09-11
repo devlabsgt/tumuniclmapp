@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
   LabelList,
 } from 'recharts';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 
 type RangoClave = 'jovenes' | 'adultoMenor' | 'adulto' | 'adultoMayor';
 

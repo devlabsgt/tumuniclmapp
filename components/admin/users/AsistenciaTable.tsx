@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, Fragment, useMemo, KeyboardEvent, useEffect } from 'react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import Mapa from '@/components/asistencia/modal/Mapa';

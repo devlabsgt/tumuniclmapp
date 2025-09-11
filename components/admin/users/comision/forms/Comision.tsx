@@ -9,7 +9,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { comisionSchema, ComisionFormData } from '@/lib/comisiones/esquemas';
 import { Usuario } from '@/lib/usuarios/esquemas';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Calendario from '@/components/ui/Calendario';
 import { Comision, Asistente } from '@/hooks/comisiones/useObtenerComisiones';

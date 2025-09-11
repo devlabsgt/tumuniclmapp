@@ -4,7 +4,7 @@ import React, { useState, useMemo, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { Usuario } from '@/lib/usuarios/esquemas';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 
 type Props = {
   usuarios: Usuario[];

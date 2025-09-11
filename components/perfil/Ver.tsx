@@ -2,7 +2,7 @@
 
 import useUserData from '@/hooks/sesion/useUserData';
 import { User, Briefcase, Lock, BookOpen, Leaf, Building, CheckSquare, Settings } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { useState, Fragment } from 'react';
 import Cargando from '@/components/ui/animations/Cargando'
 import {

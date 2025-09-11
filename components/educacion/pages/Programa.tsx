@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { ArrowLeft, GraduationCap, Pencil } from 'lucide-react';
 import EstadisticasNiveles from '../charts/Niveles';
 import EstadisticasLugares from '../charts/Lugares';

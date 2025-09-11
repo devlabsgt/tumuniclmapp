@@ -18,7 +18,7 @@ import {
   LabelList,
   CartesianGrid,
 } from 'recharts';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import type {MTopLugaresProps} from './types';
 
 

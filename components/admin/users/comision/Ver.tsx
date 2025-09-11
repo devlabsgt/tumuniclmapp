@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { format, getMonth, getYear, setMonth, setYear } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Usuario } from '@/lib/usuarios/esquemas';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ComisionForm from './forms/Comision';
 import { useObtenerComisiones, Comision } from '@/hooks/comisiones/useObtenerComisiones';

@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { tareaSchema, TareaFormData, CategoriaItem, Tarea as TareaType } from '../../../lib/esquemas';
 import { crearTarea, editarTarea, fetchCategorias } from '../../../lib/acciones';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Categorias from '../Categorias';
 import Estado from './Estado';

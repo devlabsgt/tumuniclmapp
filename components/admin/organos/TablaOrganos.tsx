@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, Fragment } from 'react';
 import { Pencil, PlusCircle, MoreHorizontal } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { editar, crearYAsignarPolitica } from './Acciones';
 import { motion } from 'framer-motion';
 

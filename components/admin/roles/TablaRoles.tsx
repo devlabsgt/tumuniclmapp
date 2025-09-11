@@ -10,7 +10,7 @@ import {
 } from '@headlessui/react';
 import AsignarPermisosForm from './AsignarPermisosForm';
 import EditarRolForm from './EditarRolForm';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Shield, Pencil } from 'lucide-react';
 
 type Rol = {

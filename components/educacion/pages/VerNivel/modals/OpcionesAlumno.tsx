@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Eye, Pencil, UserX } from 'lucide-react';
 import type { Alumno } from '@/components/educacion/lib/esquemas';
 // No se necesita importar SweetAlert2 aquí

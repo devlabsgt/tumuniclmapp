@@ -8,7 +8,7 @@ import { Tarea, AgendaConcejo, AgendaFormData } from '../lib/esquemas';
 import TareaForm from './forms/tareas/Tarea';
 import NotaSeguimiento from './forms/NotaSeguimiento';
 import { CalendarPlus } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
 import BotonVolver from '@/components/ui/botones/BotonVolver';

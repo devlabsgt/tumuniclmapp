@@ -7,7 +7,7 @@ import {type AgendaConcejo } from './lib/esquemas';
 
 import AgendaForm from './forms/Sesion';
 import { CalendarPlus, Pencil, ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { AnimatePresence } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
 import { useRouter } from 'next/navigation';

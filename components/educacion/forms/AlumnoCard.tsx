@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import type { Alumno } from '../lib/esquemas';
 import { format } from 'date-fns';

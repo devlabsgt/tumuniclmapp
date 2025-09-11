@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 
 type Props = {
   roles: string[];

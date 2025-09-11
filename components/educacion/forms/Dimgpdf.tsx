@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { motion, AnimatePresence } from 'framer-motion';

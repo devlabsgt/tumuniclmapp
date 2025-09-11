@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import Swal from 'sweetalert2';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 
 export default function VerificarBeneficiario() {
   const supabase = createBrowserClient(

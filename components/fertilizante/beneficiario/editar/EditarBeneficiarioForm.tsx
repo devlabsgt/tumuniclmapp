@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import Swal from 'sweetalert2';
 import { createClient } from '@/utils/supabase/client';
 import { CampoTexto } from '../crear/CampoTexto';

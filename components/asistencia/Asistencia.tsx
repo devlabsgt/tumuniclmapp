@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import useUserData from '@/hooks/sesion/useUserData';
 import { es } from 'date-fns/locale';
 import { format, isSameDay } from 'date-fns';
