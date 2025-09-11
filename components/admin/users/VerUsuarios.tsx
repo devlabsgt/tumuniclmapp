@@ -43,7 +43,7 @@ export default function VerUsuarios() {
 
   return (
     <div >
-      <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center mb-4 w-full md:w-4/5 mx-auto">  
+<div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center mb-4 w-full md:w-4/5 mx-auto">  
       
         <Button
           variant="ghost"
@@ -57,21 +57,21 @@ export default function VerUsuarios() {
           <button
             type="button"
             onClick={() => setVistaActiva('usuarios')}
-            className={`px-4 py-2 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'usuarios' ? 'bg-green-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+            className={`flex flex-1 md:flex-initial justify-center items-center px-4 py-2 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'usuarios' ? 'bg-green-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
           >
             Usuarios
           </button>
           <button
             type="button"
             onClick={() => setVistaActiva('asistencia')}
-            className={`px-4 py-2 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'asistencia' ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+            className={`flex flex-1 md:flex-initial justify-center items-center px-4 py-2 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'asistencia' ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
           >
             Asistencia
           </button>
           <button
             type="button"
             onClick={() => setVistaActiva('comisiones')}
-            className={`px-4 py-2 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'comisiones' ? 'bg-purple-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+            className={`flex flex-1 md:flex-initial justify-center items-center px-4 py-2 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'comisiones' ? 'bg-purple-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
           >
             Comisiones
           </button>

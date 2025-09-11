@@ -3,12 +3,12 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Users, Settings, FileText, User } from 'lucide-react';
+import { ArrowRight, Users, Settings, FileText } from 'lucide-react';
 import { registrarLog } from '@/utils/registrarLog';
 import { motion, AnimatePresence } from 'framer-motion';
 import useUserData from '@/hooks/sesion/useUserData';
 import Asistencia from '@/components/asistencia/Asistencia';
-import Ver from '@/components/perfil/Ver';
+import VerMiPerfil from '@/components/perfil/Ver';
 import AnimatedIcon from '@/components/ui/AnimatedIcon';
 
 const TODOS_LOS_MODULOS = [
@@ -44,24 +44,42 @@ const TODOS_LOS_MODULOS = [
     iconoKey: 'yxsbonud',
     colorProps: { primaryColor: '#ebe6ef', secondaryColor: '#4bb3fd' } 
   },
+  { 
+    nombre: 'PERSONAL', 
+    titulo: 'Gestión de Personal', 
+    descripcion: 'Gestione los datos y el historial de los empleados.', 
+    ruta: '/protected/admin/users', 
+    iconoKey: 'daeumrty',
+  },
 ];
 
-type Vistas = 'modulos' | 'asistencia' | 'perfil';
+type Vistas = 'modulos' | 'asistencia';
 
 export default function Dashboard() {
   const router = useRouter();
-  const { rol, modulos, permisos } = useUserData();
+  const userData = useUserData();
+  const { rol, modulos, permisos } = userData;
   const [vistaActiva, setVistaActiva] = useState<Vistas>('modulos');
-  const [mostrarUsuarios, setMostrarUsuarios] = useState(false);
   const [mostrarOpciones, setMostrarOpciones] = useState(false);
+  const [mostrarPerfilModal, setMostrarPerfilModal] = useState(false);
   const [hoveredModule, setHoveredModule] = useState<string | null>(null);
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
   const configRef = useRef<HTMLDivElement>(null);
-  const usuariosRef = useRef<HTMLDivElement>(null);
+
+  // Efecto para deshabilitar el scroll del body cuando el modal está abierto
+  useEffect(() => {
+    if (mostrarPerfilModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [mostrarPerfilModal]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (usuariosRef.current && !usuariosRef.current.contains(event.target as Node)) setMostrarUsuarios(false);
       if (configRef.current && !configRef.current.contains(event.target as Node)) setMostrarOpciones(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -110,7 +128,7 @@ export default function Dashboard() {
             onMouseEnter={() => setHoveredButton('config')}
             onMouseLeave={() => setHoveredButton(null)}
           >
-            <Button onClick={() => { setMostrarOpciones(p => !p); setMostrarUsuarios(false); }} className="w-full gap-2 text-base md:text-xl h-14">
+            <Button onClick={() => { setMostrarOpciones(p => !p); }} className="w-full gap-2 text-base md:text-xl h-14">
               <AnimatedIcon iconKey="cgolfevh" primaryColor="#fff" className="w-7 h-7" trigger={hoveredButton === 'config' ? 'loop' : undefined} />
               Configuraciones
             </Button>
@@ -124,40 +142,12 @@ export default function Dashboard() {
           </div>
         )}
 
-        {(rol === 'ADMINISTRADOR' || rol === 'SUPER' || rol === 'RRHH') ? (
-          <div 
-            className="relative sm:col-span-2" 
-            ref={usuariosRef}
-            onMouseEnter={() => setHoveredButton('users')}
-            onMouseLeave={() => setHoveredButton(null)}
-          >
-            <Button onClick={() => { setMostrarUsuarios(p => !p); setMostrarOpciones(false); }} className="w-full gap-2 text-base md:text-xl h-14 bg-blue-100 text-blue-800 hover:bg-blue-200">
-              <AnimatedIcon iconKey="hroklero" className="w-8 h-8" trigger={hoveredButton === 'users' ? 'loop' : undefined}  />
-              Usuarios
-            </Button>
-            {mostrarUsuarios && (
-              <motion.div className="absolute top-full mt-2 left-0 z-10 bg-white dark:bg-gray-900 shadow-xl rounded-lg border dark:border-gray-700 p-2 flex flex-col items-start gap-2 w-full" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
-                <Button variant="ghost" className="w-full justify-center gap-2 text-base" onClick={() => irAConLog('/protected/admin/users', 'USUARIOS', 'Accedió al módulo de usuarios')}>
-                  <Users size={22} /> Ver Usuarios
-                </Button>
-                <Button variant="ghost" className="w-full justify-center gap-2 text-base" onClick={() => { setMostrarUsuarios(false); setVistaActiva('perfil'); }}>
-                  <User size={22} /> Ver mi perfil
-                </Button>
-              </motion.div>
-            )}
-          </div>
-        ) : (
-          <div 
-            className="relative sm:col-span-2"
-            onMouseEnter={() => setHoveredButton('profile')}
-            onMouseLeave={() => setHoveredButton(null)}
-          >
-            <Button onClick={() => setVistaActiva('perfil')} className="w-full gap-2 text-base md:text-xl h-14 bg-blue-100 text-blue-800 hover:bg-blue-200">
-              <AnimatedIcon iconKey="hrjifpbq" className="w-8 h-8" trigger={hoveredButton === 'profile' ? 'loop' : undefined} primaryColor="#2563eb" />
-              Mi Perfil
-            </Button>
-          </div>
-        )}
+        <div className="relative sm:col-span-2" onMouseEnter={() => setHoveredButton('profile')} onMouseLeave={() => setHoveredButton(null)}>
+          <Button onClick={() => setMostrarPerfilModal(true)} className="w-full gap-2 text-base md:text-xl h-14 bg-blue-100 text-blue-800 hover:bg-blue-200">
+            <AnimatedIcon iconKey="hroklero" className="w-8 h-8" trigger={hoveredButton === 'profile' ? 'loop' : undefined}  />
+            Ver mi perfil
+          </Button>
+        </div>
 
         <div className="flex rounded-lg border p-1 bg-gray-100 dark:bg-gray-800 h-14 sm:col-span-3">
           <button type="button" onClick={() => setVistaActiva('modulos')} className={`flex-1 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'modulos' ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
@@ -199,16 +189,31 @@ export default function Dashboard() {
               ))}
             </div>
           </motion.div>
-        ) : vistaActiva === 'asistencia' ? (
+        ) : (
           <motion.div key="asistencia" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
             <Asistencia />
           </motion.div>
-        ) : (
-          <motion.div key="perfil" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
-            <Ver />
-          </motion.div>
         )}
       </AnimatePresence>
+
+      {mostrarPerfilModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-300/50 backdrop-blur-sm"> {/* Fondo gris claro y borroso */}
+          <motion.div
+            className="relative bg-white dark:bg-gray-800 p-8 pt-16 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+          >
+            <button
+              onClick={() => setMostrarPerfilModal(false)}
+              className="absolute top-4 right-4 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full p-2 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+            <VerMiPerfil userData={userData} />
+          </motion.div>
+        </div>
+      )}
     </section>
   );
 }

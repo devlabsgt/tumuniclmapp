@@ -12,7 +12,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import useUserData from '@/hooks/sesion/useUserData';
 import Swal from 'sweetalert2';
-
+import Cargando from '@/components/ui/animations/Cargando';
 interface VerComisionProps {
   usuarios: Usuario[];
 }
@@ -124,7 +124,7 @@ export default function Ver({ usuarios }: VerComisionProps) {
   }, [comisiones, mesSeleccionado, anioSeleccionado, terminoBusqueda, loading, error]);
 
   if (loading || cargando) {
-    return <p className="text-center text-gray-500 py-8">Cargando...</p>;
+    return <Cargando texto='Cargando...'/>;
   }
 
   if (error) {
