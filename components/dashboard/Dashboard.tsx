@@ -10,6 +10,7 @@ import useUserData from '@/hooks/sesion/useUserData';
 import Asistencia from '@/components/asistencia/Asistencia';
 import VerMiPerfil from '@/components/perfil/Ver';
 import AnimatedIcon from '@/components/ui/AnimatedIcon';
+import MisComisiones from '@/components/comisiones/asistencia/MisComisiones';
 
 const TODOS_LOS_MODULOS = [
   { 
@@ -45,7 +46,7 @@ const TODOS_LOS_MODULOS = [
     colorProps: { primaryColor: '#ebe6ef', secondaryColor: '#4bb3fd' } 
   },
   { 
-    nombre: 'PERSONAL', 
+    nombre: 'RRHH', 
     titulo: 'Gestión de Personal', 
     descripcion: 'Gestione los datos y el historial de los empleados.', 
     ruta: '/protected/admin/users', 
@@ -53,7 +54,7 @@ const TODOS_LOS_MODULOS = [
   },
 ];
 
-type Vistas = 'modulos' | 'asistencia';
+type Vistas = 'modulos' | 'asistencia' | 'comisiones';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -66,7 +67,6 @@ export default function Dashboard() {
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
   const configRef = useRef<HTMLDivElement>(null);
 
-  // Efecto para deshabilitar el scroll del body cuando el modal está abierto
   useEffect(() => {
     if (mostrarPerfilModal) {
       document.body.style.overflow = 'hidden';
@@ -95,23 +95,11 @@ export default function Dashboard() {
     }
   };
 
-  const irAConLog = async (ruta: string, nombreModulo: string, descripcion: string) => {
-    await registrarLog({ accion: 'INGRESO_MODULO', descripcion, nombreModulo });
-    router.push(ruta);
-  };
-
   const modulosDisponibles = useMemo(() =>
     TODOS_LOS_MODULOS
       .filter(m => {
-        if (rol === 'SUPER' || rol === 'RRHH') {
-          // 💡 Los roles SUPER y RRHH tienen acceso a todos excepto a los módulos específicos.
-          if (rol === 'RRHH' && (m.nombre === 'ORGANOS' || m.nombre === 'AGENDA_CONCEJO')) {
-            return false;
-          }
+        if (rol === 'SUPER') {
           return true;
-        }
-        if (m.nombre === 'AGENDA_CONCEJO') {
-          return ['ADMINISTRADOR', 'CONCEJAL', 'SECRETARIA'].includes(rol as string);
         }
         return modulos.includes(m.nombre);
       })
@@ -121,7 +109,7 @@ export default function Dashboard() {
   return (
     <section className="w-full max-w-4xl mx-auto px-4 md:px-8 pt-2">
       <div className="w-full grid grid-cols-1 sm:grid-cols-7 gap-4 mb-8">
-        {(permisos.includes('CONFIGURACION') && (rol === 'ADMINISTRADOR' || rol === 'SUPER')) && (
+        {(permisos.includes('CONFIGURACION') &&  rol === 'SUPER') && (
           <div 
             className="relative sm:col-span-2" 
             ref={configRef}
@@ -150,11 +138,14 @@ export default function Dashboard() {
         </div>
 
         <div className="flex rounded-lg border p-1 bg-gray-100 dark:bg-gray-800 h-14 sm:col-span-3">
-          <button type="button" onClick={() => setVistaActiva('modulos')} className={`flex-1 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'modulos' ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+          <button type="button" onClick={() => setVistaActiva('modulos')} className={`flex-1 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'modulos' ? 'bg-blue-100 text-blue-600 shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
             Módulos
           </button>
-          <button type="button" onClick={() => setVistaActiva('asistencia')} className={`flex-1 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'asistencia' ? 'bg-blue-100 text-blue-800 shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+          <button type="button" onClick={() => setVistaActiva('asistencia')} className={`flex-1 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'asistencia' ? 'bg-green-100 text-green-800 shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
             Asistencia
+          </button>
+          <button type="button" onClick={() => setVistaActiva('comisiones')} className={`flex-1 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'comisiones' ? 'bg-purple-100 text-purple-600 shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+            Comisiones
           </button>
         </div>
       </div>
@@ -189,15 +180,19 @@ export default function Dashboard() {
               ))}
             </div>
           </motion.div>
-        ) : (
+        ) : vistaActiva === 'asistencia' ? (
           <motion.div key="asistencia" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
             <Asistencia />
+          </motion.div>
+        ) : (
+          <motion.div key="comisiones" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
+            <MisComisiones />
           </motion.div>
         )}
       </AnimatePresence>
 
       {mostrarPerfilModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-300/50 backdrop-blur-sm"> {/* Fondo gris claro y borroso */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-300/50 backdrop-blur-sm">
           <motion.div
             className="relative bg-white dark:bg-gray-800 p-8 pt-16 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
             initial={{ opacity: 0, scale: 0.9 }}

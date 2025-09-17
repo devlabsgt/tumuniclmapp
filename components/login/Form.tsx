@@ -72,6 +72,8 @@ export function LoginForm() {
                 id="email" name="email" type="email"
                 placeholder="su.correo@ejemplo.com"
                 required className="py-4 text-sm"
+                // Usa `defaultValue` para precargar el valor en caso de error
+                defaultValue={state?.email || ''}
               />
             </div>
             <div className="space-y-2">
@@ -82,6 +84,8 @@ export function LoginForm() {
                   type={verPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   required className="py-4 pr-10 text-sm"
+                  // Cambia la key cuando hay un error para resetear el campo
+                  key={state?.message}
                 />
                 <button
                   type="button"

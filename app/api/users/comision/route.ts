@@ -1,16 +1,22 @@
 import { NextResponse } from 'next/server';
 import supabaseAdmin from '@/utils/supabase/admin';
 
-// MANEJA LA OBTENCIÓN DE COMISIONES
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+    const fechaInicio = searchParams.get('fecha_inicio');
+    const fechaFin = searchParams.get('fecha_fin');
 
-    let rpcOptions = {};
-    if (userId) {
-      rpcOptions = { user_id_filtro: userId };
+    if (!fechaInicio || !fechaFin) {
+      return NextResponse.json({ data: [] });
     }
+
+    const rpcOptions: { user_id_filtro: string | null; fecha_inicio: string; fecha_fin: string } = {
+      user_id_filtro: userId || null,
+      fecha_inicio: fechaInicio,
+      fecha_fin: fechaFin,
+    };
 
     const { data, error } = await supabaseAdmin.rpc('obtener_comisiones', rpcOptions);
 
@@ -18,22 +24,24 @@ export async function GET(request: Request) {
       console.error('Error al obtener comisiones:', error);
       return NextResponse.json({ error: 'No se pudieron obtener las comisiones' }, { status: 500 });
     }
-
-    return NextResponse.json({ data });
+    
+    // Devolver los datos directamente sin procesar
+    return NextResponse.json({ data: data || [] });
   } catch (err) {
     console.error('Error inesperado:', err);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
-
 // MANEJA LA CREACIÓN DE UNA NUEVA COMISIÓN
 export async function POST(request: Request) {
     try {
-        const { titulo, fecha, hora, encargadoId, userIds, comentarios } = await request.json();
+        const { titulo, fecha_hora, encargadoId, userIds, comentarios } = await request.json();
+
+        const comentariosArray = Array.isArray(comentarios) ? comentarios : comentarios ? [comentarios] : [];
 
         const { data: comisionData, error: comisionError } = await supabaseAdmin
             .from('comisiones')
-            .insert({ titulo, fecha, hora, comentarios })
+            .insert({ titulo, fecha_hora, comentarios: comentariosArray })
             .select()
             .single();
 
@@ -79,15 +87,17 @@ export async function POST(request: Request) {
 // MANEJA LA ACTUALIZACIÓN DE UNA COMISIÓN
 export async function PUT(request: Request) {
     try {
-        const { id, titulo, fecha, hora, userIds, encargadoId, comentarios } = await request.json();
+        const { id, titulo, fecha_hora, userIds, encargadoId, comentarios } = await request.json();
 
         if (!id) {
             return NextResponse.json({ error: 'El ID de la comisión es obligatorio' }, { status: 400 });
         }
 
+        const comentariosArray = Array.isArray(comentarios) ? comentarios : comentarios ? [comentarios] : [];
+
         const { data: comisionData, error: comisionError } = await supabaseAdmin
             .from('comisiones')
-            .update({ titulo, fecha, hora, comentarios })
+            .update({ titulo, fecha_hora, comentarios: comentariosArray })
             .match({ id })
             .select()
             .single();
@@ -166,4 +176,3 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ error: error.message || 'No se pudo eliminar la comisión' }, { status: 500 });
     }
 }
-

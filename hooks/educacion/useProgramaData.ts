@@ -1,12 +1,16 @@
+'use client';
+
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { toast } from 'react-toastify';
 import type { Programa, Alumno } from '@/components/educacion/lib/esquemas';
 
+// CORRECCIÓN 1: Se añade el campo 'telefono' opcional a la interfaz
 interface MaestroAlumnos {
   id: number;
   nombre: string;
   ctd_alumnos: number;
+  telefono?: string | null;
 }
 
 export function useProgramaData(programaId: string | number) {
@@ -44,7 +48,7 @@ export function useProgramaData(programaId: string | number) {
             const nivelesData = nivelesRes as Programa[];
             setNivelesDelPrograma(nivelesData);
             
-            // Cargar los alumnos del programa
+            // Cargar los alumnos del programa desde la tabla de inscripciones
             const { data: alumnosInscripcionesRes, error: alumnosError } = await supabase
                 .from('alumnos_inscripciones')
                 .select('*, alumnos(*)')
@@ -62,18 +66,20 @@ export function useProgramaData(programaId: string | number) {
             const maestrosIds = [...new Set(nivelesData.map(nivel => nivel.maestro_id).filter(id => id !== null))] as number[];
 
             if (maestrosIds.length > 0) {
+              // CORRECCIÓN 2: Se añade 'telefono' a la consulta SELECT
               const { data: maestrosDataRes, error: maestrosDataError } = await supabase
                   .from('maestros_municipales')
-                  .select('id, nombre, ctd_alumnos') // <-- Se añade el ID en la consulta
+                  .select('id, nombre, ctd_alumnos, telefono')
                   .in('id', maestrosIds);
 
               if (maestrosDataError) throw maestrosDataError;
               
               const maestrosFormatted: MaestroAlumnos[] = (maestrosDataRes || []).map(maestro => ({
-                  id: maestro.id, // <-- Se mapea el ID
+                  id: maestro.id,
                   nombre: maestro.nombre,
                   ctd_alumnos: maestro.ctd_alumnos,
-              })).sort((a, b) => b.ctd_alumnos - a.ctd_alumnos);
+                  telefono: maestro.telefono, // <-- Se mapea el teléfono
+              })).sort((a, b) => b.ctd_alumnos - a.ctd_alumnos); // Se mantiene el ordenamiento
 
               setMaestrosDelPrograma(maestrosFormatted);
             } else {

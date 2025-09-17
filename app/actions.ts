@@ -7,12 +7,14 @@ import { redirect } from "next/navigation";
 import supabaseAdmin from '@/utils/supabase/admin';
 import { registrarLogServer } from '@/utils/registrarLogServer';
 import { obtenerFechaYFormatoGT } from '@/utils/formatoFechaGT';
-import { revalidatePath } from 'next/cache'; 
-// Defina este tipo al inicio de su archivo de actions si lo desea
+
+// Actualice la interfaz FormState para incluir la propiedad 'email'
 type FormState = {
   type: 'error' | 'success' | null;
   message: string;
+  email?: string; // Propiedad opcional para guardar el email en caso de error
 };
+
 export const signInAction = async (prevState: FormState, formData: FormData): Promise<FormState> => {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
@@ -30,7 +32,8 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
       'User is banned': 'Este usuario ha sido suspendido.',
     };
     const mensaje = traduccionErrores[error.message] || error.message;
-    return { type: 'error', message: mensaje };
+    // Devuelve el email en caso de error
+    return { type: 'error', message: mensaje, email: email };
   }
 
   const user = data?.user;
@@ -44,12 +47,12 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
   if (errorPerfil) {
     console.error('Error al verificar estado del usuario:', errorPerfil);
     await supabase.auth.signOut();
-    return { type: 'error', message: 'Error al iniciar sesión. Contacta con Soporte Técnico.' };
+    return { type: 'error', message: 'Error al iniciar sesión. Contacta con Soporte Técnico.', email: email };
   }
 
   if (!perfil?.activo) {
     await supabase.auth.signOut();
-    return { type: 'error', message: 'Tu cuenta está desactivada. Contacta con Soporte Técnico.' };
+    return { type: 'error', message: 'Tu cuenta está desactivada. Contacta con Soporte Técnico.', email: email };
   }
 
   const { data: relacion } = await supabase
@@ -79,7 +82,7 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
         user_id: user?.id,
       });
       await supabase.auth.signOut();
-      return { type: 'error', message: `Acceso fuera de horario (${formateada}).` };
+      return { type: 'error', message: `Acceso fuera de horario (${formateada}).`, email: email };
     }
   }
 
@@ -92,15 +95,13 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
     user_id: user?.id,
   });
 
-  revalidatePath('/', 'layout');
-
+  // La redirección es manejada por Next.js y revalida la página automáticamente
   if (rol === 'SUPER' || rol === 'ADMINISTRADOR') {
     redirect('/protected/admin');
   } else {
     redirect('/protected/user');
   }
 };
-
 
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
@@ -174,7 +175,6 @@ export const signUpAction = async (formData: FormData) => {
   return encodedRedirect("success", "/protected/admin/sign-up", "Usuario creado con éxito.");
 };
 
-
 export const resetPasswordAction = async (formData: FormData) => {
   const supabase = await createClient();
 
@@ -218,7 +218,5 @@ export const signOutAction = async () => {
  
   await supabase.auth.signOut();
 
-  revalidatePath('/', 'layout');
-
-  return redirect("/");
+  redirect("/");
 };

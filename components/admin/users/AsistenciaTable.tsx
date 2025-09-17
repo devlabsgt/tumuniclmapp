@@ -150,7 +150,7 @@ export default function AsistenciaTable({ registros, rolActual }: Props) {
   
   return (
     <>
-     <div className="w-full md:w-4/5 mx-auto">
+    <div className="w-full xl:w-4/5 mx-auto md:px-4">
         <div className="p-2 bg-white rounded-lg shadow-md space-y-4 w-full">
           <div className="flex justify-between items-center gap-2 p-2 bg-slate-50 rounded-lg">
             <Button onClick={() => handleNavegarSemana(-7)} variant="ghost" className="p-2 rounded-full hover:bg-slate-200" aria-label="Anterior">

@@ -20,13 +20,12 @@ interface Props {
   onClose: () => void;
   onSave: () => void;
   maestroAEditar?: MaestroType | null;
-  nivelId?: number; // <-- Nuevo prop
+  nivelId?: number;
 }
 
 export default function Maestro({ isOpen, onClose, onSave, maestroAEditar, nivelId }: Props) {
   const isEditMode = !!maestroAEditar;
   const [maestrosExistentes, setMaestrosExistentes] = useState<MaestroType[]>([]);
-  const [nombreBusqueda, setNombreBusqueda] = useState('');
   const [maestroSeleccionado, setMaestroSeleccionado] = useState<MaestroType | null>(null);
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset, setValue, watch } = useForm<MaestroFormData>({
@@ -34,17 +33,18 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar, nivel
     defaultValues: {
       nombre: '',
       ctd_alumnos: 0,
+      telefono: '', // <-- Valor por defecto añadido
     }
   });
 
   const nombreWatch = watch("nombre");
 
   useEffect(() => {
-    // Solo cargamos maestros si no estamos en modo de edición y estamos en el contexto de un nivel
     if (!isEditMode && nivelId) {
       const fetchMaestros = async () => {
         const supabase = createClient();
-        const { data, error } = await supabase.from('maestros_municipales').select('id, nombre, ctd_alumnos');
+        // <-- Se añade 'telefono' al select
+        const { data, error } = await supabase.from('maestros_municipales').select('id, nombre, ctd_alumnos, telefono');
         if (error) {
           toast.error(`Error al cargar maestros: ${error.message}`);
         } else {
@@ -63,6 +63,7 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar, nivel
         reset({
           nombre: '',
           ctd_alumnos: 0,
+          telefono: '', // <-- Se resetea el teléfono
         });
         setMaestroSeleccionado(null);
       }
@@ -72,7 +73,6 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar, nivel
   const onSubmit = async (formData: MaestroFormData) => {
     const supabase = createClient();
     
-    // Lógica para modo de edición
     if (isEditMode) {
       const { error } = await supabase.from('maestros_municipales').update(formData).eq('id', maestroAEditar!.id);
       if (error) {
@@ -84,23 +84,21 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar, nivel
       return;
     }
     
-    // Lógica para modo de creación
     let maestroId: number;
 
-    // Si se seleccionó un maestro existente
     if (maestroSeleccionado) {
         maestroId = maestroSeleccionado.id;
     } else {
-        // Si no se seleccionó, crear uno nuevo
         const { data: existente } = await supabase.from('maestros_municipales').select('id').eq('nombre', formData.nombre).single();
         if (existente) {
             toast.error(`Ya existe un maestro con el nombre "${formData.nombre}".`);
             return;
         }
 
+        // <-- Se añade 'telefono' al insert
         const { data: nuevoMaestro, error: createError } = await supabase
             .from('maestros_municipales')
-            .insert({ nombre: formData.nombre, ctd_alumnos: formData.ctd_alumnos })
+            .insert({ nombre: formData.nombre, ctd_alumnos: formData.ctd_alumnos, telefono: formData.telefono })
             .select('id')
             .single();
 
@@ -113,7 +111,6 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar, nivel
         toast.success(`Maestro creado correctamente.`);
     }
 
-    // Lógica de asignación si existe nivelId
     if (nivelId) {
         const { error: assignError } = await supabase
             .from('programas_educativos')
@@ -134,6 +131,8 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar, nivel
     setMaestroSeleccionado(maestro);
     setValue('nombre', maestro.nombre, { shouldValidate: true });
     setValue('ctd_alumnos', maestro.ctd_alumnos, { shouldValidate: true });
+    // <-- Se añade el valor del teléfono al seleccionar
+    setValue('telefono', maestro.telefono || '', { shouldValidate: true });
   };
 
   const maestrosFiltrados = !isEditMode && nombreWatch 
@@ -206,6 +205,20 @@ export default function Maestro({ isOpen, onClose, onSave, maestroAEditar, nivel
                 )}
               </div>
               {errors.nombre && <p className="text-sm text-red-500 mt-1">{errors.nombre.message}</p>}
+            </div>
+
+            {/* --- NUEVO CAMPO TELÉFONO --- */}
+            <div>
+              <Label htmlFor="telefono" className="block text-sm font-medium text-gray-700 mb-1">Teléfono</Label>
+              <Input 
+                id="telefono" 
+                type="tel"
+                {...register("telefono")} 
+                placeholder="Opcional (8 dígitos)" 
+                className={errors.telefono ? 'border-red-500' : ''} 
+                disabled={!isEditMode && !!maestroSeleccionado}
+              />
+              {errors.telefono && <p className="text-sm text-red-500 mt-1">{errors.telefono.message}</p>}
             </div>
             
             <div>

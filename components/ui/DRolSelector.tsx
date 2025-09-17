@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import useUserData from '@/hooks/sesion/useUserData';
 
 interface Rol {
   id: string;
@@ -10,23 +11,18 @@ interface Rol {
 
 interface DRolSelectorProps {
   rol: string | null;
-  onChange: (rol: string) => void;
-  devolver?: 'id' | 'nombre'; // Nuevo: especifica qué valor devolver
+  onChange: (rolId: string) => void;
 }
 
-export default function DRolSelector({ rol, onChange, devolver = 'id' }: DRolSelectorProps) {
+export default function DRolSelector({ rol, onChange }: DRolSelectorProps) {
   const [rolesDisponibles, setRolesDisponibles] = useState<Rol[]>([]);
-  const [rolActual, setRolActual] = useState<string>('');
+  const { rol: rolUsuario, cargando } = useUserData();
 
   useEffect(() => {
-    const fetchDatos = async () => {
+    if (cargando) return;
+
+    const fetchRoles = async () => {
       const supabase = createClient();
-
-      const res = await fetch('/api/getuser');
-      const user = await res.json();
-      const rolUsuario = user?.rol || '';
-      setRolActual(rolUsuario);
-
       const { data, error } = await supabase.from('roles').select('id, nombre');
       if (error) {
         console.error('Error al obtener roles:', error);
@@ -34,15 +30,17 @@ export default function DRolSelector({ rol, onChange, devolver = 'id' }: DRolSel
       }
 
       const filtrados = data.filter((r) => {
-        if (rolUsuario !== 'SUPER') return r.nombre !== 'SUPER';
+        if (rolUsuario !== 'SUPER') {
+          return r.nombre !== 'SUPER';
+        }
         return true;
       });
 
       setRolesDisponibles(filtrados);
     };
 
-    fetchDatos();
-  }, []);
+    fetchRoles();
+  }, [cargando, rolUsuario]);
 
   return (
     <div className="flex flex-col gap-1 w-full">
@@ -51,11 +49,7 @@ export default function DRolSelector({ rol, onChange, devolver = 'id' }: DRolSel
         name="rol"
         value={rol ?? ''}
         onChange={(e) => {
-          const seleccionado = e.target.value;
-          const rolEncontrado = rolesDisponibles.find(r => r.id === seleccionado);
-          if (!rolEncontrado) return;
-
-          onChange(devolver === 'nombre' ? rolEncontrado.nombre : rolEncontrado.id);
+          onChange(e.target.value);
         }}
         required
         className="border rounded px-3 py-2 h-10 text-sm"

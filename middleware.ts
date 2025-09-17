@@ -42,6 +42,7 @@ export async function middleware(request: NextRequest) {
         request.nextUrl.pathname.startsWith("/protected/admin") &&
         rolNombre !== "SUPER" &&
         rolNombre !== "ADMINISTRADOR" &&
+        rolNombre !== "SECRETARIO" &&
         rolNombre !== "RRHH"
       ) {
         return NextResponse.redirect(new URL("/unauthorized", request.url));
@@ -58,7 +59,7 @@ export async function middleware(request: NextRequest) {
       const rolNombre = (relacion?.roles as any)?.nombre ?? null;
 
       const destino =
-        rolNombre === "ADMINISTRADOR" || rolNombre === "SUPER" || rolNombre === "RRHH"
+        rolNombre === "ADMINISTRADOR" || rolNombre === "SUPER" || rolNombre === "SECRETRARIO" || rolNombre === "RRHH"
           ? "/protected/admin"
           : "/protected/user";
       return NextResponse.redirect(new URL(destino, request.url));

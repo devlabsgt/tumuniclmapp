@@ -1,10 +1,20 @@
 'use client';
 
-import React, { useState, useMemo, Fragment } from 'react';
+import React, { useState, useMemo, Fragment, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Usuario } from '@/lib/usuarios/esquemas';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogPanel,
+  Transition,
+  TransitionChild,
+} from '@headlessui/react';
+import { motion, AnimatePresence } from 'framer-motion';
+import UsuarioPage from './ver/UsuarioPage';
+import EditarUsuarioForm from './editar/EditarUsuarioForm';
+import Swal from 'sweetalert2';
 
 type Props = {
   usuarios: Usuario[];
@@ -13,12 +23,21 @@ type Props = {
 
 export default function UsersTable({ usuarios, rolActual }: Props) {
   const router = useRouter();
+
+  const [listaUsuarios, setListaUsuarios] = useState(usuarios);
   const [paginaActual, setPaginaActual] = useState(1);
   const [usuariosPorPagina, setUsuariosPorPagina] = useState(10);
   const [terminoBusqueda, setTerminoBusqueda] = useState('');
+  const [usuarioIdSeleccionado, setUsuarioIdSeleccionado] = useState<string | null>(null);
+  const [modoModal, setModoModal] = useState<'informacion' | 'editar'>('informacion');
+  const [eliminando, setEliminando] = useState(false);
+
+  useEffect(() => {
+    setListaUsuarios(usuarios);
+  }, [usuarios]);
 
   const usuariosFiltrados = useMemo(() => {
-    let usuariosOrdenados = [...usuarios].sort((a, b) =>
+    let usuariosOrdenados = [...listaUsuarios].sort((a, b) =>
       (a.nombre || '').localeCompare(b.nombre || '')
     );
 
@@ -32,7 +51,7 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
       );
     }
     return usuariosOrdenados;
-  }, [usuarios, terminoBusqueda]);
+  }, [listaUsuarios, terminoBusqueda]);
 
   const totalPaginas = Math.ceil(usuariosFiltrados.length / usuariosPorPagina);
   const inicio = (paginaActual - 1) * usuariosPorPagina;
@@ -50,11 +69,59 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
   }, [usuariosPaginados]);
 
   const handleVerUsuario = (id: string) => {
-    router.push(`/protected/admin/users/ver?id=${id}`);
+    setUsuarioIdSeleccionado(id);
+    setModoModal('informacion');
+  };
+
+  const handleCerrarModal = () => {
+    setUsuarioIdSeleccionado(null);
+    setModoModal('informacion');
+  };
+  
+  const handleSuccess = () => {
+    router.refresh();
+  };
+
+  const handleCancel = () => {
+    handleCerrarModal();
+  };
+
+  const handleEliminarUsuario = async () => {
+    if (!usuarioIdSeleccionado) return;
+  
+    const result = await Swal.fire({
+      title: '¿Está seguro?',
+      text: 'Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+    });
+  
+    if (result.isConfirmed) {
+      setEliminando(true);
+  
+      const res = await fetch(`/api/users?id=${usuarioIdSeleccionado}`, {
+        method: 'DELETE',
+      });
+  
+      if (!res.ok) {
+        setEliminando(false);
+        const json = await res.json();
+        return Swal.fire('Error', json.error || 'No se pudo eliminar el usuario.', 'error');
+      }
+      
+      const idEliminado = usuarioIdSeleccionado;
+      setListaUsuarios(prevUsuarios => prevUsuarios.filter(u => u.id !== idEliminado));
+      
+      handleCerrarModal();
+    }
   };
 
   return (
-    <div className="w-full md:w-4/5 mx-auto">
+    <div className="w-full mx-auto md:px-4">
       <div className="flex justify-between items-center mb-4 gap-4">
         <Input
           type="text"
@@ -77,13 +144,13 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
       </div>
 
       <div className="w-full overflow-x-auto border-[2.5px] border-gray-400">
-        <table className="w-full border-collapse border-[2.5px] border-gray-300 text-lg">
+        <table className="w-full border-collapse border-[2.5px] border-gray-300 text-xs sm:text-sm table-fixed">
           <thead>
-            <tr className="text-left text-[15px] font-semibold bg-gray-200 border-b-[2.5px] border-gray-400">
-              <th className="p-2 border-[1.5px] border-gray-300 text-center">No.</th>
-              <th className="p-2 border-[1.5px] border-gray-300">Nombre</th>
-              <th className="p-2 border-[1.5px] border-gray-300">Correo</th>
-              <th className="p-2 border-[1.5px] border-gray-300">Rol</th>
+            <tr className="text-left text-xs sm:text-sm font-semibold bg-gray-200 border-b-[2.5px] border-gray-400">
+              <th className="p-2 border-[1.5px] border-gray-300 text-center w-[40px]">No.</th>
+              <th className="p-2 border-[1.5px] border-gray-300 text-center w-[250px]">Nombre</th>
+              <th className="p-2 border-[1.5px] border-gray-300 text-center w-[250px]">Correo</th>
+              <th className="p-2 border-[1.5px] border-gray-300 text-center w-[150px]">Rol</th>
             </tr>
           </thead>
           <tbody>
@@ -97,7 +164,7 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
               Object.keys(usuariosAgrupados).sort().map((letra) => (
                 <Fragment key={letra}>
                   <tr className="bg-slate-100">
-                    <td colSpan={4} className="px-2 py-1 font-bold text-slate-700 text-base text-center">
+                    <td colSpan={4} className="px-2 py-1 font-bold text-slate-700 text-xs sm:text-base text-center">
                       {letra}
                     </td>
                   </tr>
@@ -110,9 +177,9 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                       <td className="p-2 border-[1.5px] border-gray-300 text-center">
                         {usuariosFiltrados.findIndex(u => u.id === usuario.id) + 1}
                       </td>
-                      <td className="p-2 border-[1.5px] border-gray-300">{usuario.nombre || '—'}</td>
-                      <td className="p-2 border-[1.5px] border-gray-300">{usuario.email}</td>
-                      <td className="p-2 border-[1.5px] border-gray-300">{usuario.rol || '—'}</td>
+                      <td className="p-2 border-[1.5px] border-gray-300 truncate">{usuario.nombre || '—'}</td>
+                      <td className="p-2 border-[1.5px] border-gray-300 truncate">{usuario.email}</td>
+                      <td className="p-2 border-[1.5px] border-gray-300 truncate">{usuario.rol || '—'}</td>
                     </tr>
                   ))}
                 </Fragment>
@@ -149,7 +216,6 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
         >
           ←
         </button>
-
         {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((n) => (
           <button
             key={n}
@@ -161,7 +227,6 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
             {n}
           </button>
         ))}
-
         <button
           onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
           disabled={paginaActual === totalPaginas}
@@ -172,6 +237,81 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
           →
         </button>
       </div>
+      
+      <Transition show={!!usuarioIdSeleccionado} as={Fragment}>
+        <Dialog onClose={handleCerrarModal} className="relative z-50">
+          <TransitionChild as={Fragment}
+            enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100"
+            leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
+            <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
+          </TransitionChild>
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <DialogPanel className="bg-white rounded-lg w-full max-w-lg min-h-[600px] p-6 shadow-xl">
+              <div className="flex justify-between items-center mb-6">
+                <Button variant="link" onClick={handleCerrarModal} className="text-blue-600 text-base underline flex-shrink-0">
+                  Salir
+                </Button>
+                <div className="flex items-center gap-4">
+                  <div className="flex rounded-md border p-1 bg-gray-50 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setModoModal('informacion')}
+                      className={`flex-1 rounded-md py-2 px-4 text-sm font-semibold transition-colors duration-200 ${
+                        modoModal === 'informacion' ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      Información
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setModoModal('editar')}
+                      className={`flex-1 rounded-md py-2 px-4 text-sm font-semibold transition-colors duration-200 ${
+                        modoModal === 'editar' ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      Editar
+                    </button>
+                  </div>
+                  {(rolActual === 'SUPER') && (
+                    <Button
+                      variant="destructive"
+                      onClick={handleEliminarUsuario}
+                      disabled={eliminando}
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      {eliminando ? 'Eliminando...' : 'Eliminar'}
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <AnimatePresence mode="wait">
+                {modoModal === 'informacion' && (
+                  <motion.div
+                    key="info"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <UsuarioPage id={usuarioIdSeleccionado} onClose={handleCerrarModal} />
+                  </motion.div>
+                )}
+                {modoModal === 'editar' && usuarioIdSeleccionado && (
+                  <motion.div
+                    key="editar"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <EditarUsuarioForm id={usuarioIdSeleccionado} onSuccess={handleSuccess} onCancel={handleCancel} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </DialogPanel>
+          </div>
+        </Dialog>
+      </Transition>
     </div>
   );
 }

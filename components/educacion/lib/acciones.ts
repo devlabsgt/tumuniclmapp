@@ -27,7 +27,7 @@ export const eliminarPrograma = async (programa: Programa, onEliminado: () => vo
     }
 };
 
-// Función para editar un maestro
+// Función para editar un maestro (Actualizada)
 export const editarMaestro = async (maestro: Maestro) => {
     const supabase = createClient();
     const { data, error } = await supabase
@@ -35,6 +35,7 @@ export const editarMaestro = async (maestro: Maestro) => {
         .update({
             nombre: maestro.nombre,
             ctd_alumnos: maestro.ctd_alumnos,
+            telefono: maestro.telefono,
         })
         .eq('id', maestro.id)
         .select()
