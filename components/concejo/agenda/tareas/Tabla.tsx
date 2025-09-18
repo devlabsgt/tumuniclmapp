@@ -200,7 +200,7 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
                 {row.getVisibleCells().map(cell => (
                   <td
                     key={cell.id}
-                    className={`p-1 border border-gray-300 align-top cursor-pointer transition-colors hover:bg-gray-100 ${cell.column.id === 'estado' ? getStatusClasses(row.original.estado) : ''} ${cell.column.id === 'votacion' ? getVotacionClasses(row.original.votacion || null) : ''}`}
+                    className={`p-1 border border-gray-300 cursor-pointer transition-colors hover:bg-gray-100 ${cell.column.id === 'estado' ? getStatusClasses(row.original.estado) : ''} ${cell.column.id === 'votacion' ? getVotacionClasses(row.original.votacion || null) : ''}`}
                     style={{ width: `${cell.column.getSize()}px` }}
                     onClick={() => {
                       if (cell.column.id === 'notas') {

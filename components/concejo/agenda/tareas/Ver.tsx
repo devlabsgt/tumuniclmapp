@@ -1,22 +1,24 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
 import useUserData from '@/hooks/sesion/useUserData';
 import { fetchTareasDeAgenda, fetchAgendaConcejoPorId, actualizarEstadoAgenda } from '../lib/acciones';
-import { Tarea, AgendaConcejo, AgendaFormData } from '../lib/esquemas';
+import { Tarea, AgendaConcejo } from '../lib/esquemas';
 import TareaForm from './forms/tareas/Tarea';
 import NotaSeguimiento from './forms/NotaSeguimiento';
-import { CalendarPlus } from 'lucide-react';
+import { CalendarPlus, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
 import BotonVolver from '@/components/ui/botones/BotonVolver';
 import Tabla from './Tabla';
-import { format, differenceInDays, isToday } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
+import jsPDF from 'jspdf';
+import * as htmlToImage from 'html-to-image';
 
 const statusStyles: Record<string, string> = {
   'Aprobado': 'bg-green-200 text-green-800',
@@ -38,6 +40,7 @@ const calcularResumenDeEstados = (tareas: Tarea[]) => {
   });
   return resumen;
 };
+
 export default function VerTareas() {
   const params = useParams();
   const agendaId = params.id as string;
@@ -50,11 +53,13 @@ export default function VerTareas() {
   const [tareaSeleccionada, setTareaSeleccionada] = useState<Tarea | null>(null);
   const [agenda, setAgenda] = useState<AgendaConcejo | null>(null);
   const [filtrosActivos, setFiltrosActivos] = useState<string[]>([]);
-
   const [isNotaSeguimientoModalOpen, setIsNotaSeguimientoModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'notas' | 'seguimiento' | null>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
 
   const fetchDatos = async () => {
+    if (!agendaId) return;
     setCargandoTareas(true);
     try {
       const [dataTareas, dataAgenda] = await Promise.all([
@@ -64,7 +69,6 @@ export default function VerTareas() {
       setTareas(dataTareas);
       setAgenda(dataAgenda);
     } catch (e: any) {
-      console.error('Error al cargar los datos:', e);
       setError('Ocurrió un error al cargar los datos.');
     } finally {
       setCargandoTareas(false);
@@ -72,20 +76,93 @@ export default function VerTareas() {
   };
 
   useEffect(() => {
-    if (agendaId) {
-      fetchDatos();
-    }
+    fetchDatos();
   }, [agendaId]);
+
+
+const generatePdf = async () => {
+    setIsPrinting(true);
+    const element = printRef.current;
+
+    if (!element) {
+        toast.error('No se pudo encontrar el elemento para imprimir.');
+        setIsPrinting(false);
+        return;
+    }
+
+    try {
+        const dataUrl = await htmlToImage.toJpeg(element, {
+            quality: 0.7,
+            backgroundColor: '#ffffff'
+        });
+
+        const pdf = new jsPDF({
+            orientation: 'landscape',
+            unit: 'in',
+            format: [8.5, 13]
+        });
+
+        const margin = { top: 0.75, right: 0.5, bottom: 0.5, left: 0.5 };
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const usableWidth = pdfWidth - margin.left - margin.right;
+        const usableHeight = pdfHeight - margin.top - margin.bottom;
+
+        const img = new Image();
+        img.src = dataUrl;
+
+        img.onload = () => {
+            const imgWidth = img.width;
+            const imgHeight = img.height;
+            const scale = usableWidth / imgWidth;
+            const scaledHeight = imgHeight * scale;
+            const newWidth = usableWidth;
+
+            let heightLeft = scaledHeight;
+            let pageNumber = 0;
+
+            pdf.addImage(img, 'JPEG', margin.left, margin.top, newWidth, scaledHeight);
+            heightLeft -= usableHeight;
+
+            while (heightLeft > 0) {
+                pageNumber++;
+                pdf.addPage();
+                
+                let yPosition = -(usableHeight * pageNumber) + margin.top;
+                
+                pdf.addImage(img, 'JPEG', margin.left, yPosition, newWidth, scaledHeight);
+                heightLeft -= usableHeight;
+            }
+
+            const blobUrl = pdf.output('bloburl');
+            window.open(blobUrl, '_blank');
+            toast.success('PDF abierto en una nueva pestaña.');
+            setIsPrinting(false);
+        };
+    } catch (err) {
+        toast.error('Hubo un error al generar el PDF.');
+        console.error(err);
+        setIsPrinting(false);
+    }
+};
+  useEffect(() => {
+    if (isPrinting) {
+      setTimeout(generatePdf, 300);
+    }
+  }, [isPrinting]);
+
+  const handleGeneratePdf = () => {
+    setIsPrinting(true);
+  };
 
   const isAgendaFinalizada = agenda?.estado === 'Finalizada';
 
-  // 💡 Se actualizó la función para verificar si la agenda está finalizada antes de abrir el modal
   const handleOpenEditModal = (tarea: Tarea) => {
-    if (!isAgendaFinalizada) {
+    if (isAgendaFinalizada) {
+      toast.info('No se pueden editar puntos de una agenda finalizada.');
+    } else {
       setTareaSeleccionada(tarea);
       setIsFormModalOpen(true);
-    } else {
-      toast.info('No se pueden editar puntos de una agenda finalizada.');
     }
   };
 
@@ -110,13 +187,11 @@ export default function VerTareas() {
     setIsNotaSeguimientoModalOpen(false);
     setTareaSeleccionada(null);
     setModalType(null);
-    if (hasChanged) {
-      fetchDatos();
-    }
+    if (hasChanged) fetchDatos();
   };
 
   const handleActualizarEstadoAgenda = async () => {
-    if (!agenda) return;
+    if (!agenda || isAgendaFinalizada) return;
 
     let nuevoEstado = '';
     let mensaje = '';
@@ -127,19 +202,11 @@ export default function VerTareas() {
     } else if (agenda.estado === 'En progreso') {
       nuevoEstado = 'Finalizada';
       mensaje = '¿Está seguro de que deseas cerrar la sesión? ya no podrás agregar o editar puntos de la agenda.';
-    } else {
-      return;
     }
 
     const { isConfirmed } = await Swal.fire({
-      title: 'Confirmar',
-      text: mensaje,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Continuar',
-      cancelButtonText: 'Cancelar',
+      title: 'Confirmar', text: mensaje, icon: 'warning', showCancelButton: true,
+      confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Continuar', cancelButtonText: 'Cancelar',
     });
 
     if (isConfirmed) {
@@ -148,174 +215,113 @@ export default function VerTareas() {
         fetchDatos();
       } catch (error) {
         toast.error('Error al actualizar el estado de la agenda.');
-        console.error('Error al actualizar el estado de la agenda:', error);
       }
     }
   };
 
   const resumenDeEstados = calcularResumenDeEstados(tareas);
-
   const estadoOrden = ['En progreso', 'En espera', 'No aprobado', 'Aprobado', 'En comisión', 'No iniciado', 'Realizado'];
 
   const getEstadoAgendaStyle = (estado: string) => {
-    if (estado === 'En preparación') {
-      return 'bg-green-500 text-white hover:bg-green-600';
-    } else if (estado === 'En progreso') {
-      return 'bg-blue-500 text-white hover:bg-blue-600';
-    } else if (estado === 'Finalizada') {
-      return 'bg-gray-300 text-gray-700 cursor-not-allowed';
-    }
+    if (estado === 'En preparación') return 'bg-green-500 text-white hover:bg-green-600';
+    if (estado === 'En progreso') return 'bg-blue-500 text-white hover:bg-blue-600';
+    if (estado === 'Finalizada') return 'bg-gray-400 text-gray-800 cursor-not-allowed';
     return '';
   };
-  
+
   const getEstadoAgendaText = (estado: string) => {
-    if (estado === 'En preparación') {
-        return 'Se apertura la sesión';
-    } else if (estado === 'En progreso') {
-        return 'Se cierra la sesión';
-    }
+    if (estado === 'En preparación') return 'Se apertura la sesión';
+    if (estado === 'En progreso') return 'Se cierra la sesión';
+    if (estado === 'Finalizada') return 'Sesión Finalizada';
     return estado;
   };
 
   const toggleFiltro = (estado: string) => {
-    setFiltrosActivos(prevFiltros =>
-      prevFiltros.includes(estado)
-        ? prevFiltros.filter(f => f !== estado)
-        : [...prevFiltros, estado]
-    );
+    setFiltrosActivos(prev => prev.includes(estado) ? prev.filter(f => f !== estado) : [...prev, estado]);
   };
 
-  const tareasFiltradas = filtrosActivos.length > 0
-    ? tareas.filter(tarea => filtrosActivos.includes(tarea.estado))
-    : tareas;
-
-  const getFiltroStyle = (estado: string) => {
-    const classes = getStatusClasses(estado);
-    const activeClass = filtrosActivos.includes(estado) ? 'border-t-4 border-blue-500' : '';
-
-    let colorComision = '';
-    if (estado === 'En comisión' && filtrosActivos.includes(estado)) {
-      colorComision = 'border-t-4 border-slate-300';
-    }
-
-    return `${classes} ${activeClass} ${colorComision} cursor-pointer hover:opacity-80 transition-opacity`;
-  };
-
-  const handleClearFilters = () => {
-    setFiltrosActivos([]);
-  };
+  const tareasFiltradas = filtrosActivos.length > 0 ? tareas.filter(tarea => filtrosActivos.includes(tarea.estado)) : tareas;
 
   if (cargandoUsuario || cargandoTareas) {
     return <CargandoAnimacion texto="Cargando agenda..." />;
   }
-
   if (error) {
     return <div className="text-center text-red-500">{error}</div>;
   }
 
   return (
     <div className="container mx-auto p-4">
-      <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-        <BotonVolver ruta="/protected/concejo/agenda" />
-        {agenda && (
-          <div className="flex-grow flex flex-col items-center text-center">
-            <h1 className="text-xl font-bold text-gray-800"> Agenda del Concejo Municipal </h1>
-            <h2 className={`text-lg font-bold text-gray-600`}>
-              {agenda.titulo}
-            </h2>
-            <p className="text-sm text-gray-500">
-              {`${format(new Date(agenda.fecha_reunion), 'PPPP', { locale: es })} • ${agenda.descripcion}`}
-            </p>
-          </div>
-        )}
-        {(rol === 'SUPER' || rol === 'SECRETARIO') && (
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            {agenda && (
-              <Button
-                onClick={handleActualizarEstadoAgenda}
-                disabled={isAgendaFinalizada}
-                className={`px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 ${getEstadoAgendaStyle(agenda.estado)}`}
-              >
-                <span>
-                  {getEstadoAgendaText(agenda.estado)}
-                </span>
-              </Button>
-            )}
-            {!isAgendaFinalizada && (
-              <Button
-                onClick={() => {
-                  setTareaSeleccionada(null);
-                  setIsFormModalOpen(true);
-                }}
-                className={`px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 bg-purple-500 text-white hover:bg-purple-600`}
-              >
-                <CalendarPlus size={20} />
-                <span>Nuevo Punto <br /> a tratar</span>
-              </Button>
-              
-            )}
-          </div>
-        )}
-      </header>
-
-      <div className="mb-4 grid grid-cols-3 gap-2 md:flex md:flex-wrap md:justify-start">
-        {estadoOrden.map(estado => (
-          <motion.button
-            key={estado}
-            onClick={() => toggleFiltro(estado)}
-            className={`px-3 py-2 rounded-md shadow-sm text-center ${getStatusClasses(estado)} text-xs md:text-xs ${filtrosActivos.includes(estado) ? 'border-t-4 border-blue-500' : ''}`}
-            whileHover={{ y: -5 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <span className="font-semibold">{estado}:</span>
-            <span className="text-sm font-bold ml-1">{resumenDeEstados[estado] || 0}</span>
-          </motion.button>
-        ))}
-        <AnimatePresence>
-          {filtrosActivos.length > 0 && (
-            <motion.button
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              onClick={handleClearFilters}
-              className="px-3 py-2 rounded-md shadow-sm text-center bg-gray-400 text-white text-xs md:text-xs"
-            >
-              Quitar filtros
-            </motion.button>
+      <div ref={printRef}>
+        <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+          {!isPrinting && (
+            <div>
+              <BotonVolver ruta="/protected/concejo/agenda" />
+            </div>
           )}
-        </AnimatePresence>
-      </div>
+          
+          {agenda && (
+            <div className="flex-grow flex flex-col items-center text-center">
+              <h1 className="text-xl font-bold text-gray-800"> Agenda del Concejo Municipal </h1>
+              <h2 className={`text-lg font-bold text-gray-600`}>{agenda.titulo}</h2>
+              <p className="text-sm text-gray-500">
+                {`${format(new Date(agenda.fecha_reunion), 'PPPP, h:mm a', { locale: es })} • ${agenda.descripcion}`}
+              </p>
+            </div>
+          )}
+          
+          {!isPrinting && (
+            <div className={`flex items-center gap-2 flex-wrap justify-end`}>
+              {(rol === 'SUPER' || rol === 'SECRETARIO') && agenda && (
+                <>
+                  <Button onClick={handleActualizarEstadoAgenda} disabled={isAgendaFinalizada} className={`px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 ${getEstadoAgendaStyle(agenda.estado)}`}>
+                    <span>{getEstadoAgendaText(agenda.estado)}</span>
+                  </Button>
 
-      <Tabla
-        tareas={tareasFiltradas}
-        handleOpenEditModal={handleOpenEditModal}
-        handleOpenNotasModal={handleOpenNotasModal}
-        handleOpenSeguimientoModal={handleOpenSeguimientoModal}
-        estadoAgenda={agenda?.estado || ''}
-      />
+                  {isAgendaFinalizada && (
+                    <Button onClick={handleGeneratePdf} disabled={isPrinting} className="px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 bg-red-600 text-white hover:bg-red-700">
+                      <FileText size={20} />
+                      <span>{isPrinting ? 'Generando...' : 'Generar PDF'}</span>
+                    </Button>
+                  )}
+
+                  {!isAgendaFinalizada && (
+                    <Button onClick={() => { setTareaSeleccionada(null); setIsFormModalOpen(true); }} className="px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 bg-purple-500 text-white hover:bg-purple-600">
+                      <CalendarPlus size={20} />
+                      <span>Nuevo Punto <br /> a tratar</span>
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </header>
+
+        <div className="mb-4 grid grid-cols-3 gap-2 md:flex md:flex-wrap md:justify-start">
+          {estadoOrden.map(estado => (
+            <motion.button key={estado} onClick={() => toggleFiltro(estado)} className={`px-3 py-2 rounded-md shadow-sm text-center ${getStatusClasses(estado)} text-xs md:text-xs ${filtrosActivos.includes(estado) ? 'border-t-4 border-blue-500' : ''}`} whileHover={{ y: -5 }} whileTap={{ scale: 0.95 }}>
+              <span className="font-semibold">{estado}:</span>
+              <span className="text-sm font-bold ml-1">{resumenDeEstados[estado] || 0}</span>
+            </motion.button>
+          ))}
+          <AnimatePresence>
+            {filtrosActivos.length > 0 && (
+              <motion.button initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} onClick={() => setFiltrosActivos([])} className="px-3 py-2 rounded-md shadow-sm text-center bg-gray-400 text-white text-xs md:text-xs">
+                Quitar filtros
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <Tabla tareas={tareasFiltradas} handleOpenEditModal={handleOpenEditModal} handleOpenNotasModal={handleOpenNotasModal} handleOpenSeguimientoModal={handleOpenSeguimientoModal} estadoAgenda={agenda?.estado || ''} />
+      </div>
 
       <AnimatePresence>
         {isFormModalOpen && (
-          <TareaForm
-            isOpen={isFormModalOpen}
-            onClose={handleCloseFormModal}
-            onSave={async () => {
-              await fetchDatos();
-              handleCloseFormModal();
-            }}
-            agendaConcejoId={agendaId}
-            tareaAEditar={tareaSeleccionada}
-          />
+          <TareaForm isOpen={isFormModalOpen} onClose={handleCloseFormModal} onSave={async () => { await fetchDatos(); handleCloseFormModal(); }} agendaConcejoId={agendaId} tareaAEditar={tareaSeleccionada} />
         )}
-     {isNotaSeguimientoModalOpen && tareaSeleccionada && modalType && (
-        <NotaSeguimiento
-          isOpen={isNotaSeguimientoModalOpen}
-          onClose={handleCloseNotaSeguimientoModal}
-          tarea={tareaSeleccionada}
-          estadoAgenda={agenda?.estado || ''}
-          tipo={modalType}
-        />
-      )}
+        {isNotaSeguimientoModalOpen && tareaSeleccionada && modalType && (
+          <NotaSeguimiento isOpen={isNotaSeguimientoModalOpen} onClose={handleCloseNotaSeguimientoModal} tarea={tareaSeleccionada} estadoAgenda={agenda?.estado || ''} tipo={modalType} />
+        )}
       </AnimatePresence>
     </div>
   );
