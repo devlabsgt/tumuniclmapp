@@ -80,71 +80,75 @@ export default function VerTareas() {
   }, [agendaId]);
 
 
-const generatePdf = async () => {
-    setIsPrinting(true);
-    const element = printRef.current;
+  const generatePdf = async () => {
+      setIsPrinting(true);
+      const element = printRef.current;
+      const isMobile = window.innerWidth < 768;
 
-    if (!element) {
-        toast.error('No se pudo encontrar el elemento para imprimir.');
-        setIsPrinting(false);
-        return;
-    }
+      if (!element) {
+          toast.error('No se pudo encontrar el elemento para imprimir.');
+          setIsPrinting(false);
+          return;
+      }
 
-    try {
-        const dataUrl = await htmlToImage.toJpeg(element, {
-            quality: 0.7,
-            backgroundColor: '#ffffff'
-        });
+      try {
+          const dataUrl = await htmlToImage.toJpeg(element, {
+              quality: 0.7,
+              backgroundColor: '#ffffff'
+          });
 
-        const pdf = new jsPDF({
-            orientation: 'landscape',
-            unit: 'in',
-            format: [8.5, 13]
-        });
+          const pdf = new jsPDF({
+              orientation: 'landscape',
+              unit: 'in',
+              format: [8.5, 13]
+          });
 
-        const margin = { top: 0.75, right: 0.5, bottom: 0.5, left: 0.5 };
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        const usableWidth = pdfWidth - margin.left - margin.right;
-        const usableHeight = pdfHeight - margin.top - margin.bottom;
+          const margin = { top: 0.5, right: 0.5, bottom: 0.2, left: 0.5 };
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = pdf.internal.pageSize.getHeight();
+          const usableWidth = pdfWidth - margin.left - margin.right;
+          const usableHeight = pdfHeight - margin.top - margin.bottom;
 
-        const img = new Image();
-        img.src = dataUrl;
+          const img = new Image();
+          img.src = dataUrl;
 
-        img.onload = () => {
-            const imgWidth = img.width;
-            const imgHeight = img.height;
-            const scale = usableWidth / imgWidth;
-            const scaledHeight = imgHeight * scale;
-            const newWidth = usableWidth;
+          img.onload = () => {
+              const imgWidth = img.width;
+              const imgHeight = img.height;
+              
+              let newWidth = imgWidth;
+              let newHeight = imgHeight;
 
-            let heightLeft = scaledHeight;
-            let pageNumber = 0;
+              // Escalar la imagen para que se ajuste a una sola página
+              const widthRatio = usableWidth / imgWidth;
+              const heightRatio = usableHeight / imgHeight;
+              const scale = Math.min(widthRatio, heightRatio);
 
-            pdf.addImage(img, 'JPEG', margin.left, margin.top, newWidth, scaledHeight);
-            heightLeft -= usableHeight;
+              newWidth = imgWidth * scale;
+              newHeight = imgHeight * scale;
 
-            while (heightLeft > 0) {
-                pageNumber++;
-                pdf.addPage();
-                
-                let yPosition = -(usableHeight * pageNumber) + margin.top;
-                
-                pdf.addImage(img, 'JPEG', margin.left, yPosition, newWidth, scaledHeight);
-                heightLeft -= usableHeight;
-            }
+              pdf.addImage(img, 'JPEG', (pdfWidth - newWidth) / 2, margin.top, newWidth, newHeight);
 
-            const blobUrl = pdf.output('bloburl');
-            window.open(blobUrl, '_blank');
-            toast.success('PDF abierto en una nueva pestaña.');
-            setIsPrinting(false);
-        };
-    } catch (err) {
-        toast.error('Hubo un error al generar el PDF.');
-        console.error(err);
-        setIsPrinting(false);
-    }
-};
+              if (isMobile) {
+                  const filename = `agenda-${format(new Date(), 'yyyyMMdd')}.pdf`;
+                  pdf.save(filename);
+                  toast.success('PDF descargado.');
+              } else {
+                  const blobUrl = pdf.output('bloburl');
+                  window.open(blobUrl, '_blank');
+                  toast.success('PDF abierto en una nueva pestaña.');
+              }
+              
+              setIsPrinting(false);
+          };
+      } catch (err) {
+          toast.error('Hubo un error al generar el PDF.');
+          console.error(err);
+          setIsPrinting(false);
+      }
+  };
+
+
   useEffect(() => {
     if (isPrinting) {
       setTimeout(generatePdf, 300);
@@ -260,40 +264,53 @@ const generatePdf = async () => {
           )}
           
           {agenda && (
-            <div className="flex-grow flex flex-col items-center text-center">
-              <h1 className="text-xl font-bold text-gray-800"> Agenda del Concejo Municipal </h1>
-              <h2 className={`text-lg font-bold text-gray-600`}>{agenda.titulo}</h2>
-              <p className="text-sm text-gray-500">
-                {`${format(new Date(agenda.fecha_reunion), 'PPPP, h:mm a', { locale: es })} • ${agenda.descripcion}`}
-              </p>
+            <div className="flex-grow flex items-start text-left">
+              <div className="w-3/5 flex flex-col gap-1">
+                <h1 className="text-lg font-bold text-black">
+                  <span className="text-gray-500">Agenda del Concejo Municipal:</span> {agenda.titulo}
+                </h1>
+                <p className="text-lg font-bold text-black">
+                  <span className="text-gray-500">Información:</span> {agenda.descripcion}
+                </p>
+              </div>
+              <div className="w-2/5 flex flex-col items-start gap-1">
+                <p className="text-lg font-bold text-black">
+                  <span className="text-gray-500">Fecha:</span> <span>{format(new Date(agenda.fecha_reunion), 'PPPP', { locale: es })}</span>
+                </p>
+                <p className="text-lg font-bold text-black">
+                  <span className="text-gray-500">Hora:</span> {format(new Date(agenda.fecha_reunion), 'h:mm a', { locale: es })}
+                </p>
+              </div>
             </div>
           )}
           
-          {!isPrinting && (
-            <div className={`flex items-center gap-2 flex-wrap justify-end`}>
-              {(rol === 'SUPER' || rol === 'SECRETARIO') && agenda && (
-                <>
-                  <Button onClick={handleActualizarEstadoAgenda} disabled={isAgendaFinalizada} className={`px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 ${getEstadoAgendaStyle(agenda.estado)}`}>
-                    <span>{getEstadoAgendaText(agenda.estado)}</span>
-                  </Button>
+          <div className={`flex items-center gap-2 flex-wrap justify-end`}>
+            {(rol === 'SUPER' || rol === 'SECRETARIO') && agenda && (
+              <>
+                <Button onClick={handleActualizarEstadoAgenda} disabled={isAgendaFinalizada} className={`px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 ${getEstadoAgendaStyle(agenda.estado)}`}>
+                  <span>{getEstadoAgendaText(agenda.estado)}</span>
+                </Button>
 
-                  {isAgendaFinalizada && (
-                    <Button onClick={handleGeneratePdf} disabled={isPrinting} className="px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 bg-red-600 text-white hover:bg-red-700">
-                      <FileText size={20} />
-                      <span>{isPrinting ? 'Generando...' : 'Generar PDF'}</span>
-                    </Button>
-                  )}
+                {!isPrinting && (
+                  <>
+                    {isAgendaFinalizada && (
+                      <Button onClick={handleGeneratePdf} disabled={isPrinting} className="px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 bg-red-600 text-white hover:bg-red-700">
+                        <FileText size={20} />
+                        <span>{isPrinting ? 'Generando...' : 'Generar PDF'}</span>
+                      </Button>
+                    )}
 
-                  {!isAgendaFinalizada && (
-                    <Button onClick={() => { setTareaSeleccionada(null); setIsFormModalOpen(true); }} className="px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 bg-purple-500 text-white hover:bg-purple-600">
-                      <CalendarPlus size={20} />
-                      <span>Nuevo Punto <br /> a tratar</span>
-                    </Button>
-                  )}
-                </>
-              )}
-            </div>
-          )}
+                    {!isAgendaFinalizada && (
+                      <Button onClick={() => { setTareaSeleccionada(null); setIsFormModalOpen(true); }} className="px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 bg-purple-500 text-white hover:bg-purple-600">
+                        <CalendarPlus size={20} />
+                        <span>Nuevo Punto <br /> a tratar</span>
+                      </Button>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+          </div>
         </header>
 
         <div className="mb-4 grid grid-cols-3 gap-2 md:flex md:flex-wrap md:justify-start">

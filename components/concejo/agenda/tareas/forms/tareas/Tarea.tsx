@@ -5,14 +5,15 @@ import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { tareaSchema, TareaFormData, CategoriaItem, Tarea as TareaType } from '../../../lib/esquemas';
-import { crearTarea, editarTarea, fetchCategorias } from '../../../lib/acciones';
+import { crearTarea, editarTarea, eliminarTarea, fetchCategorias } from '../../../lib/acciones';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Categorias from '../Categorias';
 import Estado from './Estado';
-import { X } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-
+import Swal from 'sweetalert2';
+import useUserData from '@/hooks/sesion/useUserData';
 interface TareaProps {
   isOpen: boolean;
   onClose: () => void;
@@ -69,6 +70,8 @@ export default function Tarea({ isOpen, onClose, onSave, agendaConcejoId, tareaA
   const [isCategoriaModalOpen, setIsCategoriaModalOpen] = useState(false);
   const [isEstadoModalOpen, setIsEstadoModalOpen] = useState(false);
   const [isVotacionModalOpen, setIsVotacionModalOpen] = useState(false);
+  
+  const { rol } = useUserData();
 
   useEffect(() => {
     async function loadCategorias() {
@@ -86,6 +89,25 @@ export default function Tarea({ isOpen, onClose, onSave, agendaConcejoId, tareaA
     }
     onSave();
     onClose();
+  };
+
+  const handleDelete = async () => {
+    const { isConfirmed } = await Swal.fire({
+      title: '¿Está seguro?',
+      text: "¡No podrá revertir esto!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+  
+    if (isConfirmed && tareaAEditar) {
+      await eliminarTarea(tareaAEditar.id);
+      onSave();
+      onClose();
+    }
   };
 
   const categoriaIdValue = watch('categoria_id');
@@ -187,8 +209,18 @@ export default function Tarea({ isOpen, onClose, onSave, agendaConcejoId, tareaA
                   
                   <hr className="my-4" />
 
-                  <div className="mt-6 flex justify-end gap-2">
-                    <Button type="submit" disabled={isSubmitting || (isEditing && !tieneCambios)} className="w-full">
+                  <div className="mt-6 flex justify-between gap-2">
+                    {isEditing && (rol === 'SUPER' || rol === 'SECRETARIO') && (
+                      <Button
+                        type="button"
+                        onClick={handleDelete}
+                        variant="link"
+                        className="text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 size={20} className="mr-2" /> Eliminar
+                      </Button>
+                    )}
+                    <Button type="submit" disabled={isSubmitting || (isEditing && !tieneCambios)} className="flex-1">
                       {isSubmitting ? 'Guardando...' : (isEditing ? 'Guardar Cambios' : 'Crear Punto a Tratar')}
                     </Button>
                   </div>

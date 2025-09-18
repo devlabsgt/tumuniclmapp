@@ -15,7 +15,7 @@ const statusStyles: Record<string, string> = {
   'En progreso': 'bg-blue-100 text-blue-800',
   'En comisión': 'bg-gray-100 text-gray-800',
   'En espera': 'bg-yellow-100 text-yellow-800',
-  'No iniciado': 'bg-transparent text-gray-800', // Changed bg-gray-100 to bg-transparent
+  'No iniciado': 'bg-transparent text-gray-800',
   'Realizado': 'bg-indigo-100 text-indigo-800',
 };
 
@@ -27,13 +27,13 @@ const votacionStyles: Record<string, string> = {
 };
 
 const getStatusClasses = (status: string | null) => {
-  if (!status) return 'bg-transparent'; // Also changed default to bg-transparent for consistency
-  return statusStyles[status] || 'bg-transparent'; // Also changed default to bg-transparent for consistency
+  if (!status) return 'bg-transparent';
+  return statusStyles[status] || 'bg-transparent';
 };
 
 const getVotacionClasses = (votacion: string | null) => {
-  if (!votacion) return 'bg-transparent'; // Changed default to bg-transparent
-  return votacionStyles[votacion] || 'bg-transparent'; // Changed default to bg-transparent
+  if (!votacion) return 'bg-transparent';
+  return votacionStyles[votacion] || 'bg-transparent';
 };
 
 const getStatusTextClasses = (status: string) => {
@@ -56,9 +56,6 @@ interface TablaProps {
 }
 
 export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModal, handleOpenSeguimientoModal, estadoAgenda }: TablaProps) {
-  const sCol = 150;
-  const lCol = 250;
-
   const columns = useMemo<ColumnDef<Tarea>[]>(() => {
     const baseColumns: ColumnDef<Tarea>[] = [
       {
@@ -74,13 +71,13 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
       {
         accessorKey: 'titulo_item',
         header: 'Punto a Tratar',
-        size: lCol,
+        size: 200,
         cell: info => <div className="flex justify-start items-center h-full text-left">{info.getValue() as string}</div>,
       },
       {
         accessorKey: 'estado',
         header: 'Estado',
-        size: sCol,
+        size: 80,
         cell: info => (
           <div className="flex justify-center items-center h-full">
             <span className={`text-sm leading-5 font-semibold ${getStatusTextClasses(info.getValue() as string)}`}>
@@ -92,7 +89,7 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
       {
         accessorKey: 'votacion',
         header: 'Votación',
-        size: sCol,
+        size: 90,
         cell: info => (
           <div className="flex justify-center items-center h-full">
             <span className={`text-sm leading-5 font-semibold`}>
@@ -101,11 +98,11 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
           </div>
         ),
       },
-      {
+{
         accessorKey: 'categoria.nombre',
         header: 'Categoría',
-        size: sCol,
-        cell: info => <div className="flex justify-start items-center h-full whitespace-nowrap overflow-hidden text-ellipsis text-left">{info.getValue() as string}</div>,
+        size: 170,
+        cell: info => <div className="flex justify-start items-center h-full text-left">{info.getValue() as string}</div>,
       },
     ];
 
@@ -114,18 +111,18 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
         {
           accessorKey: 'notas',
           header: 'Notas',
-          size: lCol,
+          size: 350,
           cell: info => (
             <div className="flex flex-col gap-2 w-full justify-start items-start">
-              {(info.getValue() as string[] | null)?.map((nota, index) => (
+              {(info.getValue() as string[] | null)?.map((nota, index, array) => (
                 <div key={index} className="bg-transparent w-full">
-                  <div className="flex items-center w-full">
-                    <div className="flex-1 h-px bg-gray-300"></div>
-
-                    <span className="flex-shrink-0 text-xs text-gray-500 font-semibold">{index + 1}</span>
-                    
-                    <div className="flex-1 h-px bg-gray-300"></div>
-                  </div>
+                  {array.length > 1 && (
+                    <div className="flex items-center w-full">
+                      <div className="flex-1 h-px bg-gray-300"></div>
+                      <span className="flex-shrink-0 text-xs text-gray-500 font-semibold">{index + 1}</span>
+                      <div className="flex-1 h-px bg-gray-300"></div>
+                    </div>
+                  )}
                   <div className="p-2 text-sm leading-relaxed">
                     {nota}
                   </div>
@@ -137,16 +134,18 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
         {
           accessorKey: 'seguimiento',
           header: 'Seguimiento',
-          size: lCol,
+          size: 350,
           cell: info => (
             <div className="flex flex-col gap-2 w-full justify-start items-start">
-              {(info.getValue() as string[] | null)?.map((seg, index) => (
+              {(info.getValue() as string[] | null)?.map((seg, index, array) => (
                 <div key={index} className="bg-transparent w-full">
-                  <div className="flex items-center w-full">
-                    <div className="flex-1 h-px bg-gray-300"></div>
-                    <span className="flex-shrink-0 text-xs text-gray-500 font-semibold">{index + 1}</span>
-                    <div className="flex-1 h-px bg-gray-300"></div>
-                  </div>
+                  {array.length > 1 && (
+                    <div className="flex items-center w-full">
+                      <div className="flex-1 h-px bg-gray-300"></div>
+                      <span className="flex-shrink-0 text-xs text-gray-500 font-semibold">{index + 1}</span>
+                      <div className="flex-1 h-px bg-gray-300"></div>
+                    </div>
+                  )}
                   <div className="p-2 text-sm leading-relaxed">
                     {seg}
                   </div>
@@ -154,7 +153,7 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
               ))}
             </div>
           ),
-        }
+        },
       );
     }
 
@@ -165,6 +164,7 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
     data: tareas,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    columnResizeMode: 'onChange',
   });
 
   return (
@@ -182,13 +182,20 @@ export default function Tabla({ tareas, handleOpenEditModal, handleOpenNotasModa
                   <th
                     key={header.id}
                     colSpan={header.colSpan}
-                    className="p-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border border-gray-300"
+                    className="p-1 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border border-gray-300 relative"
                     style={{ width: `${header.getSize()}px` }}
                   >
                     {header.isPlaceholder ? null : flexRender(
                       header.column.columnDef.header,
                       header.getContext()
                     )}
+                    <div
+                      onMouseDown={header.getResizeHandler()}
+                      onTouchStart={header.getResizeHandler()}
+                      className={`absolute top-0 right-0 h-full w-1 cursor-col-resize select-none touch-none ${
+                        header.column.getIsResizing() ? 'bg-blue-500 opacity-100' : 'bg-transparent hover:bg-gray-400'
+                      }`}
+                    />
                   </th>
                 ))}
               </tr>
