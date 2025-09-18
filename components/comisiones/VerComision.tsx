@@ -1,15 +1,18 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
 import { Usuario } from '@/lib/usuarios/esquemas';
 import { Button } from '@/components/ui/button';
-import { X, Calendar, Users, User, FileText } from 'lucide-react';
+import { X, Calendar, Users, User, FileText, Camera, Pencil, Trash2 } from 'lucide-react';
 import { useRegistrosDeComision } from '@/hooks/comisiones/useRegistrosDeComision';
 import Cargando from '@/components/ui/animations/Cargando';
+import { toBlob } from 'html-to-image';
+import Swal from 'sweetalert2';
 
+// --- COMPONENTE MODIFICADO ---
 const RegistroAsistenciaItem = ({ asistenteId, registros, nombre, onAbrirMapa }: any) => {
   const registrosDelAsistente = useMemo(() => {
     const registroEntrada = registros.find((r: any) => r.user_id === asistenteId && r.tipo_registro === 'Entrada') || null;
@@ -34,22 +37,36 @@ const RegistroAsistenciaItem = ({ asistenteId, registros, nombre, onAbrirMapa }:
   const formatTime = (dateString: string | undefined) => dateString ? format(new Date(dateString), 'h:mm a', { locale: es }) : '---';
 
   const { entrada, salida } = registrosDelAsistente;
+  const tieneRegistros = entrada || salida;
 
   return (
     <div className="pl-8 py-2">
-      <p className="text-gray-800 font-semibold">{nombre}</p>
-      {(!entrada && !salida) ? (
-        <p className="text-sm text-gray-500">Sin registros de asistencia</p>
-      ) : (
-        <div 
-          onClick={() => onAbrirMapa(registrosDelAsistente, nombre)} 
-          className="mt-2 p-3 rounded-md bg-slate-100 cursor-pointer hover:bg-slate-200 transition-colors flex flex-wrap justify-start items-center gap-x-4 gap-y-1"
-        >
-          <p className="text-sm font-mono"><span className="font-semibold">Entrada:</span> {formatTime(entrada?.created_at)}</p>
-          <p className="text-sm font-mono"><span className="font-semibold">Salida:</span> {formatTime(salida?.created_at)}</p>
-          {duracionComision && (<p className="text-sm font-mono text-blue-800"><span className="font-semibold">Duración:</span> {duracionComision}</p>)}
-        </div>
-      )}
+      <div 
+        onClick={tieneRegistros ? () => onAbrirMapa(registrosDelAsistente, nombre) : undefined} 
+        className={`p-3 rounded-md bg-slate-100 flex items-center justify-between flex-wrap gap-x-4 gap-y-2 
+          ${tieneRegistros ? 'cursor-pointer hover:bg-slate-200' : 'opacity-70'}`
+        }
+      >
+        <p className="text-gray-800 font-semibold flex-grow">{nombre}</p>
+        
+        {tieneRegistros ? (
+          <div className="flex items-center gap-x-4 text-xs sm:text-sm">
+            <p className="font-mono text-green-600">
+              <span className="font-semibold">Entrada:</span> {formatTime(entrada?.created_at)}
+            </p>
+            <p className="font-mono text-red-600">
+              <span className="font-semibold">Salida:</span> {formatTime(salida?.created_at)}
+            </p>
+            {duracionComision && (
+              <p className="font-mono text-blue-800">
+                <span className="font-semibold">Duración:</span> {duracionComision}
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500">Sin registros de asistencia</p>
+        )}
+      </div>
     </div>
   );
 };
@@ -57,8 +74,11 @@ const RegistroAsistenciaItem = ({ asistenteId, registros, nombre, onAbrirMapa }:
 interface VerComisionDetalleProps {
   comision: ComisionConFechaYHoraSeparada;
   usuarios: Usuario[];
+  rol: string | null;
   onClose: () => void;
   onAbrirMapa: (registros: any, nombre: string) => void;
+  onEdit: (comision: ComisionConFechaYHoraSeparada) => void;
+  onDelete: (comisionId: string) => void;
 }
 
 const getUsuarioNombre = (id: string, usuarios: Usuario[]) => {
@@ -66,23 +86,57 @@ const getUsuarioNombre = (id: string, usuarios: Usuario[]) => {
   return user ? user.nombre : 'Desconocido';
 };
 
-export default function VerComision({ comision, usuarios, onClose, onAbrirMapa }: VerComisionDetalleProps) {
+export default function VerComision({ comision, usuarios, rol, onClose, onAbrirMapa, onEdit, onDelete }: VerComisionDetalleProps) {
   const { registros, loading: cargandoRegistros } = useRegistrosDeComision(comision.id);
+  const exportRef = useRef<HTMLDivElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const fechaHoraAbreviada = format(parseISO(comision.fecha_hora), "EEE, d MMM, yyyy | h:mm a", { locale: es });
   const encargado = comision.asistentes?.find(a => a.encargado);
   const asistentes = comision.asistentes?.filter(a => !a.encargado);
   
+  const handleExportarComoImagen = async () => {
+    if (!exportRef.current) return;
+
+    const logoElement = document.getElementById('export-logo');
+    if (!logoElement) return;
+    
+    setIsExporting(true);
+    logoElement.style.opacity = '1';
+    logoElement.style.pointerEvents = 'auto';
+
+    try {
+      const filter = (node: HTMLElement) => {
+        return !node.classList?.contains('exclude-from-capture');
+      };
+
+      const blob = await toBlob(exportRef.current, { 
+        cacheBust: true,
+        backgroundColor: '#ffffff',
+        filter: filter
+      });
+
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+      }
+    } catch (error) {
+      console.error('Error al exportar la imagen:', error);
+      Swal.fire('Error', 'No se pudo generar la imagen.', 'error');
+    } finally {
+      logoElement.style.opacity = '0';
+      logoElement.style.pointerEvents = 'none';
+      setIsExporting(false);
+    }
+  };
+
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 md:p-8 flex flex-col h-full border">
+    <div ref={exportRef} className="bg-white rounded-xl shadow-lg p-6 md:p-8 flex flex-col h-full border relative">
       <div className="flex justify-between items-start mb-6">
         <h2 className="text-2xl font-bold text-gray-800">{comision.titulo}</h2>
-        <Button variant="ghost" className="text-gray-500 hover:bg-gray-200 p-2 -mr-2 -mt-2" onClick={onClose} aria-label="Cerrar">
-          <X className="h-5 w-5" />
-        </Button>
       </div>
 
-      <div className="space-y-6 text-gray-700">
+      <div className="flex-grow space-y-6 text-gray-700">
         <div className="flex items-center gap-3">
           <Calendar className="h-5 w-5 text-blue-500" />
           <span className="text-lg capitalize">{fechaHoraAbreviada}</span>
@@ -107,7 +161,7 @@ export default function VerComision({ comision, usuarios, onClose, onAbrirMapa }
         )}
         
         {comision.comentarios && comision.comentarios.length > 0 && (
-          <div className="border-t pt-4">
+          <div className="border-t pt-4 pb-6">
             <h3 className="text-lg font-semibold flex items-center gap-2 mb-3"><FileText className="h-5 w-5 text-blue-500" /> Notas</h3>
             <ul className="list-disc list-inside pl-8 space-y-1">
               {comision.comentarios.map((comentario, index) => <li key={index} className="text-gray-800">{comentario}</li>)}
@@ -115,6 +169,55 @@ export default function VerComision({ comision, usuarios, onClose, onAbrirMapa }
           </div>
         )}
       </div>
+
+      <div className="border-t mt-auto pt-4 exclude-from-capture">
+          <div className="flex justify-end items-center gap-4">
+            {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
+              <>
+                <Button
+                  variant="link"
+                  onClick={() => onEdit(comision)}
+                  className="text-green-600 gap-2"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Editar
+                </Button>
+                <Button
+                  variant="link"
+                  onClick={() => onDelete(comision.id)}
+                  className="text-red-600 gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Eliminar
+                </Button>
+              </>
+            )}
+            <Button
+              variant="link"
+              onClick={handleExportarComoImagen}
+              disabled={isExporting}
+              className="text-blue-600 gap-2"
+            >
+              <Camera className="h-4 w-4" />
+              {isExporting ? 'Capturando...' : 'Generar Imagen'}
+            </Button>
+            <Button
+              variant="link"
+              onClick={onClose}
+              className="text-gray-600"
+            >
+              Cerrar
+            </Button>
+          </div>
+      </div>
+
+      <img
+        id="export-logo"
+        src="/images/logo-muni.png"
+        alt="Logo Municipalidad"
+        className="absolute top-6 right-6 w-52 h-auto"
+        style={{ opacity: 0, pointerEvents: 'none' }}
+      />
     </div>
   );
 }

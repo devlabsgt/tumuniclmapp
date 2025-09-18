@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { AnimatePresence } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
 import { useRouter } from 'next/navigation';
-import { getYear, setMonth, format, differenceInDays, isToday } from 'date-fns';
+import { getYear, setMonth, format, differenceInDays, isToday, getMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import BotonVolver from '@/components/ui/botones/BotonVolver';
 
@@ -37,7 +37,7 @@ export default function Ver() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [agendaAEditar, setAgendaAEditar] = useState<AgendaConcejo | null>(null);
   const [filtroAnio, setFiltroAnio] = useState<string>(getYear(new Date()).toString());
-  const [filtroMes, setFiltroMes] = useState<string | null>(null);
+  const [filtroMes, setFiltroMes] = useState<string | null>(getMonth(new Date()).toString());
 
   const anios = Array.from({ length: 10 }, (_, i) => getYear(new Date()) - 5 + i);
   const meses = Array.from({ length: 12 }, (_, i) => ({
@@ -63,18 +63,20 @@ export default function Ver() {
   }, []);
 
   useEffect(() => {
-    const filtered = agendas.filter(agenda => {
-      const agendaDate = new Date(agenda.fecha_reunion);
-      const agendaYear = agendaDate.getFullYear().toString();
-      const agendaMonth = agendaDate.getMonth().toString();
-      
-      const cumpleAnio = filtroAnio === '' || agendaYear === filtroAnio;
-      const cumpleMes = filtroMes === null || agendaMonth === filtroMes;
-      
-      return cumpleAnio && cumpleMes;
-    });
+    const filteredAndSorted = agendas
+      .filter(agenda => {
+        const agendaDate = new Date(agenda.fecha_reunion);
+        const agendaYear = agendaDate.getFullYear().toString();
+        const agendaMonth = agendaDate.getMonth().toString();
+        
+        const cumpleAnio = filtroAnio === '' || agendaYear === filtroAnio;
+        const cumpleMes = filtroMes === null || agendaMonth === filtroMes;
+        
+        return cumpleAnio && cumpleMes;
+      })
+      .sort((a, b) => new Date(a.fecha_reunion).getTime() - new Date(b.fecha_reunion).getTime());
 
-    setAgendasFiltradas(filtered);
+    setAgendasFiltradas(filteredAndSorted);
   }, [agendas, filtroAnio, filtroMes]);
 
   useEffect(() => {
@@ -137,7 +139,7 @@ export default function Ver() {
             </select>
           </div>
         </div>
-        {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
+        {(rol === 'SUPER' || rol === 'SECRETARIO') && (
             <Button
               onClick={() => {
                   setAgendaAEditar(null);
@@ -177,26 +179,27 @@ export default function Ver() {
                 <Fragment key={agenda.id}>
                   <div
                     onClick={() => handleGoToAgenda(agenda.id)}
-                    className={`bg-white p-4 rounded-lg shadow-md border-l-4 ${borderColorClass} flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 cursor-pointer transition-colors hover:bg-gray-50`}
+                    className={`bg-white p-4 rounded-lg shadow-md border-l-4 ${borderColorClass} flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 cursor-pointer transition-all duration-200 ease-in-out hover:shadow-xl hover:-translate-y-1`}
                   >
                     <div className="flex-grow pointer-events-none">
-                      <div className="flex items-baseline gap-x-3 flex-wrap">
-                        <p className="font-semibold text-gray-800 text-xs md:text-2xl">{agenda.titulo}</p>
-                        <span className="text-gray-500 font-normal whitespace-nowrap text-xs md:text-2xl">
-                          {format(new Date(agenda.fecha_reunion), "EEEE, d 'de' MMMM 'de' yyyy, h:mm a", { locale: es })}                   
-                        </span>
+                      <p className="font-semibold text-gray-800 text-lg">{agenda.titulo}</p>
+                      <p className="text-sm text-gray-500">
+                        {format(new Date(agenda.fecha_reunion), "EEEE, d 'de' MMMM 'de' yyyy, h:mm a", { locale: es })}                   
+                      </p>
+                      <p className="text-sm mt-2 text-gray-600">{agenda.descripcion}</p>
+                      <div className="flex items-center gap-4 mt-2 text-sm">
+                        <p>
+                          Estado: <span className={`font-bold ${textColorClass}`}>{agenda.estado}</span>
+                        </p>
+                        <span className="text-gray-300">•</span>
+                        <p>
+                          Días Restantes: <span className="font-semibold text-gray-700">{calcularDiasRestantes(agenda.fecha_reunion)}</span>
+                        </p>
                       </div>
-                      <p className="text-xs md:text-2xl mt-2 text-gray-600 font-normal">{agenda.descripcion}</p>
-                      <p className="text-xs md:text-xl  mt-2">
-                        Estado: <span className={`font-bold ${textColorClass}`}>{agenda.estado}</span>
-                      </p>
-                      <p className="text-xs md:text-xl mt-1">
-                        Días Restantes: <span className="font-semibold text-gray-700">{calcularDiasRestantes(agenda.fecha_reunion)}</span>
-                      </p>
                     </div>
 
                     <div className="flex flex-col items-stretch gap-2 self-end sm:self-auto">
-                      {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
+                      {(rol === 'SUPER' || rol === 'SECRETARIO') && (
                         <Button
                           onClick={(e) => {
                             e.stopPropagation();

@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Mapa from '@/components/asistencia/modal/Mapa';
 import Cargando from '@/components/ui/animations/Cargando';
 import Swal from 'sweetalert2';
@@ -31,6 +31,25 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario }: 
   const [modalMapaAbierto, setModalMapaAbierto] = useState(false);
   const [registrosParaMapa, setRegistrosParaMapa] = useState<{ entrada: any | null, salida: any | null }>({ entrada: null, salida: null });
   const [pendingAction, setPendingAction] = useState<{ tipo: 'Entrada' | 'Salida'; comisionId: string } | null>(null);
+
+  // --- HOOK CORREGIDO PARA DESACTIVAR SCROLL ---
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+
+    if (modalMapaAbierto) {
+      html.classList.add('overflow-hidden');
+      body.classList.add('overflow-hidden');
+    } else {
+      html.classList.remove('overflow-hidden');
+      body.classList.remove('overflow-hidden');
+    }
+    
+    return () => {
+      html.classList.remove('overflow-hidden');
+      body.classList.remove('overflow-hidden');
+    };
+  }, [modalMapaAbierto]);
 
   const registrosDeLaComision = useMemo(() => {
     const registrosFiltrados = registros.filter(r => r.comision_id === comision.id);
@@ -127,7 +146,6 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario }: 
       <div className="mt-4 pt-4 border-t border-gray-200">
         <div className="flex flex-col gap-8 w-full">
           <div className="p-6 bg-white rounded-lg shadow-md space-y-4">
-
             {!salidaMarcada && (
               <>
                 <div className="text-center border-y py-4 space-y-2">
@@ -157,7 +175,7 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario }: 
               </>
             )}
 
-            <div className="mt-6 border-t pt-4">
+            <div >
               <h4 className="text-lg font-semibold mb-2">Registros de la comisión:</h4>
               {(entradaMarcada || salidaMarcada) ? (
                 <>
@@ -189,12 +207,19 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario }: 
       
       <AnimatePresence>
         {modalMapaAbierto && (
-          <Mapa
-            isOpen={modalMapaAbierto}
-            onClose={() => setModalMapaAbierto(false)}
-            registros={registrosParaMapa}
-            nombreUsuario={nombreUsuario}
-          />
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-white backdrop-blur-sm" 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <Mapa
+              isOpen={modalMapaAbierto}
+              onClose={() => setModalMapaAbierto(false)}
+              registros={registrosParaMapa}
+              nombreUsuario={nombreUsuario}
+            />
+          </motion.div>
         )}
       </AnimatePresence>
     </>

@@ -184,6 +184,9 @@ export const ingresarFolioInforme = async (
 
         <label>Cantidad entregada</label>
         <input id="cantidad" class="swal2-input" type="number" min="1" placeholder="Ej. 1" />
+
+        <label>Notas</label>
+        <textarea id="notas" class="swal2-textarea" placeholder="Anotaciones..."></textarea>
       </div>
     `,
     showCancelButton: true,
@@ -196,6 +199,7 @@ export const ingresarFolioInforme = async (
       const lugar = (document.getElementById('lugar') as HTMLSelectElement)?.value;
       const anio = (document.getElementById('anio') as HTMLSelectElement)?.value;
       const cantidad = Number((document.getElementById('cantidad') as HTMLInputElement)?.value);
+      const notas = (document.getElementById('notas') as HTMLTextAreaElement)?.value.trim();
 
       if (!/^\d{4}$/.test(codigoInput)) {
         Swal.showValidationMessage('El código debe contener exactamente 4 dígitos numéricos');
@@ -207,13 +211,13 @@ export const ingresarFolioInforme = async (
         return null;
       }
 
-      return { codigo: `I-${codigoInput}`, lugar, anio, cantidad };
+      return { codigo: `I-${codigoInput}`, lugar, anio, cantidad, nombre_completo: notas };
     },
   });
 
   if (!formValues) return;
 
-  const { codigo, lugar, anio, cantidad} = formValues;
+  const { codigo, lugar, anio, cantidad, nombre_completo } = formValues;
 
   const { data: existente } = await supabase
     .from('beneficiarios_fertilizante')
@@ -237,7 +241,7 @@ export const ingresarFolioInforme = async (
     fecha: new Date().toISOString(),
     cantidad,
     estado: 'Informe',
-    nombre_completo: null,
+    nombre_completo,
     dpi: null,
     telefono: null,
     sexo: null,
