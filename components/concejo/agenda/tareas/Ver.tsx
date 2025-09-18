@@ -228,7 +228,7 @@ export default function VerTareas() {
             </p>
           </div>
         )}
-        {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
+        {(rol === 'SUPER' || rol === 'SECRETARIO') && (
           <div className="flex items-center gap-2 flex-wrap justify-end">
             {agenda && (
               <Button
