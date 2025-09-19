@@ -161,32 +161,37 @@ export default function Asistencia() {
                     <p className="font-semibold text-xl lg:text-3xl">{nombre || 'Usuario no identificado'}</p>
                   </div>
 
-                  <div className="text-center border-y py-4 space-y-2">
-                    <p className="text-xl lg:text-3xl capitalize text-slate-600">
-                      {format(fechaHoraGt, "eeee, dd/MM/yyyy", { locale: es })}
-                    </p>
-                    <p className="font-mono text-xl lg:text-3xl font-bold">
-                      {fechaHoraGt.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                    </p>
-                  </div>
-                  
-                  {!salidaMarcada && (
-                    <div className="w-full">
-                      <textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Agregar notas..." rows={3} className="w-full p-2 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-                    </div>
-                  )}
+                  {
+                    !salidaMarcada && (
+                      <>
+                        <div className="text-center border-y py-4 space-y-2">
+                          <p className="text-xl lg:text-3xl capitalize text-slate-600">
+                            {format(fechaHoraGt, "eeee, dd/MM/yyyy", { locale: es })}
+                          </p>
+                          <p className="font-mono text-xl lg:text-3xl font-bold">
+                            {fechaHoraGt.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                          </p>
+                        </div>
+                        
+                        <div className="w-full">
+                          <textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Agregar notas..." rows={3} className="w-full p-2 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                        </div>
 
-                  <div className="flex gap-4">
-                    {!entradaMarcada ? (
-                      <Button onClick={() => handleIniciarMarcado('Entrada')} disabled={cargando || cargandoGeo} className="w-full bg-green-600 hover:bg-green-700 text-xl lg:text-3xl py-12">
-                        {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Marcando...' : 'Marcar Entrada')}
-                      </Button>
-                    ) : (
-                      <Button onClick={() => handleIniciarMarcado('Salida')} disabled={cargando || salidaMarcada || cargandoGeo} className="w-full bg-red-600 hover:bg-red-700 text-xl lg:text-3xl py-12">
-                        {cargandoGeo ? 'Obteniendo ubicación...' : (salidaMarcada ? 'Salida ya marcada' : (cargando ? 'Marcando...' : 'Marcar Salida'))}
-                      </Button>
-                    )}
-                  </div>
+                        <div className="flex gap-4">
+                          {!entradaMarcada ? (
+                            <Button onClick={() => handleIniciarMarcado('Entrada')} disabled={cargando || cargandoGeo} className="w-full bg-green-600 hover:bg-green-700 text-xl lg:text-3xl py-12">
+                              {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Marcando...' : 'Marcar Entrada')}
+                            </Button>
+                          ) : (
+                            <Button onClick={() => handleIniciarMarcado('Salida')} disabled={cargando || cargandoGeo} className="w-full bg-red-600 hover:bg-red-700 text-xl lg:text-3xl py-12">
+                              {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Marcando...' : 'Marcar Salida')}
+                            </Button>
+                          )}
+                        </div>
+                      </>
+                    )
+                  }
+
 
                   {/* **SECCIÓN DE REGISTROS DE HOY ACTUALIZADA** */}
                   <div className="mt-6 border-t pt-4">

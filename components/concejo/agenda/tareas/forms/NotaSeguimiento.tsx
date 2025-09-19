@@ -151,11 +151,13 @@ export default function NotaSeguimiento({ isOpen, onClose, tarea, estadoAgenda, 
                   <ul className="space-y-4 max-h-[70vh] overflow-y-auto">
                     {data.map((item, index) => (
                       <li key={index} className="flex flex-col px-4 pt-4 rounded-lg bg-gray-100">
-                        <div className="flex items-center w-full mb-2">
-                          <div className="flex-1 h-px bg-gray-300"></div>
-                          <span className="flex-shrink-0 mx-2 text-xs text-gray-500 font-semibold">{index + 1}</span>
-                          <div className="flex-1 h-px bg-gray-300"></div>
-                        </div>
+                      {data.length > 1 && (
+                          <div className="flex items-center w-full mb-2">
+                            <div className="flex-1 h-px bg-gray-300"></div>
+                            <span className="flex-shrink-0 mx-2 text-xs text-gray-500 font-semibold">{index + 1}</span>
+                            <div className="flex-1 h-px bg-gray-300"></div>
+                          </div>
+                        )}
                         
                         <div className="w-full flex-1 mb-4">
                             <p className="text-base leading-relaxed">{item}</p>

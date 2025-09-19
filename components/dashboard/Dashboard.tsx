@@ -68,17 +68,6 @@ export default function Dashboard() {
   const configRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (mostrarPerfilModal) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [mostrarPerfilModal]);
-
-  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (configRef.current && !configRef.current.contains(event.target as Node)) setMostrarOpciones(false);
     };
@@ -109,9 +98,28 @@ export default function Dashboard() {
   return (
     <section className="w-full max-w-4xl mx-auto px-4 md:px-8 pt-2">
       <div className="w-full grid grid-cols-1 sm:grid-cols-7 gap-4 mb-8">
+        <div className="flex rounded-lg border p-1 bg-gray-100 dark:bg-gray-800 h-14 sm:col-span-3 order-1 sm:order-2">
+          <button type="button" onClick={() => setVistaActiva('modulos')} className={`flex-1 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'modulos' ? 'bg-blue-100 text-blue-600 shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+            Módulos
+          </button>
+          <button type="button" onClick={() => setVistaActiva('asistencia')} className={`flex-1 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'asistencia' ? 'bg-green-100 text-green-800 shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+            Asistencia
+          </button>
+          <button type="button" onClick={() => setVistaActiva('comisiones')} className={`flex-1 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'comisiones' ? 'bg-purple-100 text-purple-600 shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
+            Comisiones
+          </button>
+        </div>
+
+        <div className="relative sm:col-span-2 order-2 sm:order-1" onMouseEnter={() => setHoveredButton('profile')} onMouseLeave={() => setHoveredButton(null)}>
+          <Button onClick={() => setMostrarPerfilModal(p => !p)} className="w-full gap-2 text-base md:text-xl h-14 bg-blue-100 text-blue-800 hover:bg-blue-200">
+            <AnimatedIcon iconKey="hroklero" className="w-8 h-8" trigger={hoveredButton === 'profile' ? 'loop' : undefined}  />
+            {mostrarPerfilModal ? 'Ocultar mi perfil' : 'Ver mi perfil'}
+          </Button>
+        </div>
+      
         {(permisos.includes('CONFIGURACION') &&  rol === 'SUPER') && (
           <div 
-            className="relative sm:col-span-2" 
+            className="relative sm:col-span-2 order-3 sm:order-none" 
             ref={configRef}
             onMouseEnter={() => setHoveredButton('config')}
             onMouseLeave={() => setHoveredButton(null)}
@@ -129,26 +137,23 @@ export default function Dashboard() {
             )}
           </div>
         )}
-
-        <div className="relative sm:col-span-2" onMouseEnter={() => setHoveredButton('profile')} onMouseLeave={() => setHoveredButton(null)}>
-          <Button onClick={() => setMostrarPerfilModal(true)} className="w-full gap-2 text-base md:text-xl h-14 bg-blue-100 text-blue-800 hover:bg-blue-200">
-            <AnimatedIcon iconKey="hroklero" className="w-8 h-8" trigger={hoveredButton === 'profile' ? 'loop' : undefined}  />
-            Ver mi perfil
-          </Button>
-        </div>
-
-        <div className="flex rounded-lg border p-1 bg-gray-100 dark:bg-gray-800 h-14 sm:col-span-3">
-          <button type="button" onClick={() => setVistaActiva('modulos')} className={`flex-1 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'modulos' ? 'bg-blue-100 text-blue-600 shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
-            Módulos
-          </button>
-          <button type="button" onClick={() => setVistaActiva('asistencia')} className={`flex-1 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'asistencia' ? 'bg-green-100 text-green-800 shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
-            Asistencia
-          </button>
-          <button type="button" onClick={() => setVistaActiva('comisiones')} className={`flex-1 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'comisiones' ? 'bg-purple-100 text-purple-600 shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
-            Comisiones
-          </button>
-        </div>
       </div>
+
+      <AnimatePresence mode="wait">
+        {mostrarPerfilModal && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="overflow-hidden mt-4"
+          >
+            <div className="bg-white dark:bg-gray-800 p-8 mb-4 rounded-lg border">
+              <VerMiPerfil userData={userData} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence mode="wait">
         {vistaActiva === 'modulos' ? (
@@ -190,25 +195,6 @@ export default function Dashboard() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {mostrarPerfilModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-300/50 backdrop-blur-sm">
-          <motion.div
-            className="relative bg-white dark:bg-gray-800 p-8 pt-16 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-          >
-            <button
-              onClick={() => setMostrarPerfilModal(false)}
-              className="absolute top-4 right-4 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full p-2 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-            </button>
-            <VerMiPerfil userData={userData} />
-          </motion.div>
-        </div>
-      )}
     </section>
   );
 }

@@ -103,7 +103,7 @@ export default function VerTareas() {
               format: [8.5, 13]
           });
 
-          const margin = { top: 0.5, right: 0.5, bottom: 0.2, left: 0.5 };
+          const margin = { top: 0.7, right: 0.5, bottom: 0.2, left: 0.5 };
           const pdfWidth = pdf.internal.pageSize.getWidth();
           const pdfHeight = pdf.internal.pageSize.getHeight();
           const usableWidth = pdfWidth - margin.left - margin.right;
@@ -254,9 +254,9 @@ export default function VerTareas() {
   }
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="p-4 md:p-8 lg:p-12">
       <div ref={printRef}>
-        <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+        <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 mx-auto w-full">
           {!isPrinting && (
             <div>
               <BotonVolver ruta="/protected/concejo/agenda" />
