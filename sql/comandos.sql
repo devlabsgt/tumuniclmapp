@@ -54,6 +54,36 @@ TO authenticated
 USING (true)
 WITH CHECK (true);
 
+--- crear tabla con referencia a usuarios y perfil
+
+CREATE TABLE public.info_contrato (
+    id uuid NOT NULL,
+    user_id uuid PRIMARY KEY REFERENCES auth.users(id),
+    direccion text,
+    telefono text,
+    dpi text,
+    nit text,
+    igss text,
+    cuenta_no text,
+    contrato_no text,
+    cargo text,
+    salario numeric,
+    bonificacion numeric,
+    fecha_ini date,
+    fecha_fin date,
+    renglon text,
+    created_at timestamptz
+);
+
+--- Activar RLS y crear politicas
+
+  ALTER TABLE info_contrato ENABLE ROW LEVEL SECURITY;
+
+  CREATE POLICY "allow_all_authenticated"
+  ON info_contrato
+  FOR ALL
+  TO authenticated
+  USING (true);
 
 --- vistas para el frontend
 CREATE VIEW public.vista_usuarios_detalle AS
