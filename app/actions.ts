@@ -70,7 +70,7 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
     const hora = (horaUTC - 6 + 24) % 24;
     const dia = ahora.getDay();
     const esLaboral = dia >= 1 && dia <= 8;
-    const enHorario = hora >= 6 && hora < 24;
+    const enHorario = hora >= 6 && hora < 22;
 
     if (!esLaboral || !enHorario) {
       const { fecha, formateada } = obtenerFechaYFormatoGT();
