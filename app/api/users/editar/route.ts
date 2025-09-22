@@ -14,7 +14,7 @@ export async function POST(req: Request) {
 
     // 1. Obtener datos actuales
     const { data: perfilActual, error: errorPerfilActual } = await supabaseAdmin
-      .from('usuarios_perfil')
+      .from('info_usuario')
       .select('nombre, activo')
       .eq('user_id', id)
       .single();
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
 
     // 3. Actualizar perfil
     const { error: errorPerfil } = await supabaseAdmin
-      .from('usuarios_perfil')
+      .from('info_usuario')
       .update({ nombre, activo })
       .eq('user_id', id);
 

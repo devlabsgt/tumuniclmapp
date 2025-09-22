@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Users, Settings, FileText } from 'lucide-react';
+import { ArrowRight, Users, Settings, FileText, Clock } from 'lucide-react';
 import { registrarLog } from '@/utils/registrarLog';
 import { motion, AnimatePresence } from 'framer-motion';
 import useUserData from '@/hooks/sesion/useUserData';
@@ -11,6 +11,7 @@ import Asistencia from '@/components/asistencia/Asistencia';
 import VerMiPerfil from '@/components/perfil/Ver';
 import AnimatedIcon from '@/components/ui/AnimatedIcon';
 import MisComisiones from '@/components/comisiones/asistencia/MisComisiones';
+import HorarioSistema from '@/components/admin/sistema/HorarioSistema';
 
 const TODOS_LOS_MODULOS = [
   { 
@@ -63,6 +64,7 @@ export default function Dashboard() {
   const [vistaActiva, setVistaActiva] = useState<Vistas>('modulos');
   const [mostrarOpciones, setMostrarOpciones] = useState(false);
   const [mostrarPerfilModal, setMostrarPerfilModal] = useState(false);
+  const [mostrarHorarioModal, setMostrarHorarioModal] = useState(false); // Nuevo estado para el modal de horario
   const [hoveredModule, setHoveredModule] = useState<string | null>(null);
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
   const configRef = useRef<HTMLDivElement>(null);
@@ -133,6 +135,7 @@ export default function Dashboard() {
                 <Button variant="ghost" className="w-full justify-center gap-2 text-base" onClick={() => router.push('/protected/admin/configs/roles')}> <Users size={20} /> Roles </Button>
                 <Button variant="ghost" className="w-full justify-center gap-2 text-base" onClick={() => router.push('/protected/admin/configs/modulos')}> <Settings size={20} /> Módulos </Button>
                 <Button variant="ghost" className="w-full justify-center gap-2 text-base" onClick={() => router.push('/protected/admin/logs')}> <FileText size={20} /> Logs </Button>
+                <Button variant="ghost" className="w-full justify-center gap-2 text-base" onClick={() => {setMostrarHorarioModal(true); setMostrarOpciones(false);}}> <Clock size={20} /> Horario Sistema </Button>
               </motion.div>
             )}
           </div>
@@ -194,6 +197,10 @@ export default function Dashboard() {
             <MisComisiones />
           </motion.div>
         )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {mostrarHorarioModal && <HorarioSistema onClose={() => setMostrarHorarioModal(false)} />}
       </AnimatePresence>
     </section>
   );

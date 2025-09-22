@@ -92,7 +92,7 @@ SELECT
   u.email,
   p.nombre
 FROM auth.users u
-LEFT JOIN public.usuarios_perfil p ON u.id = p.user_id;
+LEFT JOIN public.info_usuario p ON u.id = p.user_id;
 -- 3. Volver a crear la vista de logs con el email del usuario
 CREATE VIEW public.vista_logs AS
 SELECT

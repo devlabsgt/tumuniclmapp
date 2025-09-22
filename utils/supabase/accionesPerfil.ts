@@ -23,7 +23,7 @@ export const subirAvatar = async (userId: string, file: File, onUpload: () => vo
     .getPublicUrl(fileName);
 
   const { error: updateError } = await supabase
-    .from('usuarios_perfil')
+    .from('info_usuario')
     .update({ avatar_url: publicUrl })
     .eq('user_id', userId);
 

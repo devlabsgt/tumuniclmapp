@@ -19,6 +19,14 @@ const initialState = {
 export function LoginForm() {
   const [state, formAction] = useActionState(signInAction, initialState);
   const [verPassword, setVerPassword] = useState(false);
+  const [emailValue, setEmailValue] = useState(state?.email || '');
+  const [passwordValue, setPasswordValue] = useState('');
+
+  const handleEmailBlur = () => {
+    if (emailValue && !emailValue.includes('@')) {
+      setEmailValue(emailValue.trim() + '@tumuniclm.com');
+    }
+  };
 
   return (
     <div className="w-full flex justify-center items-start bg-white px-4 py-12">
@@ -34,7 +42,6 @@ export function LoginForm() {
               iconKey="yaxbmvvh"
               className="w-[100px] h-[100px]"
                 trigger="loop"
-
             />
           </div>
           <div className="flex flex-col text-left">
@@ -69,23 +76,29 @@ export function LoginForm() {
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm">Correo Electrónico</Label>
               <Input
-                id="email" name="email" type="email"
-                placeholder="su.correo@ejemplo.com"
-                required className="py-4 text-sm"
-                // Usa `defaultValue` para precargar el valor en caso de error
-                defaultValue={state?.email || ''}
+                id="email"
+                name="email"
+                type="email"
+                placeholder="Escriba aquí su usuario"
+                required
+                className="py-4 text-sm"
+                value={emailValue}
+                onChange={(e) => setEmailValue(e.target.value)}
+                onBlur={handleEmailBlur}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm">Contraseña</Label>
               <div className="relative">
                 <Input
-                  id="password" name="password"
+                  id="password"
+                  name="password"
                   type={verPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  required className="py-4 pr-10 text-sm"
-                  // Cambia la key cuando hay un error para resetear el campo
-                  key={state?.message}
+                  placeholder="Escriba aquí su contraseña"
+                  required
+                  className="py-4 pr-10 text-sm"
+                  value={passwordValue}
+                  onChange={(e) => setPasswordValue(e.target.value)}
                 />
                 <button
                   type="button"

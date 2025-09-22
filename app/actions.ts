@@ -12,7 +12,7 @@ import { obtenerFechaYFormatoGT } from '@/utils/formatoFechaGT';
 type FormState = {
   type: 'error' | 'success' | null;
   message: string;
-  email?: string; // Propiedad opcional para guardar el email en caso de error
+  email?: string; 
 };
 
 export const signInAction = async (prevState: FormState, formData: FormData): Promise<FormState> => {
@@ -32,14 +32,13 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
       'User is banned': 'Este usuario ha sido suspendido.',
     };
     const mensaje = traduccionErrores[error.message] || error.message;
-    // Devuelve el email en caso de error
     return { type: 'error', message: mensaje, email: email };
   }
 
   const user = data?.user;
 
   const { data: perfil, error: errorPerfil } = await supabase
-    .from('usuarios_perfil')
+    .from('info_usuario')
     .select('activo')
     .eq('user_id', user?.id)
     .single();
@@ -64,15 +63,31 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
   const rolObject = Array.isArray(relacion?.roles) ? relacion.roles[0] : relacion?.roles;
   const rol = rolObject?.nombre || '';
 
-  if (rol !== 'SUPER' && rol !== 'ADMINISTRADOR') {
-    const ahora = new Date();
-    const horaUTC = ahora.getUTCHours();
-    const hora = (horaUTC - 6 + 24) % 24;
-    const dia = ahora.getDay();
-    const esLaboral = dia >= 1 && dia <= 8;
-    const enHorario = hora >= 6 && hora < 22;
+  // Solo SUPER tiene acceso completo, los demás pasan por la validación de horario.
+  if (rol !== 'SUPER') {
+    const { data: horario, error: errorHorario } = await supabase
+      .from('horarios')
+      .select('*')
+      .eq('nombre', 'Sistema')
+      .maybeSingle();
 
-    if (!esLaboral || !enHorario) {
+    if (errorHorario || !horario) {
+      console.error('Error al encontrar el horario:', errorHorario);
+      await supabase.auth.signOut();
+      return { type: 'error', message: 'Horario no encontrado.', email: email };
+    }
+
+    const ahora = new Date();
+    const diaActual = ahora.getDay();
+    const horaActual = ahora.getHours();
+
+    const [horaEntrada] = horario.entrada.split(':').map(Number);
+    const [horaSalida] = horario.salida.split(':').map(Number);
+
+    const esDiaLaboral = horario.dias.includes(diaActual);
+    const enHorario = horaActual >= horaEntrada && horaActual < horaSalida;
+
+    if (!esDiaLaboral || !enHorario) {
       const { fecha, formateada } = obtenerFechaYFormatoGT();
       await registrarLogServer({
         accion: 'FUERA_DE_HORARIO',
@@ -82,7 +97,7 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
         user_id: user?.id,
       });
       await supabase.auth.signOut();
-      return { type: 'error', message: `Acceso fuera de horario (${formateada}).`, email: email };
+      return { type: 'error', message: `Acceso fuera de horario, contacte con soporte técnico`, email: email };
     }
   }
 
@@ -95,14 +110,13 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
     user_id: user?.id,
   });
 
-  // La redirección es manejada por Next.js y revalida la página automáticamente
-  if (rol === 'SUPER' || rol === 'ADMINISTRADOR') {
+  // Solo SUPER es redirigido a la página de administrador.
+  if (rol === 'SUPER') {
     redirect('/protected/admin');
   } else {
     redirect('/protected/user');
   }
 };
-
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();
@@ -148,11 +162,11 @@ export const signUpAction = async (formData: FormData) => {
   const user_id = data.user.id;
 
   const { error: errorPerfil } = await supabase
-    .from("usuarios_perfil")
+    .from("info_usuario")
     .insert({ user_id, nombre, activo: true });
 
   if (errorPerfil) {
-    console.error('Error al insertar en usuarios_perfil:', errorPerfil);
+    console.error('Error al insertar en info_usuario:', errorPerfil);
     return encodedRedirect("error", "/protected/admin/sign-up", "Error al guardar perfil.");
   }
 

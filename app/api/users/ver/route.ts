@@ -10,7 +10,7 @@ export async function POST(req: Request) {
 
   // 1. Obtener datos del perfil
   const { data: perfil, error: perfilError } = await supabaseAdmin
-    .from('usuarios_perfil')
+    .from('info_usuario')
     .select('*')
     .eq('user_id', id)
     .maybeSingle();
