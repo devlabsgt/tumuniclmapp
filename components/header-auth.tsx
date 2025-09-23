@@ -9,7 +9,7 @@ import { Typewriter } from 'react-simple-typewriter';
 import { signOutAction } from "@/app/actions";
 
 export default function AuthButton() {
-  const { userId, email, rol, cargando } = useUserData();
+  const { userId, nombre, email, rol, cargando } = useUserData();
   const pathname = usePathname();
   
   const esAdmin = rol === 'SUPER' || rol === 'ADMINISTRADOR';
@@ -49,7 +49,8 @@ export default function AuthButton() {
             words={[
               '¡Hoy! Concepción Avanza',
               'Bienvenido al sistema apptumuniclm',
-              email || ''
+              email || '',
+              nombre || ''
             ]}
             loop={1}
             cursor

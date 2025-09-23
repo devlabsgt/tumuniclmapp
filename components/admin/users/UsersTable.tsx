@@ -13,7 +13,7 @@ import {
 } from '@headlessui/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import UsuarioPage from './ver/UsuarioPage';
-import EditarUsuarioForm from './editar/EditarUsuarioForm';
+import UsuarioForm from './forms/UsuarioForm';
 import Swal from 'sweetalert2';
 
 type Props = {
@@ -86,7 +86,7 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
     handleCerrarModal();
   };
 
-  const handleEliminarUsuario = async () => {
+const handleEliminarUsuario = async () => {
     if (!usuarioIdSeleccionado) return;
   
     const result = await Swal.fire({
@@ -103,20 +103,27 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
     if (result.isConfirmed) {
       setEliminando(true);
   
-      const res = await fetch(`/api/users?id=${usuarioIdSeleccionado}`, {
-        method: 'DELETE',
-      });
+      try {
+        const res = await fetch(`/api/users?id=${usuarioIdSeleccionado}`, {
+          method: 'DELETE',
+        });
   
-      if (!res.ok) {
+        if (!res.ok) {
+          const json = await res.json();
+          return Swal.fire('Error', json.error || 'No se pudo eliminar el usuario.', 'error');
+        }
+        
+        const idEliminado = usuarioIdSeleccionado;
+        setListaUsuarios(prevUsuarios => prevUsuarios.filter(u => u.id !== idEliminado));
+        
+        handleCerrarModal();
+        Swal.fire('¡Eliminado!', 'El usuario ha sido eliminado correctamente.', 'success');
+        
+      } catch (error) {
+        Swal.fire('Error', 'Ocurrió un error al intentar eliminar el usuario.', 'error');
+      } finally {
         setEliminando(false);
-        const json = await res.json();
-        return Swal.fire('Error', json.error || 'No se pudo eliminar el usuario.', 'error');
       }
-      
-      const idEliminado = usuarioIdSeleccionado;
-      setListaUsuarios(prevUsuarios => prevUsuarios.filter(u => u.id !== idEliminado));
-      
-      handleCerrarModal();
     }
   };
 
@@ -133,7 +140,7 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
           }}
           className="flex-grow"
         />
-        {(rolActual === 'ADMINISTRADOR' || rolActual === 'SUPER' || rolActual === 'RRHH') && (
+        {(rolActual === 'SECRETARIO' || rolActual === 'SUPER' || rolActual === 'RRHH') && (
           <Button
             onClick={() => router.push("/protected/admin/sign-up")}
             className="px-4 py-2 text-white bg-green-600 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 flex-shrink-0"
@@ -248,9 +255,21 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
           <div className="fixed inset-0 flex items-center justify-center p-4">
             <DialogPanel className="bg-white rounded-lg w-full max-w-lg min-h-[600px] p-6 shadow-xl">
               <div className="flex justify-between items-center mb-6">
-                <Button variant="link" onClick={handleCerrarModal} className="text-blue-600 text-base underline flex-shrink-0">
-                  Salir
-                </Button>
+                <div className="flex gap-4">
+                  <Button variant="link" onClick={handleCerrarModal} className="text-blue-600 text-base underline flex-shrink-0">
+                    Salir
+                  </Button>
+                  {(rolActual === 'SUPER') && (
+                    <Button
+                      variant="link"
+                      onClick={handleEliminarUsuario}
+                      disabled={eliminando}
+                      className="text-red-600 hover:text-red-700 underline flex-shrink-0"
+                    >
+                      {eliminando ? 'Eliminando...' : 'Eliminar'}
+                    </Button>
+                  )}
+                </div>
                 <div className="flex items-center gap-4">
                   <div className="flex rounded-md border p-1 bg-gray-50 flex-shrink-0">
                     <button
@@ -272,16 +291,6 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                       Editar
                     </button>
                   </div>
-                  {(rolActual === 'SUPER') && (
-                    <Button
-                      variant="destructive"
-                      onClick={handleEliminarUsuario}
-                      disabled={eliminando}
-                      className="bg-red-600 hover:bg-red-700 text-white"
-                    >
-                      {eliminando ? 'Eliminando...' : 'Eliminar'}
-                    </Button>
-                  )}
                 </div>
               </div>
               <AnimatePresence mode="wait">
@@ -304,7 +313,7 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <EditarUsuarioForm id={usuarioIdSeleccionado} onSuccess={handleSuccess} onCancel={handleCancel} />
+                    <UsuarioForm id={usuarioIdSeleccionado} onSuccess={handleSuccess} onCancel={handleCancel} />
                   </motion.div>
                 )}
               </AnimatePresence>

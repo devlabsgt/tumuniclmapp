@@ -1,4 +1,4 @@
-"use server";
+'use server';
 
 import { encodedRedirect } from "@/utils/utils";
 import { createClient } from "@/utils/supabase/server";
@@ -76,28 +76,42 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
       await supabase.auth.signOut();
       return { type: 'error', message: 'Horario no encontrado.', email: email };
     }
+    
+    // Solución mejorada: Obtener la hora y el día de Guatemala usando Intl.DateTimeFormat
+    const nowInGT = new Date().toLocaleString('en-US', { timeZone: 'America/Guatemala', hour12: false });
+    const now = new Date(nowInGT);
+    
+    const horaActual = now.getHours();
+    const minutoActual = now.getMinutes();
+    const diaActualIndex = now.getDay();
+    
+    const [horaEntrada, minutoEntrada] = horario.entrada.split(':').map(Number);
+    const [horaSalida, minutoSalida] = horario.salida.split(':').map(Number);
+    
+    const ahoraEnMinutos = horaActual * 60 + minutoActual;
+    const entradaEnMinutos = horaEntrada * 60 + minutoEntrada;
+    const salidaEnMinutos = horaSalida * 60 + minutoSalida;
 
-    const ahora = new Date();
-    const diaActual = ahora.getDay();
-    const horaActual = ahora.getHours();
-
-    const [horaEntrada] = horario.entrada.split(':').map(Number);
-    const [horaSalida] = horario.salida.split(':').map(Number);
-
-    const esDiaLaboral = horario.dias.includes(diaActual);
-    const enHorario = horaActual >= horaEntrada && horaActual < horaSalida;
+    const esDiaLaboral = horario.dias.includes(diaActualIndex);
+    const enHorario = ahoraEnMinutos >= entradaEnMinutos && ahoraEnMinutos < salidaEnMinutos;
+    
+    // Debugging
+    console.log(`Hora actual (GT): ${horaActual}:${minutoActual}`);
+    console.log(`Horario configurado: ${horario.entrada} a ${horario.salida}`);
+    console.log(`Es día laboral: ${esDiaLaboral}`);
+    console.log(`Está en horario: ${enHorario}`);
 
     if (!esDiaLaboral || !enHorario) {
       const { fecha, formateada } = obtenerFechaYFormatoGT();
       await registrarLogServer({
         accion: 'FUERA_DE_HORARIO',
-        descripcion: `Intento de acceso fuera de horario: ${formateada}, ${ahora}`,
+        descripcion: `Intento de acceso fuera de horario: ${formateada}`,
         nombreModulo: 'SISTEMA',
         fecha,
         user_id: user?.id,
       });
       await supabase.auth.signOut();
-      return { type: 'error', message: `Acceso fuera de horario, contacte con soporte técnico`, email: email };
+      return { type: 'error', message: `Acceso fuera de horario. Contacte con Soporte Técnico.`, email: email };
     }
   }
 
@@ -117,6 +131,7 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
     redirect('/protected/user');
   }
 };
+
 export const signUpAction = async (formData: FormData) => {
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();

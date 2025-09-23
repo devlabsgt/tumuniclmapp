@@ -8,8 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import Swal from 'sweetalert2';
-import DRolSelector from '@/components/ui/DRolSelector';
-import PasswordSection from '@/components/admin/sign-up/PasswordSection';
+import PasswordSection from '@/components/admin/users/forms/PasswordForm';
+import { createClient } from '@/utils/supabase/client';
 
 export function SignupForm() {
   const router = useRouter();
@@ -21,11 +21,14 @@ export function SignupForm() {
   const [password, setPassword] = useState('');
   const [confirmar, setConfirmar] = useState('');
   const [rol, setRol] = useState<string>('');
+  const [rolesDisponibles, setRolesDisponibles] = useState<any[]>([]);
 
+  // Lógica de validación manual
   const cumpleRequisitos = /^.*(?=.{8,})(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W]).*$/.test(password);
   const contraseñasCoinciden = password === confirmar;
+  const correoValido = email && email.endsWith('@tumuniclm.com');
   const camposCompletos = nombre && email && password && confirmar && rol;
-  const formularioValido = camposCompletos && contraseñasCoinciden && cumpleRequisitos;
+  const formularioValido = camposCompletos && contraseñasCoinciden && cumpleRequisitos && correoValido;
 
   function traducirError(mensaje: string) {
     const errores: Record<string, string> = {
@@ -38,6 +41,7 @@ export function SignupForm() {
     return errores[mensaje.toLowerCase()] || mensaje;
   }
 
+  // Manejo de errores y éxito con Swal
   useEffect(() => {
     if (error) {
       Swal.fire({
@@ -58,49 +62,83 @@ export function SignupForm() {
     }
   }, [error, success]);
 
+  // Carga de roles desde la base de datos
+  useEffect(() => {
+    const fetchRoles = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase.from('roles').select('id, nombre');
+      if (error) {
+        console.error('Error al obtener roles:', error);
+        return;
+      }
+      setRolesDisponibles(data);
+    };
+    fetchRoles();
+  }, []);
+
+  const handleEmailBlur = () => {
+    if (email && !email.includes('@')) {
+      setEmail(email.trim() + '@tumuniclm.com');
+    }
+  };
+
   return (
-    <div className="flex flex-col w-full max-w-md mx-auto gap-6">
-      <div className="flex justify-start">
+    <div className="flex flex-col w-full max-w-xl mx-auto gap-6">
+
+      <div className="flex justify-between">
         <Button
-          variant="ghost"
+          variant="link"
           onClick={() => router.back()}
-          className="text-blue-600 text-base underline"
         >
           Volver
         </Button>
-        <h1 className="text-3xl font-semibold mb-6">Nuevo Usuario</h1>
+        <h1 className="text-2xl font-semibold mt-2">Nuevo Usuario</h1>
       </div>
 
       <span className="text-gray-600">Ingresa los datos del nuevo usuario</span>
 
-        <form className="flex flex-col gap-4">
-          <div>
-            <Label htmlFor="nombre" className="text-lg mb-1 block">
-              Nombre completo
-            </Label>
-            <Input
-              name="nombre"
-              placeholder="Nombres y Apellidos"
-              required
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              className="h-12 text-lg"
-            />
-          </div>
+      <form className="flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <Label htmlFor="nombre" className="text-sm w-20">Nombre</Label>
+          <Input
+            name="nombre"
+            placeholder="Nombres y Apellidos"
+            required
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            className="h-12 text-sm"
+          />
+        </div>
 
-
-        <div>
-          <Label htmlFor="email" className="text-lg mb-1 block">
-            Correo electrónico
-          </Label>
+        <div className="flex items-center gap-2">
+          <Label htmlFor="email" className="text-sm w-20">Usuario</Label>
           <Input
             name="email"
-            placeholder="tu@correo.com"
+            placeholder="usuario@tumuniclm.com"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="h-12 text-lg"
+            onBlur={handleEmailBlur}
+            className="h-12 text-sm text-bold"
           />
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Label htmlFor="rol" className="text-sm w-20">Rol</Label>
+          <select
+            id="rol"
+            name="rol"
+            value={rol}
+            onChange={(e) => setRol(e.target.value)}
+            className="w-full px-3 py-2 text-sm border rounded-md"
+          >
+            <option value="" className='text-sm'>Seleccione un rol</option>
+            {rolesDisponibles.map((rolItem) => (
+              <option key={rolItem.id} value={rolItem.id}>
+                {rolItem.nombre}
+              </option>
+            ))}
+          </select>
         </div>
 
         <PasswordSection
@@ -109,8 +147,6 @@ export function SignupForm() {
           onPasswordChange={setPassword}
           onConfirmarChange={setConfirmar}
         />
-
-        <DRolSelector rol={rol} onChange={setRol} />
 
         <input type="hidden" name="rol" value={rol} />
 
