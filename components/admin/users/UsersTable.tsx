@@ -140,14 +140,12 @@ const handleEliminarUsuario = async () => {
           }}
           className="flex-grow"
         />
-        {(rolActual === 'SECRETARIO' || rolActual === 'SUPER' || rolActual === 'RRHH') && (
           <Button
             onClick={() => router.push("/protected/admin/sign-up")}
             className="px-4 py-2 text-white bg-green-600 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 flex-shrink-0"
           >
             Nuevo Usuario
           </Button>
-        )}
       </div>
 
       <div className="w-full overflow-x-auto border-[2.5px] border-gray-400">

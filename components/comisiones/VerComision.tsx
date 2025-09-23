@@ -47,10 +47,10 @@ const RegistroAsistenciaItem = ({ asistenteId, registros, nombre, onAbrirMapa }:
           ${tieneRegistros ? 'cursor-pointer hover:bg-slate-200' : 'opacity-70'}`
         }
       >
-        <p className="text-gray-800 font-semibold flex-grow">{nombre}</p>
+        <p className="text-gray-800 font-semibold flex-grow text-xs">{nombre}</p>
         
         {tieneRegistros ? (
-          <div className="flex items-center gap-x-4 text-xs sm:text-sm">
+          <div className="flex items-center gap-x-4 text-xs ">
             <p className="font-mono text-green-600">
               <span className="font-semibold">Entrada:</span> {formatTime(entrada?.created_at)}
             </p>
@@ -64,7 +64,7 @@ const RegistroAsistenciaItem = ({ asistenteId, registros, nombre, onAbrirMapa }:
             )}
           </div>
         ) : (
-          <p className="text-sm text-gray-500">Sin registros de asistencia</p>
+          <p className="text-xs text-gray-500">Sin registros de asistencia</p>
         )}
       </div>
     </div>
@@ -133,25 +133,29 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
   return (
     <div ref={exportRef} className="bg-white rounded-xl shadow-lg p-6 md:p-8 flex flex-col h-full border relative">
       <div className="flex justify-between items-start mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">{comision.titulo}</h2>
+        <h2 className="text-sm font-bold text-gray-800">{comision.titulo}</h2>
+
       </div>
 
       <div className="flex-grow space-y-6 text-gray-700">
         <div className="flex items-center gap-3">
           <Calendar className="h-5 w-5 text-blue-500" />
-          <span className="text-lg capitalize">{fechaHoraAbreviada}</span>
+          <span className="text-xs capitalize">{fechaHoraAbreviada}</span>
         </div>
         
         <div className="border-t pt-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2 mb-2"><User className="h-5 w-5 text-blue-500" /> Encargado</h3>
+          <h3 className="text-xs font-semibold flex items-center gap-2 mb-2"><User className="h-5 w-5 text-blue-500" /> Encargado</h3>
+
           {cargandoRegistros ? <Cargando /> : encargado ? (
-            <RegistroAsistenciaItem asistenteId={encargado.id} registros={registros} nombre={getUsuarioNombre(encargado.id, usuarios)} onAbrirMapa={onAbrirMapa} />
+
+            <RegistroAsistenciaItem  asistenteId={encargado.id} registros={registros} nombre={getUsuarioNombre(encargado.id, usuarios)} onAbrirMapa={onAbrirMapa} />
+          
           ) : <p className="pl-8 text-gray-500">No asignado</p>}
         </div>
 
         {asistentes && asistentes.length > 0 && (
           <div className="border-t pt-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2 mb-2"><Users className="h-5 w-5 text-blue-500" /> Asistentes</h3>
+            <h3 className="text-xs font-semibold flex items-center gap-2 mb-2"><Users className="h-5 w-5 text-blue-500" /> Asistentes</h3>
             {cargandoRegistros ? <Cargando /> : (
               asistentes.map(asistente => (
                 <RegistroAsistenciaItem key={asistente.id} asistenteId={asistente.id} registros={registros} nombre={getUsuarioNombre(asistente.id, usuarios)} onAbrirMapa={onAbrirMapa} />
@@ -162,9 +166,9 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
         
         {comision.comentarios && comision.comentarios.length > 0 && (
           <div className="border-t pt-4 pb-6">
-            <h3 className="text-lg font-semibold flex items-center gap-2 mb-3"><FileText className="h-5 w-5 text-blue-500" /> Notas</h3>
+            <h3 className="text-xs font-semibold flex items-center gap-2 mb-3"><FileText className="h-5 w-5 text-blue-500" /> Notas</h3>
             <ul className="list-disc list-inside pl-8 space-y-1">
-              {comision.comentarios.map((comentario, index) => <li key={index} className="text-gray-800">{comentario}</li>)}
+              {comision.comentarios.map((comentario, index) => <li key={index} className="text-gray-800 text-xs">{comentario}</li>)}
             </ul>
           </div>
         )}
@@ -172,7 +176,6 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
 
       <div className="border-t mt-auto pt-4 exclude-from-capture">
           <div className="flex justify-end items-center gap-4">
-            {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
               <>
                 <Button
                   variant="link"
@@ -191,7 +194,7 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
                   Eliminar
                 </Button>
               </>
-            )}
+           
             <Button
               variant="link"
               onClick={handleExportarComoImagen}
@@ -215,7 +218,7 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
         id="export-logo"
         src="/images/logo-muni.png"
         alt="Logo Municipalidad"
-        className="absolute top-6 right-6 w-52 h-auto"
+        className="absolute top-2 right-6 w-52 h-auto"
         style={{ opacity: 0, pointerEvents: 'none' }}
       />
     </div>

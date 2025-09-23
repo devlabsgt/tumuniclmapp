@@ -6,7 +6,7 @@ import Cargando from '@/components/ui/animations/Cargando'; // 1. Importar el co
 
 export default function SignupPage() {
   return (
-    <Suspense fallback={<Cargando />}> {/* 2. Usar el componente aquí */}
+    <Suspense fallback={<Cargando />}> 
       <VerUsuarios />
     </Suspense>
   );

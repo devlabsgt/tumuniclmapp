@@ -184,45 +184,45 @@ export default function Ver({ usuarios }: VerProps) {
 
   return (
     <>
+
       <div className="bg-white rounded-lg space-y-4 w-full md:px-4">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <Input placeholder="Buscar comisiones..." value={terminoBusqueda} onChange={(e) => setTerminoBusqueda(e.target.value)} className="w-full" />
             <div className='flex gap-2 items-center'>
-                <select value={mesSeleccionado} onChange={(e) => { setMesSeleccionado(Number(e.target.value)); setPaginaActual(1); }} className="text-lg capitalize focus:ring-0">
+                <select value={mesSeleccionado} onChange={(e) => { setMesSeleccionado(Number(e.target.value)); setPaginaActual(1); }} className="text-xs capitalize focus:ring-0">
                     {meses.map((mes, index) => <option key={index} value={index}>{format(setMonth(new Date(), index), 'MMMM', { locale: es })}</option>)}
                 </select>
-                <select value={anioSeleccionado} onChange={(e) => { setAnioSeleccionado(Number(e.target.value)); setPaginaActual(1); }} className="text-lg focus:ring-0">
+                <select value={anioSeleccionado} onChange={(e) => { setAnioSeleccionado(Number(e.target.value)); setPaginaActual(1); }} className="text-xs focus:ring-0">
                     {anios.map(anio => <option key={anio} value={anio}>{anio}</option>)}
                 </select>
             </div>
-            {(rol === 'SUPER' || rol === 'ADMINISTRADOR') && (
             <Button onClick={handleCrearComision} className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white">
                 Crear Comisión
             </Button>
-            )}
+     
         </div>
 
         <div className="border-t pt-4 space-y-4 flex flex-col md:flex-row gap-8">
-          <div className="w-full md:w-2/5 relative">
+          <div className="w-full md:w-2/6 relative">
             {comisionesFiltradas.length === 0 ? (
               <p className="text-center text-gray-500 py-8">No se encontraron comisiones.</p>
             ) : (
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {fechasPaginadas.map(fecha => (
                     <div key={fecha}>
-                      <h4 className="text-md font-bold text-gray-700 mb-2 capitalize">{fecha}</h4>
-                      <div className="space-y-4">
+                      <h4 className="text-xs font-semibold text-gray-700 mb-2 capitalize">{fecha}</h4>
+                      <div className="space-y-2">
                         {comisionesAgrupadasPorFecha[fecha].map(comision => (
-                          <div 
+                         <div 
                             key={comision.id}
                             onClick={() => handleVerComision(comision)}
                             className="bg-slate-50 rounded-xl shadow-lg p-4 transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 cursor-pointer"
-                           >
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <h3 className="text-base font-bold text-gray-800">{comision.titulo}</h3>
-                                <p className="text-sm text-gray-600 mt-1">{format(parseISO(comision.fecha_hora), 'h:mm a', { locale: es })} | {comision.asistentes?.length || 0} asistentes</p>
-                              </div>
+                          >
+                            <div className="flex justify-between items-center">
+                              <h3 className="text-xs font-bold text-gray-800">{comision.titulo}</h3>
+                              <p className="text-xs text-gray-600">
+                                {format(parseISO(comision.fecha_hora), 'h:mm a', { locale: es })} | {comision.asistentes?.length || 0} asistentes
+                              </p>
                             </div>
                           </div>
                         ))}
@@ -232,7 +232,7 @@ export default function Ver({ usuarios }: VerProps) {
                 </div>
             )}
           </div>
-          <div className="w-full md:w-3/5">
+          <div className="w-full md:w-4/6">
             {comisionAVer ? (
               <VerComision 
                 comision={comisionAVer} 
