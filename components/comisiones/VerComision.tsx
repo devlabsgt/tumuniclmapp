@@ -12,7 +12,6 @@ import Cargando from '@/components/ui/animations/Cargando';
 import { toBlob } from 'html-to-image';
 import Swal from 'sweetalert2';
 
-// --- COMPONENTE MODIFICADO ---
 const RegistroAsistenciaItem = ({ asistenteId, registros, nombre, onAbrirMapa }: any) => {
   const registrosDelAsistente = useMemo(() => {
     const registroEntrada = registros.find((r: any) => r.user_id === asistenteId && r.tipo_registro === 'Entrada') || null;
@@ -40,10 +39,10 @@ const RegistroAsistenciaItem = ({ asistenteId, registros, nombre, onAbrirMapa }:
   const tieneRegistros = entrada || salida;
 
   return (
-    <div className="pl-8 py-2">
+    <div className="pl-8 px-2 mt-2">
       <div 
         onClick={tieneRegistros ? () => onAbrirMapa(registrosDelAsistente, nombre) : undefined} 
-        className={`p-3 rounded-md bg-slate-100 flex items-center justify-between flex-wrap gap-x-4 gap-y-2 
+        className={`px-3 py-2 rounded-md bg-slate-100 flex items-center justify-between flex-wrap gap-x-4 
           ${tieneRegistros ? 'cursor-pointer hover:bg-slate-200' : 'opacity-70'}`
         }
       >
@@ -91,7 +90,9 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
   const exportRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  const fechaHoraAbreviada = format(parseISO(comision.fecha_hora), "EEE, d MMM, yyyy | h:mm a", { locale: es });
+  const fechaCompleta = parseISO(comision.fecha_hora.replace(' ', 'T'));
+  const fechaHoraAbreviada = format(fechaCompleta, "EEE, d MMM, yyyy | h:mm a", { locale: es });
+
   const encargado = comision.asistentes?.find(a => a.encargado);
   const asistentes = comision.asistentes?.filter(a => !a.encargado);
   
@@ -132,30 +133,27 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
 
   return (
     <div ref={exportRef} className="bg-white rounded-xl shadow-lg p-6 md:p-8 flex flex-col h-full border relative">
-      <div className="flex justify-between items-start mb-6">
+      <div className="flex justify-between items-start">
         <h2 className="text-sm font-bold text-gray-800">{comision.titulo}</h2>
-
       </div>
 
-      <div className="flex-grow space-y-6 text-gray-700">
-        <div className="flex items-center gap-3">
-          <Calendar className="h-5 w-5 text-blue-500" />
+      <div className="flex-grow text-gray-700">
+        
+        <div className="flex items-center gap-3 my-4">
+          <h3 className="text-xs font-semibold flex items-center gap-2"><Calendar className="h-5 w-5 text-blue-500" /> Fecha y Hora:</h3>
           <span className="text-xs capitalize">{fechaHoraAbreviada}</span>
         </div>
         
-        <div className="border-t pt-4">
-          <h3 className="text-xs font-semibold flex items-center gap-2 mb-2"><User className="h-5 w-5 text-blue-500" /> Encargado</h3>
-
+        <div className="border-t">
+          <h3 className="text-xs font-semibold flex items-center gap-2 mt-2"><User className="h-5 w-5 text-blue-500" /> Encargado</h3>
           {cargandoRegistros ? <Cargando /> : encargado ? (
-
             <RegistroAsistenciaItem  asistenteId={encargado.id} registros={registros} nombre={getUsuarioNombre(encargado.id, usuarios)} onAbrirMapa={onAbrirMapa} />
-          
-          ) : <p className="pl-8 text-gray-500">No asignado</p>}
+          ) : <p className="pl-8 text-gray-500 my-4">No asignado</p>}
         </div>
 
         {asistentes && asistentes.length > 0 && (
-          <div className="border-t pt-4">
-            <h3 className="text-xs font-semibold flex items-center gap-2 mb-2"><Users className="h-5 w-5 text-blue-500" /> Asistentes</h3>
+          <div className="border-t mt-4">
+            <h3 className="text-xs font-semibold flex items-center gap-2 mt-2"><Users className="h-5 w-5 text-blue-500" /> Integrantes</h3>
             {cargandoRegistros ? <Cargando /> : (
               asistentes.map(asistente => (
                 <RegistroAsistenciaItem key={asistente.id} asistenteId={asistente.id} registros={registros} nombre={getUsuarioNombre(asistente.id, usuarios)} onAbrirMapa={onAbrirMapa} />
@@ -165,18 +163,18 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
         )}
         
         {comision.comentarios && comision.comentarios.length > 0 && (
-          <div className="border-t pt-4 pb-6">
-            <h3 className="text-xs font-semibold flex items-center gap-2 mb-3"><FileText className="h-5 w-5 text-blue-500" /> Notas</h3>
-            <ul className="list-disc list-inside pl-8 space-y-1">
-              {comision.comentarios.map((comentario, index) => <li key={index} className="text-gray-800 text-xs">{comentario}</li>)}
+          <div className="border-t mt-4">
+            <h3 className="text-xs font-semibold flex items-center gap-2 my-2"><FileText className="h-5 w-5 text-blue-500" /> Notas</h3>
+            <ul className="list-disc list-inside pl-8 my-4">
+              {comision.comentarios.map((comentario, index) => <li key={index} className="text-gray-800 text-xs my-1">{comentario}</li>)}
             </ul>
           </div>
         )}
       </div>
 
-      <div className="border-t mt-auto pt-4 exclude-from-capture">
-          <div className="flex justify-end items-center gap-4">
-              <>
+      <div className="border-t exclude-from-capture">
+          <div className="flex justify-between items-center gap-4 mt-4 text-xs">
+        
                 <Button
                   variant="link"
                   onClick={() => onEdit(comision)}
@@ -193,8 +191,8 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
                   <Trash2 className="h-4 w-4" />
                   Eliminar
                 </Button>
-              </>
-           
+        
+            
             <Button
               variant="link"
               onClick={handleExportarComoImagen}
@@ -218,7 +216,7 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
         id="export-logo"
         src="/images/logo-muni.png"
         alt="Logo Municipalidad"
-        className="absolute top-2 right-6 w-52 h-auto"
+        className="absolute top-0 right-6 w-48 h-auto"
         style={{ opacity: 0, pointerEvents: 'none' }}
       />
     </div>

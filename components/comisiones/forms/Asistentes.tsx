@@ -113,7 +113,7 @@ export default function Asistentes({ usuarios }: AsistentesProps) {
               <span className="text-sm text-gray-800 font-semibold">
                 {encargadoSeleccionado.nombre}
               </span>
-              <button type="button" onClick={handleQuitarEncargado} className="p-1 text-red-500 hover:text-red-700 rounded-full hover:bg-red-100"><X size={14} /></button>
+              <button type="button" onClick={handleQuitarEncargado} className="p-1 text-red-500 hover:text-red-700 rounded-sm hover:bg-red-100"><X size={14} /></button>
             </li>
           </ul>
         )}
@@ -151,7 +151,7 @@ export default function Asistentes({ usuarios }: AsistentesProps) {
                 <span className="text-sm text-gray-800">
                   {user.nombre}
                 </span>
-                <button type="button" onClick={() => handleQuitarAsistente(user.id)} className="p-1 text-red-500 hover:text-red-700 rounded-full hover:bg-red-100"><X size={14} /></button>
+                <button type="button" onClick={() => handleQuitarAsistente(user.id)} className="p-1 text-red-500 hover:text-red-700 rounded-sm hover:bg-red-100"><X size={14} /></button>
               </li>
             ))}
           </ul>

@@ -86,46 +86,46 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
     handleCerrarModal();
   };
 
-const handleEliminarUsuario = async () => {
-    if (!usuarioIdSeleccionado) return;
-  
-    const result = await Swal.fire({
-      title: '¿Está seguro?',
-      text: 'Esta acción no se puede deshacer.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar',
-    });
-  
-    if (result.isConfirmed) {
-      setEliminando(true);
-  
-      try {
-        const res = await fetch(`/api/users?id=${usuarioIdSeleccionado}`, {
-          method: 'DELETE',
-        });
-  
-        if (!res.ok) {
-          const json = await res.json();
-          return Swal.fire('Error', json.error || 'No se pudo eliminar el usuario.', 'error');
+  const handleEliminarUsuario = async () => {
+      if (!usuarioIdSeleccionado) return;
+    
+      const result = await Swal.fire({
+        title: '¿Está seguro?',
+        text: 'Esta acción no se puede deshacer.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+      });
+    
+      if (result.isConfirmed) {
+        setEliminando(true);
+    
+        try {
+          const res = await fetch(`/api/users?id=${usuarioIdSeleccionado}`, {
+            method: 'DELETE',
+          });
+    
+          if (!res.ok) {
+            const json = await res.json();
+            return Swal.fire('Error', json.error || 'No se pudo eliminar el usuario.', 'error');
+          }
+          
+          const idEliminado = usuarioIdSeleccionado;
+          setListaUsuarios(prevUsuarios => prevUsuarios.filter(u => u.id !== idEliminado));
+          
+          handleCerrarModal();
+          Swal.fire('¡Eliminado!', 'El usuario ha sido eliminado correctamente.', 'success');
+          
+        } catch (error) {
+          Swal.fire('Error', 'Ocurrió un error al intentar eliminar el usuario.', 'error');
+        } finally {
+          setEliminando(false);
         }
-        
-        const idEliminado = usuarioIdSeleccionado;
-        setListaUsuarios(prevUsuarios => prevUsuarios.filter(u => u.id !== idEliminado));
-        
-        handleCerrarModal();
-        Swal.fire('¡Eliminado!', 'El usuario ha sido eliminado correctamente.', 'success');
-        
-      } catch (error) {
-        Swal.fire('Error', 'Ocurrió un error al intentar eliminar el usuario.', 'error');
-      } finally {
-        setEliminando(false);
       }
-    }
-  };
+    };
 
   return (
     <div className="w-full mx-auto md:px-4">
@@ -311,7 +311,12 @@ const handleEliminarUsuario = async () => {
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <UsuarioForm id={usuarioIdSeleccionado} onSuccess={handleSuccess} onCancel={handleCancel} />
+                    <UsuarioForm 
+                      id={usuarioIdSeleccionado} 
+                      onSuccess={handleSuccess} 
+                      onCancel={handleCancel} 
+                      rolUsuarioActual={rolActual || ''}
+                    />
                   </motion.div>
                 )}
               </AnimatePresence>

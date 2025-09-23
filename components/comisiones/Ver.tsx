@@ -118,7 +118,7 @@ export default function Ver({ usuarios }: VerProps) {
 
     if (result.isConfirmed) {
       try {
-        const res = await fetch(`/api/comisiones`, {
+        const res = await fetch(`/api/users/comision`, {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: comisionId }),
@@ -161,9 +161,8 @@ export default function Ver({ usuarios }: VerProps) {
   const comisionesAgrupadasPorFecha = useMemo(() => {
     const grupos: { [key: string]: ComisionConFechaYHoraSeparada[] } = {};
     comisionesFiltradas.forEach(comision => {
-      const fecha = parseISO(comision.fecha_hora);
-      const fechaLocal = new Date(fecha.getTime() - (6 * 60 * 60 * 1000));
-      const fechaClave = format(fechaLocal, 'EEEE, d MMMM yyyy', { locale: es });
+      const fecha = parseISO(comision.fecha_hora.replace(' ', 'T'));
+      const fechaClave = format(fecha, 'EEEE, d MMMM yyyy', { locale: es });
       if (!grupos[fechaClave]) grupos[fechaClave] = [];
       grupos[fechaClave].push(comision);
     });
@@ -173,7 +172,13 @@ export default function Ver({ usuarios }: VerProps) {
   const totalPaginas = Math.ceil(Object.keys(comisionesAgrupadasPorFecha).length / ITEMS_POR_PAGINA);
   const fechasPaginadas = useMemo(() => {
     const fechas = Object.keys(comisionesAgrupadasPorFecha);
-    fechas.sort((a, b) => parseISO(comisionesAgrupadasPorFecha[b][0].fecha_hora).getTime() - parseISO(comisionesAgrupadasPorFecha[a][0].fecha_hora).getTime());
+    fechas.sort((a, b) => {
+        const comisionA = comisionesAgrupadasPorFecha[a][0];
+        const comisionB = comisionesAgrupadasPorFecha[b][0];
+        const fechaA = parseISO(comisionA.fecha_hora.replace(' ', 'T'));
+        const fechaB = parseISO(comisionB.fecha_hora.replace(' ', 'T'));
+        return fechaB.getTime() - fechaA.getTime();
+    });
     const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
     const fin = inicio + ITEMS_POR_PAGINA;
     return fechas.slice(inicio, fin);
@@ -184,7 +189,6 @@ export default function Ver({ usuarios }: VerProps) {
 
   return (
     <>
-
       <div className="bg-white rounded-lg space-y-4 w-full md:px-4">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <Input placeholder="Buscar comisiones..." value={terminoBusqueda} onChange={(e) => setTerminoBusqueda(e.target.value)} className="w-full" />
@@ -199,7 +203,6 @@ export default function Ver({ usuarios }: VerProps) {
             <Button onClick={handleCrearComision} className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white">
                 Crear Comisión
             </Button>
-     
         </div>
 
         <div className="border-t pt-4 space-y-4 flex flex-col md:flex-row gap-8">
@@ -221,7 +224,7 @@ export default function Ver({ usuarios }: VerProps) {
                             <div className="flex justify-between items-center">
                               <h3 className="text-xs font-bold text-gray-800">{comision.titulo}</h3>
                               <p className="text-xs text-gray-600">
-                                {format(parseISO(comision.fecha_hora), 'h:mm a', { locale: es })} | {comision.asistentes?.length || 0} asistentes
+                                {format(parseISO(comision.fecha_hora.replace(' ', 'T')), 'h:mm a', { locale: es })} | {comision.asistentes?.length || 0} Integrantes
                               </p>
                             </div>
                           </div>

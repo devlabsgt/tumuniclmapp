@@ -12,7 +12,7 @@ export default function Comentarios() {
   const { setValue, watch } = useFormContext<ComisionFormData>();
   const [nuevoComentario, setNuevoComentario] = useState('');
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [isOpen, setIsOpen] = useState(false); // Cambiado a 'false' para que inicie cerrado
+  const [isOpen, setIsOpen] = useState(true); 
 
   const comentarios = watch('comentarios') || [];
 
@@ -104,8 +104,8 @@ export default function Comentarios() {
                           >
                             {coment}
                             <div className="flex gap-1">
-                              <button type="button" onClick={() => handleQuitarComentario(index)} className="p-1 text-red-500 hover:text-red-700 rounded-full hover:bg-red-100"><X size={14} /></button>
-                              <button type="button" onClick={() => handleEditarComentario(index)} className="p-1 text-blue-500 hover:text-blue-700 rounded-full hover:bg-blue-100"><Pencil size={14} /></button>
+                              <button type="button" onClick={() => handleQuitarComentario(index)} className="p-1 text-red-500 hover:text-red-700 rounded-sm hover:bg-red-100"><X size={14} /></button>
+                              <button type="button" onClick={() => handleEditarComentario(index)} className="p-1 text-blue-500 hover:text-blue-700 rounded-sm hover:bg-blue-100"><Pencil size={14} /></button>
                             </div>
                           </li>
                         )}

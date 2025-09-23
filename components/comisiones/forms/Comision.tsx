@@ -50,22 +50,25 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = methods;
 
-  useEffect(() => {
+useEffect(() => {
     if (isOpen) {
       if (comisionAEditar) {
         const encargado = comisionAEditar.asistentes?.find((a: Asistente) => a.encargado) || null;
         const asistentes = comisionAEditar.asistentes?.filter((a: Asistente) => !a.encargado) || [];
-        const date = parseISO(comisionAEditar.fecha_hora);
-        const hour = date.getHours();
-        const minute = date.getMinutes();
-        const periodo = hour >= 12 ? 'PM' : 'AM';
-        const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+        
+        const fechaHoraISO = comisionAEditar.fecha_hora.replace(' ', 'T');
+        const date = parseISO(fechaHoraISO);
+
+        const hour12 = parseInt(format(date, 'h'));
+        const minute = parseInt(format(date, 'mm'));
+        const periodo = format(date, 'aa');
+
         reset({
           titulo: comisionAEditar.titulo,
           comentarios: comisionAEditar.comentarios,
-          hora: displayHour.toString().padStart(2, '0'),
+          hora: hour12.toString().padStart(2, '0'),
           minuto: minute.toString().padStart(2, '0'),
-          periodo: periodo,
+          periodo: periodo.toUpperCase() as 'AM' | 'PM', 
           encargadoId: encargado?.id || '',
           userIds: asistentes.map(a => a.id),
         });
@@ -77,17 +80,37 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
     }
   }, [comisionAEditar, isOpen, reset]);
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
+useEffect(() => {
+  if (isOpen) {
+    if (comisionAEditar) {
+      console.log('Datos crudos recibidos de la API:', comisionAEditar);
 
+      const encargado = comisionAEditar.asistentes?.find((a: Asistente) => a.encargado) || null;
+      const asistentes = comisionAEditar.asistentes?.filter((a: Asistente) => !a.encargado) || [];
+      
+      const fechaHoraISO = comisionAEditar.fecha_hora.replace(' ', 'T');
+      const date = parseISO(fechaHoraISO);
+
+      const hour12 = parseInt(format(date, 'h'));
+      const minute = parseInt(format(date, 'mm'));
+      const periodo = format(date, 'aa');
+
+      reset({
+        titulo: comisionAEditar.titulo,
+        comentarios: comisionAEditar.comentarios,
+        hora: hour12.toString().padStart(2, '0'),
+        minuto: minute.toString().padStart(2, '0'),
+        periodo: periodo.toUpperCase() as 'AM' | 'PM', 
+        encargadoId: encargado?.id || '',
+        userIds: asistentes.map(a => a.id),
+      });
+      setFechaSeleccionada(format(date, 'yyyy-MM-dd'));
+    } else {
+      reset({ titulo: '', comentarios: [], hora: '08', minuto: '00', periodo: 'AM', encargadoId: '', userIds: [] });
+      setFechaSeleccionada(format(new Date(), 'yyyy-MM-dd'));
+    }
+  }
+}, [comisionAEditar, isOpen, reset]);
 
   const onSubmit = async (formData: ComisionFormData) => {
     const { encargadoId } = formData;
@@ -96,12 +119,15 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
       return;
     }
 
-    let hour24 = parseInt(formData.hora);
-    if (formData.periodo === 'PM' && hour24 !== 12) hour24 += 12;
-    if (formData.periodo === 'AM' && hour24 === 12) hour24 = 0;
+    let hour24 = parseInt(formData.hora, 10);
+    if (formData.periodo === 'PM' && hour24 < 12) {
+      hour24 += 12;
+    } else if (formData.periodo === 'AM' && hour24 === 12) { // Medianoche
+      hour24 = 0;
+    }
 
     const [year, month, day] = fechaSeleccionada.split('-').map(Number);
-    const fechaHora = new Date(year, month - 1, day, hour24, parseInt(formData.minuto));
+    const fechaHora = new Date(year, month - 1, day, hour24, parseInt(formData.minuto, 10));
 
     const datosComision = {
       titulo: formData.titulo,
@@ -111,6 +137,9 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
       userIds: formData.userIds,
       ...(comisionAEditar && { id: comisionAEditar.id }),
     };
+    
+    console.log('Datos del formulario (react-hook-form):', formData);
+    console.log('Datos procesados y enviados a la API:', datosComision);
 
     try {
       const response = await fetch('/api/users/comision', {
@@ -159,9 +188,8 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
                 <h2 className="text-2xl font-bold text-gray-800">
                   {comisionAEditar ? 'Editar Comisión' : 'Nueva Comisión'}
                 </h2>
-                <Button variant="ghost" className="text-gray-500 hover:bg-gray-200 p-2" onClick={onClose} aria-label="Cerrar">
-                  <X className="h-5 w-5" />
-                </Button>
+                <button type="button" onClick={onClose}  className="p-1 text-red-500 hover:text-red-700 rounded-sm hover:bg-red-100"><X size={14} /></button>
+                
               </div>
               
               <FormProvider {...methods}>
@@ -172,7 +200,7 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
                         <Input {...register("titulo")} placeholder="Título de la Comisión" className={errors.titulo ? 'border-red-500' : ''} />
                         {errors.titulo && <p className="text-sm text-red-500 mt-1">{errors.titulo.message}</p>}
                       </div>
-                      <div className='flex justify-center self-start'>
+                      <div className='flex justify-center'>
                         <Calendario fechaSeleccionada={fechaSeleccionada} onSelectDate={setFechaSeleccionada} />
                       </div>
                       <div>

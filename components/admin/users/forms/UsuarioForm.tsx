@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import PasswordForm from './PasswordForm';
@@ -8,7 +8,6 @@ import Swal from 'sweetalert2';
 import { fetchUsuario } from '@/lib/usuarios/acciones';
 import useSWR from 'swr';
 import { createClient } from '@/utils/supabase/client';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,6 +24,7 @@ interface UserFormProps {
   id: string;
   onSuccess: () => void;
   onCancel: () => void;
+  rolUsuarioActual: string;
 }
 
 const formSchema = z.object({
@@ -65,7 +65,9 @@ const formSchema = z.object({
 });
 
 
-export default function UserForm({ id, onSuccess, onCancel }: UserFormProps) {
+export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: UserFormProps) {
+  console.log('ROL RECIBIDO EN FORMULARIO:', rolUsuarioActual); 
+
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [rol, setRol] = useState<string | null>(null);
@@ -106,6 +108,18 @@ export default function UserForm({ id, onSuccess, onCancel }: UserFormProps) {
 
   const [errors, setErrors] = useState<z.ZodIssue[]>([]);
   
+  const rolesFiltrados = useMemo(() => {
+    // Si el usuario actual es SUPER, muestra todos los roles sin filtrar.
+    if (rolUsuarioActual === 'SUPER') {
+      return rolesDisponibles;
+    }
+    // Para cualquier otro rol, filtra la lista.
+    return rolesDisponibles.filter(rol => {
+      const nombreRol = rol.nombre.trim().toUpperCase();
+      return !nombreRol.includes('SUPER') && !nombreRol.includes('AFILIA');
+    });
+  }, [rolesDisponibles, rolUsuarioActual]);
+
   const hayCambios =
     nombre !== original.nombre ||
     email !== original.email ||
@@ -299,7 +313,7 @@ export default function UserForm({ id, onSuccess, onCancel }: UserFormProps) {
               className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.find(err => err.path[0] === 'rol') ? 'border-red-500' : ''}`}
             >
               <option value="">Seleccione un rol</option>
-              {rolesDisponibles.map((rolItem) => (
+              {rolesFiltrados.map((rolItem) => (
                 <option key={rolItem.id} value={rolItem.id}>
                   {rolItem.nombre}
                 </option>
