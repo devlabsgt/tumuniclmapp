@@ -35,25 +35,25 @@ const RegistroAsistenciaItem = ({ asistenteId, registros, nombre, onAbrirMapa }:
 
   const formatTime = (dateString: string | undefined) => dateString ? format(new Date(dateString), 'h:mm a', { locale: es }) : '---';
 
-  const { entrada, salida } = registrosDelAsistente;
+  const { entrada, salida } = registrosDelAsistente
   const tieneRegistros = entrada || salida;
 
   return (
-    <div className="pl-8 px-2 mt-2">
+    <div className="mt-2">
       <div 
         onClick={tieneRegistros ? () => onAbrirMapa(registrosDelAsistente, nombre) : undefined} 
         className={`px-3 py-2 rounded-md bg-slate-100 flex items-center justify-between flex-wrap gap-x-4 
           ${tieneRegistros ? 'cursor-pointer hover:bg-slate-200' : 'opacity-70'}`
         }
       >
-        <p className="text-gray-800 font-semibold flex-grow text-xs">{nombre}</p>
+        <p className="text-gray-800 font-semibold flex-grow text-xs md:text-sm pb-2">{nombre}</p>
         
         {tieneRegistros ? (
-          <div className="flex items-center gap-x-4 text-xs ">
-            <p className="font-mono text-green-600">
+          <div className="flex items-center gap-x-4 text-xs md:text-sm ">
+            <p className="font-mono">
               <span className="font-semibold">Entrada:</span> {formatTime(entrada?.created_at)}
             </p>
-            <p className="font-mono text-red-600">
+            <p className="font-mono">
               <span className="font-semibold">Salida:</span> {formatTime(salida?.created_at)}
             </p>
             {duracionComision && (
@@ -63,7 +63,7 @@ const RegistroAsistenciaItem = ({ asistenteId, registros, nombre, onAbrirMapa }:
             )}
           </div>
         ) : (
-          <p className="text-xs text-gray-500">Sin registros de asistencia</p>
+          <p className="text-xs md:text-sm text-gray-500">Sin registros de asistencia</p>
         )}
       </div>
     </div>
@@ -132,7 +132,7 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
   };
 
   return (
-    <div ref={exportRef} className="bg-white rounded-xl shadow-lg p-6 md:p-8 flex flex-col h-full border relative">
+    <div ref={exportRef} className="bg-white rounded-xl  px-6 pt-4 pb-6 md:p-8 flex flex-col h-full border relative">
       <div className="flex justify-between items-start">
         <h2 className="text-sm font-bold text-gray-800">{comision.titulo}</h2>
       </div>
@@ -140,12 +140,12 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
       <div className="flex-grow text-gray-700">
         
         <div className="flex items-center gap-3 my-4">
-          <h3 className="text-xs font-semibold flex items-center gap-2"><Calendar className="h-5 w-5 text-blue-500" /> Fecha y Hora:</h3>
-          <span className="text-xs capitalize">{fechaHoraAbreviada}</span>
+          <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2"><Calendar className="h-5 w-5 text-blue-500" /> Fecha y Hora:</h3>
+          <span className="text-xs md:text-sm capitalize">{fechaHoraAbreviada}</span>
         </div>
         
         <div className="border-t">
-          <h3 className="text-xs font-semibold flex items-center gap-2 mt-2"><User className="h-5 w-5 text-blue-500" /> Encargado</h3>
+          <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2 mt-2"><User className="h-5 w-5 text-blue-500" /> Encargado</h3>
           {cargandoRegistros ? <Cargando /> : encargado ? (
             <RegistroAsistenciaItem  asistenteId={encargado.id} registros={registros} nombre={getUsuarioNombre(encargado.id, usuarios)} onAbrirMapa={onAbrirMapa} />
           ) : <p className="pl-8 text-gray-500 my-4">No asignado</p>}
@@ -153,7 +153,7 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
 
         {asistentes && asistentes.length > 0 && (
           <div className="border-t mt-4">
-            <h3 className="text-xs font-semibold flex items-center gap-2 mt-2"><Users className="h-5 w-5 text-blue-500" /> Integrantes</h3>
+            <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2 mt-2"><Users className="h-5 w-5 text-blue-500" /> Integrantes</h3>
             {cargandoRegistros ? <Cargando /> : (
               asistentes.map(asistente => (
                 <RegistroAsistenciaItem key={asistente.id} asistenteId={asistente.id} registros={registros} nombre={getUsuarioNombre(asistente.id, usuarios)} onAbrirMapa={onAbrirMapa} />
@@ -164,16 +164,16 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
         
         {comision.comentarios && comision.comentarios.length > 0 && (
           <div className="border-t mt-4">
-            <h3 className="text-xs font-semibold flex items-center gap-2 my-2"><FileText className="h-5 w-5 text-blue-500" /> Notas</h3>
+            <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2 my-2"><FileText className="h-5 w-5 text-blue-500" /> Notas</h3>
             <ul className="list-disc list-inside pl-8 my-4">
-              {comision.comentarios.map((comentario, index) => <li key={index} className="text-gray-800 text-xs my-1">{comentario}</li>)}
+              {comision.comentarios.map((comentario, index) => <li key={index} className="text-gray-800 text-xs md:text-sm my-1">{comentario}</li>)}
             </ul>
           </div>
         )}
       </div>
 
       <div className="border-t exclude-from-capture">
-          <div className="flex justify-between items-center gap-4 mt-4 text-xs">
+          <div className="flex justify-between items-center gap-4 mt-4 text-xs md:text-sm">
         
                 <Button
                   variant="link"

@@ -50,7 +50,7 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = methods;
 
-useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       if (comisionAEditar) {
         const encargado = comisionAEditar.asistentes?.find((a: Asistente) => a.encargado) || null;
@@ -80,38 +80,6 @@ useEffect(() => {
     }
   }, [comisionAEditar, isOpen, reset]);
 
-useEffect(() => {
-  if (isOpen) {
-    if (comisionAEditar) {
-      console.log('Datos crudos recibidos de la API:', comisionAEditar);
-
-      const encargado = comisionAEditar.asistentes?.find((a: Asistente) => a.encargado) || null;
-      const asistentes = comisionAEditar.asistentes?.filter((a: Asistente) => !a.encargado) || [];
-      
-      const fechaHoraISO = comisionAEditar.fecha_hora.replace(' ', 'T');
-      const date = parseISO(fechaHoraISO);
-
-      const hour12 = parseInt(format(date, 'h'));
-      const minute = parseInt(format(date, 'mm'));
-      const periodo = format(date, 'aa');
-
-      reset({
-        titulo: comisionAEditar.titulo,
-        comentarios: comisionAEditar.comentarios,
-        hora: hour12.toString().padStart(2, '0'),
-        minuto: minute.toString().padStart(2, '0'),
-        periodo: periodo.toUpperCase() as 'AM' | 'PM', 
-        encargadoId: encargado?.id || '',
-        userIds: asistentes.map(a => a.id),
-      });
-      setFechaSeleccionada(format(date, 'yyyy-MM-dd'));
-    } else {
-      reset({ titulo: '', comentarios: [], hora: '08', minuto: '00', periodo: 'AM', encargadoId: '', userIds: [] });
-      setFechaSeleccionada(format(new Date(), 'yyyy-MM-dd'));
-    }
-  }
-}, [comisionAEditar, isOpen, reset]);
-
   const onSubmit = async (formData: ComisionFormData) => {
     const { encargadoId } = formData;
     if (!encargadoId) {
@@ -137,9 +105,6 @@ useEffect(() => {
       userIds: formData.userIds,
       ...(comisionAEditar && { id: comisionAEditar.id }),
     };
-    
-    console.log('Datos del formulario (react-hook-form):', formData);
-    console.log('Datos procesados y enviados a la API:', datosComision);
 
     try {
       const response = await fetch('/api/users/comision', {
@@ -170,14 +135,16 @@ useEffect(() => {
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
+          // --- MODIFICADO: Se quita backdrop-blur y se añade fondo semitransparente ---
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
         >
           <motion.div
-            className="bg-slate-50 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+            // --- MODIFICADO: Se añade borde ---
+            className="bg-slate-50 rounded-xl border border-gray-300 w-full max-w-4xl max-h-[90vh] overflow-y-auto"
             initial={{ scale: 0.9, y: 30 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.9, y: 30 }}
@@ -188,8 +155,7 @@ useEffect(() => {
                 <h2 className="text-2xl font-bold text-gray-800">
                   {comisionAEditar ? 'Editar Comisión' : 'Nueva Comisión'}
                 </h2>
-                <button type="button" onClick={onClose}  className="p-1 text-red-500 hover:text-red-700 rounded-sm hover:bg-red-100"><X size={14} /></button>
-                
+                <button type="button" onClick={onClose} className="p-1 text-red-500 hover:text-red-700 rounded-sm hover:bg-red-100"><X size={14} /></button>
               </div>
               
               <FormProvider {...methods}>
@@ -205,14 +171,17 @@ useEffect(() => {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <select {...register("hora")} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                          {/* --- MODIFICADO: Se quita shadow-sm --- */}
+                          <select {...register("hora")} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                             {Array.from({ length: 12 }, (_, i) => i + 1).map(h => (<option key={h} value={h.toString().padStart(2, '0')}>{h.toString().padStart(2, '0')}</option>))}
                           </select>
                           <span>:</span>
-                          <select {...register("minuto")} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                          {/* --- MODIFICADO: Se quita shadow-sm --- */}
+                          <select {...register("minuto")} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                             {Array.from({ length: 12 }, (_, i) => i * 5).map(m => (<option key={m} value={m.toString().padStart(2, '0')}>{m.toString().padStart(2, '0')}</option>))}
                           </select>
-                          <select {...register("periodo")} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                          {/* --- MODIFICADO: Se quita shadow-sm --- */}
+                          <select {...register("periodo")} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                             <option value="AM">AM</option>
                             <option value="PM">PM</option>
                           </select>

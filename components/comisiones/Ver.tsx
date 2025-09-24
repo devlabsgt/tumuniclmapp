@@ -219,7 +219,7 @@ export default function Ver({ usuarios }: VerProps) {
                          <div 
                             key={comision.id}
                             onClick={() => handleVerComision(comision)}
-                            className="bg-slate-50 rounded-xl shadow-lg p-4 transition-all duration-300 ease-in-out hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+                            className="bg-slate-50 rounded-xl border border-gray-200 p-4 transition-all duration-300 ease-in-out hover:border-gray-400 hover:-translate-y-1 cursor-pointer"
                           >
                             <div className="flex justify-between items-center">
                               <h3 className="text-xs font-bold text-gray-800">{comision.titulo}</h3>

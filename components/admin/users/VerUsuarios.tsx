@@ -57,21 +57,21 @@ export default function VerUsuarios() {
               <button
                 type="button"
                 onClick={() => setVistaActiva('usuarios')}
-                className={`flex-1 px-4 py-2 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'usuarios' ? 'bg-blue-100 text-blue-600 shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                className={`flex-1 px-4 py-2 rounded-md transition-all duration-200 ${vistaActiva === 'usuarios' ? 'bg-blue-100 text-blue-600 shadow text-sm font-bold' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}
               >
                 Usuarios
               </button>
               <button
                 type="button"
                 onClick={() => setVistaActiva('asistencia')}
-                className={`flex-1 px-4 py-2 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'asistencia' ? 'bg-green-100 text-green-800 shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                className={`flex-1 px-4 py-2 rounded-md transition-all duration-200 ${vistaActiva === 'asistencia' ? 'bg-green-100 text-green-800 shadow text-sm font-bold' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}
               >
                 Asistencia
               </button>
               <button
                 type="button"
                 onClick={() => setVistaActiva('comisiones')}
-                className={`flex-1 px-4 py-2 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${vistaActiva === 'comisiones' ? 'bg-purple-100 text-purple-600 shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                className={`flex-1 px-4 py-2 rounded-md transition-all duration-200 ${vistaActiva === 'comisiones' ? 'bg-purple-100 text-purple-600 shadow text-sm font-bold ' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}
               >
                 Comisiones
               </button>
