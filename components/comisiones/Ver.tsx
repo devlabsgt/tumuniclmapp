@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ComisionForm from './forms/Comision';
 import VerComision from './VerComision';
+import VerComisiones from './VerComisiones';
 import { useObtenerComisiones, ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
 import useUserData from '@/hooks/sesion/useUserData';
 import Swal from 'sweetalert2';
@@ -45,6 +46,8 @@ export default function Ver({ usuarios }: VerProps) {
   const [terminoBusqueda, setTerminoBusqueda] = useState('');
   const [comisionAEditar, setComisionAEditar] = useState<ComisionConFechaYHoraSeparada | null>(null);
   const [comisionAVer, setComisionAVer] = useState<ComisionConFechaYHoraSeparada | null>(null);
+  const [comisionesSeleccionadas, setComisionesSeleccionadas] = useState<ComisionConFechaYHoraSeparada[]>([]);
+  const [comisionesAVerMultiples, setComisionesAVerMultiples] = useState<ComisionConFechaYHoraSeparada[] | null>(null);
   
   const [modalMapaAbierto, setModalMapaAbierto] = useState(false);
   const [registrosParaMapa, setRegistrosParaMapa] = useState<{ entrada: any | null, salida: any | null }>({ entrada: null, salida: null });
@@ -70,11 +73,14 @@ export default function Ver({ usuarios }: VerProps) {
 
   useEffect(() => {
     setComisionAVer(null);
+    setComisionesAVerMultiples(null);
+    setComisionesSeleccionadas([]);
   }, [mesSeleccionado, anioSeleccionado, paginaActual]);
 
   const handleCrearComision = () => {
     setComisionAEditar(null);
     setComisionAVer(null);
+    setComisionesAVerMultiples(null);
     setModalAbierto(true);
   };
 
@@ -139,6 +145,7 @@ export default function Ver({ usuarios }: VerProps) {
 
   const handleVerComision = (comision: ComisionConFechaYHoraSeparada) => {
     setComisionAVer(comision);
+    setComisionesAVerMultiples(null);
   };
 
   const handleGuardado = () => { refetch(); };
@@ -148,7 +155,20 @@ export default function Ver({ usuarios }: VerProps) {
     setNombreParaMapa(nombreDeUsuario);
     setModalMapaAbierto(true);
   };
+  
+  const handleSeleccionarComision = (comision: ComisionConFechaYHoraSeparada, isChecked: boolean) => {
+    setComisionesSeleccionadas(prev =>
+      isChecked
+        ? [...prev, comision]
+        : prev.filter(c => c.id !== comision.id)
+    );
+  };
 
+  const handleVerMultiplesComisiones = () => {
+    setComisionAVer(null);
+    setComisionesAVerMultiples([...comisionesSeleccionadas].sort((a, b) => new Date(a.fecha_hora).getTime() - new Date(b.fecha_hora).getTime()));
+  };
+  
   const comisionesFiltradas = useMemo(() => {
     if (loading || error || !comisiones) return [];
     const termino = terminoBusqueda.toLowerCase();
@@ -178,12 +198,34 @@ export default function Ver({ usuarios }: VerProps) {
           const comisionB = comisionesAgrupadasPorFecha[b][0];
           const fechaA = parseISO(comisionA.fecha_hora.replace(' ', 'T'));
           const fechaB = parseISO(comisionB.fecha_hora.replace(' ', 'T'));
-          return fechaA.getTime() - fechaB.getTime(); // Cambiado a orden ascendente
+          return fechaA.getTime() - fechaB.getTime();
       });
       const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
       const fin = inicio + ITEMS_POR_PAGINA;
       return fechas.slice(inicio, fin);
     }, [comisionesAgrupadasPorFecha, paginaActual]);
+
+  const todasComisionesPaginadas = useMemo(() => {
+    return fechasPaginadas.flatMap(fecha => comisionesAgrupadasPorFecha[fecha]);
+  }, [fechasPaginadas, comisionesAgrupadasPorFecha]);
+
+  const todasSeleccionadasEnPagina = useMemo(() => {
+    if (todasComisionesPaginadas.length === 0) return false;
+    return todasComisionesPaginadas.every(c => comisionesSeleccionadas.some(sc => sc.id === c.id));
+  }, [todasComisionesPaginadas, comisionesSeleccionadas]);
+
+  const handleSeleccionarTodo = () => {
+    if (todasSeleccionadasEnPagina) {
+        // Deseleccionar todo
+        const idsADeseleccionar = new Set(todasComisionesPaginadas.map(c => c.id));
+        setComisionesSeleccionadas(prev => prev.filter(c => !idsADeseleccionar.has(c.id)));
+    } else {
+        // Seleccionar todo
+        const nuevasComisionesSeleccionadas = new Set(comisionesSeleccionadas);
+        todasComisionesPaginadas.forEach(c => nuevasComisionesSeleccionadas.add(c));
+        setComisionesSeleccionadas(Array.from(nuevasComisionesSeleccionadas));
+    }
+  };
 
   if (loading || cargando) return <Cargando texto='Cargando...'/>;
   if (error) return <p className="text-center text-red-500 py-8">Error: {error}</p>;
@@ -207,7 +249,17 @@ export default function Ver({ usuarios }: VerProps) {
         </div>
 
         <div className="border-t pt-4 space-y-4 flex flex-col md:flex-row gap-8">
-          <div className="w-full md:w-2/6 relative">
+          <div className="w-full md:w-[20%] relative">
+            <div className="pb-4 exclude-from-capture">
+              <Button 
+                onClick={handleSeleccionarTodo} 
+                variant="outline" 
+                className="w-full border-dashed"
+              >
+                {todasSeleccionadasEnPagina ? "Deseleccionar todo" : "Seleccionar todo"}
+              </Button>
+            </div>
+
             {comisionesFiltradas.length === 0 ? (
               <p className="text-center text-gray-500 py-8">No se encontraron comisiones.</p>
             ) : (
@@ -221,14 +273,24 @@ export default function Ver({ usuarios }: VerProps) {
                           .map(comision => (
                            <div 
                               key={comision.id}
-                              onClick={() => handleVerComision(comision)}
-                              className="bg-slate-50 rounded-xl border border-gray-200 p-4 transition-all duration-300 ease-in-out hover:border-gray-400 hover:-translate-y-1 cursor-pointer"
+                              className="flex items-start gap-2 bg-slate-50 rounded-xl border border-gray-200 p-4 transition-all duration-300 ease-in-out hover:border-gray-400 hover:-translate-y-1"
                             >
-                              <div className="flex justify-between items-center">
-                                <h3 className="text-xs font-bold text-gray-800">{comision.titulo}</h3>
-                                <p className="text-xs text-gray-600">
-                                  {format(parseISO(comision.fecha_hora.replace(' ', 'T')), 'h:mm a', { locale: es })} | {comision.asistentes?.length || 0} Integrantes
-                                </p>
+                              <div className="pt-2">
+                                <input
+                                  type="checkbox"
+                                  checked={comisionesSeleccionadas.some(c => c.id === comision.id)}
+                                  onChange={(e) => handleSeleccionarComision(comision, e.target.checked)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="form-checkbox h-4 w-4 text-blue-600 rounded"
+                                />
+                              </div>
+                              <div onClick={() => handleVerComision(comision)} className="flex-grow flex justify-between items-center cursor-pointer">
+                                <div>
+                                  <h3 className="text-xs font-bold text-gray-800">{comision.titulo}</h3>
+                                  <p className="text-xs text-gray-600">
+                                    {format(parseISO(comision.fecha_hora.replace(' ', 'T')), 'h:mm a', { locale: es })}
+                                  </p>
+                                </div>
                               </div>
                             </div>
                         ))}
@@ -238,8 +300,14 @@ export default function Ver({ usuarios }: VerProps) {
                 </div>
             )}
           </div>
-          <div className="w-full md:w-4/6">
-            {comisionAVer ? (
+          <div className="w-full md:w-[80%]">
+            {comisionesAVerMultiples ? (
+              <VerComisiones
+                  comisiones={comisionesAVerMultiples}
+                  usuarios={usuarios}
+                  onClose={() => { setComisionesAVerMultiples(null); setComisionesSeleccionadas([]); }}
+              />
+            ) : comisionAVer ? (
               <VerComision 
                 comision={comisionAVer} 
                 usuarios={usuarios} 
@@ -280,6 +348,21 @@ export default function Ver({ usuarios }: VerProps) {
               registros={registrosParaMapa}
               nombreUsuario={nombreParaMapa}
             />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {comisionesSeleccionadas.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-8 right-8 z-50"
+          >
+            <Button onClick={handleVerMultiplesComisiones} className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg">
+              Ver Comisiones ({comisionesSeleccionadas.length})
+            </Button>
           </motion.div>
         )}
       </AnimatePresence>
