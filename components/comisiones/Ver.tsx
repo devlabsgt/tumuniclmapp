@@ -170,19 +170,20 @@ export default function Ver({ usuarios }: VerProps) {
   }, [comisionesFiltradas]);
   
   const totalPaginas = Math.ceil(Object.keys(comisionesAgrupadasPorFecha).length / ITEMS_POR_PAGINA);
+
   const fechasPaginadas = useMemo(() => {
-    const fechas = Object.keys(comisionesAgrupadasPorFecha);
-    fechas.sort((a, b) => {
-        const comisionA = comisionesAgrupadasPorFecha[a][0];
-        const comisionB = comisionesAgrupadasPorFecha[b][0];
-        const fechaA = parseISO(comisionA.fecha_hora.replace(' ', 'T'));
-        const fechaB = parseISO(comisionB.fecha_hora.replace(' ', 'T'));
-        return fechaB.getTime() - fechaA.getTime();
-    });
-    const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
-    const fin = inicio + ITEMS_POR_PAGINA;
-    return fechas.slice(inicio, fin);
-  }, [comisionesAgrupadasPorFecha, paginaActual]);
+      const fechas = Object.keys(comisionesAgrupadasPorFecha);
+      fechas.sort((a, b) => {
+          const comisionA = comisionesAgrupadasPorFecha[a][0];
+          const comisionB = comisionesAgrupadasPorFecha[b][0];
+          const fechaA = parseISO(comisionA.fecha_hora.replace(' ', 'T'));
+          const fechaB = parseISO(comisionB.fecha_hora.replace(' ', 'T'));
+          return fechaA.getTime() - fechaB.getTime(); // Cambiado a orden ascendente
+      });
+      const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
+      const fin = inicio + ITEMS_POR_PAGINA;
+      return fechas.slice(inicio, fin);
+    }, [comisionesAgrupadasPorFecha, paginaActual]);
 
   if (loading || cargando) return <Cargando texto='Cargando...'/>;
   if (error) return <p className="text-center text-red-500 py-8">Error: {error}</p>;
@@ -215,19 +216,21 @@ export default function Ver({ usuarios }: VerProps) {
                     <div key={fecha}>
                       <h4 className="text-xs font-semibold text-gray-700 mb-2 capitalize">{fecha}</h4>
                       <div className="space-y-2">
-                        {comisionesAgrupadasPorFecha[fecha].map(comision => (
-                         <div 
-                            key={comision.id}
-                            onClick={() => handleVerComision(comision)}
-                            className="bg-slate-50 rounded-xl border border-gray-200 p-4 transition-all duration-300 ease-in-out hover:border-gray-400 hover:-translate-y-1 cursor-pointer"
-                          >
-                            <div className="flex justify-between items-center">
-                              <h3 className="text-xs font-bold text-gray-800">{comision.titulo}</h3>
-                              <p className="text-xs text-gray-600">
-                                {format(parseISO(comision.fecha_hora.replace(' ', 'T')), 'h:mm a', { locale: es })} | {comision.asistentes?.length || 0} Integrantes
-                              </p>
+                        {comisionesAgrupadasPorFecha[fecha]
+                          .sort((a, b) => a.titulo.localeCompare(b.titulo))
+                          .map(comision => (
+                           <div 
+                              key={comision.id}
+                              onClick={() => handleVerComision(comision)}
+                              className="bg-slate-50 rounded-xl border border-gray-200 p-4 transition-all duration-300 ease-in-out hover:border-gray-400 hover:-translate-y-1 cursor-pointer"
+                            >
+                              <div className="flex justify-between items-center">
+                                <h3 className="text-xs font-bold text-gray-800">{comision.titulo}</h3>
+                                <p className="text-xs text-gray-600">
+                                  {format(parseISO(comision.fecha_hora.replace(' ', 'T')), 'h:mm a', { locale: es })} | {comision.asistentes?.length || 0} Integrantes
+                                </p>
+                              </div>
                             </div>
-                          </div>
                         ))}
                       </div>
                     </div>

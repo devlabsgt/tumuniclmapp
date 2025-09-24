@@ -94,8 +94,14 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
   const fechaHoraAbreviada = format(fechaCompleta, "EEE, d MMM, yyyy | h:mm a", { locale: es });
 
   const encargado = comision.asistentes?.find(a => a.encargado);
-  const asistentes = comision.asistentes?.filter(a => !a.encargado);
-  
+  const asistentes = comision.asistentes
+      ?.filter(a => !a.encargado)
+      .sort((a, b) => {
+        const nombreA = getUsuarioNombre(a.id, usuarios);
+        const nombreB = getUsuarioNombre(b.id, usuarios);
+        return nombreA.localeCompare(nombreB);
+      });
+        
   const handleExportarComoImagen = async () => {
     if (!exportRef.current) return;
 
@@ -165,7 +171,7 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
         {comision.comentarios && comision.comentarios.length > 0 && (
           <div className="border-t mt-4">
             <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2 my-2"><FileText className="h-5 w-5 text-blue-500" /> Notas</h3>
-            <ul className="list-disc list-inside pl-8 my-4">
+            <ul className="list-disc list-inside my-4">
               {comision.comentarios.map((comentario, index) => <li key={index} className="text-gray-800 text-xs md:text-sm my-1">{comentario}</li>)}
             </ul>
           </div>
@@ -173,8 +179,7 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
       </div>
 
       <div className="border-t exclude-from-capture">
-          <div className="flex justify-between items-center gap-4 mt-4 text-xs md:text-sm">
-        
+<div className="flex flex-wrap justify-center md:justify-between items-center gap-4 mt-4 text-xs md:text-sm">        
                 <Button
                   variant="link"
                   onClick={() => onEdit(comision)}
@@ -200,7 +205,7 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
               className="text-blue-600 gap-2"
             >
               <Camera className="h-4 w-4" />
-              {isExporting ? 'Capturando...' : 'Generar Imagen'}
+              {isExporting ? 'Capturando...' : 'Imagen'}
             </Button>
             <Button
               variant="link"

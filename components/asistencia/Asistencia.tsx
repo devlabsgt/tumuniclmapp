@@ -144,10 +144,10 @@ export default function Asistencia() {
     <>
       <div className="w-full max-w-4xl mx-auto">
         <div className="border-b flex mb-4 flex-wrap justify-center">
-          <button onClick={() => setActiveTab('controlResumen')} className={`flex items-center gap-2 px-4 py-2 font-semibold text-sm lg:text-xl  ${activeTab === 'controlResumen' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
+          <button onClick={() => setActiveTab('controlResumen')} className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm ${activeTab === 'controlResumen' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
             <Clock className="h-4 w-4" /> Asistencia
           </button>
-          <button onClick={() => setActiveTab('semanal')} className={`flex items-center gap-2 px-4 py-2 font-semibold text-sm lg:text-xl ${activeTab === 'semanal' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
+          <button onClick={() => setActiveTab('semanal')} className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm ${activeTab === 'semanal' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
             <CalendarCheck className="h-4 w-4" /> Registro Semanal
           </button>
         </div>
@@ -158,44 +158,49 @@ export default function Asistencia() {
               <div className="flex flex-col gap-8 w-full">
                 <div className="p-6 bg-white rounded-lg shadow-md space-y-4">
                   <div className="text-center bg-slate-100 p-3 rounded-md">
-                    <p className="font-semibold text-xl lg:text-3xl">{nombre || 'Usuario no identificado'}</p>
+                    <p className="font-semibold text-xs lg:text-sm">{nombre || 'Usuario no identificado'}</p>
                   </div>
 
                   {
                     !salidaMarcada && (
                       <>
-                        <div className="text-center border-y py-4 space-y-2">
-                          <p className="text-xl lg:text-3xl capitalize text-slate-600">
-                            {format(fechaHoraGt, "eeee, dd/MM/yyyy", { locale: es })}
-                          </p>
-                          <p className="font-mono text-xl lg:text-3xl font-bold">
-                            {fechaHoraGt.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                          </p>
-                        </div>
+                      <div className="text-center border-y py-4">
+                        <p className="text-xs lg:text-sm text-slate-600">
+                          <span className="capitalize">
+                            {format(fechaHoraGt, "eee, dd/MM/yyyy", { locale: es })}
+                          </span>
+                            <span className="font-mono font-bold ml-2">
+                              {format(fechaHoraGt, 'hh:mm:ss aa', { locale: es })}
+                            </span>
+                        </p>
+                      </div>
                         
-                        <div className="w-full">
-                          <textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Agregar notas..." rows={3} className="w-full p-2 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-                        </div>
-
-                        <div className="flex gap-4">
-                          {!entradaMarcada ? (
-                            <Button onClick={() => handleIniciarMarcado('Entrada')} disabled={cargando || cargandoGeo} className="w-full bg-green-600 hover:bg-green-700 text-xl lg:text-3xl py-12">
-                              {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Marcando...' : 'Marcar Entrada')}
-                            </Button>
-                          ) : (
-                            <Button onClick={() => handleIniciarMarcado('Salida')} disabled={cargando || cargandoGeo} className="w-full bg-red-600 hover:bg-red-700 text-xl lg:text-3xl py-12">
-                              {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Marcando...' : 'Marcar Salida')}
-                            </Button>
-                          )}
+                        <div className="flex gap-4 items-stretch">
+                          <textarea 
+                            value={notas} 
+                            onChange={(e) => setNotas(e.target.value)} 
+                            placeholder="Agregar notas..." 
+                            className="w-3/5 md:w-4/5 p-2 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs lg:text-sm"
+                          />
+                          
+                          <div className="w-2/5 md:w-1/5">
+                            {!entradaMarcada ? (
+                              <Button onClick={() => handleIniciarMarcado('Entrada')} disabled={cargando || cargandoGeo} className="w-full h-full bg-green-600 hover:bg-green-700 text-xs lg:text-sm">
+                                {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Marcando...' : 'Marcar Entrada')}
+                              </Button>
+                            ) : (
+                              <Button onClick={() => handleIniciarMarcado('Salida')} disabled={cargando || cargandoGeo} className="w-full h-full bg-red-600 hover:bg-red-700 text-xs lg:text-sm">
+                                {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Marcando...' : 'Marcar Salida')}
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </>
                     )
                   }
 
-
-                  {/* **SECCIÓN DE REGISTROS DE HOY ACTUALIZADA** */}
                   <div className="mt-6 border-t pt-4">
-                    <h4 className="text-xl lg:text-3xl font-semibold mb-2">Registros de hoy:</h4>
+                    <h4 className="text-xs lg:text-sm font-semibold mb-2">Registros de hoy:</h4>
                     {(registroEntradaHoy || registroSalidaHoy) ? (
                       <>
                         <p className="text-xs text-gray-500 mb-2">Haga clic en el registro para ver las ubicaciones.</p>
@@ -203,16 +208,16 @@ export default function Asistencia() {
                           onClick={handleAbrirMapaHoy}
                           className="p-3 rounded-md bg-slate-100 cursor-pointer hover:bg-slate-200 transition-colors flex justify-between items-center gap-4"
                         >
-                          <p className="text-lg lg:text-xl font-mono">
+                          <p className="text-xs lg:text-sm font-mono">
                             <span className="font-semibold">Entrada:</span> {formatTimeWithAMPM(registroEntradaHoy?.created_at)}
                           </p>
-                          <p className="text-lg lg:text-xl font-mono">
+                          <p className="text-xs lg:text-sm font-mono">
                             <span className="font-semibold">Salida:</span> {formatTimeWithAMPM(registroSalidaHoy?.created_at)}
                           </p>
                         </div>
                       </>
                     ) : (
-                      <p className="text-xl lg:text-3xl text-gray-500">No hay registros hoy.</p>
+                      <p className="text-xs lg:text-sm text-gray-500">No hay registros hoy.</p>
                     )}
                   </div>
                 </div>

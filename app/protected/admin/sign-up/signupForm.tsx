@@ -88,7 +88,7 @@ export function SignupForm() {
       <div className="flex justify-between">
         <Button
           variant="link"
-          onClick={() => router.back()}
+          onClick={() => router.push('/protected/admin/users')}
         >
           Volver
         </Button>
