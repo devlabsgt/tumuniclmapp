@@ -16,9 +16,10 @@ interface AsistenciaComisionProps {
   comision: ComisionConFechaYHoraSeparada;
   userId: string;
   nombreUsuario: string;
+  onAsistenciaMarcada: () => void;
 }
 
-export default function AsistenciaComision({ comision, userId, nombreUsuario }: AsistenciaComisionProps) {
+export default function AsistenciaComision({ comision, userId, nombreUsuario, onAsistenciaMarcada }: AsistenciaComisionProps) {
   const { ubicacion, cargando: cargandoGeo, obtenerUbicacion } = useGeolocalizacion();
   const fechaHoraGt = useFechaHora();
   const { registros, loading: cargandoRegistros, fetchRegistros } = useAsistenciaComisionUsuario(userId);
@@ -65,6 +66,7 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario }: 
       Swal.fire('¡Éxito!', `Se ha registrado su ${tipo.toLowerCase()} correctamente.`, 'success');
       fetchRegistros();
       setNotas('');
+      onAsistenciaMarcada();
     } else {
       Swal.fire('Error', 'No se pudo realizar el marcaje.', 'error');
     }
@@ -99,14 +101,14 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario }: 
                   <div className="flex gap-4 items-stretch">
                     <textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Agregar notas (opcional)..." rows={2} className="w-3/5 p-2 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs md:text-sm"/>
                     <Button onClick={() => handleIniciarMarcado('Entrada', comision.id)} disabled={cargandoMarcaje || cargandoGeo} className="w-2/5 bg-green-600 hover:bg-green-700 text-xs py-4 h-auto">
-                      {cargandoGeo ? 'Obteniendo ubicación...' : (cargandoMarcaje ? 'Marcando...' : 'Marcar Entrada')}
+                      {cargandoGeo ? 'Obteniendo ubicación...' : (cargandoMarcaje ? 'Marcando...' : 'Entrada')}
                     </Button>
                   </div>
                 ) : (
                   <div className="flex gap-4 items-stretch">
                     <textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Agregar notas (opcional)..." rows={2} className="w-3/5 p-2 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs md:text-sm"/>
                     <Button onClick={() => handleIniciarMarcado('Salida', comision.id)} disabled={cargandoMarcaje || salidaMarcada || cargandoGeo} className="w-2/5 bg-orange-600 hover:bg-orange-700 text-xs py-4 h-auto">
-                      {cargandoGeo ? 'Obteniendo ubicación...' : (salidaMarcada ? 'Salida ya marcada' : (cargandoMarcaje ? 'Marcando...' : 'Marcar Salida'))}
+                      {cargandoGeo ? 'Obteniendo ubicación...' : (salidaMarcada ? 'Salida ya marcada' : (cargandoMarcaje ? 'Marcando...' : 'Salida'))}
                     </Button>
                   </div>
                 )}

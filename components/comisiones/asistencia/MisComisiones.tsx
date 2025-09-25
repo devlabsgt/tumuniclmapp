@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { format, getMonth, getYear, parseISO, isToday } from 'date-fns';
+import { format, getMonth, getYear, setMonth, parseISO, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
@@ -29,7 +29,7 @@ export default function MisComisiones() {
   const [registrosParaMapa, setRegistrosParaMapa] = useState<any>(null);
   const [nombreUsuarioParaMapa, setNombreUsuarioParaMapa] = useState('');
   const { userId, nombre, cargando: cargandoUsuario } = useUserData();
-  const { comisiones, loading, error } = useObtenerComisiones(mesSeleccionado, anioSeleccionado, userId);
+  const { comisiones, loading, error, refetch } = useObtenerComisiones(mesSeleccionado, anioSeleccionado, userId);
   
   useEffect(() => {
     const html = document.documentElement;
@@ -79,6 +79,10 @@ export default function MisComisiones() {
     setModalMapaAbierto(false);
     setRegistrosParaMapa(null);
     setNombreUsuarioParaMapa('');
+  };
+
+  const handleAsistenciaMarcada = () => {
+    refetch();
   };
 
   if (loading || cargandoUsuario) {
@@ -161,7 +165,14 @@ export default function MisComisiones() {
                                     onDelete={() => {}}
                                   />
                                 </div>
-                                {esHoy && <AsistenciaComision comision={comision} userId={userId!} nombreUsuario={nombre!} />}
+                                {esHoy && (
+                                  <AsistenciaComision 
+                                    comision={comision} 
+                                    userId={userId!} 
+                                    nombreUsuario={nombre!} 
+                                    onAsistenciaMarcada={handleAsistenciaMarcada}
+                                  />
+                                )}
                               </div>
                             </motion.div>
                           )}

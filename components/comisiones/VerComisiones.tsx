@@ -210,3 +210,4 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
     </div>
   );
 }
+
