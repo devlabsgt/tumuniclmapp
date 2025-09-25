@@ -4,7 +4,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
 import { Usuario } from '@/lib/usuarios/esquemas';
 import { Button } from '@/components/ui/button';
-import { X,  Camera } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toBlob } from 'html-to-image';
@@ -98,7 +98,7 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
   };
 
   return (
-    <div ref={exportRef} className="bg-white rounded-xl px-2 pb-6 flex flex-col h-full border relative">
+    <div ref={exportRef} className="bg-white rounded-xl border border-gray-200 px-2 pb-6 flex flex-col h-full relative">
       {/* Contenedor del logo, visible solo para la exportación */}
       <div
         id="export-logo-container"
@@ -110,13 +110,6 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
         className="w-auto mx-auto"
         style={{ height: '200px' }}
         />
-      </div>
-
-      <div className="flex justify-between items-center mb-4 border-b pb-2 exclude-from-capture">
-        <h2 className="text-xl font-bold text-gray-800">Comisiones Seleccionadas</h2>
-        <Button variant="link" onClick={onClose} className="text-gray-600">
-          <X className="h-4 w-4" />
-        </Button>
       </div>
 
       <div className="flex-grow space-y-4 overflow-y-auto">
@@ -139,8 +132,7 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
                     .sort((a, b) => getUsuarioNombre(a.id, usuarios).localeCompare(getUsuarioNombre(b.id, usuarios)));
                   const notasUnicasComision = notasPorComision.get(comision.id) || [];
                   return (
-                    <div key={comision.id} className="bg-gray-50 rounded-md px-3 py-2 border border-gray-200">
-                      <div className="flex flex-wrap -mx-2">
+                    <div key={comision.id} className="bg-gray-50 rounded-md px-3 py-2 border-2 border-gray-400">                      <div className="flex flex-wrap -mx-2">
                         {/* Columna principal a la izquierda (80%) */}
                         <div className="w-[80%] pl-2">
                           <div className="flex items-start">
@@ -154,7 +146,7 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
                             </div>
                             {asistentes && asistentes.length > 0 && (
                               <div className="mt-2 pt-2 border-t">
-                                <div className="grid grid-cols-3 gap-x-2 gap-y-1 text-md text-gray-600">
+                                <div className="grid grid-cols-3 gap-x-2 gap-y-1 text-lg text-gray-600">
                                   {asistentes.map(a => (
                                     <span key={a.id}>{getUsuarioNombre(a.id, usuarios)}</span>
                                   ))}
@@ -187,9 +179,9 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
         {notasGenerales.length > 0 && (
           <div className="border-t m-4 py-4">
             <div className="flex items-center gap-1 mb-4">
-              <span className="text-lg font-semibold text-gray-700">Notas generales:</span>
+              <span className="text-2xl font-semibold text-gray-700">Notas generales:</span>
             </div>
-            <ul className="grid grid-cols-2 gap-x-4 gap-y-1 list-disc list-inside ml-4 text-sm font-semibold text-gray-600">
+            <ul className="grid grid-cols-2 gap-x-4 gap-y-1 list-disc list-inside ml-4 text-lg font-semibold text-gray-600">
               {notasGenerales.map((comentario, index) => <li key={index}>{comentario}</li>)}
             </ul>
           </div>

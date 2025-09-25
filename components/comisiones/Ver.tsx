@@ -249,7 +249,7 @@ export default function Ver({ usuarios }: VerProps) {
         </div>
 
         <div className="border-t pt-4 space-y-4 flex flex-col md:flex-row gap-8">
-          <div className="w-full md:w-[20%] relative">
+          <div className="w-full md:w-[15%] relative">
             <div className="pb-4 exclude-from-capture">
               <Button 
                 onClick={handleSeleccionarTodo} 
@@ -273,7 +273,7 @@ export default function Ver({ usuarios }: VerProps) {
                           .map(comision => (
                            <div 
                               key={comision.id}
-                              className="flex items-start gap-2 bg-slate-50 rounded-xl border border-gray-200 p-4 transition-all duration-300 ease-in-out hover:border-gray-400 hover:-translate-y-1"
+                              className="flex items-start gap-2 bg-slate-50 rounded-xl border border-gray-200 p-2 transition-all duration-300 ease-in-out hover:border-gray-400 hover:-translate-y-1"
                             >
                               <div className="pt-2">
                                 <input
