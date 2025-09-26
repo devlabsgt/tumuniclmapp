@@ -47,6 +47,11 @@ export default function MisComisiones() {
     };
   }, [modalMapaAbierto]);
 
+  useEffect(() => {
+    // Cierra cualquier comisión abierta al cambiar de pestaña.
+    setOpenComisionId(null);
+  }, [vista]);
+
   const comisionesParaMostrar = useMemo(() => {
     let comisionesFiltradas = comisiones || [];
 
@@ -117,20 +122,20 @@ export default function MisComisiones() {
     <>
       <div className="bg-white rounded-lg w-full mx-auto">
         <div className="flex flex-col gap-4 border-b pb-5 mb-5">
-<div className="border-b flex mb-4 flex-wrap justify-center">
-    <button 
-        onClick={() => setVista('proximas')} 
-        className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm ${vista === 'proximas' ? 'border-b-2 border-green-600 text-green-600' : 'text-gray-500'}`}
-    >
-        <CalendarCheck className="h-4 w-4" /> Próximas
-    </button>
-    <button 
-        onClick={() => setVista('terminadas')} 
-        className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm ${vista === 'terminadas' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-500'}`}
-    >
-        <CalendarCheck className="h-4 w-4" /> Terminadas
-    </button>
-</div>
+          <div className="border-b flex mb-4 flex-wrap justify-center">
+              <button 
+                  onClick={() => setVista('proximas')} 
+                  className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm ${vista === 'proximas' ? 'border-b-2 border-green-600 text-green-600' : 'text-gray-500'}`}
+              >
+                  <CalendarCheck className="h-4 w-4" /> Próximas
+              </button>
+              <button 
+                  onClick={() => setVista('terminadas')} 
+                  className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm ${vista === 'terminadas' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-500'}`}
+              >
+                  <CalendarCheck className="h-4 w-4" /> Terminadas
+              </button>
+          </div>
             <div className='flex gap-2 items-center justify-center md:justify-start'>
                 <select value={mesSeleccionado} onChange={(e) => setMesSeleccionado(Number(e.target.value))} className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 capitalize">
                     {meses.map((mes, index) => <option key={index} value={index}>{mes}</option>)}

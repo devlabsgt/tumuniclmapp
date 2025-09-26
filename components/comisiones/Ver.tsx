@@ -54,10 +54,11 @@ export default function Ver({ usuarios }: { usuarios: Usuario[] }) {
   }, [comisiones, comisionAVer]);
 
   useEffect(() => {
+    // Cierra cualquier comisión abierta o seleccionada al cambiar de pestaña
     setComisionAVer(null);
     setComisionesAVerMultiples(null);
     setComisionesSeleccionadas([]);
-  }, [mesSeleccionado, anioSeleccionado]);
+  }, [mesSeleccionado, anioSeleccionado, vista]); // Agregamos 'vista' a las dependencias
 
   const handleCrearComision = () => {
     setComisionAEditar(null);
@@ -117,6 +118,14 @@ export default function Ver({ usuarios }: { usuarios: Usuario[] }) {
         ? prev.filter(c => c.id !== comision.id)
         : [...prev, comision]
     );
+  };
+
+  const handleSeleccionarTodas = () => {
+    if (comisionesSeleccionadas.length === comisionesFiltradas.length) {
+      setComisionesSeleccionadas([]);
+    } else {
+      setComisionesSeleccionadas(comisionesFiltradas);
+    }
   };
 
   const handleVerMultiplesComisiones = () => {
@@ -180,7 +189,7 @@ export default function Ver({ usuarios }: { usuarios: Usuario[] }) {
 
   return (
     <>
-      <div className="bg-white rounded-lg w-full md:px-4">
+      <div className="bg-white rounded-lg w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <AnimatePresence mode="wait">
           {comisionAVer ? (
             <motion.div key="verComision" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -223,13 +232,29 @@ export default function Ver({ usuarios }: { usuarios: Usuario[] }) {
                           {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i - 2).map(anio => <option key={anio} value={anio}>{anio}</option>)}
                       </select>
                   </div>
-                  <Button onClick={handleCrearComision} className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white">
-                      Crear Comisión
-                  </Button>
+                  <div className='flex flex-row gap-2'>
+
+                    <Button onClick={handleCrearComision} className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white">
+                        Crear Comisión
+                    </Button>
+                  </div>
               </div>
 
               <div className="border-t pt-4">
-                <h2 className="text-lg font-semibold text-gray-700 mb-4 text-center">Seleccione una comisión para ver sus detalles</h2>
+<div className="border-t pt-4">
+    <div className="flex items-center justify-between mb-4">
+        <Button 
+            onClick={handleSeleccionarTodas} 
+            variant="outline" 
+            className="flex items-center gap-2 text-xs md:text-sm"
+        >
+            {comisionesSeleccionadas.length === comisionesFiltradas.length ? <CheckSquare size={16} /> : <Square size={16} />}
+            <span>{comisionesSeleccionadas.length === comisionesFiltradas.length ? 'Deseleccionar todos' : 'Seleccionar todos'}</span>
+        </Button>
+                <h2 className="text-lg font-semibold text-gray-700 text-left">Seleccione una comisión para ver sus detalles</h2>
+
+    </div>
+</div>
                 {comisionesFiltradas.length > 0 ? (
                   <div className="space-y-4">
                     {Object.keys(comisionesAgrupadasPorFecha).map(fecha => (
@@ -275,6 +300,16 @@ export default function Ver({ usuarios }: { usuarios: Usuario[] }) {
                                   animate={{ opacity: 1, y: 0 }}
                                   transition={{ duration: 0.3 }}
                                 >
+                                  <button
+                                      onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSeleccionarComision(comision);
+                                      }}
+                                      className="mr-4 p-2 rounded-full hover:bg-gray-200 transition-colors"
+                                      aria-label={isSelected ? "Deseleccionar comisión" : "Seleccionar comisión"}
+                                  >
+                                      {isSelected ? <CheckSquare className="text-blue-600" /> : <Square className="text-gray-400" />}
+                                  </button>
                                   <div onClick={() => handleVerComision(comision)} className="flex-grow flex flex-col">
                                     <span className="font-semibold text-gray-900 text-xs md:text-lg">{comision.titulo}</span>
                                     <span className="text-xs text-gray-500">{formatInTimeZone(fechaComision, "h:mm a", { locale: es, timeZone })}</span>
@@ -289,16 +324,6 @@ export default function Ver({ usuarios }: { usuarios: Usuario[] }) {
                                           <span>{integrantesCount}</span>
                                       </div>
                                   </div>
-                                  <button
-                                      onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleSeleccionarComision(comision);
-                                      }}
-                                      className="ml-4 p-2 rounded-full hover:bg-gray-200 transition-colors"
-                                      aria-label={isSelected ? "Deseleccionar comisión" : "Seleccionar comisión"}
-                                  >
-                                      {isSelected ? <CheckSquare className="text-blue-600" /> : <Square className="text-gray-400" />}
-                                  </button>
                                 </motion.div>
                               );
                           })}
