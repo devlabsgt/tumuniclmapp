@@ -54,7 +54,7 @@ export default function Cargando({ texto = "Cargando..." }: Props) { // Usamos e
     <div className="flex flex-col items-center justify-start min-h-[80vh] w-full pt-20 gap-8">
       <motion.img
         src="/images/logo-muni.png"
-        alt="Emblema Municipal"
+        alt="Logo Municipal"
         className="w-4/5 h-auto md:w-96"
         variants={imageVariants}
         initial="hidden"

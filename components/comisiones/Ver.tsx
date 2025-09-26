@@ -16,7 +16,7 @@ import Swal from 'sweetalert2';
 import Cargando from '@/components/ui/animations/Cargando';
 import Mapa from '@/components/asistencia/modal/Mapa';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, CalendarClock, CheckSquare, Square } from 'lucide-react';
+import { Users, CalendarClock, CheckSquare, Square, CalendarCheck } from 'lucide-react';
 
 // --- FUNCIÓN HELPER ---
 const getUsuarioNombre = (id: string, usuarios: Usuario[]) => {
@@ -39,6 +39,7 @@ export default function Ver({ usuarios }: { usuarios: Usuario[] }) {
 
   const [mesSeleccionado, setMesSeleccionado] = useState(getMonth(new Date()));
   const [anioSeleccionado, setAnioSeleccionado] = useState(getYear(new Date()));
+  const [vista, setVista] = useState<'proximas' | 'terminadas'>('proximas');
 
   const { rol, cargando } = useUserData();
   const { comisiones, loading, error, refetch } = useObtenerComisiones(mesSeleccionado, anioSeleccionado);
@@ -126,12 +127,27 @@ export default function Ver({ usuarios }: { usuarios: Usuario[] }) {
   
   const comisionesFiltradas = useMemo(() => {
     if (loading || error || !comisiones) return [];
+    
+    // Filtro por término de búsqueda
     const termino = terminoBusqueda.toLowerCase();
-    return comisiones.filter(c =>
+    const comisionesPorTermino = comisiones.filter(c =>
       c.titulo.toLowerCase().includes(termino) ||
       c.asistentes?.some(a => (getUsuarioNombre(a.id, usuarios) || '').toLowerCase().includes(termino))
     );
-  }, [comisiones, terminoBusqueda, loading, error, usuarios]);
+
+    // Filtro por vista (próximas o terminadas)
+    const ahora = new Date();
+    return comisionesPorTermino.filter(c => {
+      const fechaComision = parseISO(c.fecha_hora.replace(' ', 'T') + 'Z');
+      const esPasada = isPast(fechaComision) && !isToday(fechaComision);
+      if (vista === 'proximas') {
+        return !esPasada;
+      } else {
+        return esPasada;
+      }
+    });
+
+  }, [comisiones, terminoBusqueda, loading, error, usuarios, vista]);
 
   const comisionesAgrupadasPorFecha = useMemo(() => {
     const grupos: { [key: string]: ComisionConFechaYHoraSeparada[] } = {};
@@ -183,6 +199,20 @@ export default function Ver({ usuarios }: { usuarios: Usuario[] }) {
             </motion.div>
           ) : (
             <motion.div key="lista-principal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+              <div className="border-b flex mb-4 flex-wrap justify-center">
+                  <button 
+                      onClick={() => setVista('proximas')} 
+                      className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm ${vista === 'proximas' ? 'border-b-2 border-green-600 text-green-600' : 'text-gray-500'}`}
+                  >
+                      <CalendarCheck className="h-4 w-4" /> Próximas
+                  </button>
+                  <button 
+                      onClick={() => setVista('terminadas')} 
+                      className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm ${vista === 'terminadas' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-500'}`}
+                  >
+                      <CalendarCheck className="h-4 w-4" /> Terminadas
+                  </button>
+              </div>
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                   <Input placeholder="Buscar por título o integrante..." value={terminoBusqueda} onChange={(e) => setTerminoBusqueda(e.target.value)} className="w-full" />
                   <div className='flex gap-2 items-center'>
@@ -246,17 +276,17 @@ export default function Ver({ usuarios }: { usuarios: Usuario[] }) {
                                   transition={{ duration: 0.3 }}
                                 >
                                   <div onClick={() => handleVerComision(comision)} className="flex-grow flex flex-col">
-                                    <span className="font-semibold text-gray-900">{comision.titulo}</span>
+                                    <span className="font-semibold text-gray-900 text-xs md:text-lg">{comision.titulo}</span>
                                     <span className="text-xs text-gray-500">{formatInTimeZone(fechaComision, "h:mm a", { locale: es, timeZone })}</span>
                                   </div>
-                                  <div onClick={() => handleVerComision(comision)} className="flex items-center gap-6 text-sm text-right">
+                                  <div onClick={() => handleVerComision(comision)} className="flex flex-col md:flex-row items-end md:items-center gap-2 md:gap-6 text-xs text-right">
                                       <div className={`flex items-center gap-2 ${colorDias}`}>
-                                        <CalendarClock size={16} />
-                                        <span>{textoDias}</span>
+                                          <CalendarClock size={16} />
+                                          <span>{textoDias}</span>
                                       </div>
-                                      <div className="flex items-center gap-2 text-gray-600">
-                                        <Users size={16} />
-                                        <span>{integrantesCount} integrante{integrantesCount !== 1 ? 's' : ''}</span>
+                                      <div className="flex items-center gap-2 text-blue-600">
+                                          <Users size={16} />
+                                          <span>{integrantesCount}</span>
                                       </div>
                                   </div>
                                   <button

@@ -52,7 +52,7 @@ export default function LoadingAnimation({ duration }: Props) {
             
             <img
               src="/icon-512x512.png"
-              alt="Emblema Municipal"
+              alt="Logoß Municipal"
               width="512"
               height="512"
               className="w-32 h-32 md:w-48 md:h-48 rounded-2xl"
