@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { MdErrorOutline } from 'react-icons/md';
 import { Button } from '@/components/ui/button';
+import {  LogOut} from 'lucide-react';
 
 export default function NotFoundPage() {
   const router = useRouter();
@@ -14,12 +15,15 @@ export default function NotFoundPage() {
       <p className="text-3xl text-gray-500 mt-2">
         Lo sentimos, no tienes permiso para acceder a la página que buscas.
       </p>
+
       <Button
+        variant="link"
         onClick={() => router.push('/')}
-        className="text-2xl mt-6 p-8"
       >
-        Volver al inicio
+          <LogOut className="mr-2 h-4 w-4 rotate-180" />
+          Volver
       </Button>
+
     </div>
   );
 }

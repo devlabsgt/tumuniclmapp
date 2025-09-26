@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 
 export default function BotonVolver({ ruta }: { ruta: string }) {
   const router = useRouter();
@@ -13,7 +13,7 @@ export default function BotonVolver({ ruta }: { ruta: string }) {
       onClick={() => router.push(ruta)}
       className="text-blue-600 text-xl flex items-center gap-2"
     >
-      <ArrowLeft className="w-5 h-5" />
+      <LogOut className="w-5 h-5 rotate-180" />
       Volver
     </Button>
   );
