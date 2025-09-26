@@ -4,7 +4,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
 import { Usuario } from '@/lib/usuarios/esquemas';
 import { Button } from '@/components/ui/button';
-import { Camera } from 'lucide-react';
+import { Camera, LogOut } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toBlob } from 'html-to-image';
@@ -100,6 +100,28 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
   return (
     <div ref={exportRef} className="bg-white rounded-xl border border-gray-200 px-2 pb-6 flex flex-col h-full relative">
       {/* Contenedor del logo, visible solo para la exportación */}
+      
+      <div className="exclude-from-capture border-t pt-4">
+    <div className="flex flex-wrap justify-start items-center gap-4 mt-4 text-xs md:text-sm">
+      <Button
+        variant="link"
+        onClick={onClose}
+        className="absolute top-0 left-2 exclude-from-capture "
+      >
+          <LogOut className="mr-2 h-4 w-4 rotate-180" />
+          Mostrar todas las comisiones
+      </Button>
+        <Button
+            variant="link"
+            onClick={handleExportarComoImagen}
+            disabled={isExporting}
+            className="text-blue-600 gap-2"
+        >
+            <Camera className="h-4 w-4" />
+            {isExporting ? 'Capturando...' : 'Imagen'}
+        </Button>
+    </div>
+</div>
       <div
         id="export-logo-container"
         className="text-start" // Agregamos la clase 'hidden'
@@ -187,27 +209,7 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
           </div>
         )}
       </div>
-      <div className="exclude-from-capture border-t pt-4">
-        <div className="flex flex-wrap justify-center md:justify-between items-center gap-4 mt-4 text-xs md:text-sm">
-          <Button
-            variant="link"
-            onClick={handleExportarComoImagen}
-            disabled={isExporting}
-            className="text-blue-600 gap-2"
-          >
-            <Camera className="h-4 w-4" />
-            {isExporting ? 'Capturando...' : 'Imagen'}
-          </Button>
-          <Button
-            variant="link"
-            onClick={onClose}
-            className="text-gray-600"
-          >
-            Cerrar
-          </Button>
-        </div>
-      </div>
+
     </div>
   );
 }
-

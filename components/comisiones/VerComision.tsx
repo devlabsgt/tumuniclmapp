@@ -6,7 +6,7 @@ import { es } from 'date-fns/locale';
 import { ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
 import { Usuario } from '@/lib/usuarios/esquemas';
 import { Button } from '@/components/ui/button';
-import { X, Calendar, Users, User, FileText, Camera, Pencil, Trash2 } from 'lucide-react';
+import {  LogOut, Calendar, Users, User, FileText, Camera, Pencil, Trash2 } from 'lucide-react';
 import { useRegistrosDeComision } from '@/hooks/comisiones/useRegistrosDeComision';
 import Cargando from '@/components/ui/animations/Cargando';
 import { toBlob } from 'html-to-image';
@@ -138,9 +138,49 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
   };
 
   return (
-    <div ref={exportRef} className="bg-white rounded-xl  px-6 pt-4 pb-6 md:p-8 flex flex-col h-full border relative">
-      <div className="flex justify-between items-start">
-        <h2 className="text-sm font-bold text-gray-800">{comision.titulo}</h2>
+    <div ref={exportRef} className="bg-white rounded-xl px-6 pt-4 pb-6 md:p-8 flex flex-col h-full  relative">
+
+
+ <div className="border-t pt-2 exclude-from-capture">
+        <div className="flex flex-wrap justify-center md:justify-between items-center gap-4 mt-2 text-xs md:text-sm">        
+            
+                  <Button
+        variant="link"
+        onClick={onClose}
+      >
+          <LogOut className="mr-2 h-4 w-4 rotate-180" />
+          Mostrar todas las comisiones
+      </Button>
+            <Button
+              variant="link"
+              onClick={() => onEdit(comision)}
+              className="text-green-600 gap-2"
+            >
+              <Pencil className="h-4 w-4" />
+              Editar
+            </Button>
+            <Button
+              variant="link"
+              onClick={() => onDelete(comision.id)}
+              className="text-red-600 gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Eliminar
+            </Button>
+            <Button
+              variant="link"
+              onClick={handleExportarComoImagen}
+              disabled={isExporting}
+              className="text-blue-600 gap-2"
+            >
+              <Camera className="h-4 w-4" />
+              {isExporting ? 'Capturando...' : 'Imagen'}
+            </Button>
+          </div>
+      </div>
+      
+      <div className="flex justify-between items-start mt-5">
+        <h2 className="text-sm font-bold text-gray-800 pl-5">{comision.titulo}</h2>
       </div>
 
       <div className="flex-grow text-gray-700">
@@ -178,44 +218,7 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
         )}
       </div>
 
-      <div className="border-t exclude-from-capture">
-<div className="flex flex-wrap justify-center md:justify-between items-center gap-4 mt-4 text-xs md:text-sm">        
-                <Button
-                  variant="link"
-                  onClick={() => onEdit(comision)}
-                  className="text-green-600 gap-2"
-                >
-                  <Pencil className="h-4 w-4" />
-                  Editar
-                </Button>
-                <Button
-                  variant="link"
-                  onClick={() => onDelete(comision.id)}
-                  className="text-red-600 gap-2"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Eliminar
-                </Button>
-        
-            
-            <Button
-              variant="link"
-              onClick={handleExportarComoImagen}
-              disabled={isExporting}
-              className="text-blue-600 gap-2"
-            >
-              <Camera className="h-4 w-4" />
-              {isExporting ? 'Capturando...' : 'Imagen'}
-            </Button>
-            <Button
-              variant="link"
-              onClick={onClose}
-              className="text-gray-600"
-            >
-              Cerrar
-            </Button>
-          </div>
-      </div>
+
 
       <img
         id="export-logo"

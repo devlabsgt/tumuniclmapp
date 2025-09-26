@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { format, getMonth, getYear, setMonth, parseISO } from 'date-fns';
+import { getMonth, getYear, setMonth, parseISO, isPast, isToday, differenceInCalendarDays } from 'date-fns';
+import { toZonedTime, format as formatInTimeZone } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
 import { Usuario } from '@/lib/usuarios/esquemas';
 import { Button } from '@/components/ui/button';
@@ -15,59 +16,39 @@ import Swal from 'sweetalert2';
 import Cargando from '@/components/ui/animations/Cargando';
 import Mapa from '@/components/asistencia/modal/Mapa';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Users, CalendarClock, CheckSquare, Square } from 'lucide-react';
 
-interface VerProps {
-  usuarios: Usuario[];
-}
+// --- FUNCIÓN HELPER ---
+const getUsuarioNombre = (id: string, usuarios: Usuario[]) => {
+  const user = usuarios.find(u => u.id === id);
+  return user ? user.nombre : 'Desconocido';
+};
 
-const meses = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-];
-const anios = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i - 2);
-const ITEMS_POR_PAGINA = 10;
-
-const customToast = (color: string) => Swal.mixin({
-    toast: true,
-    position: 'top-end',
-    showConfirmButton: false,
-    timer: 3000,
-    timerProgressBar: true,
-    didOpen: (toast) => {
-      toast.addEventListener('mouseenter', Swal.stopTimer);
-      toast.addEventListener('mouseleave', Swal.resumeTimer);
-      const progressBar = toast.querySelector('.swal2-timer-progress-bar') as HTMLElement;
-      if (progressBar) progressBar.style.backgroundColor = color;
-    }
-});
-
-export default function Ver({ usuarios }: VerProps) {
+// --- COMPONENTE PRINCIPAL ---
+export default function Ver({ usuarios }: { usuarios: Usuario[] }) {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [terminoBusqueda, setTerminoBusqueda] = useState('');
   const [comisionAEditar, setComisionAEditar] = useState<ComisionConFechaYHoraSeparada | null>(null);
   const [comisionAVer, setComisionAVer] = useState<ComisionConFechaYHoraSeparada | null>(null);
   const [comisionesSeleccionadas, setComisionesSeleccionadas] = useState<ComisionConFechaYHoraSeparada[]>([]);
   const [comisionesAVerMultiples, setComisionesAVerMultiples] = useState<ComisionConFechaYHoraSeparada[] | null>(null);
-  
+
   const [modalMapaAbierto, setModalMapaAbierto] = useState(false);
   const [registrosParaMapa, setRegistrosParaMapa] = useState<{ entrada: any | null, salida: any | null }>({ entrada: null, salida: null });
   const [nombreParaMapa, setNombreParaMapa] = useState('');
 
   const [mesSeleccionado, setMesSeleccionado] = useState(getMonth(new Date()));
   const [anioSeleccionado, setAnioSeleccionado] = useState(getYear(new Date()));
-  const [paginaActual, setPaginaActual] = useState(1);
 
   const { rol, cargando } = useUserData();
   const { comisiones, loading, error, refetch } = useObtenerComisiones(mesSeleccionado, anioSeleccionado);
 
+  const timeZone = 'America/Guatemala';
+
   useEffect(() => {
      if (comisionAVer && comisiones) {
       const comisionActualizada = comisiones.find(c => c.id === comisionAVer.id);
-      if (comisionActualizada) {
-        setComisionAVer(comisionActualizada);
-      } else {
-        setComisionAVer(null);
-      }
+      setComisionAVer(comisionActualizada || null);
     }
   }, [comisiones, comisionAVer]);
 
@@ -75,7 +56,7 @@ export default function Ver({ usuarios }: VerProps) {
     setComisionAVer(null);
     setComisionesAVerMultiples(null);
     setComisionesSeleccionadas([]);
-  }, [mesSeleccionado, anioSeleccionado, paginaActual]);
+  }, [mesSeleccionado, anioSeleccionado]);
 
   const handleCrearComision = () => {
     setComisionAEditar(null);
@@ -86,59 +67,32 @@ export default function Ver({ usuarios }: VerProps) {
 
   const handleEditarComision = (comision: ComisionConFechaYHoraSeparada) => {
     setComisionAEditar(comision);
-    setModalAbierto(true);     
+    setModalAbierto(true);
   };
 
   const handleEliminarComision = async (comisionId: string) => {
-    let timerInterval: NodeJS.Timeout;
     const result = await Swal.fire({
-      title: '¿Está seguro?',
-      text: "Esta acción no se puede deshacer y eliminará todos los registros y asistencias.",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar',
-      didOpen: () => {
-        const confirmButton = Swal.getConfirmButton();
-        if (!confirmButton) return;
-        let timerSeconds = 5;
-        confirmButton.disabled = true;
-        confirmButton.textContent = `Sí, eliminar en (${timerSeconds})`;
-        timerInterval = setInterval(() => {
-          timerSeconds -= 1;
-          if (timerSeconds > 0) {
-            confirmButton.textContent = `Sí, eliminar en (${timerSeconds})`;
-          } else {
-            clearInterval(timerInterval);
-            confirmButton.disabled = false;
-            confirmButton.textContent = 'Sí, eliminar';
-          }
-        }, 1000);
-      },
-      willClose: () => {
-        clearInterval(timerInterval);
-      }
+      title: '¿Está seguro?', text: "Esta acción no se puede deshacer.", icon: 'warning',
+      showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar'
     });
 
     if (result.isConfirmed) {
       try {
         const res = await fetch(`/api/users/comision`, {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'DELETE', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: comisionId }),
         });
         if (res.ok) {
-          customToast('#4CAF50').fire({ icon: 'success', title: 'Eliminada correctamente' });
+          Swal.fire('¡Eliminada!', 'La comisión ha sido eliminada.', 'success');
           refetch();
           setComisionAVer(null);
         } else {
           const { error } = await res.json();
-          customToast('#F27474').fire({ icon: 'error', title: error || 'No se pudo eliminar' });
+          Swal.fire('Error', error || 'No se pudo eliminar la comisión.', 'error');
         }
       } catch (error) {
-        customToast('#F27474').fire({ icon: 'error', title: 'Error de conexión' });
+        Swal.fire('Error', 'Hubo un problema de conexión.', 'error');
       }
     }
   };
@@ -156,17 +110,18 @@ export default function Ver({ usuarios }: VerProps) {
     setModalMapaAbierto(true);
   };
   
-  const handleSeleccionarComision = (comision: ComisionConFechaYHoraSeparada, isChecked: boolean) => {
+  const handleSeleccionarComision = (comision: ComisionConFechaYHoraSeparada) => {
     setComisionesSeleccionadas(prev =>
-      isChecked
-        ? [...prev, comision]
-        : prev.filter(c => c.id !== comision.id)
+      prev.some(c => c.id === comision.id)
+        ? prev.filter(c => c.id !== comision.id)
+        : [...prev, comision]
     );
   };
 
   const handleVerMultiplesComisiones = () => {
     setComisionAVer(null);
-    setComisionesAVerMultiples([...comisionesSeleccionadas].sort((a, b) => new Date(a.fecha_hora).getTime() - new Date(b.fecha_hora).getTime()));
+    const comisionesOrdenadas = [...comisionesSeleccionadas].sort((a,b) => new Date(a.fecha_hora).getTime() - new Date(b.fecha_hora).getTime())
+    setComisionesAVerMultiples(comisionesOrdenadas);
   };
   
   const comisionesFiltradas = useMemo(() => {
@@ -174,156 +129,162 @@ export default function Ver({ usuarios }: VerProps) {
     const termino = terminoBusqueda.toLowerCase();
     return comisiones.filter(c =>
       c.titulo.toLowerCase().includes(termino) ||
-      c.asistentes?.some(a => (a.nombre || '').toLowerCase().includes(termino))
+      c.asistentes?.some(a => (getUsuarioNombre(a.id, usuarios) || '').toLowerCase().includes(termino))
     );
-  }, [comisiones, terminoBusqueda, loading, error]);
+  }, [comisiones, terminoBusqueda, loading, error, usuarios]);
 
   const comisionesAgrupadasPorFecha = useMemo(() => {
     const grupos: { [key: string]: ComisionConFechaYHoraSeparada[] } = {};
     comisionesFiltradas.forEach(comision => {
-      const fecha = parseISO(comision.fecha_hora.replace(' ', 'T'));
-      const fechaClave = format(fecha, 'EEEE, d MMMM yyyy', { locale: es });
+      const fechaUtc = parseISO(comision.fecha_hora.replace(' ', 'T') + 'Z');
+      const fechaLocal = toZonedTime(fechaUtc, timeZone);
+      const fechaClave = formatInTimeZone(fechaLocal, 'EEEE, d MMMM yyyy', { locale: es, timeZone });
+      
       if (!grupos[fechaClave]) grupos[fechaClave] = [];
       grupos[fechaClave].push(comision);
     });
-    return grupos;
+
+    const fechasOrdenadas = Object.keys(grupos).sort((a, b) => {
+      const fechaA = parseISO(grupos[a][0].fecha_hora.replace(' ', 'T'));
+      const fechaB = parseISO(grupos[b][0].fecha_hora.replace(' ', 'T'));
+      return fechaA.getTime() - fechaB.getTime();
+    });
+
+    const gruposOrdenados: { [key: string]: ComisionConFechaYHoraSeparada[] } = {};
+    fechasOrdenadas.forEach(fecha => {
+        gruposOrdenados[fecha] = grupos[fecha];
+    });
+
+    return gruposOrdenados;
   }, [comisionesFiltradas]);
-  
-  const totalPaginas = Math.ceil(Object.keys(comisionesAgrupadasPorFecha).length / ITEMS_POR_PAGINA);
 
-  const fechasPaginadas = useMemo(() => {
-      const fechas = Object.keys(comisionesAgrupadasPorFecha);
-      fechas.sort((a, b) => {
-          const comisionA = comisionesAgrupadasPorFecha[a][0];
-          const comisionB = comisionesAgrupadasPorFecha[b][0];
-          const fechaA = parseISO(comisionA.fecha_hora.replace(' ', 'T'));
-          const fechaB = parseISO(comisionB.fecha_hora.replace(' ', 'T'));
-          return fechaA.getTime() - fechaB.getTime();
-      });
-      const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
-      const fin = inicio + ITEMS_POR_PAGINA;
-      return fechas.slice(inicio, fin);
-    }, [comisionesAgrupadasPorFecha, paginaActual]);
 
-  const todasComisionesPaginadas = useMemo(() => {
-    return fechasPaginadas.flatMap(fecha => comisionesAgrupadasPorFecha[fecha]);
-  }, [fechasPaginadas, comisionesAgrupadasPorFecha]);
-
-  const todasSeleccionadasEnPagina = useMemo(() => {
-    if (todasComisionesPaginadas.length === 0) return false;
-    return todasComisionesPaginadas.every(c => comisionesSeleccionadas.some(sc => sc.id === c.id));
-  }, [todasComisionesPaginadas, comisionesSeleccionadas]);
-
-  const handleSeleccionarTodo = () => {
-    if (todasSeleccionadasEnPagina) {
-        // Deseleccionar todo
-        const idsADeseleccionar = new Set(todasComisionesPaginadas.map(c => c.id));
-        setComisionesSeleccionadas(prev => prev.filter(c => !idsADeseleccionar.has(c.id)));
-    } else {
-        // Seleccionar todo
-        const nuevasComisionesSeleccionadas = new Set(comisionesSeleccionadas);
-        todasComisionesPaginadas.forEach(c => nuevasComisionesSeleccionadas.add(c));
-        setComisionesSeleccionadas(Array.from(nuevasComisionesSeleccionadas));
-    }
-  };
-
-  if (loading || cargando) return <Cargando texto='Cargando...'/>;
-  if (error) return <p className="text-center text-red-500 py-8">Error: {error}</p>;
+  if (loading || cargando) return <Cargando texto='Cargando comisiones...'/>;
+  if (error) return <p className="text-center text-red-500 py-8">Error al cargar datos: {error}</p>;
 
   return (
     <>
-      <div className="bg-white rounded-lg space-y-4 w-full md:px-4">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <Input placeholder="Buscar comisiones..." value={terminoBusqueda} onChange={(e) => setTerminoBusqueda(e.target.value)} className="w-full" />
-            <div className='flex gap-2 items-center'>
-                <select value={mesSeleccionado} onChange={(e) => { setMesSeleccionado(Number(e.target.value)); setPaginaActual(1); }} className="text-xs capitalize focus:ring-0">
-                    {meses.map((mes, index) => <option key={index} value={index}>{format(setMonth(new Date(), index), 'MMMM', { locale: es })}</option>)}
-                </select>
-                <select value={anioSeleccionado} onChange={(e) => { setAnioSeleccionado(Number(e.target.value)); setPaginaActual(1); }} className="text-xs focus:ring-0">
-                    {anios.map(anio => <option key={anio} value={anio}>{anio}</option>)}
-                </select>
-            </div>
-            <Button onClick={handleCrearComision} className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white">
-                Crear Comisión
-            </Button>
-        </div>
-
-        <div className="border-t pt-4 space-y-4 flex flex-col md:flex-row gap-8">
-          <div className="w-full md:w-[15%] relative">
-            <div className="pb-4 exclude-from-capture">
-              <Button 
-                onClick={handleSeleccionarTodo} 
-                variant="outline" 
-                className="w-full border-dashed"
-              >
-                {todasSeleccionadasEnPagina ? "Deseleccionar todo" : "Seleccionar todo"}
-              </Button>
-            </div>
-
-            {comisionesFiltradas.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">No se encontraron comisiones.</p>
-            ) : (
-                <div className="space-y-4">
-                  {fechasPaginadas.map(fecha => (
-                    <div key={fecha}>
-                      <h4 className="text-xs font-semibold text-gray-700 mb-2 capitalize">{fecha}</h4>
-                      <div className="space-y-2">
-                        {comisionesAgrupadasPorFecha[fecha]
-                          .sort((a, b) => a.titulo.localeCompare(b.titulo))
-                          .map(comision => (
-                           <div 
-                              key={comision.id}
-                              className="flex items-start gap-2 bg-slate-50 rounded-xl border border-gray-200 p-2 transition-all duration-300 ease-in-out hover:border-gray-400 hover:-translate-y-1"
-                            >
-                              <div className="pt-2">
-                                <input
-                                  type="checkbox"
-                                  checked={comisionesSeleccionadas.some(c => c.id === comision.id)}
-                                  onChange={(e) => handleSeleccionarComision(comision, e.target.checked)}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="form-checkbox h-4 w-4 text-blue-600 rounded"
-                                />
-                              </div>
-                              <div onClick={() => handleVerComision(comision)} className="flex-grow flex justify-between items-center cursor-pointer">
-                                <div>
-                                  <h3 className="text-xs font-bold text-gray-800">{comision.titulo}</h3>
-                                  <p className="text-xs text-gray-600">
-                                    {format(parseISO(comision.fecha_hora.replace(' ', 'T')), 'h:mm a', { locale: es })}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-            )}
-          </div>
-          <div className="w-full md:w-[80%]">
-            {comisionesAVerMultiples ? (
+      <div className="bg-white rounded-lg w-full md:px-4">
+        <AnimatePresence mode="wait">
+          {comisionAVer ? (
+            <motion.div key="verComision" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <VerComision 
+                comision={comisionAVer} usuarios={usuarios} rol={rol}
+                onClose={() => setComisionAVer(null)} onAbrirMapa={handleAbrirMapa}
+                onEdit={handleEditarComision} onDelete={handleEliminarComision}
+              />
+            </motion.div>
+          ) : comisionesAVerMultiples ? (
+             <motion.div key="multiples" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <VerComisiones
-                  comisiones={comisionesAVerMultiples}
-                  usuarios={usuarios}
+                  comisiones={comisionesAVerMultiples} usuarios={usuarios}
                   onClose={() => { setComisionesAVerMultiples(null); setComisionesSeleccionadas([]); }}
               />
-            ) : comisionAVer ? (
-              <VerComision 
-                comision={comisionAVer} 
-                usuarios={usuarios} 
-                rol={rol}
-                onClose={() => setComisionAVer(null)} 
-                onAbrirMapa={handleAbrirMapa}
-                onEdit={handleEditarComision}
-                onDelete={handleEliminarComision}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-96 bg-gray-50 rounded-lg border-2 border-dashed">
-                <p className="text-gray-500">Seleccione una comisión para ver sus detalles</p>
+            </motion.div>
+          ) : (
+            <motion.div key="lista-principal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                  <Input placeholder="Buscar por título o integrante..." value={terminoBusqueda} onChange={(e) => setTerminoBusqueda(e.target.value)} className="w-full" />
+                  <div className='flex gap-2 items-center'>
+                      <select value={mesSeleccionado} onChange={(e) => { setMesSeleccionado(Number(e.target.value)); }} className="text-sm capitalize focus:ring-0 border-gray-300 rounded-md">
+                          {Array.from({length: 12}).map((_, index) => <option key={index} value={index}>{formatInTimeZone(setMonth(new Date(), index), 'MMMM', { locale: es })}</option>)}
+                      </select>
+                      <select value={anioSeleccionado} onChange={(e) => { setAnioSeleccionado(Number(e.target.value)); }} className="text-sm focus:ring-0 border-gray-300 rounded-md">
+                          {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i - 2).map(anio => <option key={anio} value={anio}>{anio}</option>)}
+                      </select>
+                  </div>
+                  <Button onClick={handleCrearComision} className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white">
+                      Crear Comisión
+                  </Button>
               </div>
-            )}
-          </div>
-        </div>
+
+              <div className="border-t pt-4">
+                <h2 className="text-lg font-semibold text-gray-700 mb-4 text-center">Seleccione una comisión para ver sus detalles</h2>
+                {comisionesFiltradas.length > 0 ? (
+                  <div className="space-y-4">
+                    {Object.keys(comisionesAgrupadasPorFecha).map(fecha => (
+                      <div key={fecha}>
+                        <h3 className="text-sm font-bold text-gray-800 mb-2 capitalize sticky top-0 bg-white/80 backdrop-blur-sm py-2">{fecha}</h3>
+                        <div className="space-y-2">
+                          {comisionesAgrupadasPorFecha[fecha].map(comision => {
+                              const ahora = new Date();
+                              const fechaUtc = parseISO(comision.fecha_hora.replace(' ', 'T') + 'Z');
+                              const fechaComision = toZonedTime(fechaUtc, timeZone);
+                              
+                              // --- LÓGICA DE CÁLCULO MEJORADA ---
+                              const diasRestantes = differenceInCalendarDays(fechaComision, ahora);
+                              const integrantesCount = comision.asistentes?.length || 0;
+                              const isSelected = comisionesSeleccionadas.some(c => c.id === comision.id);
+
+                              let textoDias = '';
+                              let colorDias = 'text-gray-500';
+
+                              if (isToday(fechaComision)) {
+                                textoDias = 'Hoy';
+                                colorDias = 'text-blue-600 font-semibold';
+                              } else if (diasRestantes === 1) {
+                                textoDias = 'Mañana';
+                                colorDias = 'text-green-600';
+                              } else if (diasRestantes > 1) {
+                                textoDias = `En ${diasRestantes} días`;
+                                colorDias = 'text-green-600';
+                              } else if (diasRestantes === -1) {
+                                textoDias = 'Ayer';
+                                colorDias = 'text-red-500';
+                              } else if (diasRestantes < -1) {
+                                textoDias = `Hace ${Math.abs(diasRestantes)} días`;
+                                colorDias = 'text-red-500';
+                              }
+
+                              return (
+                                <motion.div
+                                  key={comision.id}
+                                  layout
+                                  className={`w-full p-4 border rounded-lg cursor-pointer flex justify-between items-center transition-all duration-300 ${isSelected ? 'bg-blue-50 border-blue-400 shadow-md' : 'hover:bg-gray-50'}`}
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ duration: 0.3 }}
+                                >
+                                  <div onClick={() => handleVerComision(comision)} className="flex-grow flex flex-col">
+                                    <span className="font-semibold text-gray-900">{comision.titulo}</span>
+                                    <span className="text-xs text-gray-500">{formatInTimeZone(fechaComision, "h:mm a", { locale: es, timeZone })}</span>
+                                  </div>
+                                  <div onClick={() => handleVerComision(comision)} className="flex items-center gap-6 text-sm text-right">
+                                      <div className={`flex items-center gap-2 ${colorDias}`}>
+                                        <CalendarClock size={16} />
+                                        <span>{textoDias}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2 text-gray-600">
+                                        <Users size={16} />
+                                        <span>{integrantesCount} integrante{integrantesCount !== 1 ? 's' : ''}</span>
+                                      </div>
+                                  </div>
+                                  <button
+                                      onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSeleccionarComision(comision);
+                                      }}
+                                      className="ml-4 p-2 rounded-full hover:bg-gray-200 transition-colors"
+                                      aria-label={isSelected ? "Deseleccionar comisión" : "Seleccionar comisión"}
+                                  >
+                                      {isSelected ? <CheckSquare className="text-blue-600" /> : <Square className="text-gray-400" />}
+                                  </button>
+                                </motion.div>
+                              );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border-2 border-dashed">
+                    <p className="text-gray-500">No se encontraron comisiones para este período.</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <ComisionForm 
@@ -351,9 +312,9 @@ export default function Ver({ usuarios }: VerProps) {
           </motion.div>
         )}
       </AnimatePresence>
-
+      
       <AnimatePresence>
-        {comisionesSeleccionadas.length > 0 && (
+        {comisionesSeleccionadas.length > 0 && !comisionAVer && !comisionesAVerMultiples && (
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
@@ -361,7 +322,7 @@ export default function Ver({ usuarios }: VerProps) {
             className="fixed bottom-8 right-8 z-50"
           >
             <Button onClick={handleVerMultiplesComisiones} className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg">
-              Ver Comisiones ({comisionesSeleccionadas.length})
+              Ver {comisionesSeleccionadas.length} comision{comisionesSeleccionadas.length > 1 ? 'es' : ''}
             </Button>
           </motion.div>
         )}

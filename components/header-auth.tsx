@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowLeft, LogOut } from 'lucide-react';
+import { Power, LogOut } from 'lucide-react';
 import useUserData from '@/hooks/sesion/useUserData';
 import Swal from 'sweetalert2';
 import { Typewriter } from 'react-simple-typewriter';
@@ -74,12 +74,12 @@ export default function AuthButton() {
           className={`${linkStyles} justify-end text-red-500 hover:text-red-600`}
         >
           Cerrar Sesión
-          <LogOut className="h-4 w-4 ml-2" />
+          <Power className="h-4 w-4 ml-2" />
         </button>
         
         {!esInicio && (
           <Link href={rutaInicio} className={`${linkStyles} justify-end text-blue-600`}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <LogOut className="h-4 w-4 mr-2 rotate-180" />
             Volver a Inicio
           </Link>
         )}
