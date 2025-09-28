@@ -62,7 +62,7 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
 
   const rolObject = Array.isArray(relacion?.roles) ? relacion.roles[0] : relacion?.roles;
   const rol = rolObject?.nombre || '';
-
+/*
   // Solo SUPER tiene acceso completo, los demás pasan por la validación de horario.
   if (rol !== 'SUPER') {
     const { data: horario, error: errorHorario } = await supabase
@@ -95,11 +95,7 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
     const esDiaLaboral = horario.dias.includes(diaActualIndex);
     const enHorario = ahoraEnMinutos >= entradaEnMinutos && ahoraEnMinutos < salidaEnMinutos;
     
-    // Debugging
-    console.log(`Hora actual (GT): ${horaActual}:${minutoActual}`);
-    console.log(`Horario configurado: ${horario.entrada} a ${horario.salida}`);
-    console.log(`Es día laboral: ${esDiaLaboral}`);
-    console.log(`Está en horario: ${enHorario}`);
+    
 
     if (!esDiaLaboral || !enHorario) {
       const { fecha, formateada } = obtenerFechaYFormatoGT();
@@ -114,7 +110,7 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
       return { type: 'error', message: `Acceso fuera de horario. Contacte con Soporte Técnico.`, email: email };
     }
   }
-
+*/
   const { fecha } = obtenerFechaYFormatoGT();
   await registrarLogServer({
     accion: 'INICIO_SESION',
