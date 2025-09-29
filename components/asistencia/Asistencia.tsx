@@ -8,7 +8,7 @@ import { format, isSameDay } from 'date-fns';
 import { Clock, CalendarCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Calendario from './Calendario';
-import Mapa from './modal/Mapa';
+import Mapa from '../ui/modals/Mapa';
 import Cargando from '@/components/ui/animations/Cargando';
 import Swal from 'sweetalert2';
 

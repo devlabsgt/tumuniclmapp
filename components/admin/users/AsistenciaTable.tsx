@@ -4,7 +4,7 @@ import React, { useState, Fragment, useMemo, KeyboardEvent, useEffect } from 're
 import { Button } from '@/components/ui/button';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
-import Mapa from '@/components/asistencia/modal/Mapa';
+import Mapa from '@/components/ui/modals/Mapa';
 import { Asistencia} from '@/lib/asistencia/esquemas';
 import {
   format, isSameDay, eachDayOfInterval, isToday, addDays, startOfWeek, endOfWeek, isWithinInterval, getYear, getMonth

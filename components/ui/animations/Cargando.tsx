@@ -3,10 +3,9 @@
 import { motion } from 'framer-motion';
 
 interface Props {
-  texto?: string; // Hacemos la prop opcional con '?'
+  texto?: string;
 }
 
-// Variantes para el contenedor principal del texto
 const textContainerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -18,7 +17,6 @@ const textContainerVariants = {
   },
 };
 
-// Variantes para cada letra del texto
 const letterVariants = {
   hidden: { 
     opacity: 0, 
@@ -35,7 +33,6 @@ const letterVariants = {
   },
 };
 
-// Variantes para la animación de la imagen
 const imageVariants = {
   hidden: { opacity: 0, scale: 0.8 },
   visible: {
@@ -48,20 +45,19 @@ const imageVariants = {
   },
 };
 
-// Definimos el componente con la prop 'texto'
-export default function Cargando({ texto = "Cargando..." }: Props) { // Usamos el valor por defecto
+export default function Cargando({ texto = "Cargando..." }: Props) {
   return (
     <div className="flex flex-col items-center justify-start min-h-[80vh] w-full pt-20 gap-8">
       <motion.img
         src="/images/logo-muni.png"
         alt="Logo Municipal"
-        className="w-4/5 h-auto md:w-96"
+        className="w-2/5 h-auto lg:w-48"
         variants={imageVariants}
         initial="hidden"
         animate="visible"
       />
       <motion.div
-        className="flex text-3xl font-bold tracking-widest text-[#06c]"
+        className="flex text-xs font-bold tracking-widest text-[#06c] lg:text-lg"
         variants={textContainerVariants}
         initial="hidden"
         animate="visible"

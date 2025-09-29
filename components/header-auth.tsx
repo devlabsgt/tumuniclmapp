@@ -16,7 +16,7 @@ export default function AuthButton() {
   const rutaInicio = esAdmin ? '/protected/admin' : '/protected/';
   const esInicio = pathname === '/protected/';
 
-  const linkStyles = "inline-flex items-center text-sm font-medium transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
+  const linkStyles = "inline-flex items-center text-xs lg:text-lg transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
 
   const handleSignOut = async () => {
     Swal.fire({
@@ -38,18 +38,17 @@ export default function AuthButton() {
   };
 
   if (cargando) {
-    return <div className="w-48 mr-10" />;
+    return <div className="w-40 mr-10" />;
   }
 
   return userId ? (
     <div className="flex flex-col items-end gap-8 mr-10">
       <div className="text-right">
-        <span className="text-sm font-bold">
+        <span className="text-xs lg:text-lg font-bold">
           <Typewriter
             words={[
               '¡Hoy! Concepción Avanza',
               'Bienvenido al sistema apptumuniclm',
-              email || '',
               nombre || ''
             ]}
             loop={1}
@@ -60,11 +59,11 @@ export default function AuthButton() {
             delaySpeed={1000}
           />
         </span>
-        {rol && (
-          <div className="text-[#06c] text-xs font-medium">
-            Rol: <strong><span className="mt-2 underline">{rol}</span></strong>
+       
+          <div className="text-[#06c] text-xs lg:text-lg font-medium">
+            <strong><span className="mt-2">{email}</span></strong>
           </div>
-        )}
+  
       </div>
 
       <div className="flex flex-col gap-2 mt-auto">

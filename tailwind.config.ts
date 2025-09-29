@@ -58,6 +58,7 @@ const config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      // --- INICIO DE LA SECCIÓN AÑADIDA ---
       keyframes: {
         "accordion-down": {
           from: { height: "0" },
@@ -67,11 +68,23 @@ const config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        // Keyframes para el borde de MagicCard
+        "magic-card-border": {
+          "0%, 100%": {
+            "--magic-card-border-angle": "0deg",
+          },
+          "50%": {
+            "--magic-card-border-angle": "180deg",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        // Animación para el borde de MagicCard
+        "magic-card-border": "magic-card-border 6s linear infinite",
       },
+      // --- FIN DE LA SECCIÓN AÑADIDA ---
     },
   },
   plugins: [require("tailwindcss-animate")],

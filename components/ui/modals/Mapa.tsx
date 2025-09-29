@@ -118,11 +118,11 @@ export default function Mapa({ isOpen, onClose, registros, nombreUsuario }: Mapa
                   src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_Maps_API_KEY}&q=${registroActivo.ubicacion.lat},${registroActivo.ubicacion.lng}&zoom=16&maptype=satellite`}
                 ></iframe>
 
-                <div className="absolute top-3 right-3 flex items-start justify-end gap-2 pointer-events-none">
+                <div className="absolute top-3 left-3 right-3 flex flex-col-reverse gap-2 pointer-events-none">
                   <AnimatePresence>
                     {notasAbiertas && registroActivo.notas && (
                       <motion.div
-                        className="w-80 bg-white/90 backdrop-blur-sm p-4 rounded-lg shadow-lg pointer-events-auto"
+                        className="w-full bg-white/90 backdrop-blur-sm p-4 rounded-lg shadow-lg pointer-events-auto"
                         initial={{ x: "110%", opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                         exit={{ x: "110%", opacity: 0 }}
@@ -140,7 +140,7 @@ export default function Mapa({ isOpen, onClose, registros, nombreUsuario }: Mapa
                       layout
                       onClick={() => setNotasAbiertas(prev => !prev)}
                       disabled={!registroActivo.notas}
-                      className="flex items-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg pointer-events-auto disabled:opacity-70 disabled:cursor-not-allowed hover:bg-white transition-colors"
+                      className="flex items-center justify-end gap-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-lg shadow-lg pointer-events-auto disabled:opacity-70 disabled:cursor-not-allowed hover:bg-white transition-colors self-end"
                     >
                       <NotebookText size={18} className="text-gray-600" />
                       <span className="text-sm font-semibold text-gray-800">

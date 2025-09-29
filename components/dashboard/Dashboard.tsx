@@ -105,10 +105,10 @@ export default function Dashboard() {
             Módulos
           </button>
           <button type="button" onClick={() => setVistaActiva('asistencia')} className={`flex-1 rounded-md transition-all duration-200 ${vistaActiva === 'asistencia' ? 'bg-green-100 text-green-800 shadow text-sm  font-bold ' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}>
-            Mi asistencia
+            Asistencia
           </button>
           <button type="button" onClick={() => setVistaActiva('comisiones')} className={`flex-1 rounded-md  transition-all duration-200 ${vistaActiva === 'comisiones' ? 'bg-purple-100 text-purple-600 font-bold shadow text-sm' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}>
-            Mis comisiones
+            Comisiones
           </button>
         </div>
 

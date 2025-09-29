@@ -8,7 +8,6 @@ import supabaseAdmin from '@/utils/supabase/admin';
 import { registrarLogServer } from '@/utils/registrarLogServer';
 import { obtenerFechaYFormatoGT } from '@/utils/formatoFechaGT';
 
-// Actualice la interfaz FormState para incluir la propiedad 'email'
 type FormState = {
   type: 'error' | 'success' | null;
   message: string;
@@ -62,8 +61,7 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
 
   const rolObject = Array.isArray(relacion?.roles) ? relacion.roles[0] : relacion?.roles;
   const rol = rolObject?.nombre || '';
-/*
-  // Solo SUPER tiene acceso completo, los demás pasan por la validación de horario.
+
   if (rol !== 'SUPER') {
     const { data: horario, error: errorHorario } = await supabase
       .from('horarios')
@@ -77,13 +75,13 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
       return { type: 'error', message: 'Horario no encontrado.', email: email };
     }
     
-    // Solución mejorada: Obtener la hora y el día de Guatemala usando Intl.DateTimeFormat
     const nowInGT = new Date().toLocaleString('en-US', { timeZone: 'America/Guatemala', hour12: false });
     const now = new Date(nowInGT);
     
     const horaActual = now.getHours();
     const minutoActual = now.getMinutes();
-    const diaActualIndex = now.getDay();
+    const diaActualIndexJS = now.getDay();
+    const diaActualIndex = diaActualIndexJS === 0 ? 7 : diaActualIndexJS;
     
     const [horaEntrada, minutoEntrada] = horario.entrada.split(':').map(Number);
     const [horaSalida, minutoSalida] = horario.salida.split(':').map(Number);
@@ -95,8 +93,6 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
     const esDiaLaboral = horario.dias.includes(diaActualIndex);
     const enHorario = ahoraEnMinutos >= entradaEnMinutos && ahoraEnMinutos < salidaEnMinutos;
     
-    
-
     if (!esDiaLaboral || !enHorario) {
       const { fecha, formateada } = obtenerFechaYFormatoGT();
       await registrarLogServer({
@@ -110,7 +106,7 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
       return { type: 'error', message: `Acceso fuera de horario. Contacte con Soporte Técnico.`, email: email };
     }
   }
-*/
+
   const { fecha } = obtenerFechaYFormatoGT();
   await registrarLogServer({
     accion: 'INICIO_SESION',
@@ -120,7 +116,6 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
     user_id: user?.id,
   });
 
-  // Solo SUPER es redirigido a la página de administrador.
   if (rol === 'SUPER') {
     redirect('/protected/admin');
   } else {
