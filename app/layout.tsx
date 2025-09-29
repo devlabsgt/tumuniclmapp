@@ -59,29 +59,28 @@ export default async function RootLayout({
               <main className="flex flex-col gap-5 p-4 flex-grow w-full mx-auto">
                 {children}
               </main>
-
-              <footer className="pt-5 pb-20 border-t border-foreground/10 bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-gray-300 px-6 shrink-0">
-                <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0">
-                  <div className="text-left">
-                    <FechaHoraActual />
-                    <p className="mt-2 text-sm md:text-base">
-                      Powered by{" "}
-                      <a
-                        href="https://www.oscar27jimenez.com"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-semibold hover:underline text-[#06c]"
-                      >
-                        Ing. Oscar Jiménez
-                      </a>
-                    </p>
-                  </div>
-                  <div className="text-right text-xs md:text-sm leading-tight">
-                    <p>© {new Date().getFullYear()} - Todos los derechos reservados.</p>
-                    <p className="text-[10px] md:text-xs mt-1">Versión 1.4.7</p>
-                  </div>
-                </div>
-              </footer>
+          <footer className="pt-5 pb-20 border-t border-foreground/10 bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-gray-300 px-6 shrink-0">
+            <div className="max-w-6xl mx-auto flex flex-row justify-between gap-0">
+              <div className="w-1/2 text-left">
+                <FechaHoraActual />
+                <p className="mt-5 text-xs md:text-base">
+                  Powered by{" "}<br/>
+                  <a
+                    href="https://www.oscar27jimenez.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-semibold hover:underline text-[#06c]"
+                  >
+                    Ing. Oscar Jiménez
+                  </a>
+                </p>
+              </div>
+              <div className="w-1/2 text-end text-xs md:text-sm leading-tight ">
+                <p>© {new Date().getFullYear()} - Todos los derechos reservados.</p>
+                <p className="mt-10 text-[10px] md:text-xs text-[#06C] font-bold">Versión 1.4.7</p>
+              </div>
+            </div>
+          </footer>
             </>
           )}
 

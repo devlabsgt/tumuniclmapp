@@ -171,7 +171,7 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
               variant="link"
               onClick={handleExportarComoImagen}
               disabled={isExporting}
-              className="text-blue-600 gap-2"
+              className="hidden xl:inline-flex text-blue-600 gap-2"
             >
               <Camera className="h-4 w-4" />
               {isExporting ? 'Capturando...' : 'Imagen'}
@@ -217,8 +217,6 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
           </div>
         )}
       </div>
-
-
 
       <img
         id="export-logo"

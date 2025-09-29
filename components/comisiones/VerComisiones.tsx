@@ -29,21 +29,18 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
     const conteoNotas = new Map<string, number>();
     const notasGeneralesSet = new Set<string>();
 
-    // Contar la frecuencia de cada nota
     comisiones.forEach(comision => {
       comision.comentarios?.forEach(comentario => {
         conteoNotas.set(comentario, (conteoNotas.get(comentario) || 0) + 1);
       });
     });
 
-    // Separar notas generales (repetidas) de las notas de comisiones únicas
     conteoNotas.forEach((count, nota) => {
       if (count > 1) {
         notasGeneralesSet.add(nota);
       }
     });
 
-    // Crear un mapa de notas por comision, excluyendo las notas generales
     const notasPorComisionMap = new Map<string, string[]>();
     comisiones.forEach(comision => {
       const notasUnicas = comision.comentarios?.filter(comentario => !notasGeneralesSet.has(comentario)) || [];
@@ -99,32 +96,33 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
 
   return (
     <div ref={exportRef} className="bg-white rounded-xl border border-gray-200 px-2 pb-6 flex flex-col h-full relative">
-      {/* Contenedor del logo, visible solo para la exportación */}
-      
+            
       <div className="exclude-from-capture border-t pt-4">
-    <div className="flex flex-wrap justify-start items-center gap-4 mt-4 text-xs md:text-sm">
-      <Button
-        variant="link"
-        onClick={onClose}
-        className="absolute top-0 left-2 exclude-from-capture "
-      >
-          <LogOut className="mr-2 h-4 w-4 rotate-180" />
-          Mostrar todas las comisiones
-      </Button>
-        <Button
+        <div className="flex flex-wrap justify-start items-center gap-4 mt-4 text-xs md:text-sm">
+          <Button
             variant="link"
-            onClick={handleExportarComoImagen}
-            disabled={isExporting}
-            className="text-blue-600 gap-2"
-        >
-            <Camera className="h-4 w-4" />
-            {isExporting ? 'Capturando...' : 'Imagen'}
-        </Button>
-    </div>
-</div>
+            onClick={onClose}
+            className="absolute top-0 left-2 exclude-from-capture "
+          >
+              <LogOut className="mr-2 h-4 w-4 rotate-180" />
+              Mostrar todas las comisiones
+          </Button>
+          <div className="hidden xl:block">
+            <Button
+                variant="link"
+                onClick={handleExportarComoImagen}
+                disabled={isExporting}
+                className="text-blue-600 gap-2"
+            >
+                <Camera className="h-4 w-4" />
+                {isExporting ? 'Capturando...' : 'Imagen'}
+            </Button>
+          </div>
+        </div>
+      </div>
       <div
         id="export-logo-container"
-        className="text-start" // Agregamos la clase 'hidden'
+        className="text-start"
       >
         <img
         src="/images/logo-muni.png"
@@ -154,8 +152,8 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
                     .sort((a, b) => getUsuarioNombre(a.id, usuarios).localeCompare(getUsuarioNombre(b.id, usuarios)));
                   const notasUnicasComision = notasPorComision.get(comision.id) || [];
                   return (
-                    <div key={comision.id} className="bg-gray-50 rounded-md px-3 py-2 border-2 border-gray-400">                      <div className="flex flex-wrap -mx-2">
-                        {/* Columna principal a la izquierda (80%) */}
+                    <div key={comision.id} className="bg-gray-50 rounded-md px-3 py-2 border-2 border-gray-400">                      
+                      <div className="flex flex-wrap -mx-2">
                         <div className="w-[80%] pl-2">
                           <div className="flex items-start">
                             <h5 className="text-md font-bold text-gray-800">{comision.titulo}</h5>
@@ -178,7 +176,6 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
                           </div>
                         </div>
 
-                        {/* Columna de Notas a la derecha (20%) */}
                         <div className="w-[20%] py-2 pl-2 border-l">
                           {notasUnicasComision && notasUnicasComision.length > 0 && (
                             <div>

@@ -186,7 +186,7 @@ export default function Nivel() {
                       <UserPlus className="h-4 w-4" /> Inscribir Alumno
                     </Button>
                   </DropdownMenu.Item>
-                  {(rol === 'SUPER' || rol === 'ADMINISTRADOR' || rol === 'DIGITADOR') && (
+                  {(rol === 'SUPER' || rol === 'ADMINISTRADOR' || rol === 'DIGITADOR'|| rol === 'SECRETARIO' ) && (
                     <DropdownMenu.Item asChild>
                       <Button
                         variant="ghost"
