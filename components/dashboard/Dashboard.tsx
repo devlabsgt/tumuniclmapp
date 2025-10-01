@@ -60,13 +60,14 @@ type Vistas = 'modulos' | 'asistencia' | 'comisiones';
 export default function Dashboard() {
   const router = useRouter();
   const userData = useUserData();
-  const { rol, modulos, permisos } = userData;
+  const { rol, modulos = [], permisos = [] } = userData || {};
   const [vistaActiva, setVistaActiva] = useState<Vistas>('modulos');
   const [mostrarOpciones, setMostrarOpciones] = useState(false);
   const [mostrarPerfilModal, setMostrarPerfilModal] = useState(false);
-  const [mostrarHorarioModal, setMostrarHorarioModal] = useState(false); // Nuevo estado para el modal de horario
+  const [mostrarHorarioModal, setMostrarHorarioModal] = useState(false);
   const [hoveredModule, setHoveredModule] = useState<string | null>(null);
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
+  const [loadingModule, setLoadingModule] = useState<string | null>(null);
   const configRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -77,25 +78,44 @@ export default function Dashboard() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const irA = async (nombreModulo: string, ruta: string) => {
-    await registrarLog({ accion: 'INGRESO_MODULO', descripcion: `Accedió al módulo de ${nombreModulo.toLowerCase()}`, nombreModulo });
-    if (window.innerWidth < 768) {
-      setTimeout(() => router.push(ruta), 1000);
-    } else {
-      router.push(ruta);
+  const irA = (nombreModulo: string, ruta: string) => {
+    setLoadingModule(nombreModulo);
+    if (nombreModulo && ruta) {
+      registrarLog({ accion: 'INGRESO_MODULO', descripcion: `Accedió al módulo de ${nombreModulo.toLowerCase()}`, nombreModulo });
+      setTimeout(() => {
+        router.push(ruta);
+      }, 0);
     }
   };
 
   const modulosDisponibles = useMemo(() =>
     TODOS_LOS_MODULOS
       .filter(m => {
-        if (rol === 'SUPER') {
-          return true;
-        }
+        if (rol === 'SUPER') return true;
         return modulos.includes(m.nombre);
       })
       .sort((a, b) => a.titulo.localeCompare(b.titulo))
   , [rol, modulos]);
+
+  const cardVariants = {
+    loading: {
+      scale: [1, 1.02, 1],
+      boxShadow: [
+        "0 10px 15px -3px rgba(107, 114, 128, 0.1)",
+        "0 20px 25px -5px rgba(107, 114, 128, 0.25)",
+        "0 10px 15px -3px rgba(107, 114, 128, 0.1)",
+      ],
+    },
+    idle: {
+      scale: 1,
+      boxShadow: "0 0px 0px 0px rgba(0,0,0,0)",
+    }
+  };
+
+  const hoverEffect = {
+    scale: 1.01,
+    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)" // shadow-lg
+  };
 
   return (
     <section className="w-full max-w-4xl mx-auto px-4 md:px-8 pt-2">
@@ -162,30 +182,36 @@ export default function Dashboard() {
         {vistaActiva === 'modulos' ? (
           <motion.div key="modulos" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
             <div className="grid grid-cols-1 gap-6">
-              {modulosDisponibles.map((modulo) => (
-                <motion.div 
-                  key={modulo.nombre} 
-                  className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl p-4 sm:p-6 flex flex-row items-center gap-4 sm:gap-6 cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all duration-300" 
-                  initial={{ opacity: 0, y: 20 }} 
-                  animate={{ opacity: 1, y: 0 }} 
-                  transition={{ duration: 0.4 }}
-                  onClick={() => irA(modulo.nombre, modulo.ruta)}
-                  onMouseEnter={() => setHoveredModule(modulo.nombre)}
-                  onMouseLeave={() => setHoveredModule(null)}
-                >
-                  <AnimatedIcon
-                    iconKey={modulo.iconoKey}
-                    className="w-14 h-14 sm:w-20 sm:h-20"
-                    trigger={hoveredModule === modulo.nombre ? 'loop' : undefined}
-                    {...modulo.colorProps}
-                  />
-                  <div className="flex-grow">
-                    <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100">{modulo.titulo}</h2>
-                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">{modulo.descripcion}</p>
-                  </div>
-                  <Button className="pointer-events-none hidden sm:inline-flex"> Entrar <ArrowRight className="h-4 w-4 ml-2" /> </Button>
-                </motion.div>
-              ))}
+              {modulosDisponibles.map((modulo) => {
+                const isLoadingThisModule = loadingModule === modulo.nombre;
+                return (
+                  <motion.div 
+                    key={modulo.nombre}
+                    className={`bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl p-4 sm:p-6 flex flex-row items-center gap-4 sm:gap-6 transition-opacity duration-300 ${loadingModule && !isLoadingThisModule ? 'opacity-25 pointer-events-none' : 'cursor-pointer'}`}
+                    variants={cardVariants}
+                    animate={isLoadingThisModule ? 'loading' : 'idle'}
+                    whileHover={!loadingModule ? hoverEffect : {}}
+                    transition={isLoadingThisModule ? { duration: 1.5, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
+                    onClick={loadingModule ? undefined : () => irA(modulo.nombre, modulo.ruta)}
+                    onMouseEnter={() => setHoveredModule(modulo.nombre)}
+                    onMouseLeave={() => setHoveredModule(null)}
+                  >
+                    <AnimatedIcon
+                      iconKey={modulo.iconoKey}
+                      className="w-14 h-14 sm:w-20 sm:h-20"
+                      trigger={hoveredModule === modulo.nombre ? 'loop' : undefined}
+                      {...modulo.colorProps}
+                    />
+                    <div className="flex-grow">
+                      <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100">{modulo.titulo}</h2>
+                      <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">{modulo.descripcion}</p>
+                    </div>
+                    <Button className="pointer-events-none hidden sm:inline-flex">
+                      Entrar <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </motion.div>
+                )
+              })}
             </div>
           </motion.div>
         ) : vistaActiva === 'asistencia' ? (

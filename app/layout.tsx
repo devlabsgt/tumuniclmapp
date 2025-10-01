@@ -56,10 +56,10 @@ export default async function RootLayout({
                 </div>
               </nav>
 
-              <main className="flex flex-col gap-5 p-4 flex-grow w-full mx-auto">
+              <main className="flex flex-col gap-5 pt-2 flex-grow w-full mx-auto">
                 {children}
               </main>
-          <footer className="pt-5 pb-20 border-t border-foreground/10 bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-gray-300 px-6 shrink-0">
+            <footer className="mt-5 pt-5 pb-20 border-t border-foreground/10 bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-gray-300 px-6 shrink-0">
             <div className="max-w-6xl mx-auto flex flex-row justify-between gap-0">
               <div className="w-1/2 text-left">
                 <FechaHoraActual />

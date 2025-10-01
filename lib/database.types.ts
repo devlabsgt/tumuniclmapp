@@ -408,18 +408,21 @@ export type Database = {
       }
       dependencias: {
         Row: {
+          descripcion: string | null
           horario_id: string | null
           id: string
           nombre: string
           parent_id: string | null
         }
         Insert: {
+          descripcion?: string | null
           horario_id?: string | null
           id?: string
           nombre: string
           parent_id?: string | null
         }
         Update: {
+          descripcion?: string | null
           horario_id?: string | null
           id?: string
           nombre?: string
@@ -473,6 +476,7 @@ export type Database = {
           contrato: string | null
           contrato_no: string | null
           created_at: string | null
+          dependencia_id: string | null
           fecha_fin: string | null
           fecha_ini: string | null
           id: string
@@ -486,6 +490,7 @@ export type Database = {
           contrato?: string | null
           contrato_no?: string | null
           created_at?: string | null
+          dependencia_id?: string | null
           fecha_fin?: string | null
           fecha_ini?: string | null
           id: string
@@ -499,6 +504,7 @@ export type Database = {
           contrato?: string | null
           contrato_no?: string | null
           created_at?: string | null
+          dependencia_id?: string | null
           fecha_fin?: string | null
           fecha_ini?: string | null
           id?: string
@@ -507,6 +513,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_dependencia"
+            columns: ["dependencia_id"]
+            isOneToOne: false
+            referencedRelation: "dependencias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "info_contrato_user_id_fkey"
             columns: ["user_id"]

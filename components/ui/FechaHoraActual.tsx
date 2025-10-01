@@ -18,45 +18,37 @@ export default function FechaHoraActual() {
         timeZone: 'America/Guatemala',
       };
       
-      const formateador = new Intl.DateTimeFormat('es-GT', opcionesFecha);
-      const partes = formateador.formatToParts(ahora);
-
-      const diaSemana = partes.find(p => p.type === 'weekday')?.value ?? '';
-      const dia = partes.find(p => p.type === 'day')?.value ?? '';
-      let mes = partes.find(p => p.type === 'month')?.value ?? '';
-      const anio = partes.find(p => p.type === 'year')?.value ?? '';
-
-      mes = mes.substring(0, 3);
-
-      const fechaFormateada = `${diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1)} ${dia}, ${mes}, ${anio}`;
+      const formateadorFecha = new Intl.DateTimeFormat('es-GT', opcionesFecha);
+      const fechaFormateada = formateadorFecha.format(ahora);
       
       const horaConPeriodo = ahora.toLocaleTimeString('es-GT', {
-        hour: '2-digit',
+        hour: 'numeric',
         minute: '2-digit',
         second: '2-digit',
         hour12: true,
         timeZone: 'America/Guatemala',
       });
 
-      // Se elimina el espacio antes de AM/PM
-      const horaFormateada = horaConPeriodo
-        .replace(/\./g, '')          // Quita puntos (ej. p.m.)
-        .toUpperCase()              // Convierte a mayúsculas
-        .replace(/\s+/, '');        // Quita el espacio
+      const horaLimpia = horaConPeriodo.replace(/[\s.]/g, '').toUpperCase();
+      const horaFinal = horaLimpia.slice(0, -2) + ' ' + horaLimpia.slice(-2);
 
       setFecha(fechaFormateada);
-      setHora(horaFormateada);
+      setHora(horaFinal);
     };
 
-    actualizar(); // inicial
+    actualizar();
     const interval = setInterval(actualizar, 1000);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="text-left leading-tight mb-2">
-      <p className="text-xs md:text-sm"><strong>Fecha: </strong>{fecha}</p>
-      <p className="text-xs md:text-sm"><strong>Hora: </strong>{hora}</p>
+    <div>
+      <p className="text-xs md:text-base font-semibold capitalize">
+        {fecha}
+      </p>
+      <p className="text-sm md:text-xl font-bold text-blue-600">
+        {hora}
+      </p>
     </div>
   );
 }

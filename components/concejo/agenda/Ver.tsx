@@ -8,7 +8,7 @@ import { type AgendaConcejo } from './lib/esquemas';
 import AgendaForm from './forms/Sesion';
 import { CalendarPlus, Pencil, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
 import { useRouter } from 'next/navigation';
 import { getYear, setMonth, format, differenceInDays, isToday } from 'date-fns';
@@ -57,6 +57,7 @@ export default function Ver() {
   const [agendaAEditar, setAgendaAEditar] = useState<AgendaConcejo | null>(null);
   const [filtroAnio, setFiltroAnio] = useState<string>(getYear(new Date()).toString());
   const [filtroMes, setFiltroMes] = useState<string | null>(null);
+  const [loadingAgendaId, setLoadingAgendaId] = useState<string | null>(null);
 
   const anios = Array.from({ length: 10 }, (_, i) => getYear(new Date()) - 5 + i);
   const meses = Array.from({ length: 12 }, (_, i) => ({
@@ -118,7 +119,30 @@ export default function Ver() {
   };
 
   const handleGoToAgenda = (id: string) => {
-    router.push(`/protected/concejo/agenda/${id}`);
+    setLoadingAgendaId(id);
+    setTimeout(() => {
+      router.push(`/protected/concejo/agenda/${id}`);
+    }, 0);
+  };
+
+  const cardVariants = {
+    loading: {
+      scale: [1, 1.02, 1],
+      boxShadow: [
+        "0 10px 15px -3px rgba(107, 114, 128, 0.1)",
+        "0 20px 25px -5px rgba(107, 114, 128, 0.25)",
+        "0 10px 15px -3px rgba(107, 114, 128, 0.1)",
+      ],
+    },
+    idle: {
+      scale: 1,
+      boxShadow: "0 0px 0px 0px rgba(0,0,0,0)",
+    }
+  };
+
+  const hoverEffect = {
+    scale: 1.01,
+    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)"
   };
 
   if (cargandoUsuario || cargandoAgendas) {
@@ -178,72 +202,76 @@ export default function Ver() {
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {agendasFiltradas.map((agenda) => {
-              let borderColorClass = 'border-gray-400';
+              let borderColorClass = 'border-l-blue-500';
               let textColorClass = 'text-gray-500';
 
               if (agenda.estado === 'En preparación') {
-                borderColorClass = 'border-blue-500';
+                borderColorClass = 'border-l-blue-500';
                 textColorClass = 'text-blue-600';
               } else if (agenda.estado === 'En progreso') {
-                borderColorClass = 'border-green-500';
+                borderColorClass = 'border-l-green-500';
                 textColorClass = 'text-green-600';
               } else if (agenda.estado === 'Finalizada') {
-                borderColorClass = 'border-gray-400';
+                borderColorClass = 'border-l-gray-400';
                 textColorClass = 'text-gray-500';
               }
 
               const buttonClasses = getButtonClasses(agenda.estado);
+              const isLoadingThisAgenda = loadingAgendaId === agenda.id;
 
               return (
-                <Fragment key={agenda.id}>
-                  <div
-                    onClick={() => handleGoToAgenda(agenda.id)}
-                    className={`bg-white p-4 rounded-lg shadow-md border-l-4 ${borderColorClass} flex flex-col md:flex-row md:items-start md:justify-between gap-4 cursor-pointer transition-colors hover:bg-gray-50`}
-                  >
-                    <div className="flex-1 pointer-events-none">
-                      <div className="flex items-baseline gap-x-3 flex-wrap">
-                        <p className="font-semibold text-gray-800 text-sm md:text-2xl">{agenda.titulo}</p>
-                        <span className="text-gray-500 font-normal whitespace-nowrap text-sm md:text-2xl">
-                          {format(new Date(agenda.fecha_reunion), "EEEE, d 'de' MMMM 'de' yyyy, h:mm a", { locale: es })}
-                        </span>
-                      </div>
-                      <p className="text-sm md:text-xl mt-2 text-gray-600 font-normal">{agenda.descripcion}</p>
-                      <p className="text-sm md:text-xl mt-2">
-                        <span className={`font-bold ${textColorClass}`}>{agenda.estado}</span>,
-                        {' '}
-                        <span className="font-semibold text-gray-700">
-                          {calcularDiasRestantes(agenda.fecha_reunion)}
-                          {calcularDiasRestantes(agenda.fecha_reunion).includes('días') && ' restantes'}
-                        </span>
-                      </p>
+                <motion.div
+                  key={agenda.id}
+                  variants={cardVariants}
+                  animate={isLoadingThisAgenda ? 'loading' : 'idle'}
+                  whileHover={!isLoadingThisAgenda ? hoverEffect : {}}
+                  transition={isLoadingThisAgenda ? { duration: 1.5, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
+                  onClick={isLoadingThisAgenda ? undefined : () => handleGoToAgenda(agenda.id)}
+                  className={`bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-lg dark:border-gray-700 border-l-4 ${borderColorClass} flex flex-col md:flex-row md:items-start md:justify-between gap-4 cursor-pointer transition-all duration-300 ${loadingAgendaId && !isLoadingThisAgenda ? 'opacity-50 pointer-events-none' : ''}`}
+                >
+                  <div className="flex-1 pointer-events-none">
+                    <div className="flex items-baseline gap-x-3 flex-wrap">
+                      <p className="font-semibold text-gray-800 text-sm md:text-2xl">{agenda.titulo}</p>
+                      <span className="text-gray-500 font-normal whitespace-nowrap text-sm md:text-2xl">
+                        {format(new Date(agenda.fecha_reunion), "EEEE, d 'de' MMMM 'de' yyyy, h:mm a", { locale: es })}
+                      </span>
                     </div>
+                    <p className="text-sm md:text-xl mt-2 text-gray-600 font-normal">{agenda.descripcion}</p>
+                    <p className="text-sm md:text-xl mt-2">
+                      <span className={`font-bold ${textColorClass}`}>{agenda.estado}</span>,
+                      {' '}
+                      <span className="font-semibold text-gray-700">
+                        {calcularDiasRestantes(agenda.fecha_reunion)}
+                        {calcularDiasRestantes(agenda.fecha_reunion).includes('días') && ' restantes'}
+                      </span>
+                    </p>
+                  </div>
 
-                    <div className="flex flex-row gap-2 self-end">
-                      {(rol === 'SUPER' || rol === 'SECRETARIO') && (
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenEditModal(agenda);
-                          }}
-                          variant="ghost"
-                          className={`w-1/2 ${buttonClasses.ghost} transition-colors flex items-center justify-center gap-1`}
-                        >
-                          <Pencil className="h-4 w-4" /> Editar
-                        </Button>
-                      )}
+                  <div className="flex flex-row gap-2 self-end">
+                    {(rol === 'SUPER' || rol === 'SECRETARIO') && (
                       <Button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleGoToAgenda(agenda.id);
+                          handleOpenEditModal(agenda);
                         }}
-                        variant="default"
-                        className={`w-1/2 ${buttonClasses.default} transition-colors flex items-center justify-center gap-1`}
+                        variant="ghost"
+                        className={`w-1/2 ${buttonClasses.ghost} transition-colors flex items-center justify-center gap-1`}
                       >
-                        <ArrowRight className="h-4 w-4" /> Entrar
+                        <Pencil className="h-4 w-4" /> Editar
                       </Button>
-                    </div>
+                    )}
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleGoToAgenda(agenda.id);
+                      }}
+                      variant="default"
+                      className={`w-1/2 ${buttonClasses.default} transition-colors flex items-center justify-center gap-1`}
+                    >
+                      <ArrowRight className="h-4 w-4" /> Entrar
+                    </Button>
                   </div>
-                </Fragment>
+                </motion.div>
               );
             })}
           </div>
