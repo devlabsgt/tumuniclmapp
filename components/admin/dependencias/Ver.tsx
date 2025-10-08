@@ -148,8 +148,8 @@ export default function Ver() {
   const handleCloseEmpleadoModal = () => {
     setDependenciaParaEmpleado(null);
   };
-  const handleSaveEmpleado = async (userId: string, dependenciaId: string) => {
-    const empleadoInfo = infoUsuarios.find(info => info.user_id === userId);
+  const handleSaveEmpleado = async (newUserId: string, dependenciaId: string) => {
+    const empleadoInfo = infoUsuarios.find(info => info.user_id === newUserId);
     if (empleadoInfo && empleadoInfo.dependencia_id && empleadoInfo.dependencia_id !== dependenciaId) {
         const dependenciaActual = dependencias.find(dep => dep.id === empleadoInfo.dependencia_id);
         Swal.fire({
@@ -167,15 +167,29 @@ export default function Ver() {
         return;
     }
 
-    const { error } = await supabase
+    const oldAssignment = infoUsuarios.find(info => info.dependencia_id === dependenciaId);
+    if (oldAssignment && oldAssignment.user_id !== newUserId) {
+      const { error: unassignError } = await supabase
         .from('info_usuario')
-        .update({ dependencia_id: dependenciaId })
-        .eq('user_id', userId);
-        
-    if (error) {
+        .update({ dependencia_id: null })
+        .eq('user_id', oldAssignment.user_id);
+
+      if (unassignError) {
+        toast.error('Error al desasignar al empleado anterior.');
+        handleCloseEmpleadoModal();
+        return;
+      }
+    }
+
+    const { error: assignError } = await supabase
+      .from('info_usuario')
+      .update({ dependencia_id: dependenciaId })
+      .eq('user_id', newUserId);
+      
+    if (assignError) {
       toast.error('Error al asignar el empleado.');
     } else {
-      const usuario = usuarios.find(u => u.id === userId);
+      const usuario = usuarios.find(u => u.id === newUserId);
       const dependencia = findNodeById(finalTree, dependenciaId);
       toast.success(`"${usuario?.nombre}" fue añadido a "${dependencia?.nombre}"`);
       mutateInfoUsuarios();
@@ -246,19 +260,34 @@ export default function Ver() {
   return (
     <div className="p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
-      <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-        <h1 className="text-xs lg:text-lg font-bold text-blue-600 text-center md:text-left">Jerarquía Municipal 🏛️</h1>
+      
+      <div className="flex flex-col md:flex-row items-center mb-6 gap-4">
+        <h1 className="text-lg lg:text-2xl font-bold text-blue-600 text-center md:text-left whitespace-nowrap">Jerarquía Municipal 🏛️</h1>
+        <div className="relative w-full flex-grow">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input 
+            placeholder="Buscar en la jerarquía..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 w-full text-xs"
+          />
+        </div>
         <Button onClick={() => handleOpenForm()} className="w-full text-xs md:w-auto bg-blue-600 hover:bg-blue-700 text-white">
           <PlusCircle className="mr-2 h-4 w-4" /> Nueva Dependencia
         </Button>
       </div>
-      <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input placeholder="Buscar por nombre o descripción..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 w-full text-xs" />
-      </div>
+      
       {isFormOpen && (
-        <DependenciaForm isOpen={isFormOpen} onClose={handleCloseForm} onSubmit={handleSubmit} initialData={editingDependencia} todasLasDependencias={dependencias} preselectedParentId={preselectedParentId} />
+        <DependenciaForm 
+          isOpen={isFormOpen} 
+          onClose={handleCloseForm} 
+          onSubmit={handleSubmit} 
+          initialData={editingDependencia} 
+          todasLasDependencias={dependencias} 
+          preselectedParentId={preselectedParentId} 
+        />
       )}
+      
       <DependenciaList
         dependencias={finalTree}
         onEdit={handleOpenForm}
@@ -271,6 +300,7 @@ export default function Ver() {
         openNodeIds={openNodeIds}
         setOpenNodeIds={setOpenNodeIds}
       />
+      
       <EmpleadoForm
         isOpen={!!dependenciaParaEmpleado}
         onClose={handleCloseEmpleadoModal}
