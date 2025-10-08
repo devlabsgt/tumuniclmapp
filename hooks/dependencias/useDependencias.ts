@@ -11,8 +11,8 @@ const supabase = createClient();
 const fetcher = async (): Promise<Dependencia[]> => {
   const { data, error } = await supabase
     .from('dependencias')
-    .select('*')
-    .order('nombre', { ascending: true });
+    .select('*, no')
+    .order('no', { ascending: true });
   
   if (error) {
     throw new Error(error.message);

@@ -34,7 +34,7 @@ const TODOS_LOS_MODULOS = [
     nombre: 'ORGANOS', 
     titulo: 'Jerarquía Municipal', 
     descripcion: 'Gestione Órganos y políticas municipales.', 
-    ruta: '/protected/admin/organos', 
+    ruta: '/protected/admin/dependencias', 
     iconoKey: 'ilrifayj',
     colorProps: { primaryColor: '#ebe6ef', secondaryColor: '#b26836' } 
   },

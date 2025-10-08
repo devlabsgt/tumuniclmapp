@@ -8,7 +8,6 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
-import { ProgressiveBlur } from "@/components/ui/progressive-blur";
 
 export const metadata: Metadata = {
   title: "Gestión Municipal",
@@ -59,8 +58,8 @@ export default async function RootLayout({
               <main className="flex flex-col gap-5 pt-2 flex-grow w-full mx-auto">
                 {children}
               </main>
-            <footer className="mt-5 pt-5 pb-20 border-t border-foreground/10 bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-gray-300 px-6 shrink-0">
-            <div className="max-w-6xl mx-auto flex flex-row justify-between gap-0">
+          <footer className="mt-5 pt-5 pb-5 border-t border-foreground/10 bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-gray-300 shrink-0">
+            <div className="w-full flex flex-row justify-between gap-0 px-6">
               <div className="w-1/2 text-left">
                 <FechaHoraActual />
                 <p className="mt-5 text-xs md:text-base">
@@ -69,7 +68,7 @@ export default async function RootLayout({
                     href="https://www.oscar27jimenez.com"
                     target="_blank"
                     rel="noreferrer"
-                    className="font-semibold hover:underline text-[#06c]"
+                    className="font-semibold hover:underline text-blue-600"
                   >
                     Ing. Oscar Jiménez
                   </a>
@@ -77,7 +76,7 @@ export default async function RootLayout({
               </div>
               <div className="w-1/2 text-end text-xs md:text-sm leading-tight ">
                 <p>© {new Date().getFullYear()} - Todos los derechos reservados.</p>
-                <p className="mt-10 text-[10px] md:text-xs text-[#06C] font-bold">Versión 1.4.7</p>
+                <p className="mt-10 text-[10px] md:text-xs text-blue-600 font-bold">Versión 1.4.7</p>
               </div>
             </div>
           </footer>
@@ -97,13 +96,6 @@ export default async function RootLayout({
             theme="light"
           />
           <script src="https://cdn.lordicon.com/lordicon.js"></script>
-        </div>
-        <div className="fixed bottom-0 w-full z-10">
-          <ProgressiveBlur
-            height="100px"
-            position="bottom"
-            className="w-full"
-          />
         </div>
       </body>
     </html>

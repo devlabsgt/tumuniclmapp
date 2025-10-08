@@ -6,7 +6,6 @@ import { z } from 'zod';
 import { useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Dependencia as DependenciaType } from '../Ver';
@@ -28,39 +27,14 @@ interface Props {
   preselectedParentId?: string | null;
 }
 
-const getDescendantIds = (dependenciaId: string, dependencias: DependenciaType[]): string[] => {
-  let descendants: string[] = [];
-  const children = dependencias.filter(d => d.parent_id === dependenciaId);
-  for (const child of children) {
-    descendants.push(child.id);
-    descendants = [...descendants, ...getDescendantIds(child.id, dependencias)];
-  }
-  return descendants;
-};
-
-const calculateLevels = (dependencias: DependenciaType[]): Map<string, number> => {
-    const levels = new Map<string, number>();
-    const depMap = new Map(dependencias.map(d => [d.id, d]));
-    const findLevel = (depId: string): number => {
-        if (levels.has(depId)) return levels.get(depId)!;
-        const dep = depMap.get(depId);
-        if (!dep || !dep.parent_id) {
-            levels.set(depId, 0);
-            return 0;
-        }
-        const parentLevel = findLevel(dep.parent_id);
-        const currentLevel = parentLevel + 1;
-        levels.set(depId, currentLevel);
-        return currentLevel;
-    };
-    dependencias.forEach(d => findLevel(d.id));
-    return levels;
-};
-
-export default function Dependencia({ isOpen, onClose, onSubmit, initialData, todasLasDependencias, preselectedParentId }: Props) {
+export default function Dependencia({ isOpen, onClose, onSubmit, initialData, preselectedParentId }: Props) {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: { nombre: '', descripcion: '', parent_id: null },
+    defaultValues: {
+      nombre: initialData?.nombre || '',
+      descripcion: initialData?.descripcion || '',
+      parent_id: initialData?.parent_id || null,
+    },
   });
 
   const mode = useMemo(() => {
@@ -81,7 +55,7 @@ export default function Dependencia({ isOpen, onClose, onSubmit, initialData, to
         form.reset({
           nombre: '',
           descripcion: '',
-          parent_id: preselectedParentId || null,
+          parent_id: preselectedParentId,
         });
       } else { 
         form.reset({
@@ -92,32 +66,6 @@ export default function Dependencia({ isOpen, onClose, onSubmit, initialData, to
       }
     }
   }, [mode, initialData, preselectedParentId, form, isOpen]);
-
-  const dependenciasPadrePosibles = useMemo(() => {
-    if (mode !== 'EDIT' || !initialData) {
-      return []; 
-    }
-    
-    const levels = calculateLevels(todasLasDependencias);
-    const currentLevel = levels.get(initialData.id) ?? 0;
-    if (currentLevel === 0) return [];
-    
-    const targetParentLevel = currentLevel - 1;
-    const idsInvalidos = [initialData.id, ...getDescendantIds(initialData.id, todasLasDependencias)];
-    
-    return todasLasDependencias.filter(dep => {
-      if (idsInvalidos.includes(dep.id)) return false;
-      const depLevel = levels.get(dep.id) ?? 0;
-      return depLevel === targetParentLevel;
-    });
-  }, [mode, initialData, todasLasDependencias]);
-
-  const parentName = useMemo(() => {
-    if (mode === 'CREATE_SUB') {
-      return todasLasDependencias.find(d => d.id === preselectedParentId)?.nombre;
-    }
-    return '';
-  }, [mode, preselectedParentId, todasLasDependencias]);
 
   return (
     <AnimatePresence>
@@ -133,27 +81,35 @@ export default function Dependencia({ isOpen, onClose, onSubmit, initialData, to
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
-              <h2 className="text-xl font-bold mb-4">{initialData ? 'Editar Dependencia' : 'Nueva Dependencia'}</h2>
+              <h2 className="text-xl font-bold mb-4">
+                {initialData ? 'Editar Dependencia' : 'Nueva Dependencia'}
+              </h2>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit as SubmitHandler<FormData>)} className="space-y-4">
-                  <FormField control={form.control} name="nombre" render={({ field }) => (
+                  <FormField
+                    control={form.control}
+                    name="nombre"
+                    render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center gap-4">
                           <FormLabel className="text-xs w-28 sr-only text-right">Nombre</FormLabel>
                           <FormControl>
-                            <Input placeholder="Nombre" {...field} />
+                            <Input placeholder="Nombre" {...field} className="text-xs" />
                           </FormControl>
                         </div>
                         <FormMessage className="ml-[128px]" />
                       </FormItem>
                     )}
                   />
-                  <FormField control={form.control} name="descripcion" render={({ field }) => (
+                  <FormField
+                    control={form.control}
+                    name="descripcion"
+                    render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center gap-4">
                           <FormLabel className="text-xs w-28 sr-only text-right">Descripción</FormLabel>
                           <FormControl>
-                            <Input placeholder="Descripción (Opcional)" {...field} value={field.value || ''} />
+                            <Input placeholder="Descripción (Opcional)" {...field} value={field.value || ''} className="text-xs" />
                           </FormControl>
                         </div>
                         <FormMessage className="ml-[128px]" />
@@ -161,43 +117,9 @@ export default function Dependencia({ isOpen, onClose, onSubmit, initialData, to
                     )}
                   />
                   
-                  {mode === 'CREATE_SUB' && (
-                    <div className="flex items-center gap-4">
-                      <FormLabel className="text-xs w-28 text-right">Dependencia Padre</FormLabel>
-                      <div className="flex h-10 w-full items-center text-sm text-gray-700">
-                        {parentName}
-                      </div>
-                    </div>
-                  )}
-
-                  {mode === 'EDIT' && (
-                    <FormField control={form.control} name="parent_id" render={({ field }) => (
-                        <FormItem>
-                          <div className="flex items-center gap-4">
-                            <FormLabel className="text-xs w-28 text-right">Dependencia Padre</FormLabel>
-                            <Select onValueChange={(value) => field.onChange(value === 'null' ? null : value)} value={field.value || undefined}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="-- Ninguna (Dependencia Principal) --" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="null">-- Ninguna (Dependencia Principal) --</SelectItem>
-                                {dependenciasPadrePosibles.map(dep => (
-                                  <SelectItem key={dep.id} value={dep.id}>{dep.nombre}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <FormMessage className="ml-[128px]" />
-                        </FormItem>
-                      )}
-                    />
-                  )}
-                  
                   <div className="flex justify-end gap-2 pt-4">
-                    <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
-                    <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">Guardar</Button>
+                    <Button type="button" variant="ghost" onClick={onClose} className="text-xs">Cancelar</Button>
+                    <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-xs">Guardar</Button>
                   </div>
                 </form>
               </Form>

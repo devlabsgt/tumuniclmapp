@@ -44,7 +44,7 @@ export default function AuthButton() {
   return userId ? (
     <div className="flex flex-col items-end gap-8 mr-10">
       <div className="text-right">
-        <span className="text-xs lg:text-lg font-bold">
+        <span className="text-xs font-bold">
           <Typewriter
             words={[
               '¡Hoy! Concepción Avanza',
@@ -60,7 +60,7 @@ export default function AuthButton() {
           />
         </span>
        
-          <div className="text-[#06c] text-xs lg:text-lg font-medium">
+          <div className="text-[#06c] text-xs font-medium">
             <strong><span className="mt-2">{email}</span></strong>
           </div>
   

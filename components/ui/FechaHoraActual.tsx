@@ -43,10 +43,10 @@ export default function FechaHoraActual() {
 
   return (
     <div>
-      <p className="text-xs md:text-base font-semibold capitalize">
+      <p className="text-xs font-semibold capitalize">
         {fecha}
       </p>
-      <p className="text-sm md:text-xl font-bold text-blue-600">
+      <p className="text-xs md:text-md font-bold text-blue-600">
         {hora}
       </p>
     </div>

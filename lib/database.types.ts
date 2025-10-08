@@ -411,6 +411,7 @@ export type Database = {
           descripcion: string | null
           horario_id: string | null
           id: string
+          no: number | null
           nombre: string
           parent_id: string | null
         }
@@ -418,6 +419,7 @@ export type Database = {
           descripcion?: string | null
           horario_id?: string | null
           id?: string
+          no?: number | null
           nombre: string
           parent_id?: string | null
         }
@@ -425,6 +427,7 @@ export type Database = {
           descripcion?: string | null
           horario_id?: string | null
           id?: string
+          no?: number | null
           nombre?: string
           parent_id?: string | null
         }

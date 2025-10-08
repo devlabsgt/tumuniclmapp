@@ -80,9 +80,7 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
     
     const horaActual = now.getHours();
     const minutoActual = now.getMinutes();
-    const diaActualIndexJS = now.getDay();
-    const diaActualIndex = diaActualIndexJS === 0 ? 7 : diaActualIndexJS;
-    
+    const diaActualIndex = now.getDay();
     const [horaEntrada, minutoEntrada] = horario.entrada.split(':').map(Number);
     const [horaSalida, minutoSalida] = horario.salida.split(':').map(Number);
     
