@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
 import { Pencil, Trash2, GitBranchPlus, ArrowUp, ArrowDown, UserPlus } from 'lucide-react';
 import { EmpleadoItem } from './EmpleadoItem';
 import { Usuario } from '@/lib/usuarios/esquemas';
@@ -61,6 +61,7 @@ const DependenciaItem = ({
   const hasChildren = node.children && node.children.length > 0;
   const isOpen = openNodeIds.includes(node.id);
   const empleadoAsignado = node.children?.find(child => 'isEmployee' in child) as EmpleadoNode | undefined;
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleToggle = () => {
     if (hasChildren) {
@@ -86,74 +87,75 @@ const DependenciaItem = ({
   const canMoveDown = index < siblingCount - 1;
 
   return (
-    <div className="w-full relative text-xs">
+    <motion.div layout className="w-full relative text-xs">
       {level > 0 && (
         <>
           <span className="absolute top-0 w-0.5 bg-slate-300 dark:bg-slate-600" style={{ left: `calc(${level - 1} * 1.5rem + 0.5rem + 0.875rem)`, height: isLast ? '1.375rem' : '100%' }} aria-hidden="true" />
           <span className="absolute h-0.5 bg-slate-300 dark:bg-slate-600" style={{ top: '1.375rem', left: `calc(${level - 1} * 1.5rem + 0.5rem + 0.875rem)`, width: '1.5rem' }} aria-hidden="true" />
         </>
       )}
-      <div className={`flex items-center justify-between p-2 rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-gray-700/50 ${hasChildren ? 'cursor-pointer' : ''}`} style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }} onClick={handleToggle}>
+      <div 
+        className={`flex items-center justify-between p-2 rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-gray-700/50 ${hasChildren ? 'cursor-pointer' : ''} ${isMenuOpen ? 'bg-gray-100 dark:bg-gray-700/50' : ''}`}
+        style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }} 
+        onClick={handleToggle}
+      >
         <div className="flex-grow flex items-center min-w-0">
-          <DropdownMenu>
+          <DropdownMenu onOpenChange={setIsMenuOpen}>
             <DropdownMenuTrigger asChild>
-             <Button variant="ghost" className={`relative flex-shrink-0 h-7 w-7 ${bg} ${text} rounded-md font-bold text-[10px] shadow-sm z-10 p-0`} onClick={(e) => e.stopPropagation()}>
+             <Button variant="ghost" className={`relative flex-shrink-0 h-7 w-7 ${bg} ${text} rounded-md font-bold text-[10px] shadow-sm z-10 p-0 cursor-pointer`} onClick={(e) => e.stopPropagation()}>
                 {prefix}
                 {hasChildren && (<motion.div className={`absolute bottom-0 -translate-x-1/2 w-4 h-1 ${accent} rounded-full`} animate={{ y: isOpen ? 4 : 0 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}></motion.div>)}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent 
-            side="top" 
-            align="start" 
-            sideOffset={10}
+              side="top" 
+              align="start" 
+              sideOffset={10}
+              className="cursor-pointer"
             >
-              {(canMoveUp || canMoveDown) && (
-                <DropdownMenuItem>
-                  <div className="flex items-center justify-center gap-2 w-full">
-                    {canMoveUp && (
-                      <ArrowUp
-                        className="h-4 w-4 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onMove(node.id, 'up');
-                        }}
-                      />
-                    )}
-                    <span className="text-xs">Mover</span>
-                    {canMoveDown && (
-                      <ArrowDown
-                        className="h-4 w-4 cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onMove(node.id, 'down');
-                        }}
-                      />
-                    )}
-                  </div>
-                </DropdownMenuItem>
-              )}
               {level < 2 ? (
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onAddSub(node); }}>
+                <DropdownMenuItem onSelect={() => onAddSub(node)} onClick={(e) => e.stopPropagation()} className="cursor-pointer">
                   <GitBranchPlus className={`mr-2 h-4 w-4 ${icon}`} />
-                  <span>Añadir Subdependencia</span>
+                  <span>Añadir</span>
                 </DropdownMenuItem>
               ) : (
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onAddEmpleado(node); }}>
+                <DropdownMenuItem onSelect={() => onAddEmpleado(node)} onClick={(e) => e.stopPropagation()} className="cursor-pointer">
                   <UserPlus className={`mr-2 h-4 w-4 ${icon}`} />
-                  <span>Añadir Empleado</span>
+                  <span>Asignar</span>
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(node); }}>
+              <DropdownMenuItem onSelect={() => onEdit(node)} onClick={(e) => e.stopPropagation()} className="cursor-pointer">
                 <Pencil className="mr-2 h-4 w-4" />
-                <span>Editar Dependencia</span>
+                <span>Editar</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(node.id); }}>
+              <DropdownMenuItem onSelect={() => onDelete(node.id)} onClick={(e) => e.stopPropagation()} className="cursor-pointer">
                 <Trash2 className="mr-2 h-4 w-4 text-red-600" />
-                <span>Eliminar Dependencia</span>
+                <span>Eliminar</span>
               </DropdownMenuItem>
+              {(canMoveUp || canMoveDown) && (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()} className="cursor-pointer">
+                    <span>Mover</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    {canMoveUp && (
+                      <DropdownMenuItem onSelect={() => onMove(node.id, 'up')} onClick={(e) => e.stopPropagation()} className="cursor-pointer">
+                        <ArrowUp className="mr-2 h-4 w-4" />
+                        <span>Mover Arriba</span>
+                      </DropdownMenuItem>
+                    )}
+                    {canMoveDown && (
+                      <DropdownMenuItem onSelect={() => onMove(node.id, 'down')} onClick={(e) => e.stopPropagation()} className="cursor-pointer">
+                        <ArrowDown className="mr-2 h-4 w-4" />
+                        <span>Mover Abajo</span>
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
-
+          
           <div className="min-w-0 pl-2 pr-2">
             <span className="font-medium text-gray-800 dark:text-white truncate">{node.nombre}</span>
             {node.descripcion && (<p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">{node.descripcion}</p>)}
@@ -199,7 +201,7 @@ const DependenciaItem = ({
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 };
 

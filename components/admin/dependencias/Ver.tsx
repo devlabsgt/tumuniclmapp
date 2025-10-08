@@ -149,11 +149,29 @@ export default function Ver() {
     setDependenciaParaEmpleado(null);
   };
   const handleSaveEmpleado = async (userId: string, dependenciaId: string) => {
+    const empleadoInfo = infoUsuarios.find(info => info.user_id === userId);
+    if (empleadoInfo && empleadoInfo.dependencia_id && empleadoInfo.dependencia_id !== dependenciaId) {
+        const dependenciaActual = dependencias.find(dep => dep.id === empleadoInfo.dependencia_id);
+        Swal.fire({
+            title: 'Empleado ya asignado',
+            html: `
+                <p>Este empleado ya está asignado al puesto</p>
+                <p style="text-align: center; font-weight: bold; margin: 0.5rem 0;">${dependenciaActual?.nombre}</p>
+                <p>Desasígnelo antes de reasignar</p>
+            `,
+            icon: 'warning',
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#2563eb'      
+        });
+        handleCloseEmpleadoModal();
+        return;
+    }
+
     const { error } = await supabase
-      .from('info_usuario')
-      .update({ dependencia_id: dependenciaId })
-      .eq('user_id', userId);
-      
+        .from('info_usuario')
+        .update({ dependencia_id: dependenciaId })
+        .eq('user_id', userId);
+        
     if (error) {
       toast.error('Error al asignar el empleado.');
     } else {
