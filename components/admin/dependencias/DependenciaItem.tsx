@@ -74,10 +74,11 @@ const DependenciaItem = ({
   };
 
   const getColorClasses = (level: number) => {
-    switch (level % 3) {
+    switch (level % 4) {
       case 0: return { bg: 'bg-green-100', text: 'text-green-800', accent: 'bg-green-500', icon: 'text-green-600' };
       case 1: return { bg: 'bg-blue-100', text: 'text-blue-800', accent: 'bg-blue-500', icon: 'text-blue-600' };
       case 2: return { bg: 'bg-purple-100', text: 'text-purple-800', accent: 'bg-purple-500', icon: 'text-purple-600' };
+      case 3: return { bg: 'bg-yellow-100', text: 'text-yellow-800', accent: 'bg-yellow-500', icon: 'text-yellow-600' };
       default: return { bg: 'bg-gray-100', text: 'text-gray-800', accent: 'bg-gray-500', icon: 'text-gray-600' };
     }
   };
@@ -85,6 +86,9 @@ const DependenciaItem = ({
   const { bg, text, accent, icon } = getColorClasses(level);
   const canMoveUp = index > 0;
   const canMoveDown = index < siblingCount - 1;
+
+  // Calculate dynamic min-width based on level
+  const minWidthStyle = { minWidth: `${1.5 + level * 0.25}rem` };
 
   return (
     <motion.div layout className="w-full relative text-xs">
@@ -102,7 +106,7 @@ const DependenciaItem = ({
         <div className="flex-grow flex items-center min-w-0">
           <DropdownMenu onOpenChange={setIsMenuOpen}>
             <DropdownMenuTrigger asChild>
-             <Button variant="ghost" className={`relative flex-shrink-0 h-7 w-7 ${bg} ${text} rounded-md font-bold text-[10px] shadow-sm z-10 p-0 cursor-pointer`} onClick={(e) => e.stopPropagation()}>
+             <Button variant="ghost" className={`relative flex-shrink-0 h-7 px-2 ${bg} ${text} rounded-md font-bold text-[10px] shadow-sm z-10 p-0 cursor-pointer`} onClick={(e) => e.stopPropagation()} style={minWidthStyle}>
                 {prefix}
                 {hasChildren && (<motion.div className={`absolute bottom-0 -translate-x-1/2 w-4 h-1 ${accent} rounded-full`} animate={{ y: isOpen ? 4 : 0 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}></motion.div>)}
               </Button>
@@ -113,17 +117,20 @@ const DependenciaItem = ({
               sideOffset={10}
               className="cursor-pointer"
             >
-              {level < 2 ? (
+              {level < 3 ? (
                 <DropdownMenuItem onSelect={() => onAddSub(node)} onClick={(e) => e.stopPropagation()} className="cursor-pointer">
                   <GitBranchPlus className={`mr-2 h-4 w-4 ${icon}`} />
                   <span>Añadir</span>
                 </DropdownMenuItem>
-              ) : (
+              ) : null}
+              {/*
+              {level >= 2 ? (
                 <DropdownMenuItem onSelect={() => onAddEmpleado(node)} onClick={(e) => e.stopPropagation()} className="cursor-pointer">
                   <UserPlus className={`mr-2 h-4 w-4 ${icon}`} />
                   <span>Asignar</span>
                 </DropdownMenuItem>
-              )}
+              ) : null}
+              */}
               <DropdownMenuItem onSelect={() => onEdit(node)} onClick={(e) => e.stopPropagation()} className="cursor-pointer">
                 <Pencil className="mr-2 h-4 w-4" />
                 <span>Editar</span>

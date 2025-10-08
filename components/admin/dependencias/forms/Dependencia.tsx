@@ -73,7 +73,6 @@ export default function Dependencia({ isOpen, onClose, onSubmit, initialData, pr
         <motion.div
           className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          onClick={onClose}
         >
           <motion.div
             className="bg-white rounded-xl shadow-2xl w-full max-w-lg"
