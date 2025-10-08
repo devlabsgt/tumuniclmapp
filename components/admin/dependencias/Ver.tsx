@@ -247,7 +247,7 @@ export default function Ver() {
     <div className="p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
       <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-        <h1 className="text-xs font-bold text-blue-600 text-center md:text-left">Jerarquía Municipal 🏛️</h1>
+        <h1 className="text-xs lg:text-lg font-bold text-blue-600 text-center md:text-left">Jerarquía Municipal 🏛️</h1>
         <Button onClick={() => handleOpenForm()} className="w-full text-xs md:w-auto bg-blue-600 hover:bg-blue-700 text-white">
           <PlusCircle className="mr-2 h-4 w-4" /> Nueva Dependencia
         </Button>

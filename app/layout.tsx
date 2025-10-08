@@ -22,6 +22,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#FFFFFF",
+  maximumScale: 1,
+  userScalable: false
 };
 
 const geistSans = Geist({ display: "swap", subsets: ["latin"] });
