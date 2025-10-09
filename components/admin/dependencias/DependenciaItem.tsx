@@ -124,12 +124,12 @@ const DependenciaItem = ({
                 </DropdownMenuItem>
               ) : null}
               {/*
-              {level >= 2 ? (
-                <DropdownMenuItem onSelect={() => onAddEmpleado(node)} onClick={(e) => e.stopPropagation()} className="cursor-pointer">
-                  <UserPlus className={`mr-2 h-4 w-4 ${icon}`} />
-                  <span>Asignar</span>
-                </DropdownMenuItem>
-              ) : null}
+                {level >= 2 ? (
+                  <DropdownMenuItem onSelect={() => onAddEmpleado(node)} onClick={(e) => e.stopPropagation()} className="cursor-pointer">
+                    <UserPlus className={`mr-2 h-4 w-4 ${icon}`} />
+                    <span>Asignar</span>
+                  </DropdownMenuItem>
+                ) : null}
               */}
               <DropdownMenuItem onSelect={() => onEdit(node)} onClick={(e) => e.stopPropagation()} className="cursor-pointer">
                 <Pencil className="mr-2 h-4 w-4" />

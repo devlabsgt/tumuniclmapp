@@ -1,13 +1,16 @@
+
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
+import { toBlob } from 'html-to-image';
+import { motion } from 'framer-motion';
 import DependenciaForm, { type FormData } from './forms/Dependencia';
 import EmpleadoForm from './forms/Empleado';
 import Cargando from '@/components/ui/animations/Cargando';
 import DependenciaList from './DependenciaList';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PlusCircle, Search } from 'lucide-react';
+import { PlusCircle, Search, Download, ChevronsUpDown } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { createClient } from '@/utils/supabase/client';
 import { Database } from '@/lib/database.types';
@@ -67,6 +70,19 @@ function buildDependencyTree(dependencias: Dependencia[], infoUsuarios: InfoUsua
     return roots;
 }
 
+const getAllIds = (nodes: DependenciaNode[]): string[] => {
+    let ids: string[] = [];
+    nodes.forEach(node => {
+        ids.push(node.id);
+        if (node.children && node.children.length > 0) {
+            const childrenNodes = node.children.filter(c => !('isEmployee' in c)) as DependenciaNode[];
+            ids = ids.concat(getAllIds(childrenNodes));
+        }
+    });
+    return ids;
+};
+
+
 export default function Ver() {
   const { dependencias, loading: loadingDependencias, mutate: mutateDependencias } = useDependencias();
   const { usuarios, loading: loadingUsuarios } = useListaUsuarios();
@@ -79,6 +95,9 @@ export default function Ver() {
   const [searchTerm, setSearchTerm] = useState('');
   const [dependenciaParaEmpleado, setDependenciaParaEmpleado] = useState<DependenciaNode | null>(null);
   const [openNodeIds, setOpenNodeIds] = useState<string[]>([]);
+  const exportRef = useRef<HTMLDivElement>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [areAllOpen, setAreAllOpen] = useState(false);
 
   const findNodeById = (nodes: DependenciaNode[], id: string): DependenciaNode | null => {
     for (const node of nodes) {
@@ -87,6 +106,44 @@ export default function Ver() {
       if (found) return found;
     }
     return null;
+  };
+
+  const handleExportar = async () => {
+    if (!exportRef.current) return;
+    setIsExporting(true);
+    const logoElement = document.getElementById('export-logo');
+    if (logoElement) logoElement.classList.remove('hidden');
+
+    try {
+      const blob = await toBlob(exportRef.current, { 
+          quality: 0.98, 
+          backgroundColor: '#ffffff',
+          filter: (node: HTMLElement) => !node.classList?.contains('exclude-from-capture')
+      });
+
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        URL.revokeObjectURL(url);
+      }
+
+    } catch (error) {
+        console.error('Error al exportar la imagen:', error);
+        Swal.fire('Error', 'No se pudo generar la imagen.', 'error');
+    } finally {
+        if (logoElement) logoElement.classList.add('hidden');
+        setIsExporting(false);
+    }
+  };
+  
+  const handleToggleAll = () => {
+    if (areAllOpen) {
+        setOpenNodeIds([]);
+    } else {
+        const allIds = getAllIds(finalTree);
+        setOpenNodeIds(allIds);
+    }
+    setAreAllOpen(!areAllOpen);
   };
 
   const handleOpenForm = (dependencia: Dependencia | null = null) => {
@@ -141,7 +198,6 @@ export default function Ver() {
     if (error) { toast.error('Ocurrió un error al reordenar.'); } 
     else { await mutateDependencias(); }
   };
-
   const handleOpenEmpleadoModal = (dependencia: DependenciaNode) => {
     setDependenciaParaEmpleado(dependencia);
   };
@@ -196,14 +252,12 @@ export default function Ver() {
     }
     handleCloseEmpleadoModal();
   };
-
   const handleEditEmpleado = (empleado: Usuario, parentId: string) => {
     const parentNode = findNodeById(finalTree, parentId);
     if (parentNode) {
       handleOpenEmpleadoModal(parentNode);
     }
   };
-  
   const handleDeleteEmpleado = async (userId: string) => {
     const result = await Swal.fire({
       title: '¿Está seguro?',
@@ -255,59 +309,77 @@ export default function Ver() {
     return buildDependencyTree(filteredDependencias, infoUsuarios, usuarios);
   }, [dependencias, searchTerm, infoUsuarios, usuarios]);
   
-  if (loadingDependencias || loadingUsuarios || loadingInfo) return <Cargando />;
+  const loading = loadingDependencias || loadingUsuarios || loadingInfo;
+  if (loading) return <Cargando />;
 
   return (
     <div className="p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
       
-      <div className="flex flex-col md:flex-row items-center mb-6 gap-4">
+      <div className="flex flex-col md:flex-row items-center mb-6 gap-2 md:gap-4">
         <h1 className="text-lg lg:text-2xl font-bold text-blue-600 text-center md:text-left whitespace-nowrap">Organización Municipal 🏛️</h1>
-        <div className="relative w-full flex-grow">
+        <div className="relative w-full flex-grow exclude-from-capture">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input 
-            placeholder="Buscar en la jerarquía..." 
+            placeholder="Buscar..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9 w-full text-xs"
           />
         </div>
-        <Button onClick={() => handleOpenForm()} className="w-full text-xs md:w-auto bg-blue-600 hover:bg-blue-700 text-white">
-          <PlusCircle className="mr-2 h-4 w-4" /> Nueva Dependencia
-        </Button>
+        <div className="w-full md:w-auto flex items-center gap-2 exclude-from-capture">
+            <Button onClick={() => handleOpenForm()} className="w-full text-xs md:w-auto bg-blue-100 text-blue-800 hover:bg-blue-200">
+              <PlusCircle className="mr-2 h-4 w-4" /> Nueva Dependencia
+            </Button>
+            <Button onClick={handleExportar} disabled={isExporting} className="text-xs bg-purple-100 text-purple-800 hover:bg-purple-200">
+              {isExporting ? <Cargando /> : <Download className="h-4 w-4" />}
+            </Button>
+            <Button onClick={handleToggleAll} className="text-xs bg-green-100 text-green-800 hover:bg-green-200">
+                <motion.div animate={{ rotate: areAllOpen ? 90 : 0 }} transition={{ duration: 0.2 }}>
+                    <ChevronsUpDown className="h-4 w-4" />
+                </motion.div>
+            </Button>
+        </div>
       </div>
+
+      <div ref={exportRef}>
+        <div id="export-logo" className="hidden text-center mb-4">
+          <img src="/images/logo-muni.png" alt="Logo Municipalidad" className="h-28 w-auto inline-block" />
+          <h2 className="text-2xl font-bold mt-2 text-blue-600">Organización Municipal</h2>
+        </div>
       
-      {isFormOpen && (
-        <DependenciaForm 
-          isOpen={isFormOpen} 
-          onClose={handleCloseForm} 
-          onSubmit={handleSubmit} 
-          initialData={editingDependencia} 
-          todasLasDependencias={dependencias} 
-          preselectedParentId={preselectedParentId} 
+        {isFormOpen && (
+          <DependenciaForm 
+            isOpen={isFormOpen} 
+            onClose={handleCloseForm} 
+            onSubmit={handleSubmit} 
+            initialData={editingDependencia} 
+            todasLasDependencias={dependencias} 
+            preselectedParentId={preselectedParentId} 
+          />
+        )}
+        
+        <DependenciaList
+          dependencias={finalTree}
+          onEdit={handleOpenForm}
+          onDelete={handleDelete}
+          onAddSub={handleOpenSubForm}
+          onMove={handleMove}
+          onAddEmpleado={handleOpenEmpleadoModal}
+          onEditEmpleado={handleEditEmpleado}
+          onDeleteEmpleado={handleDeleteEmpleado}
+          openNodeIds={openNodeIds}
+          setOpenNodeIds={setOpenNodeIds}
         />
-      )}
-      
-      <DependenciaList
-        dependencias={finalTree}
-        onEdit={handleOpenForm}
-        onDelete={handleDelete}
-        onAddSub={handleOpenSubForm}
-        onMove={handleMove}
-        onAddEmpleado={handleOpenEmpleadoModal}
-        onEditEmpleado={handleEditEmpleado}
-        onDeleteEmpleado={handleDeleteEmpleado}
-        openNodeIds={openNodeIds}
-        setOpenNodeIds={setOpenNodeIds}
-      />
-      
-      <EmpleadoForm
-        isOpen={!!dependenciaParaEmpleado}
-        onClose={handleCloseEmpleadoModal}
-        dependencia={dependenciaParaEmpleado}
-        usuarios={usuarios}
-        onSave={handleSaveEmpleado}
-      />
+        
+        <EmpleadoForm
+          isOpen={!!dependenciaParaEmpleado}
+          onClose={handleCloseEmpleadoModal}
+          dependencia={dependenciaParaEmpleado}
+          usuarios={usuarios}
+          onSave={handleSaveEmpleado}
+        />
+      </div>
     </div>
   );
 }
