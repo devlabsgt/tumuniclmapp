@@ -42,7 +42,7 @@ export default function VerUsuarios() {
   }
 
   return (
-    <div >
+    <div className='p-5'>
       <div className="flex flex-col gap-4 w-full mx-auto pb-6 md:flex-row md:justify-between  md:px-4 ">  
           
             <Button
@@ -95,6 +95,7 @@ export default function VerUsuarios() {
           </motion.div>
         )}
       </AnimatePresence>
+      
     </div>
   );
 }
