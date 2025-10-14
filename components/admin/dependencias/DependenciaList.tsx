@@ -1,3 +1,4 @@
+//DependenciaList.tsx
 'use client';
 
 import React from 'react';
@@ -30,7 +31,7 @@ export default function DependenciaList({
   setOpenNodeIds
 }: DependenciaListProps) {
   return (
-    <div className="space-y-1">
+    <div className="space-y-1 ">
       {dependencias.map((node, index) => (
         <DependenciaItem
           key={node.id}

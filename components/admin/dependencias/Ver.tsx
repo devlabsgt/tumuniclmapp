@@ -1,4 +1,4 @@
-
+//Ver.tsx
 'use client';
 
 import React, { useState, useMemo, useRef } from 'react';
@@ -342,9 +342,9 @@ export default function Ver() {
         </div>
       </div>
 
-      <div ref={exportRef}>
+      <div ref={exportRef} className='pb-10'>
         <div id="export-logo" className="hidden text-center mb-4">
-          <img src="/images/logo-muni.png" alt="Logo Municipalidad" className="h-28 w-auto inline-block" />
+          <img src="/images/logo-muni.png" alt="Logo Municipalidad" className="h-40 w-auto inline-block" />
           <h2 className="text-2xl font-bold mt-2 text-blue-600">Organización Municipal</h2>
         </div>
       

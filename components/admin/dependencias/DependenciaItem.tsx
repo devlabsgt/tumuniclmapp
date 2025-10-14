@@ -1,3 +1,4 @@
+//DependenciaItem.tsx
 'use client';
 
 import React, { useState } from 'react';
@@ -91,7 +92,7 @@ const DependenciaItem = ({
   const minWidthStyle = { minWidth: `${1.5 + level * 0.25}rem` };
 
   return (
-    <motion.div layout className="w-full relative text-xs">
+    <motion.div layout className="w-full relative text-xs py-1">
       {level > 0 && (
         <>
           <span className="absolute top-0 w-0.5 bg-slate-300 dark:bg-slate-600" style={{ left: `calc(${level - 1} * 1.5rem + 0.5rem + 0.875rem)`, height: isLast ? '1.375rem' : '100%' }} aria-hidden="true" />
