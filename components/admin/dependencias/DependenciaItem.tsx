@@ -1,11 +1,10 @@
-//DependenciaItem.tsx
 'use client';
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
-import { Pencil, Trash2, GitBranchPlus, ArrowUp, ArrowDown, UserPlus } from 'lucide-react';
+import { Pencil, Trash2, GitBranchPlus, ArrowUp, ArrowDown, UserPlus, ChevronsUp, ChevronsDown } from 'lucide-react';
 import { EmpleadoItem } from './EmpleadoItem';
 import { Usuario } from '@/lib/usuarios/esquemas';
 
@@ -20,7 +19,7 @@ export interface DependenciaNode {
   nombre: string;
   descripcion: string | null;
   parent_id: string | null;
-  horario_id: string | null;
+  es_puesto: boolean | null;
   children: (DependenciaNode | EmpleadoNode)[];
 }
 
@@ -30,6 +29,7 @@ interface DependenciaItemProps {
   onDelete: (id: string) => void;
   onAddSub: (parent: DependenciaNode) => void;
   onMove: (id: string, direction: 'up' | 'down') => void;
+  onMoveExtreme: (id: string, direction: 'inicio' | 'final') => void;
   onAddEmpleado: (parent: DependenciaNode) => void;
   onEditEmpleado: (empleado: Usuario, parentId: string) => void;
   onDeleteEmpleado: (userId: string) => void;
@@ -42,22 +42,23 @@ interface DependenciaItemProps {
   siblingCount: number;
 }
 
-const DependenciaItem = ({ 
-  node, 
-  onEdit, 
-  onDelete, 
-  onAddSub, 
-  onMove, 
+const DependenciaItem = ({
+  node,
+  onEdit,
+  onDelete,
+  onAddSub,
+  onMove,
+  onMoveExtreme,
   onAddEmpleado,
   onEditEmpleado,
   onDeleteEmpleado,
-  level, 
-  index, 
-  prefix, 
-  isLast, 
-  openNodeIds, 
-  setOpenNodeIds, 
-  siblingCount 
+  level,
+  index,
+  prefix,
+  isLast,
+  openNodeIds,
+  setOpenNodeIds,
+  siblingCount
 }: DependenciaItemProps) => {
   const hasChildren = node.children && node.children.length > 0;
   const isOpen = openNodeIds.includes(node.id);
@@ -66,7 +67,7 @@ const DependenciaItem = ({
 
   const handleToggle = () => {
     if (hasChildren) {
-      setOpenNodeIds(prevIds => 
+      setOpenNodeIds(prevIds =>
         prevIds.includes(node.id)
           ? prevIds.filter(id => id !== node.id)
           : [...prevIds, node.id]
@@ -84,11 +85,14 @@ const DependenciaItem = ({
     }
   };
 
-  const { bg, text, accent, icon } = getColorClasses(level);
+  const isPuesto = node.es_puesto;
+  const { bg, text, accent, icon } = isPuesto
+    ? { bg: 'bg-yellow-100', text: 'text-yellow-800', accent: 'bg-yellow-500', icon: 'text-yellow-600' }
+    : getColorClasses(level);
+
   const canMoveUp = index > 0;
   const canMoveDown = index < siblingCount - 1;
 
-  // Calculate dynamic min-width based on level
   const minWidthStyle = { minWidth: `${1.5 + level * 0.25}rem` };
 
   return (
@@ -99,9 +103,9 @@ const DependenciaItem = ({
           <span className="absolute h-0.5 bg-slate-300 dark:bg-slate-600" style={{ top: '1.375rem', left: `calc(${level - 1} * 1.5rem + 0.5rem + 0.875rem)`, width: '1.5rem' }} aria-hidden="true" />
         </>
       )}
-      <div 
+      <div
         className={`flex items-center justify-between p-2 rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-gray-700/50 ${hasChildren ? 'cursor-pointer' : ''} ${isMenuOpen ? 'bg-gray-100 dark:bg-gray-700/50' : ''}`}
-        style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }} 
+        style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}
         onClick={handleToggle}
       >
         <div className="flex-grow flex items-center min-w-0">
@@ -112,26 +116,26 @@ const DependenciaItem = ({
                 {hasChildren && (<motion.div className={`absolute bottom-0 -translate-x-1/2 w-4 h-1 ${accent} rounded-full`} animate={{ y: isOpen ? 4 : 0 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}></motion.div>)}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent 
-              side="top" 
-              align="start" 
+            <DropdownMenuContent
+              side="top"
+              align="start"
               sideOffset={10}
               className="cursor-pointer"
             >
-              {level < 3 ? (
+              {!isPuesto && (
                 <DropdownMenuItem onSelect={() => onAddSub(node)} onClick={(e) => e.stopPropagation()} className="cursor-pointer">
                   <GitBranchPlus className={`mr-2 h-4 w-4 ${icon}`} />
-                  <span>Añadir</span>
+                  <span>Añadir Sub-dependencia</span>
                 </DropdownMenuItem>
-              ) : null}
-              {/*
-                {level >= 2 ? (
+              )}
+
+              {isPuesto && !empleadoAsignado && (
                   <DropdownMenuItem onSelect={() => onAddEmpleado(node)} onClick={(e) => e.stopPropagation()} className="cursor-pointer">
                     <UserPlus className={`mr-2 h-4 w-4 ${icon}`} />
-                    <span>Asignar</span>
+                    <span>Asignar Empleado</span>
                   </DropdownMenuItem>
-                ) : null}
-              */}
+              )}
+
               <DropdownMenuItem onSelect={() => onEdit(node)} onClick={(e) => e.stopPropagation()} className="cursor-pointer">
                 <Pencil className="mr-2 h-4 w-4" />
                 <span>Editar</span>
@@ -158,12 +162,24 @@ const DependenciaItem = ({
                         <span>Mover Abajo</span>
                       </DropdownMenuItem>
                     )}
+                    {canMoveUp && (
+                      <DropdownMenuItem onSelect={() => onMoveExtreme(node.id, 'inicio')} onClick={(e) => e.stopPropagation()} className="cursor-pointer">
+                        <ChevronsUp className="mr-2 h-4 w-4" />
+                        <span>Mover al inicio</span>
+                      </DropdownMenuItem>
+                    )}
+                    {canMoveDown && (
+                      <DropdownMenuItem onSelect={() => onMoveExtreme(node.id, 'final')} onClick={(e) => e.stopPropagation()} className="cursor-pointer">
+                        <ChevronsDown className="mr-2 h-4 w-4" />
+                        <span>Mover al final</span>
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-          
+
           <div className="min-w-0 pl-2 pr-2">
             <span className="font-medium text-gray-800 dark:text-white truncate">{node.nombre}</span>
             {node.descripcion && (<p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">{node.descripcion}</p>)}
@@ -184,6 +200,7 @@ const DependenciaItem = ({
                   />
                 );
               } else {
+                const subDependencias = node.children.filter(c => !('isEmployee' in c));
                 return (
                   <DependenciaItem
                     key={child.id}
@@ -192,16 +209,17 @@ const DependenciaItem = ({
                     onDelete={onDelete}
                     onAddSub={onAddSub}
                     onMove={onMove}
+                    onMoveExtreme={onMoveExtreme}
                     onAddEmpleado={onAddEmpleado}
                     onEditEmpleado={onEditEmpleado}
                     onDeleteEmpleado={onDeleteEmpleado}
                     level={level + 1}
                     index={childIndex}
                     prefix={`${prefix}.${child.no}`}
-                    isLast={childIndex === node.children.length - 1}
+                    isLast={childIndex === subDependencias.length - 1}
                     openNodeIds={openNodeIds}
                     setOpenNodeIds={setOpenNodeIds}
-                    siblingCount={node.children.length}
+                    siblingCount={subDependencias.length}
                   />
                 );
               }

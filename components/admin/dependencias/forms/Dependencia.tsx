@@ -1,4 +1,4 @@
-//forms/Dependencia.tsx
+// forms/Dependencia.tsx (Corrected)
 'use client';
 
 import { useForm, SubmitHandler } from 'react-hook-form';
@@ -10,11 +10,14 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Dependencia as DependenciaType } from '../Ver';
+import { Switch } from '@/components/ui/Switch';
+import { DependenciaNode } from '../DependenciaItem'; // Import DependenciaNode
 
 const formSchema = z.object({
   nombre: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres.' }),
   descripcion: z.string().optional(),
   parent_id: z.string().nullable().optional(),
+  es_puesto: z.boolean().default(false).optional(),
 });
 
 export type FormData = z.infer<typeof formSchema>;
@@ -23,18 +26,19 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: FormData) => void;
-  initialData?: DependenciaType | null;
+  initialData?: DependenciaNode | null; 
   todasLasDependencias: DependenciaType[];
   preselectedParentId?: string | null;
 }
 
-export default function Dependencia({ isOpen, onClose, onSubmit, initialData, preselectedParentId }: Props) {
+export default function Dependencia({ isOpen, onClose, onSubmit, initialData, preselectedParentId, todasLasDependencias }: Props) {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       nombre: initialData?.nombre || '',
       descripcion: initialData?.descripcion || '',
       parent_id: initialData?.parent_id || null,
+      es_puesto: initialData?.es_puesto || false,
     },
   });
 
@@ -51,18 +55,21 @@ export default function Dependencia({ isOpen, onClose, onSubmit, initialData, pr
           nombre: initialData.nombre,
           descripcion: initialData.descripcion || '',
           parent_id: initialData.parent_id,
+          es_puesto: initialData.es_puesto || false,
         });
       } else if (mode === 'CREATE_SUB') {
         form.reset({
           nombre: '',
           descripcion: '',
           parent_id: preselectedParentId,
+          es_puesto: false,
         });
       } else { 
         form.reset({
           nombre: '',
           descripcion: '',
           parent_id: null,
+          es_puesto: false,
         });
       }
     }
@@ -76,7 +83,7 @@ export default function Dependencia({ isOpen, onClose, onSubmit, initialData, pr
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         >
           <motion.div
-            className="bg-white rounded-xl shadow-2xl w-full max-w-lg"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg"
             initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 30 }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -113,6 +120,27 @@ export default function Dependencia({ isOpen, onClose, onSubmit, initialData, pr
                           </FormControl>
                         </div>
                         <FormMessage className="ml-[128px]" />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="es_puesto"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm mt-4">
+                        <div className="space-y-0.5">
+                          <FormLabel>¿Es un Puesto?</FormLabel>
+                          <p className="text-[10px] text-gray-500">
+                            Habilita esta opción si es un puesto al que se le asignará un empleado.
+                          </p>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
                       </FormItem>
                     )}
                   />

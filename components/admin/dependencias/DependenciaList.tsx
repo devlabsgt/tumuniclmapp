@@ -1,4 +1,3 @@
-//DependenciaList.tsx
 'use client';
 
 import React from 'react';
@@ -11,6 +10,7 @@ interface DependenciaListProps {
   onDelete: (id: string) => void;
   onAddSub: (parent: DependenciaNode) => void;
   onMove: (id: string, direction: 'up' | 'down') => void;
+  onMoveExtreme: (id: string, direction: 'inicio' | 'final') => void;
   onAddEmpleado: (parent: DependenciaNode) => void;
   onEditEmpleado: (empleado: Usuario, parentId: string) => void;
   onDeleteEmpleado: (userId: string) => void;
@@ -18,12 +18,13 @@ interface DependenciaListProps {
   setOpenNodeIds: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
-export default function DependenciaList({ 
-  dependencias, 
-  onEdit, 
-  onDelete, 
-  onAddSub, 
+export default function DependenciaList({
+  dependencias,
+  onEdit,
+  onDelete,
+  onAddSub,
   onMove,
+  onMoveExtreme,
   onAddEmpleado,
   onEditEmpleado,
   onDeleteEmpleado,
@@ -40,6 +41,7 @@ export default function DependenciaList({
           onDelete={onDelete}
           onAddSub={onAddSub}
           onMove={onMove}
+          onMoveExtreme={onMoveExtreme}
           onAddEmpleado={onAddEmpleado}
           onEditEmpleado={onEditEmpleado}
           onDeleteEmpleado={onDeleteEmpleado}

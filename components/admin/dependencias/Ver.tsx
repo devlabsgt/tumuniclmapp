@@ -1,4 +1,3 @@
-//Ver.tsx
 'use client';
 
 import React, { useState, useMemo, useRef } from 'react';
@@ -60,11 +59,11 @@ function buildDependencyTree(dependencias: Dependencia[], infoUsuarios: InfoUsua
             if (aIsDep && bIsDep) { return a.no - b.no; }
             if (aIsDep && !bIsDep) return -1;
             if (!aIsDep && bIsDep) return 1;
-            
+
             return 0;
         });
     });
-    
+
     roots.sort((a,b) => a.no - b.no);
 
     return roots;
@@ -87,10 +86,10 @@ export default function Ver() {
   const { dependencias, loading: loadingDependencias, mutate: mutateDependencias } = useDependencias();
   const { usuarios, loading: loadingUsuarios } = useListaUsuarios();
   const { infoUsuarios, loading: loadingInfo, mutate: mutateInfoUsuarios } = useInfoUsuarios();
-  
+
   const supabase = createClient();
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingDependencia, setEditingDependencia] = useState<Dependencia | null>(null);
+  const [editingDependencia, setEditingDependencia] = useState<DependenciaNode | null>(null);
   const [preselectedParentId, setPreselectedParentId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [dependenciaParaEmpleado, setDependenciaParaEmpleado] = useState<DependenciaNode | null>(null);
@@ -109,14 +108,18 @@ export default function Ver() {
   };
 
   const handleExportar = async () => {
-    if (!exportRef.current) return;
+    const elementToExport = exportRef.current;
+    if (!elementToExport) return;
+
     setIsExporting(true);
     const logoElement = document.getElementById('export-logo');
+
+    elementToExport.classList.add('ml-20');
     if (logoElement) logoElement.classList.remove('hidden');
 
     try {
-      const blob = await toBlob(exportRef.current, { 
-          quality: 0.98, 
+      const blob = await toBlob(elementToExport, {
+          quality: 0.98,
           backgroundColor: '#ffffff',
           filter: (node: HTMLElement) => !node.classList?.contains('exclude-from-capture')
       });
@@ -131,11 +134,12 @@ export default function Ver() {
         console.error('Error al exportar la imagen:', error);
         Swal.fire('Error', 'No se pudo generar la imagen.', 'error');
     } finally {
+        elementToExport.classList.remove('ml-20');
         if (logoElement) logoElement.classList.add('hidden');
         setIsExporting(false);
     }
   };
-  
+
   const handleToggleAll = () => {
     if (areAllOpen) {
         setOpenNodeIds([]);
@@ -146,12 +150,12 @@ export default function Ver() {
     setAreAllOpen(!areAllOpen);
   };
 
-  const handleOpenForm = (dependencia: Dependencia | null = null) => {
+  const handleOpenForm = (dependencia: DependenciaNode | null = null) => {
     setEditingDependencia(dependencia);
     setPreselectedParentId(null);
     setIsFormOpen(true);
   };
-  const handleOpenSubForm = (parent: Dependencia) => {
+  const handleOpenSubForm = (parent: DependenciaNode) => {
     setEditingDependencia(null);
     setPreselectedParentId(parent.id);
     setIsFormOpen(true);
@@ -167,6 +171,7 @@ export default function Ver() {
       nombre: formData.nombre,
       parent_id: formData.parent_id ?? null,
       descripcion: formData.descripcion || null,
+      es_puesto: formData.es_puesto || false,
     };
     if (!isEditing) {
         let query = supabase.from('dependencias').select('no', { count: 'exact' });
@@ -182,22 +187,29 @@ export default function Ver() {
     const { error } = isEditing
       ? await supabase.from('dependencias').update(dataToSubmit).eq('id', editingDependencia!.id)
       : await supabase.from('dependencias').insert(dataToSubmit);
-    if (error) { toast.error('Ocurrió un error al guardar.'); } 
+    if (error) { toast.error('Ocurrió un error al guardar.'); }
     else { handleCloseForm(); mutateDependencias(); }
   };
   const handleDelete = async (id: string) => {
     const result = await Swal.fire({ title: '¿Está seguro?', text: "No podrá revertir esto.", icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar' });
     if (result.isConfirmed) {
         const { error } = await supabase.rpc('eliminar_dependencia_y_reordenar', { id_a_eliminar: id });
-        if (error) { toast.error('Ocurrió un error al eliminar la dependencia.'); } 
+        if (error) { toast.error('Ocurrió un error al eliminar la dependencia.'); }
         else { await mutateDependencias(); }
     }
   };
   const handleMove = async (id: string, direction: 'up' | 'down') => {
     const { error } = await supabase.rpc('mover_dependencia', { id_a_mover: id, direccion: direction });
-    if (error) { toast.error('Ocurrió un error al reordenar.'); } 
+    if (error) { toast.error('Ocurrió un error al reordenar.'); }
     else { await mutateDependencias(); }
   };
+
+  const handleMoveExtreme = async (id: string, direction: 'inicio' | 'final') => {
+    const { error } = await supabase.rpc('mover_dependencia_extremo', { id_a_mover: id, direccion: direction });
+    if (error) { toast.error('Ocurrió un error al reordenar.'); }
+    else { await mutateDependencias(); }
+  };
+
   const handleOpenEmpleadoModal = (dependencia: DependenciaNode) => {
     setDependenciaParaEmpleado(dependencia);
   };
@@ -217,7 +229,7 @@ export default function Ver() {
             `,
             icon: 'warning',
             confirmButtonText: 'Entendido',
-            confirmButtonColor: '#2563eb'      
+            confirmButtonColor: '#2563eb'
         });
         handleCloseEmpleadoModal();
         return;
@@ -241,7 +253,7 @@ export default function Ver() {
       .from('info_usuario')
       .update({ dependencia_id: dependenciaId })
       .eq('user_id', newUserId);
-      
+
     if (assignError) {
       toast.error('Error al asignar el empleado.');
     } else {
@@ -268,13 +280,13 @@ export default function Ver() {
       cancelButtonText: 'Cancelar',
       confirmButtonColor: '#d33',
     });
-  
+
     if (result.isConfirmed) {
       const { error } = await supabase
         .from('info_usuario')
         .update({ dependencia_id: null })
         .eq('user_id', userId);
-  
+
       if(error){
         toast.error('Error al desasignar el empleado.');
       } else {
@@ -286,8 +298,8 @@ export default function Ver() {
 
   const finalTree = useMemo(() => {
     if (!dependencias || !infoUsuarios || !usuarios) return [];
-    
-    const filteredDependencias = !searchTerm 
+
+    const filteredDependencias = !searchTerm
       ? dependencias
       : (() => {
           const lowercasedTerm = searchTerm.toLowerCase();
@@ -308,20 +320,20 @@ export default function Ver() {
 
     return buildDependencyTree(filteredDependencias, infoUsuarios, usuarios);
   }, [dependencias, searchTerm, infoUsuarios, usuarios]);
-  
+
   const loading = loadingDependencias || loadingUsuarios || loadingInfo;
   if (loading) return <Cargando />;
 
   return (
     <div className="p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
-      
+
       <div className="flex flex-col md:flex-row items-center mb-6 gap-2 md:gap-4">
         <h1 className="text-lg lg:text-2xl font-bold text-blue-600 text-center md:text-left whitespace-nowrap">Organización Municipal 🏛️</h1>
         <div className="relative w-full flex-grow exclude-from-capture">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input 
-            placeholder="Buscar..." 
+          <Input
+            placeholder="Buscar..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9 w-full text-xs"
@@ -347,31 +359,32 @@ export default function Ver() {
           <img src="/images/logo-muni.png" alt="Logo Municipalidad" className="h-40 w-auto inline-block" />
           <h2 className="text-2xl font-bold mt-2 text-blue-600">Organización Municipal</h2>
         </div>
-      
+
         {isFormOpen && (
-          <DependenciaForm 
-            isOpen={isFormOpen} 
-            onClose={handleCloseForm} 
-            onSubmit={handleSubmit} 
-            initialData={editingDependencia} 
-            todasLasDependencias={dependencias} 
-            preselectedParentId={preselectedParentId} 
+          <DependenciaForm
+            isOpen={isFormOpen}
+            onClose={handleCloseForm}
+            onSubmit={handleSubmit}
+            initialData={editingDependencia}
+            todasLasDependencias={dependencias}
+            preselectedParentId={preselectedParentId}
           />
         )}
-        
+
         <DependenciaList
           dependencias={finalTree}
           onEdit={handleOpenForm}
           onDelete={handleDelete}
           onAddSub={handleOpenSubForm}
           onMove={handleMove}
+          onMoveExtreme={handleMoveExtreme}
           onAddEmpleado={handleOpenEmpleadoModal}
           onEditEmpleado={handleEditEmpleado}
           onDeleteEmpleado={handleDeleteEmpleado}
           openNodeIds={openNodeIds}
           setOpenNodeIds={setOpenNodeIds}
         />
-        
+
         <EmpleadoForm
           isOpen={!!dependenciaParaEmpleado}
           onClose={handleCloseEmpleadoModal}

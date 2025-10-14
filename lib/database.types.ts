@@ -409,7 +409,7 @@ export type Database = {
       dependencias: {
         Row: {
           descripcion: string | null
-          horario_id: string | null
+          es_puesto: boolean | null
           id: string
           no: number | null
           nombre: string
@@ -417,7 +417,7 @@ export type Database = {
         }
         Insert: {
           descripcion?: string | null
-          horario_id?: string | null
+          es_puesto?: boolean | null
           id?: string
           no?: number | null
           nombre: string
@@ -425,20 +425,13 @@ export type Database = {
         }
         Update: {
           descripcion?: string | null
-          horario_id?: string | null
+          es_puesto?: boolean | null
           id?: string
           no?: number | null
           nombre?: string
           parent_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "dependencias_horario_id_fkey"
-            columns: ["horario_id"]
-            isOneToOne: false
-            referencedRelation: "horarios"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "dependencias_parent_id_fkey"
             columns: ["parent_id"]
