@@ -1,11 +1,14 @@
 'use client';
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { toBlob } from 'html-to-image';
 import { motion } from 'framer-motion';
 import DependenciaForm, { type FormData } from './forms/Dependencia';
 import EmpleadoForm from './forms/Empleado';
-import Cargando from '@/components/ui/animations/Cargando';
+import InfoPersonalForm, { InfoPersonalFormData } from './forms/InfoPersonal';
+import ContratoForm, { ContratoFormData } from './forms/Contrato';
+import TarjetaEmpleado from './TarjetaEmpleado';
+import DescriptionModal from './DescriptionModal';
 import DependenciaList from './DependenciaList';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +19,7 @@ import { Database } from '@/lib/database.types';
 import { useDependencias } from '@/hooks/dependencias/useDependencias';
 import { useListaUsuarios } from '@/hooks/usuarios/useListarUsuarios';
 import { useInfoUsuarios, InfoUsuario } from '@/hooks/usuarios/useInfoUsuario';
+import { useContratoUsuario } from '@/hooks/contratos/useContratoUsuario';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { DependenciaNode } from './DependenciaItem';
@@ -55,11 +59,9 @@ function buildDependencyTree(dependencias: Dependencia[], infoUsuarios: InfoUsua
         node.children.sort((a, b) => {
             const aIsDep = !('isEmployee' in a);
             const bIsDep = !('isEmployee' in b);
-
             if (aIsDep && bIsDep) { return a.no - b.no; }
             if (aIsDep && !bIsDep) return -1;
             if (!aIsDep && bIsDep) return 1;
-
             return 0;
         });
     });
@@ -81,10 +83,9 @@ const getAllIds = (nodes: DependenciaNode[]): string[] => {
     return ids;
 };
 
-
 export default function Ver() {
   const { dependencias, loading: loadingDependencias, mutate: mutateDependencias } = useDependencias();
-  const { usuarios, loading: loadingUsuarios } = useListaUsuarios();
+  const { usuarios, loading: loadingUsuarios, fetchUsuarios } = useListaUsuarios();
   const { infoUsuarios, loading: loadingInfo, mutate: mutateInfoUsuarios } = useInfoUsuarios();
 
   const supabase = createClient();
@@ -98,6 +99,33 @@ export default function Ver() {
   const [isExporting, setIsExporting] = useState(false);
   const [areAllOpen, setAreAllOpen] = useState(false);
 
+  const [isInfoPersonalOpen, setIsInfoPersonalOpen] = useState(false);
+  const [isContratoOpen, setIsContratoOpen] = useState(false);
+  const [selectedUsuario, setSelectedUsuario] = useState<Usuario | null>(null);
+  const [usuarioIdParaContrato, setUsuarioIdParaContrato] = useState<string | null>(null);
+  
+  const [isTarjetaOpen, setIsTarjetaOpen] = useState(false);
+  const [usuarioParaTarjeta, setUsuarioParaTarjeta] = useState<Usuario | null>(null);
+
+  const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);
+  const [modalContent, setModalContent] = useState({ title: '', description: '' });
+
+  const { contrato: contratoSeleccionado, loading: loadingContrato, mutate: mutateContrato } = useContratoUsuario(usuarioIdParaContrato);
+
+  useEffect(() => {
+    const isAnyModalOpen = isFormOpen || isInfoPersonalOpen || isContratoOpen || isTarjetaOpen || !!dependenciaParaEmpleado || descriptionModalOpen;
+    
+    if (isAnyModalOpen) {
+      document.body.classList.add('overflow-hidden');
+    } else {
+      document.body.classList.remove('overflow-hidden');
+    }
+
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+    };
+  }, [isFormOpen, isInfoPersonalOpen, isContratoOpen, isTarjetaOpen, dependenciaParaEmpleado, descriptionModalOpen]);
+
   const findNodeById = (nodes: DependenciaNode[], id: string): DependenciaNode | null => {
     for (const node of nodes) {
       if (node.id === id) return node;
@@ -110,26 +138,13 @@ export default function Ver() {
   const handleExportar = async () => {
     const elementToExport = exportRef.current;
     if (!elementToExport) return;
-
     setIsExporting(true);
     const logoElement = document.getElementById('export-logo');
-
     elementToExport.classList.add('ml-20');
     if (logoElement) logoElement.classList.remove('hidden');
-
     try {
-      const blob = await toBlob(elementToExport, {
-          quality: 0.98,
-          backgroundColor: '#ffffff',
-          filter: (node: HTMLElement) => !node.classList?.contains('exclude-from-capture')
-      });
-
-      if (blob) {
-        const url = URL.createObjectURL(blob);
-        window.open(url, '_blank');
-        URL.revokeObjectURL(url);
-      }
-
+      const blob = await toBlob(elementToExport, { quality: 0.98, backgroundColor: '#ffffff', filter: (node: HTMLElement) => !node.classList?.contains('exclude-from-capture') });
+      if (blob) { const url = URL.createObjectURL(blob); window.open(url, '_blank'); URL.revokeObjectURL(url); }
     } catch (error) {
         console.error('Error al exportar la imagen:', error);
         Swal.fire('Error', 'No se pudo generar la imagen.', 'error');
@@ -141,188 +156,104 @@ export default function Ver() {
   };
 
   const handleToggleAll = () => {
-    if (areAllOpen) {
-        setOpenNodeIds([]);
-    } else {
-        const allIds = getAllIds(finalTree);
-        setOpenNodeIds(allIds);
-    }
+    if (areAllOpen) { setOpenNodeIds([]); } else { const allIds = getAllIds(finalTree); setOpenNodeIds(allIds); }
     setAreAllOpen(!areAllOpen);
   };
 
-  const handleOpenForm = (dependencia: DependenciaNode | null = null) => {
-    setEditingDependencia(dependencia);
-    setPreselectedParentId(null);
-    setIsFormOpen(true);
-  };
-  const handleOpenSubForm = (parent: DependenciaNode) => {
-    setEditingDependencia(null);
-    setPreselectedParentId(parent.id);
-    setIsFormOpen(true);
-  };
-  const handleCloseForm = () => {
-    setIsFormOpen(false);
-    setEditingDependencia(null);
-    setPreselectedParentId(null);
-  };
+  const handleOpenForm = (dependencia: DependenciaNode | null = null) => { setEditingDependencia(dependencia); setPreselectedParentId(null); setIsFormOpen(true); };
+  const handleOpenSubForm = (parent: DependenciaNode) => { setEditingDependencia(null); setPreselectedParentId(parent.id); setIsFormOpen(true); };
+  const handleCloseForm = () => { setIsFormOpen(false); setEditingDependencia(null); setPreselectedParentId(null); };
+  
   const handleSubmit = async (formData: FormData) => {
     const isEditing = !!editingDependencia;
-    let dataToSubmit: any = {
-      nombre: formData.nombre,
-      parent_id: formData.parent_id ?? null,
-      descripcion: formData.descripcion || null,
-      es_puesto: formData.es_puesto || false,
-    };
+    let dataToSubmit: any = { nombre: formData.nombre, parent_id: formData.parent_id ?? null, descripcion: formData.descripcion || null, es_puesto: formData.es_puesto || false, };
     if (!isEditing) {
         let query = supabase.from('dependencias').select('no', { count: 'exact' });
         const parentId = formData.parent_id ?? null;
-        if (parentId) {
-          query = query.eq('parent_id', parentId);
-        } else {
-          query = query.is('parent_id', null);
-        }
+        if (parentId) { query = query.eq('parent_id', parentId); } else { query = query.is('parent_id', null); }
         const { count } = await query;
         dataToSubmit.no = (count || 0) + 1;
     }
-    const { error } = isEditing
-      ? await supabase.from('dependencias').update(dataToSubmit).eq('id', editingDependencia!.id)
-      : await supabase.from('dependencias').insert(dataToSubmit);
-    if (error) { toast.error('Ocurrió un error al guardar.'); }
-    else { handleCloseForm(); mutateDependencias(); }
+    const { error } = isEditing ? await supabase.from('dependencias').update(dataToSubmit).eq('id', editingDependencia!.id) : await supabase.from('dependencias').insert(dataToSubmit);
+    if (error) { toast.error('Ocurrió un error al guardar.'); } else { handleCloseForm(); mutateDependencias(); }
   };
+  
   const handleDelete = async (id: string) => {
     const result = await Swal.fire({ title: '¿Está seguro?', text: "No podrá revertir esto.", icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar' });
     if (result.isConfirmed) {
         const { error } = await supabase.rpc('eliminar_dependencia_y_reordenar', { id_a_eliminar: id });
-        if (error) { toast.error('Ocurrió un error al eliminar la dependencia.'); }
-        else { await mutateDependencias(); }
+        if (error) { toast.error('Ocurrió un error al eliminar la dependencia.'); } else { await mutateDependencias(); }
     }
   };
+  
   const handleMove = async (id: string, direction: 'up' | 'down') => {
     const { error } = await supabase.rpc('mover_dependencia', { id_a_mover: id, direccion: direction });
-    if (error) { toast.error('Ocurrió un error al reordenar.'); }
-    else { await mutateDependencias(); }
+    if (error) { toast.error('Ocurrió un error al reordenar.'); } else { await mutateDependencias(); }
   };
-
+  
   const handleMoveExtreme = async (id: string, direction: 'inicio' | 'final') => {
     const { error } = await supabase.rpc('mover_dependencia_extremo', { id_a_mover: id, direccion: direction });
-    if (error) { toast.error('Ocurrió un error al reordenar.'); }
-    else { await mutateDependencias(); }
+    if (error) { toast.error('Ocurrió un error al reordenar.'); } else { await mutateDependencias(); }
   };
-
-  const handleOpenEmpleadoModal = (dependencia: DependenciaNode) => {
-    setDependenciaParaEmpleado(dependencia);
-  };
-  const handleCloseEmpleadoModal = () => {
-    setDependenciaParaEmpleado(null);
-  };
+  
+  const handleOpenEmpleadoModal = (dependencia: DependenciaNode) => { setDependenciaParaEmpleado(dependencia); };
+  const handleCloseEmpleadoModal = () => { setDependenciaParaEmpleado(null); };
+  
   const handleSaveEmpleado = async (newUserId: string, dependenciaId: string) => {
     const empleadoInfo = infoUsuarios.find(info => info.user_id === newUserId);
     if (empleadoInfo && empleadoInfo.dependencia_id && empleadoInfo.dependencia_id !== dependenciaId) {
         const dependenciaActual = dependencias.find(dep => dep.id === empleadoInfo.dependencia_id);
-        Swal.fire({
-            title: 'Empleado ya asignado',
-            html: `
-                <p>Este empleado ya está asignado al puesto</p>
-                <p style="text-align: center; font-weight: bold; margin: 0.5rem 0;">${dependenciaActual?.nombre}</p>
-                <p>Desasígnelo antes de reasignar</p>
-            `,
-            icon: 'warning',
-            confirmButtonText: 'Entendido',
-            confirmButtonColor: '#2563eb'
-        });
-        handleCloseEmpleadoModal();
-        return;
+        Swal.fire({ title: 'Empleado ya asignado', html: `<p>Este empleado ya está asignado al puesto</p><p style="text-align: center; font-weight: bold; margin: 0.5rem 0;">${dependenciaActual?.nombre}</p><p>Desasígnelo antes de reasignar</p>`, icon: 'warning', confirmButtonText: 'Entendido', confirmButtonColor: '#2563eb' });
+        handleCloseEmpleadoModal(); return;
     }
-
     const oldAssignment = infoUsuarios.find(info => info.dependencia_id === dependenciaId);
     if (oldAssignment && oldAssignment.user_id !== newUserId) {
-      const { error: unassignError } = await supabase
-        .from('info_usuario')
-        .update({ dependencia_id: null })
-        .eq('user_id', oldAssignment.user_id);
-
-      if (unassignError) {
-        toast.error('Error al desasignar al empleado anterior.');
-        handleCloseEmpleadoModal();
-        return;
-      }
+      const { error: unassignError } = await supabase.from('info_usuario').update({ dependencia_id: null }).eq('user_id', oldAssignment.user_id);
+      if (unassignError) { toast.error('Error al desasignar al empleado anterior.'); handleCloseEmpleadoModal(); return; }
     }
-
-    const { error: assignError } = await supabase
-      .from('info_usuario')
-      .update({ dependencia_id: dependenciaId })
-      .eq('user_id', newUserId);
-
-    if (assignError) {
-      toast.error('Error al asignar el empleado.');
-    } else {
-      const usuario = usuarios.find(u => u.id === newUserId);
-      const dependencia = findNodeById(finalTree, dependenciaId);
-      toast.success(`"${usuario?.nombre}" fue añadido a "${dependencia?.nombre}"`);
-      mutateInfoUsuarios();
-    }
+    const { error: assignError } = await supabase.from('info_usuario').update({ dependencia_id: dependenciaId }).eq('user_id', newUserId);
+    if (assignError) { toast.error('Error al asignar el empleado.'); } else { const usuario = usuarios.find(u => u.id === newUserId); const dependencia = findNodeById(finalTree, dependenciaId); toast.success(`"${usuario?.nombre}" fue añadido a "${dependencia?.nombre}"`); mutateInfoUsuarios(); }
     handleCloseEmpleadoModal();
   };
-  const handleEditEmpleado = (empleado: Usuario, parentId: string) => {
-    const parentNode = findNodeById(finalTree, parentId);
-    if (parentNode) {
-      handleOpenEmpleadoModal(parentNode);
+  
+  const handleDeleteEmpleado = async (userId: string) => {
+    const result = await Swal.fire({ title: '¿Está seguro?', text: "El empleado será desasignado de este puesto.", icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, desasignar', cancelButtonText: 'Cancelar', confirmButtonColor: '#d33', });
+    if (result.isConfirmed) {
+      const { error } = await supabase.from('info_usuario').update({ dependencia_id: null }).eq('user_id', userId);
+      if(error){ toast.error('Error al desasignar el empleado.'); } else { toast.success('Empleado desvinculado de la dependencia.'); mutateInfoUsuarios(); }
     }
   };
-  const handleDeleteEmpleado = async (userId: string) => {
-    const result = await Swal.fire({
-      title: '¿Está seguro?',
-      text: "El empleado será desasignado de este puesto.",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Sí, desasignar',
-      cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#d33',
-    });
 
-    if (result.isConfirmed) {
-      const { error } = await supabase
-        .from('info_usuario')
-        .update({ dependencia_id: null })
-        .eq('user_id', userId);
+  const handleOpenInfoPersonal = (usuario: Usuario) => { setSelectedUsuario(usuario); setIsInfoPersonalOpen(true); };
+  const handleOpenContrato = (usuario: Usuario) => { setSelectedUsuario(usuario); setUsuarioIdParaContrato(usuario.id); setIsContratoOpen(true); };
+  const handleCloseModals = () => { setIsInfoPersonalOpen(false); setIsContratoOpen(false); setSelectedUsuario(null); setUsuarioIdParaContrato(null); };
 
-      if(error){
-        toast.error('Error al desasignar el empleado.');
-      } else {
-        toast.success('Empleado desvinculado de la dependencia.');
-        mutateInfoUsuarios();
-      }
-    }
+  const handleOpenTarjeta = (usuario: Usuario) => { setUsuarioIdParaContrato(usuario.id); setUsuarioParaTarjeta(usuario); setIsTarjetaOpen(true); };
+  const handleCloseTarjeta = () => { setIsTarjetaOpen(false); setUsuarioParaTarjeta(null); setUsuarioIdParaContrato(null); };
+  
+  const handleOpenDescriptionModal = (title: string, description: string) => { setModalContent({ title, description }); setDescriptionModalOpen(true); };
+  const handleCloseDescriptionModal = () => { setDescriptionModalOpen(false); setModalContent({ title: '', description: '' }); };
+
+  const handleSubmitInfoPersonal = async (data: InfoPersonalFormData) => {
+    if (!selectedUsuario) return;
+    const { error } = await supabase.from('info_usuario').update(data).eq('user_id', selectedUsuario.id);
+    if (error) { toast.error('Error al guardar la información personal.'); } else { toast.success('Información guardada.'); handleCloseModals(); mutateInfoUsuarios(); fetchUsuarios(); }
+  };
+
+  const handleSubmitContrato = async (data: ContratoFormData) => {
+    if (!selectedUsuario) return;
+    const dataToSubmit = { ...data, user_id: selectedUsuario.id };
+    const { error } = await supabase.from('info_contrato').insert(dataToSubmit);
+    if (error) { toast.error('Error al guardar el contrato.'); } else { toast.success('Contrato guardado.'); handleCloseModals(); mutateContrato(); }
   };
 
   const finalTree = useMemo(() => {
     if (!dependencias || !infoUsuarios || !usuarios) return [];
-
-    const filteredDependencias = !searchTerm
-      ? dependencias
-      : (() => {
-          const lowercasedTerm = searchTerm.toLowerCase();
-          const dependencyMap = new Map(dependencias.map(d => [d.id, d]));
-          const visibleIds = new Set<string>();
-          dependencias.forEach(dep => {
-            if (dep.nombre.toLowerCase().includes(lowercasedTerm) || (dep.descripcion || '').toLowerCase().includes(lowercasedTerm)) {
-              visibleIds.add(dep.id);
-              let current = dep;
-              while (current.parent_id && dependencyMap.has(current.parent_id)) {
-                current = dependencyMap.get(current.parent_id)!;
-                visibleIds.add(current.id);
-              }
-            }
-          });
-          return dependencias.filter(d => visibleIds.has(d.id));
-        })();
-
+    const filteredDependencias = !searchTerm ? dependencias : (() => { const lowercasedTerm = searchTerm.toLowerCase(); const dependencyMap = new Map(dependencias.map(d => [d.id, d])); const visibleIds = new Set<string>(); dependencias.forEach(dep => { if (dep.nombre.toLowerCase().includes(lowercasedTerm) || (dep.descripcion || '').toLowerCase().includes(lowercasedTerm)) { visibleIds.add(dep.id); let current = dep; while (current.parent_id && dependencyMap.has(current.parent_id)) { current = dependencyMap.get(current.parent_id)!; visibleIds.add(current.id); } } }); return dependencias.filter(d => visibleIds.has(d.id)); })();
     return buildDependencyTree(filteredDependencias, infoUsuarios, usuarios);
   }, [dependencias, searchTerm, infoUsuarios, usuarios]);
 
-  const loading = loadingDependencias || loadingUsuarios || loadingInfo;
-  if (loading) return <Cargando />;
+  const loading = loadingDependencias || loadingUsuarios || loadingInfo || (!!usuarioIdParaContrato && loadingContrato);
 
   return (
     <div className="p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
@@ -330,68 +261,25 @@ export default function Ver() {
 
       <div className="flex flex-col md:flex-row items-center mb-6 gap-2 md:gap-4">
         <h1 className="text-lg lg:text-2xl font-bold text-blue-600 text-center md:text-left whitespace-nowrap">Organización Municipal 🏛️</h1>
-        <div className="relative w-full flex-grow exclude-from-capture">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Buscar..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 w-full text-xs"
-          />
-        </div>
+        <div className="relative w-full flex-grow exclude-from-capture"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" /><Input placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 w-full text-xs"/></div>
         <div className="w-full md:w-auto flex items-center gap-2 exclude-from-capture">
-            <Button onClick={() => handleOpenForm()} className="w-full text-xs md:w-auto bg-blue-100 text-blue-800 hover:bg-blue-200">
-              <PlusCircle className="mr-2 h-4 w-4" /> Nueva Dependencia
-            </Button>
-            <Button onClick={handleExportar} disabled={isExporting} className="text-xs bg-purple-100 text-purple-800 hover:bg-purple-200">
-              {isExporting ? <Cargando /> : <Download className="h-4 w-4" />}
-            </Button>
-            <Button onClick={handleToggleAll} className="text-xs bg-green-100 text-green-800 hover:bg-green-200">
-                <motion.div animate={{ rotate: areAllOpen ? 90 : 0 }} transition={{ duration: 0.2 }}>
-                    <ChevronsUpDown className="h-4 w-4" />
-                </motion.div>
-            </Button>
+            <Button onClick={() => handleOpenForm()} className="w-full text-xs md:w-auto bg-blue-100 text-blue-800 hover:bg-blue-200"><PlusCircle className="mr-2 h-4 w-4" /> Nueva Dependencia</Button>
+            <Button onClick={handleExportar} disabled={isExporting} className="text-xs bg-purple-100 text-purple-800 hover:bg-purple-200"><Download className="h-4 w-4" /></Button>
+            <Button onClick={handleToggleAll} className="text-xs bg-green-100 text-green-800 hover:bg-green-200"><motion.div animate={{ rotate: areAllOpen ? 90 : 0 }} transition={{ duration: 0.2 }}><ChevronsUpDown className="h-4 w-4" /></motion.div></Button>
         </div>
       </div>
 
       <div ref={exportRef} className='pb-10'>
-        <div id="export-logo" className="hidden text-center mb-4">
-          <img src="/images/logo-muni.png" alt="Logo Municipalidad" className="h-40 w-auto inline-block" />
-          <h2 className="text-2xl font-bold mt-2 text-blue-600">Organización Municipal</h2>
-        </div>
-
-        {isFormOpen && (
-          <DependenciaForm
-            isOpen={isFormOpen}
-            onClose={handleCloseForm}
-            onSubmit={handleSubmit}
-            initialData={editingDependencia}
-            todasLasDependencias={dependencias}
-            preselectedParentId={preselectedParentId}
-          />
-        )}
-
-        <DependenciaList
-          dependencias={finalTree}
-          onEdit={handleOpenForm}
-          onDelete={handleDelete}
-          onAddSub={handleOpenSubForm}
-          onMove={handleMove}
-          onMoveExtreme={handleMoveExtreme}
-          onAddEmpleado={handleOpenEmpleadoModal}
-          onEditEmpleado={handleEditEmpleado}
-          onDeleteEmpleado={handleDeleteEmpleado}
-          openNodeIds={openNodeIds}
-          setOpenNodeIds={setOpenNodeIds}
-        />
-
-        <EmpleadoForm
-          isOpen={!!dependenciaParaEmpleado}
-          onClose={handleCloseEmpleadoModal}
-          dependencia={dependenciaParaEmpleado}
-          usuarios={usuarios}
-          onSave={handleSaveEmpleado}
-        />
+        <div id="export-logo" className="hidden text-center mb-4"><img src="/images/logo-muni.png" alt="Logo Municipalidad" className="h-40 w-auto inline-block" /><h2 className="text-2xl font-bold mt-2 text-blue-600">Organización Municipal</h2></div>
+        {isFormOpen && (<DependenciaForm isOpen={isFormOpen} onClose={handleCloseForm} onSubmit={handleSubmit} initialData={editingDependencia} todasLasDependencias={dependencias} preselectedParentId={preselectedParentId} /> )}
+        
+        <DependenciaList dependencias={finalTree} onEdit={handleOpenForm} onDelete={handleDelete} onAddSub={handleOpenSubForm} onMove={handleMove} onMoveExtreme={handleMoveExtreme} onAddEmpleado={handleOpenEmpleadoModal} onDeleteEmpleado={handleDeleteEmpleado} onOpenInfoPersonal={handleOpenInfoPersonal} onOpenContrato={handleOpenContrato} onViewCard={handleOpenTarjeta} onOpenDescription={handleOpenDescriptionModal} openNodeIds={openNodeIds} setOpenNodeIds={setOpenNodeIds} />
+        
+        <EmpleadoForm isOpen={!!dependenciaParaEmpleado} onClose={handleCloseEmpleadoModal} dependencia={dependenciaParaEmpleado} usuarios={usuarios} onSave={handleSaveEmpleado} />
+        <InfoPersonalForm isOpen={isInfoPersonalOpen} onClose={handleCloseModals} onSubmit={handleSubmitInfoPersonal} usuario={selectedUsuario} initialData={infoUsuarios.find(i => i.user_id === selectedUsuario?.id)} />
+        <ContratoForm isOpen={isContratoOpen} onClose={handleCloseModals} onSubmit={handleSubmitContrato} usuario={selectedUsuario} initialData={contratoSeleccionado} />
+        <TarjetaEmpleado isOpen={isTarjetaOpen} onClose={handleCloseTarjeta} usuario={usuarioParaTarjeta} infoUsuario={infoUsuarios.find(i => i.user_id === usuarioParaTarjeta?.id)} infoContrato={contratoSeleccionado} cargandoContrato={loadingContrato} />
+        <DescriptionModal isOpen={descriptionModalOpen} onClose={handleCloseDescriptionModal} title={modalContent.title} description={modalContent.description} />
       </div>
     </div>
   );

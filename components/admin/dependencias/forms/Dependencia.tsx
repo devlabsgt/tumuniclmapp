@@ -93,6 +93,26 @@ export default function Dependencia({ isOpen, onClose, onSubmit, initialData, pr
               </h2>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit as SubmitHandler<FormData>)} className="space-y-4">
+                                    <FormField
+                    control={form.control}
+                    name="es_puesto"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm mt-4">
+                        <div className="space-y-0.5">
+                          <FormLabel>¿Es un Puesto?</FormLabel>
+                          <p className="text-[10px] text-gray-500">
+                            Habilita esta opción si es un puesto al que se le asignará un empleado.
+                          </p>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name="nombre"
@@ -120,27 +140,6 @@ export default function Dependencia({ isOpen, onClose, onSubmit, initialData, pr
                           </FormControl>
                         </div>
                         <FormMessage className="ml-[128px]" />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="es_puesto"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm mt-4">
-                        <div className="space-y-0.5">
-                          <FormLabel>¿Es un Puesto?</FormLabel>
-                          <p className="text-[10px] text-gray-500">
-                            Habilita esta opción si es un puesto al que se le asignará un empleado.
-                          </p>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
                       </FormItem>
                     )}
                   />
