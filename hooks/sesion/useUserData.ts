@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation'; // 👈 1. Importar usePathname
+import { usePathname } from 'next/navigation';
 
 interface UserData {
   userId: string | null;

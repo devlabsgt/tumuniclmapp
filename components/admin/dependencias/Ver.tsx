@@ -110,7 +110,12 @@ export default function Ver() {
   const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState({ title: '', description: '' });
 
-  const { contrato: contratoSeleccionado, loading: loadingContrato, mutate: mutateContrato } = useContratoUsuario(usuarioIdParaContrato);
+  // Variables para obtener la información necesaria de la tarjeta
+  const infoUsuarioParaTarjeta = infoUsuarios.find(i => i.user_id === usuarioParaTarjeta?.id);
+  const dependenciaIdParaTarjeta = infoUsuarioParaTarjeta?.dependencia_id;
+
+  // Se pasa dependenciaIdParaTarjeta al hook useContratoUsuario
+  const { contrato: contratoSeleccionado, loading: loadingContrato, mutate: mutateContrato, cargoAsignado } = useContratoUsuario(usuarioIdParaContrato, dependenciaIdParaTarjeta);
 
   useEffect(() => {
     const isAnyModalOpen = isFormOpen || isInfoPersonalOpen || isContratoOpen || isTarjetaOpen || !!dependenciaParaEmpleado || descriptionModalOpen;
@@ -278,7 +283,18 @@ export default function Ver() {
         <EmpleadoForm isOpen={!!dependenciaParaEmpleado} onClose={handleCloseEmpleadoModal} dependencia={dependenciaParaEmpleado} usuarios={usuarios} onSave={handleSaveEmpleado} />
         <InfoPersonalForm isOpen={isInfoPersonalOpen} onClose={handleCloseModals} onSubmit={handleSubmitInfoPersonal} usuario={selectedUsuario} initialData={infoUsuarios.find(i => i.user_id === selectedUsuario?.id)} />
         <ContratoForm isOpen={isContratoOpen} onClose={handleCloseModals} onSubmit={handleSubmitContrato} usuario={selectedUsuario} initialData={contratoSeleccionado} />
-        <TarjetaEmpleado isOpen={isTarjetaOpen} onClose={handleCloseTarjeta} usuario={usuarioParaTarjeta} infoUsuario={infoUsuarios.find(i => i.user_id === usuarioParaTarjeta?.id)} infoContrato={contratoSeleccionado} cargandoContrato={loadingContrato} />
+        
+        {/* Llama a TarjetaEmpleado y pasa cargoAsignado */}
+        <TarjetaEmpleado 
+          isOpen={isTarjetaOpen} 
+          onClose={handleCloseTarjeta} 
+          usuario={usuarioParaTarjeta} 
+          infoUsuario={infoUsuarioParaTarjeta} 
+          infoContrato={contratoSeleccionado} 
+          cargandoContrato={loadingContrato} 
+          cargoAsignado={cargoAsignado} // <-- Cargo Asignado
+        />
+
         <DescriptionModal isOpen={descriptionModalOpen} onClose={handleCloseDescriptionModal} title={modalContent.title} description={modalContent.description} />
       </div>
     </div>

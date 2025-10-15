@@ -8,10 +8,15 @@ import { registrarLog } from '@/utils/registrarLog';
 import { motion, AnimatePresence } from 'framer-motion';
 import useUserData from '@/hooks/sesion/useUserData';
 import Asistencia from '@/components/asistencia/Asistencia';
-import VerMiPerfil from '@/components/perfil/Ver';
 import AnimatedIcon from '@/components/ui/AnimatedIcon';
 import MisComisiones from '@/components/comisiones/asistencia/MisComisiones';
 import HorarioSistema from '@/components/admin/sistema/HorarioSistema';
+
+import TarjetaEmpleado from '@/components/admin/dependencias/TarjetaEmpleado';
+import { useInfoUsuarios, InfoUsuario } from '@/hooks/usuarios/useInfoUsuario'; 
+import { useContratoUsuario } from '@/hooks/contratos/useContratoUsuario';
+import { Usuario } from '@/lib/usuarios/esquemas';
+
 
 const TODOS_LOS_MODULOS = [
   { 
@@ -60,15 +65,56 @@ type Vistas = 'modulos' | 'asistencia' | 'comisiones';
 export default function Dashboard() {
   const router = useRouter();
   const userData = useUserData();
-  const { rol, modulos = [], permisos = [] } = userData || {};
+  
+  const { rol, modulos = [], permisos = [], userId, email, nombre } = userData || {};
+  
   const [vistaActiva, setVistaActiva] = useState<Vistas>('modulos');
   const [mostrarOpciones, setMostrarOpciones] = useState(false);
-  const [mostrarPerfilModal, setMostrarPerfilModal] = useState(false);
+  const [mostrarTarjetaModal, setMostrarTarjetaModal] = useState(false);
   const [mostrarHorarioModal, setMostrarHorarioModal] = useState(false);
   const [hoveredModule, setHoveredModule] = useState<string | null>(null);
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
   const [loadingModule, setLoadingModule] = useState<string | null>(null);
   const configRef = useRef<HTMLDivElement>(null);
+
+  const { infoUsuarios } = useInfoUsuarios();
+  const infoUsuarioActual = useMemo(() => {
+    return infoUsuarios.find((info: InfoUsuario) => info.user_id === userId);
+  }, [infoUsuarios, userId]);
+
+  const dependenciaIdActual = infoUsuarioActual?.dependencia_id;
+
+  const {
+    contrato: infoContratoActual,
+    loading: cargandoContrato,
+    cargoAsignado: cargoAsignadoActual,
+  } = useContratoUsuario(userId || null, dependenciaIdActual);
+  
+  const usuarioParaTarjeta: Usuario | null = useMemo(() => {
+    if (!userId || !rol || !email || !nombre) return null;
+    
+    return {
+      id: userId,
+      email: email,
+      rol: rol,
+      nombre: nombre,
+      activo: true, 
+      programas_asignados: [], 
+    } as unknown as Usuario; 
+  }, [userId, rol, email, nombre]);
+
+
+  useEffect(() => {
+    if (mostrarTarjetaModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mostrarTarjetaModal]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -114,7 +160,7 @@ export default function Dashboard() {
 
   const hoverEffect = {
     scale: 1.01,
-    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)" // shadow-lg
+    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)"
   };
 
   return (
@@ -133,9 +179,9 @@ export default function Dashboard() {
         </div>
 
         <div className="relative sm:col-span-2 order-2 sm:order-1" onMouseEnter={() => setHoveredButton('profile')} onMouseLeave={() => setHoveredButton(null)}>
-          <Button onClick={() => setMostrarPerfilModal(p => !p)} className="w-full gap-2 text-base md:text-xl h-14 bg-blue-100 text-blue-800 hover:bg-blue-200">
+          <Button onClick={() => setMostrarTarjetaModal(p => !p)} className="w-full gap-2 text-base md:text-xl h-14 bg-blue-100 text-blue-800 hover:bg-blue-200">
             <AnimatedIcon iconKey="hroklero" className="w-8 h-8" trigger={hoveredButton === 'profile' ? 'loop' : undefined}  />
-            {mostrarPerfilModal ? 'Ocultar mi perfil' : 'Ver mi perfil'}
+            Mi información
           </Button>
         </div>
       
@@ -147,7 +193,7 @@ export default function Dashboard() {
             onMouseLeave={() => setHoveredButton(null)}
           >
             <Button onClick={() => { setMostrarOpciones(p => !p); }} className="w-full gap-2 text-base md:text-xl h-14">
-              <AnimatedIcon iconKey="cgolfevh" primaryColor="#fff" className="w-7 h-7" trigger={hoveredButton === 'config' ? 'loop' : undefined} />
+              <AnimatedIcon iconKey="cgolfevh" primaryColor="#fff" className="w-7 h-7" trigger={hoveredButton === 'profile' ? 'loop' : undefined} />
               Configuraciones
             </Button>
             {mostrarOpciones && (
@@ -162,21 +208,15 @@ export default function Dashboard() {
         )}
       </div>
 
-      <AnimatePresence mode="wait">
-        {mostrarPerfilModal && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="overflow-hidden mt-4"
-          >
-            <div className="bg-white dark:bg-gray-800 p-8 mb-4 rounded-lg border">
-              <VerMiPerfil userData={userData} />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <TarjetaEmpleado
+        isOpen={mostrarTarjetaModal}
+        onClose={() => setMostrarTarjetaModal(false)}
+        usuario={usuarioParaTarjeta}
+        infoUsuario={infoUsuarioActual}
+        infoContrato={infoContratoActual}
+        cargandoContrato={cargandoContrato}
+        cargoAsignado={cargoAsignadoActual}
+      />
 
       <AnimatePresence mode="wait">
         {vistaActiva === 'modulos' ? (

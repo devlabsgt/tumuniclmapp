@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Usuario } from '@/lib/usuarios/esquemas';
 import { Database } from '@/lib/database.types';
-import { User, Mail, Shield, Fingerprint, Hash, MapPin, Phone, FileText, CircleDollarSign, BadgeDollarSign, FileSignature, CalendarPlus, CalendarMinus, X, Loader2 } from 'lucide-react';
+import { User, Mail, Shield, Fingerprint, Hash, MapPin, Phone, FileText, CircleDollarSign, BadgeDollarSign, FileSignature, CalendarPlus, CalendarMinus, X, Loader2, Briefcase, Banknote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 type InfoUsuario = Database['public']['Tables']['info_usuario']['Row'];
@@ -16,6 +16,7 @@ interface TarjetaProps {
   infoUsuario?: Partial<InfoUsuario> | null;
   infoContrato?: Partial<InfoContrato> | null;
   cargandoContrato: boolean;
+  cargoAsignado?: string | null;
 }
 
 const InfoItem = ({ icon, label, value, isLoading }: { icon: React.ReactNode, label: string, value?: string | number | null, isLoading?: boolean }) => (
@@ -32,13 +33,15 @@ const InfoItem = ({ icon, label, value, isLoading }: { icon: React.ReactNode, la
   </div>
 );
 
-export default function TarjetaEmpleado({ isOpen, onClose, usuario, infoUsuario, infoContrato, cargandoContrato }: TarjetaProps) {
+export default function TarjetaEmpleado({ isOpen, onClose, usuario, infoUsuario, infoContrato, cargandoContrato, cargoAsignado }: TarjetaProps) {
   if (!isOpen || !usuario) return null;
 
   const formatCurrency = (amount: number | null | undefined) => {
     if (amount === null || amount === undefined) return '--';
     return `Q ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
+
+  const bonificacionValue = infoContrato?.bonificacion;
 
   return (
     <AnimatePresence>
@@ -50,7 +53,7 @@ export default function TarjetaEmpleado({ isOpen, onClose, usuario, infoUsuario,
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-md relative"
+            className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-md xl:max-w-[50vw] relative"
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             exit={{ scale: 0.9 }}
@@ -72,29 +75,53 @@ export default function TarjetaEmpleado({ isOpen, onClose, usuario, infoUsuario,
               </div>
 
               <div className="space-y-6">
+                
                 {/* Sección de Información Personal */}
                 <div>
                   <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300 border-b pb-2 mb-2">Información Personal</h3>
-                  <div className="space-y-1">
-                    <InfoItem icon={<User size={18} />} label="Nombre Completo" value={infoUsuario?.nombre} />
-                    <InfoItem icon={<Shield size={18} />} label="Rol del Sistema" value={usuario.rol} />
-                    <InfoItem icon={<Fingerprint size={18} />} label="DPI" value={infoUsuario?.dpi} />
-                    <InfoItem icon={<Hash size={18} />} label="NIT" value={infoUsuario?.nit} />
-                    <InfoItem icon={<Phone size={18} />} label="Teléfono" value={infoUsuario?.telefono} />
-                    <InfoItem icon={<MapPin size={18} />} label="Dirección" value={infoUsuario?.direccion} />
+                  <div className="space-y-1 xl:grid xl:grid-cols-3 xl:gap-x-4">
+                    
+                    <div className="space-y-1 xl:col-span-2">
+                        <InfoItem icon={<User size={18} />} label="Nombre Completo" value={infoUsuario?.nombre} />
+                        <InfoItem icon={<Phone size={18} />} label="Teléfono" value={infoUsuario?.telefono} />
+                        <InfoItem icon={<Fingerprint size={18} />} label="DPI" value={infoUsuario?.dpi} />
+                        <InfoItem icon={<Shield size={18} />} label="IGSS" value={infoUsuario?.igss} />
+                    </div>
+
+                    <div className="space-y-1 xl:col-span-1">
+                        <InfoItem icon={<Hash size={18} />} label="NIT" value={infoUsuario?.nit} />
+                        <InfoItem icon={<Banknote size={18} />} label="No. Cuenta" value={infoUsuario?.cuenta_no} />
+                        <InfoItem icon={<MapPin size={18} />} label="Dirección" value={infoUsuario?.direccion} />
+                    </div>
+
                   </div>
                 </div>
 
+                
                 {/* Sección de Información de Contrato */}
                 <div>
                   <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300 border-b pb-2 mb-2">Información de Contrato</h3>
-                  <div className="space-y-1">
-                    <InfoItem icon={<FileText size={18} />} label="Renglón" value={infoContrato?.renglon} isLoading={cargandoContrato} />
-                    <InfoItem icon={<FileSignature size={18} />} label="No. Contrato" value={infoContrato?.contrato_no} isLoading={cargandoContrato} />
-                    <InfoItem icon={<CircleDollarSign size={18} />} label="Salario" value={formatCurrency(infoContrato?.salario)} isLoading={cargandoContrato} />
-                    <InfoItem icon={<BadgeDollarSign size={18} />} label="Bonificación" value={formatCurrency(infoContrato?.bonificacion)} isLoading={cargandoContrato} />
-                    <InfoItem icon={<CalendarPlus size={18} />} label="Fecha Inicio" value={infoContrato?.fecha_ini} isLoading={cargandoContrato} />
-                    <InfoItem icon={<CalendarMinus size={18} />} label="Fecha Fin" value={infoContrato?.fecha_fin} isLoading={cargandoContrato} />
+                  <div className="space-y-1 xl:grid xl:grid-cols-3 xl:gap-x-4">
+                    
+                    <div className="space-y-1 xl:col-span-2">
+                        <InfoItem icon={<Briefcase size={18} />} label="Cargo" value={cargoAsignado} />
+                        <InfoItem icon={<FileText size={18} />} label="Renglón" value={infoContrato?.renglon} isLoading={cargandoContrato} />
+                        
+                        {/* MODIFICADO: Salario usa formatCurrency para el prefijo Q */}
+                        <InfoItem icon={<CircleDollarSign size={18} />} label="Salario" value={formatCurrency(infoContrato?.salario)} isLoading={cargandoContrato} />
+                        
+                        {/* MODIFICADO: Bonificación usa formatCurrency para el prefijo Q */}
+                        {bonificacionValue !== null && bonificacionValue !== undefined && bonificacionValue !== 0 && (
+                            <InfoItem icon={<BadgeDollarSign size={18} />} label="Bonificación" value={formatCurrency(bonificacionValue)} isLoading={cargandoContrato} />
+                        )}
+                    </div>
+
+                    <div className="space-y-1 xl:col-span-1">
+                        <InfoItem icon={<FileSignature size={18} />} label="No. Contrato" value={infoContrato?.contrato_no} isLoading={cargandoContrato} />
+                        <InfoItem icon={<CalendarPlus size={18} />} label="Fecha Inicio" value={infoContrato?.fecha_ini} isLoading={cargandoContrato} />
+                        <InfoItem icon={<CalendarMinus size={18} />} label="Fecha Fin" value={infoContrato?.fecha_fin} isLoading={cargandoContrato} />
+                    </div>
+
                   </div>
                 </div>
               </div>
