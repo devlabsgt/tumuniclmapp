@@ -181,7 +181,7 @@ export default function Dependencia({ isOpen, onClose, onSubmit, initialData, pr
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent 
-                              className="text-xs" 
+                              className="text-xs [&>div]:!p-0 [&>div]:!gap-0" // <-- CLASES PARA OCULTAR BOTONES DE NAVEGACIÓN
                               style={{ width: '400px' }} 
                             >
                               {/* Opción para Dependencia Raíz (sin padre) */}
@@ -202,7 +202,6 @@ export default function Dependencia({ isOpen, onClose, onSubmit, initialData, pr
                                     style={{ paddingLeft: `${dep.level * 15 + 8}px` }} 
                                   >
                                     <span className="font-semibold mr-2 flex-shrink-0">{dep.prefix}</span>
-                                    {/* CLASES CLAVE: flex-grow y min-w-0 forzan al span a ocupar el espacio restante para que truncate funcione */}
                                     <span className="truncate flex-grow min-w-0"> 
                                         {dep.nombre}
                                     </span>
