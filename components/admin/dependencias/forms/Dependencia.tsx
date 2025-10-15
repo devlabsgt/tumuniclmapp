@@ -198,11 +198,12 @@ export default function Dependencia({ isOpen, onClose, onSubmit, initialData, pr
                                 >
                                   {/* Contenedor del texto con padding y estilos de truncamiento */}
                                   <div 
-                                    className="flex items-center overflow-hidden whitespace-nowrap py-1.5 px-2"
+                                    className="flex items-center overflow-hidden whitespace-nowrap py-1.5 px-2 w-full"
                                     style={{ paddingLeft: `${dep.level * 15 + 8}px` }} 
                                   >
                                     <span className="font-semibold mr-2 flex-shrink-0">{dep.prefix}</span>
-                                    <span className="truncate min-w-0" style={{ maxWidth: `calc(100% - ${dep.prefix.length * 8}px)` }}>
+                                    {/* CLASES CLAVE: flex-grow y min-w-0 forzan al span a ocupar el espacio restante para que truncate funcione */}
+                                    <span className="truncate flex-grow min-w-0"> 
                                         {dep.nombre}
                                     </span>
                                   </div>
