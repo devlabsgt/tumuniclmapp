@@ -18,25 +18,38 @@ export default function DescriptionModal({ isOpen, onClose, title, description }
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm "
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
         >
           <motion.div
-            className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-lg relative"
-            initial={{ scale: 0.9 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0.9 }}
+            className="bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-2xl max-h-[90vh] relative mx-auto flex flex-col"
+            initial={{ scale: 0.95, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.95, y: 20 }}
+            transition={{ type: 'spring', stiffness: 200, damping: 20 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <Button variant="ghost" size="icon" className="absolute top-2 right-2" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="px-6 pt-6 flex-shrink-0">
+              <div className="flex items-start justify-between border-b pb-3 border-gray-200">
+                <h2 className="text-xs lg:text-xl font-semibold text-blue-600 pr-4">
+                  {title}
+                </h2>
+                <Button 
+                  variant="ghost" 
+                  className="text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors duration-200 rounded-md px-3 h-auto ml-auto" 
+                  onClick={onClose}
+                >
+                  Cerrar
+                </Button>
+              </div>
+            </div>
             
-            <div className="p-8">
-              <h2 className="text-lg font-bold mb-4">{title}</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
+            <div className="px-6 overflow-y-auto custom-scrollbar flex-grow">
+              <p className="text-xs lg:text-lg text-gray-700 whitespace-pre-wrap p-6" style={{ lineHeight: '2.5' }} 
+>
                 {description}
               </p>
             </div>

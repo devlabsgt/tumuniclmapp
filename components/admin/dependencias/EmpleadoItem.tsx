@@ -17,17 +17,30 @@ interface EmpleadoItemProps {
 
 export const EmpleadoItem = ({ empleado, level, onDelete, onOpenInfoPersonal, onOpenContrato, onViewCard }: EmpleadoItemProps) => {
   return (
-    <motion.div layout className="w-full relative text-xs">
+    <div
+      className="w-full relative text-xs py-1 z-10"
+    >
       <div
-        className="flex items-center justify-between p-2 rounded-md"
+        className="flex items-center"
         style={{ paddingLeft: `${level * 1.5 + 1.5}rem` }}
       >
-        <div className="flex items-center gap-2">
+        {/* MOVIMIENTO: motion.div y whileHover se mueven aquí, envolviendo solo el recuadro interactivo */}
+        <motion.div
+          className="relative inline-flex items-center gap-2"
+          whileHover={{ y: -4 }}
+          transition={{ type: 'spring', stiffness: 300 }}
+        >
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <div className="flex items-center gap-2 cursor-pointer text-gray-700 dark:text-gray-400">
+              <div 
+                className={`
+                  flex items-center gap-2 cursor-pointer px-3 py-1 bg-slate-100 text-slate-600 rounded-sm dark:text-gray-400
+                  transition-all duration-300 ease-in-out
+                  border-b-2 border-transparent hover:border-b-slate-600 dark:hover:border-b-gray-400
+                `}
+              >
                 <User className="h-4 w-4" />
-                <span className="text-xs underline">{empleado.nombre}</span>
+                <span className="text-xs">{empleado.nombre}</span>
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent
@@ -53,8 +66,8 @@ export const EmpleadoItem = ({ empleado, level, onDelete, onOpenInfoPersonal, on
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
+        </motion.div>
       </div>
-    </motion.div>
+    </div>
   );
 };
