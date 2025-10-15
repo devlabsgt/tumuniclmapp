@@ -13,50 +13,55 @@ import MisComisiones from '@/components/comisiones/asistencia/MisComisiones';
 import HorarioSistema from '@/components/admin/sistema/HorarioSistema';
 
 import TarjetaEmpleado from '@/components/admin/dependencias/TarjetaEmpleado';
-import { useInfoUsuarios, InfoUsuario } from '@/hooks/usuarios/useInfoUsuario'; 
+import { useInfoUsuarios, InfoUsuario } from '@/hooks/usuarios/useInfoUsuario';
 import { useContratoUsuario } from '@/hooks/contratos/useContratoUsuario';
 import { Usuario } from '@/lib/usuarios/esquemas';
 
 
 const TODOS_LOS_MODULOS = [
-  { 
-    nombre: 'EDUCACION', 
-    titulo: 'Educación', 
-    descripcion: 'Administre programas, niveles, maestros y alumnos.', 
-    ruta: '/protected/educacion', 
+  {
+    nombre: 'EDUCACION',
+    titulo: 'Política de Educación',
+    descripcion: 'Administre programas, niveles, maestros y alumnos.',
+    ruta: '/protected/educacion',
     iconoKey: 'upgronsr',
-    colorProps: { primaryColor: '#4bb3fd' } 
+    colorProps: { primaryColor: '#4bb3fd' },
+    categoria: 'Políticas Públicas',
   },
-  { 
-    nombre: 'FERTILIZANTE', 
-    titulo: 'Desarrollo Económico Social', 
-    descripcion: 'Gestione beneficiarios, entregas y estadísticas.', 
-    ruta: '/protected/fertilizante/beneficiarios', 
+  {
+    nombre: 'FERTILIZANTE',
+    titulo: 'Política de Desarrollo Económico Local',
+    descripcion: 'Gestione beneficiarios, entregas y estadísticas.',
+    ruta: '/protected/fertilizante/beneficiarios',
     iconoKey: 'bikvuqcq',
-    colorProps: { primaryColor: '#ffc738', secondaryColor: '#4ade80'} 
+    colorProps: { primaryColor: '#ffc738', secondaryColor: '#4ade80' },
+    categoria: 'Políticas Públicas'
   },
-  { 
-    nombre: 'ORGANOS', 
-    titulo: 'Jerarquía Municipal', 
-    descripcion: 'Gestione Órganos y políticas municipales.', 
-    ruta: '/protected/admin/dependencias', 
+  {
+    nombre: 'ORGANOS',
+    titulo: 'Estructura Organizacional',
+    descripcion: 'Gestione Órganos y políticas municipales.',
+    ruta: '/protected/admin/dependencias',
     iconoKey: 'ilrifayj',
-    colorProps: { primaryColor: '#ebe6ef', secondaryColor: '#b26836' } 
+    colorProps: { primaryFrom: '#ebe6ef', primaryTo: '#b26836' },
+    categoria: 'Gestión Administrativa',
   },
-  { 
-    nombre: 'AGENDA_CONCEJO', 
-    titulo: 'Agenda de Concejo', 
-    descripcion: 'Consulte y gestione las próximas reuniones del concejo.', 
-    ruta: '/protected/concejo/agenda/', 
+  {
+    nombre: 'AGENDA_CONCEJO',
+    titulo: 'Agenda de Concejo',
+    descripcion: 'Consulte y gestione las próximas reuniones del concejo.',
+    ruta: '/protected/concejo/agenda/',
     iconoKey: 'yxsbonud',
-    colorProps: { primaryColor: '#ebe6ef', secondaryColor: '#4bb3fd' } 
+    colorProps: { primaryColor: '#ebe6ef', secondaryColor: '#4bb3fd' },
+    categoria: 'Gestión Administrativa'
   },
-  { 
-    nombre: 'RRHH', 
-    titulo: 'Gestión de Personal', 
-    descripcion: 'Gestione los datos y el historial de los empleados.', 
-    ruta: '/protected/admin/users', 
+  {
+    nombre: 'RRHH',
+    titulo: 'Gestión de Personal',
+    descripcion: 'Gestione los datos y el historial de los empleados.',
+    ruta: '/protected/admin/users',
     iconoKey: 'daeumrty',
+    categoria: 'Gestión Administrativa'
   },
 ];
 
@@ -65,9 +70,9 @@ type Vistas = 'modulos' | 'asistencia' | 'comisiones';
 export default function Dashboard() {
   const router = useRouter();
   const userData = useUserData();
-  
+
   const { rol, modulos = [], permisos = [], userId, email, nombre } = userData || {};
-  
+
   const [vistaActiva, setVistaActiva] = useState<Vistas>('modulos');
   const [mostrarOpciones, setMostrarOpciones] = useState(false);
   const [mostrarTarjetaModal, setMostrarTarjetaModal] = useState(false);
@@ -89,18 +94,18 @@ export default function Dashboard() {
     loading: cargandoContrato,
     cargoAsignado: cargoAsignadoActual,
   } = useContratoUsuario(userId || null, dependenciaIdActual);
-  
+
   const usuarioParaTarjeta: Usuario | null = useMemo(() => {
     if (!userId || !rol || !email || !nombre) return null;
-    
+
     return {
       id: userId,
       email: email,
       rol: rol,
       nombre: nombre,
-      activo: true, 
-      programas_asignados: [], 
-    } as unknown as Usuario; 
+      activo: true,
+      programas_asignados: [],
+    } as unknown as Usuario;
   }, [userId, rol, email, nombre]);
 
 
@@ -125,6 +130,7 @@ export default function Dashboard() {
   }, []);
 
   const irA = (nombreModulo: string, ruta: string) => {
+    if (ruta === '#') return;
     setLoadingModule(nombreModulo);
     if (nombreModulo && ruta) {
       registrarLog({ accion: 'INGRESO_MODULO', descripcion: `Accedió al módulo de ${nombreModulo.toLowerCase()}`, nombreModulo });
@@ -141,7 +147,17 @@ export default function Dashboard() {
         return modulos.includes(m.nombre);
       })
       .sort((a, b) => a.titulo.localeCompare(b.titulo))
-  , [rol, modulos]);
+    , [rol, modulos]);
+
+  const modulosPoliticas = useMemo(() =>
+    modulosDisponibles.filter(m => m.categoria === 'Políticas Públicas'),
+    [modulosDisponibles]
+  );
+
+  const modulosGestion = useMemo(() =>
+    modulosDisponibles.filter(m => m.categoria === 'Gestión Administrativa'),
+    [modulosDisponibles]
+  );
 
   const cardVariants = {
     loading: {
@@ -163,31 +179,85 @@ export default function Dashboard() {
     boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)"
   };
 
+  const renderModuleCard = (modulo: typeof TODOS_LOS_MODULOS[0]) => {
+    const isLoadingThisModule = loadingModule === modulo.nombre;
+    const isDummy = modulo.ruta === '#';
+    return (
+      <motion.div
+        key={modulo.nombre}
+        className={`group relative bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl py-4 px-2 flex flex-row items-center text-left transition-opacity duration-300 w-full ${loadingModule && !isLoadingThisModule ? 'opacity-25 pointer-events-none' : ''} ${isDummy ? 'cursor-default' : 'cursor-pointer'}`}
+        variants={cardVariants}
+        animate={isLoadingThisModule ? 'loading' : 'idle'}
+        whileHover={!loadingModule && !isDummy ? hoverEffect : {}}
+        transition={isLoadingThisModule ? { duration: 1.5, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
+        onClick={loadingModule ? undefined : () => irA(modulo.nombre, modulo.ruta)}
+        onMouseEnter={() => setHoveredModule(modulo.nombre)}
+        onMouseLeave={() => setHoveredModule(null)}
+      >
+        {!isDummy && (
+          <Button
+            variant="ghost"
+            className="absolute bottom-3 right-3 h-8 p-0 flex items-center justify-center rounded-full w-8 bg-transparent 
+                       group-hover:w-24 group-hover:bg-blue-500 opacity-0 group-hover:opacity-100
+                       transition-all duration-300 ease-in-out overflow-hidden"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!loadingModule) irA(modulo.nombre, modulo.ruta);
+            }}
+            aria-label={`Entrar al módulo ${modulo.titulo}`}
+          >
+            <span className="flex items-center px-2">
+              <ArrowRight className="h-4 w-4 flex-shrink-0 text-blue-500 group-hover:text-white transition-colors duration-200" />
+              <span className="ml-2 text-sm text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity delay-150 duration-200">
+                Entrar
+              </span>
+            </span>
+          </Button>
+        )}
+        
+        <div className="w-1/5 flex-shrink-0 flex items-center justify-center">
+            <AnimatedIcon
+              iconKey={modulo.iconoKey}
+              className="w-14 h-14"
+              trigger={hoveredModule === modulo.nombre ? 'loop' : undefined}
+              {...modulo.colorProps}
+            />
+        </div>
+        <div className="w-4/5 pl-4">
+            <h2 className="text-base lg:text-xl font-bold text-gray-800 dark:text-gray-100">{modulo.titulo}</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 transition-opacity duration-300 group-hover:opacity-0">{modulo.descripcion}</p>
+        </div>
+      </motion.div>
+    );
+  };
+
   return (
-    <section className="w-full max-w-4xl mx-auto px-4 md:px-8 pt-2">
-      <div className="w-full grid grid-cols-1 sm:grid-cols-7 gap-4 mb-8">
+    <section className="w-full mx-auto px-4 md:px-8 pt-2">
+
+      <div className="w-full max-w-2xl mx-auto grid grid-cols-1 sm:grid-cols-7 gap-4 mb-6">
+
         <div className="flex rounded-lg border p-1 bg-gray-100 dark:bg-gray-800 h-14 sm:col-span-3 order-1 sm:order-2">
-          <button type="button" onClick={() => setVistaActiva('modulos')} className={`flex-1 rounded-md transition-all duration-200 ${vistaActiva === 'modulos' ? 'bg-blue-100 text-blue-600 shadow text-sm  font-bold ' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}>
+          <button type="button" onClick={() => setVistaActiva('modulos')} className={`flex-1 rounded-md transition-all duration-200 ${vistaActiva === 'modulos' ? 'bg-blue-100 text-blue-600 shadow text-sm font-bold' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}>
             Módulos
           </button>
-          <button type="button" onClick={() => setVistaActiva('asistencia')} className={`flex-1 rounded-md transition-all duration-200 ${vistaActiva === 'asistencia' ? 'bg-green-100 text-green-800 shadow text-sm  font-bold ' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}>
+          <button type="button" onClick={() => setVistaActiva('asistencia')} className={`flex-1 rounded-md transition-all duration-200 ${vistaActiva === 'asistencia' ? 'bg-green-100 text-green-800 shadow text-sm font-bold' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}>
             Asistencia
           </button>
-          <button type="button" onClick={() => setVistaActiva('comisiones')} className={`flex-1 rounded-md  transition-all duration-200 ${vistaActiva === 'comisiones' ? 'bg-purple-100 text-purple-600 font-bold shadow text-sm' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}>
+          <button type="button" onClick={() => setVistaActiva('comisiones')} className={`flex-1 rounded-md transition-all duration-200 ${vistaActiva === 'comisiones' ? 'bg-purple-100 text-purple-600 font-bold shadow text-sm' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}>
             Comisiones
           </button>
         </div>
 
         <div className="relative sm:col-span-2 order-2 sm:order-1" onMouseEnter={() => setHoveredButton('profile')} onMouseLeave={() => setHoveredButton(null)}>
           <Button onClick={() => setMostrarTarjetaModal(p => !p)} className="w-full gap-2 text-base md:text-xl h-14 bg-blue-100 text-blue-800 hover:bg-blue-200">
-            <AnimatedIcon iconKey="hroklero" className="w-8 h-8" trigger={hoveredButton === 'profile' ? 'loop' : undefined}  />
+            <AnimatedIcon iconKey="hroklero" className="w-8 h-8" trigger={hoveredButton === 'profile' ? 'loop' : undefined} />
             Mi información
           </Button>
         </div>
-      
-        {(permisos.includes('CONFIGURACION') &&  rol === 'SUPER') && (
-          <div 
-            className="relative sm:col-span-2 order-3 sm:order-none" 
+
+        {(permisos.includes('CONFIGURACION') && rol === 'SUPER') && (
+          <div
+            className="relative sm:col-span-2 order-3 sm:order-none"
             ref={configRef}
             onMouseEnter={() => setHoveredButton('config')}
             onMouseLeave={() => setHoveredButton(null)}
@@ -201,7 +271,7 @@ export default function Dashboard() {
                 <Button variant="ghost" className="w-full justify-center gap-2 text-base" onClick={() => router.push('/protected/admin/configs/roles')}> <Users size={20} /> Roles </Button>
                 <Button variant="ghost" className="w-full justify-center gap-2 text-base" onClick={() => router.push('/protected/admin/configs/modulos')}> <Settings size={20} /> Módulos </Button>
                 <Button variant="ghost" className="w-full justify-center gap-2 text-base" onClick={() => router.push('/protected/admin/logs')}> <FileText size={20} /> Logs </Button>
-                <Button variant="ghost" className="w-full justify-center gap-2 text-base" onClick={() => {setMostrarHorarioModal(true); setMostrarOpciones(false);}}> <Clock size={20} /> Horario Sistema </Button>
+                <Button variant="ghost" className="w-full justify-center gap-2 text-base" onClick={() => { setMostrarHorarioModal(true); setMostrarOpciones(false); }}> <Clock size={20} /> Horario Sistema </Button>
               </motion.div>
             )}
           </div>
@@ -221,38 +291,29 @@ export default function Dashboard() {
       <AnimatePresence mode="wait">
         {vistaActiva === 'modulos' ? (
           <motion.div key="modulos" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
-            <div className="grid grid-cols-1 gap-6">
-              {modulosDisponibles.map((modulo) => {
-                const isLoadingThisModule = loadingModule === modulo.nombre;
-                return (
-                  <motion.div 
-                    key={modulo.nombre}
-                    className={`bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl p-4 sm:p-6 flex flex-row items-center gap-4 sm:gap-6 transition-opacity duration-300 ${loadingModule && !isLoadingThisModule ? 'opacity-25 pointer-events-none' : 'cursor-pointer'}`}
-                    variants={cardVariants}
-                    animate={isLoadingThisModule ? 'loading' : 'idle'}
-                    whileHover={!loadingModule ? hoverEffect : {}}
-                    transition={isLoadingThisModule ? { duration: 1.5, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
-                    onClick={loadingModule ? undefined : () => irA(modulo.nombre, modulo.ruta)}
-                    onMouseEnter={() => setHoveredModule(modulo.nombre)}
-                    onMouseLeave={() => setHoveredModule(null)}
-                  >
-                    <AnimatedIcon
-                      iconKey={modulo.iconoKey}
-                      className="w-14 h-14 sm:w-20 sm:h-20"
-                      trigger={hoveredModule === modulo.nombre ? 'loop' : undefined}
-                      {...modulo.colorProps}
-                    />
-                    <div className="flex-grow">
-                      <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100">{modulo.titulo}</h2>
-                      <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">{modulo.descripcion}</p>
-                    </div>
-                    <Button className="pointer-events-none hidden sm:inline-flex">
-                      Entrar <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </motion.div>
-                )
-              })}
+            
+            <div className="max-w-[70%] mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+                
+                {/* --- Columna 1: Políticas Públicas --- */}
+                <div className="space-y-4">
+                  <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4">Políticas Públicas</h2>
+                  <div className="space-y-4">
+                    {modulosPoliticas.map((modulo) => renderModuleCard(modulo))}
+                  </div>
+                </div>
+
+                {/* --- Columna 2: Gestión Administrativa --- */}
+                <div className="space-y-4">
+                   <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4">Gestión Administrativa</h2>
+                  <div className="space-y-4">
+                    {modulosGestion.map((modulo) => renderModuleCard(modulo))}
+                  </div>
+                </div>
+
+              </div>
             </div>
+
           </motion.div>
         ) : vistaActiva === 'asistencia' ? (
           <motion.div key="asistencia" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>

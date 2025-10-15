@@ -1,4 +1,3 @@
-//DependeciaItem.tsx
 'use client';
 
 import React, { useState } from 'react';
@@ -68,6 +67,7 @@ const DependenciaItem = ({
 }: DependenciaItemProps) => {
   const hasChildren = node.children && node.children.length > 0;
   const isOpen = openNodeIds.includes(node.id);
+  // Esta línea es clave: nos dice si hay un empleado asignado
   const empleadoAsignado = node.children?.find(child => 'isEmployee' in child) as EmpleadoNode | undefined;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -84,18 +84,31 @@ const DependenciaItem = ({
 
   const getColorClasses = (level: number) => {
     switch (level % 4) {
-      case 0: return { bg: 'bg-green-100', text: 'text-green-800', accent: 'bg-green-500', icon: 'text-green-600', border: 'hover:border-t-green-500' };
-      case 1: return { bg: 'bg-blue-100', text: 'text-blue-800', accent: 'bg-blue-500', icon: 'text-blue-600', border: 'hover:border-t-blue-500' };
+      case 0: return { bg: 'bg-blue-100', text: 'text-blue-800', accent: 'bg-blue-500', icon: 'text-blue-600', border: 'hover:border-t-blue-500' };
+      case 1: return { bg: 'bg-red-100', text: 'text-red-800', accent: 'bg-red-500', icon: 'text-red-600', border: 'hover:border-t-orange-500' };
       case 2: return { bg: 'bg-purple-100', text: 'text-purple-800', accent: 'bg-purple-500', icon: 'text-purple-600', border: 'hover:border-t-purple-500' };
       case 3: return { bg: 'bg-orange-100', text: 'text-orange-800', accent: 'bg-orange-500', icon: 'text-orange-600', border: 'hover:border-t-orange-500' };
       default: return { bg: 'bg-gray-100', text: 'text-gray-800', accent: 'bg-gray-500', icon: 'text-gray-600', border: 'hover:border-t-gray-500' };
     }
   };
 
-  const isPuesto = node.es_puesto;
-  const { bg, text, accent, icon, border } = isPuesto
-    ? { bg: 'bg-yellow-100', text: 'text-yellow-800', accent: 'bg-yellow-500', icon: 'text-yellow-600', border: 'hover:border-t-yellow-500' }
-    : getColorClasses(level);
+  // --- INICIO DEL CAMBIO ---
+  // Se reemplaza la lógica de color anterior con este bloque if/else
+  let colorConfig;
+  if (node.es_puesto) {
+    if (empleadoAsignado) {
+      // Es un puesto OCUPADO -> Amarillo
+      colorConfig = { bg: 'bg-yellow-100', text: 'text-yellow-800', accent: 'bg-yellow-500', icon: 'text-yellow-600', border: 'hover:border-t-yellow-500' };
+    } else {
+      // Es un puesto VACANTE -> Verde
+      colorConfig = { bg: 'bg-green-100', text: 'text-green-800', accent: 'bg-green-500', icon: 'text-green-600', border: 'hover:border-t-green-500' };
+    }
+  } else {
+    // No es un puesto, usa la lógica de niveles
+    colorConfig = getColorClasses(level);
+  }
+  const { bg, text, accent, icon, border } = colorConfig;
+  // --- FIN DEL CAMBIO ---
 
   const canMoveUp = index > 0;
   const canMoveDown = index < siblingCount - 1;
@@ -130,7 +143,6 @@ const DependenciaItem = ({
                       relative flex-shrink-0 h-7 px-2 ${bg} ${text} rounded-md font-bold text-[10px] shadow-sm z-10 p-0 cursor-pointer
                       flex items-center justify-center 
                       transition-colors
-                      // **** APLICACIÓN DEL BORDE SOLO ARRIBA ****
                       border-t-2 border-x-0 border-b-0 border-transparent ${border}
                     `} 
                     onClick={(e: React.MouseEvent) => e.stopPropagation()} 
@@ -147,8 +159,8 @@ const DependenciaItem = ({
                 sideOffset={10}
                 className="cursor-pointer"
               >
-                {!isPuesto && (<DropdownMenuItem onSelect={() => onAddSub(node)} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><GitBranchPlus className={`mr-2 h-4 w-4 ${icon}`} /><span>Añadir Sub-dependencia</span></DropdownMenuItem>)}
-                {isPuesto && !empleadoAsignado && (<DropdownMenuItem onSelect={() => onAddEmpleado(node)} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><UserPlus className={`mr-2 h-4 w-4 ${icon}`} /><span>Asignar Empleado</span></DropdownMenuItem>)}
+                {!node.es_puesto && (<DropdownMenuItem onSelect={() => onAddSub(node)} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><GitBranchPlus className={`mr-2 h-4 w-4 ${icon}`} /><span>Añadir Sub-dependencia</span></DropdownMenuItem>)}
+                {node.es_puesto && !empleadoAsignado && (<DropdownMenuItem onSelect={() => onAddEmpleado(node)} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><UserPlus className={`mr-2 h-4 w-4 ${icon}`} /><span>Asignar Empleado</span></DropdownMenuItem>)}
                 <DropdownMenuItem onSelect={() => onEdit(node)} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><Pencil className="mr-2 h-4 w-4" /><span>Editar</span></DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => onDelete(node.id)} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><Trash2 className="mr-2 h-4 w-4 text-red-600" /><span>Eliminar</span></DropdownMenuItem>
                 {(canMoveUp || canMoveDown) && (<DropdownMenuSub><DropdownMenuSubTrigger onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><span>Mover</span></DropdownMenuSubTrigger><DropdownMenuSubContent>{canMoveUp && ( <DropdownMenuItem onSelect={() => onMove(node.id, 'up')} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"> <ArrowUp className="mr-2 h-4 w-4" /> <span>Mover Arriba</span> </DropdownMenuItem> )}{canMoveDown && ( <DropdownMenuItem onSelect={() => onMove(node.id, 'down')} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"> <ArrowDown className="mr-2 h-4 w-4" /> <span>Mover Abajo</span> </DropdownMenuItem> )}{canMoveUp && ( <DropdownMenuItem onSelect={() => onMoveExtreme(node.id, 'inicio')} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"> <ChevronsUp className="mr-2 h-4 w-4" /> <span>Mover al inicio</span> </DropdownMenuItem> )}{canMoveDown && ( <DropdownMenuItem onSelect={() => onMoveExtreme(node.id, 'final')} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"> <ChevronsDown className="mr-2 h-4 w-4" /> <span>Mover al final</span> </DropdownMenuItem> )}</DropdownMenuSubContent></DropdownMenuSub>)}
