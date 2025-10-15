@@ -1,9 +1,10 @@
+//Ver.tsx
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { toBlob } from 'html-to-image';
 import { motion } from 'framer-motion';
-import DependenciaForm, { type FormData } from './forms/Dependencia';
+import DependenciaForm, { type FormData, SelectableDependency } from './forms/Dependencia';
 import EmpleadoForm from './forms/Empleado';
 import InfoPersonalForm, { InfoPersonalFormData } from './forms/InfoPersonal';
 import ContratoForm, { ContratoFormData } from './forms/Contrato';
@@ -83,6 +84,78 @@ const getAllIds = (nodes: DependenciaNode[]): string[] => {
     return ids;
 };
 
+const findNodeById = (nodes: DependenciaNode[], id: string): DependenciaNode | null => {
+    for (const node of nodes) {
+      if (node.id === id) return node;
+      const childrenNodes = node.children.filter(c => !('isEmployee' in c)) as DependenciaNode[];
+      const found = findNodeById(childrenNodes, id);
+      if (found) return found;
+    }
+    return null;
+};
+
+// Obtiene todos los descendientes de un nodo dado.
+const getDescendantIds = (node: DependenciaNode, ids: Set<string>) => {
+    node.children.forEach(child => {
+        if (!('isEmployee' in child)) {
+            ids.add(child.id);
+            getDescendantIds(child, ids);
+        }
+    });
+};
+
+
+const getSelectableDependencies = (
+  allDependenciasRaw: Dependencia[], 
+  allInfoUsuarios: InfoUsuario[],
+  allUsuarios: Usuario[],
+  editingDependencia: DependenciaNode | null
+): SelectableDependency[] => {
+    
+    const fullTree = buildDependencyTree(allDependenciasRaw, allInfoUsuarios, allUsuarios);
+    
+    const nodesToExclude = new Set<string>();
+    if (editingDependencia) {
+        nodesToExclude.add(editingDependencia.id);
+        
+        const nodeInTree = findNodeById(fullTree, editingDependencia.id);
+        if (nodeInTree) {
+             getDescendantIds(nodeInTree, nodesToExclude);
+        }
+    }
+    
+    const result: SelectableDependency[] = [];
+    const buildFlattenedList = (nodes: DependenciaNode[], level: number, parentPrefix: string = '') => {
+        nodes.forEach(node => {
+            const isEmployeeNode = 'isEmployee' in node;
+            const isPuesto = !isEmployeeNode && node.es_puesto; 
+            
+            const currentPrefix = parentPrefix ? `${parentPrefix}.${node.no}` : `${node.no}`;
+            
+            if (!nodesToExclude.has(node.id) && !isEmployeeNode && !isPuesto) { 
+                result.push({
+                    id: node.id,
+                    nombre: node.nombre,
+                    level: level,
+                    prefix: currentPrefix, 
+                });
+            }
+            
+            const childrenNodes = (node.children ?? []).filter(c => !('isEmployee' in c)) as DependenciaNode[]; 
+            const childrenNodesLength = childrenNodes.length;
+
+            if (childrenNodesLength > 0) {
+                buildFlattenedList(childrenNodes, level + 1, currentPrefix);
+            }
+        });
+    };
+    
+    buildFlattenedList(fullTree, 0);
+    
+    return result;
+}
+
+
 export default function Ver() {
   const { dependencias, loading: loadingDependencias, mutate: mutateDependencias } = useDependencias();
   const { usuarios, loading: loadingUsuarios, fetchUsuarios } = useListaUsuarios();
@@ -110,11 +183,9 @@ export default function Ver() {
   const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState({ title: '', description: '' });
 
-  // Variables para obtener la información necesaria de la tarjeta
   const infoUsuarioParaTarjeta = infoUsuarios.find(i => i.user_id === usuarioParaTarjeta?.id);
   const dependenciaIdParaTarjeta = infoUsuarioParaTarjeta?.dependencia_id;
 
-  // Se pasa dependenciaIdParaTarjeta al hook useContratoUsuario
   const { contrato: contratoSeleccionado, loading: loadingContrato, mutate: mutateContrato, cargoAsignado } = useContratoUsuario(usuarioIdParaContrato, dependenciaIdParaTarjeta);
 
   useEffect(() => {
@@ -130,15 +201,6 @@ export default function Ver() {
       document.body.classList.remove('overflow-hidden');
     };
   }, [isFormOpen, isInfoPersonalOpen, isContratoOpen, isTarjetaOpen, dependenciaParaEmpleado, descriptionModalOpen]);
-
-  const findNodeById = (nodes: DependenciaNode[], id: string): DependenciaNode | null => {
-    for (const node of nodes) {
-      if (node.id === id) return node;
-      const found = findNodeById(node.children.filter(c => !('isEmployee' in c)) as DependenciaNode[], id);
-      if (found) return found;
-    }
-    return null;
-  };
 
   const handleExportar = async () => {
     const elementToExport = exportRef.current;
@@ -171,16 +233,53 @@ export default function Ver() {
   
   const handleSubmit = async (formData: FormData) => {
     const isEditing = !!editingDependencia;
-    let dataToSubmit: any = { nombre: formData.nombre, parent_id: formData.parent_id ?? null, descripcion: formData.descripcion || null, es_puesto: formData.es_puesto || false, };
-    if (!isEditing) {
+    let dataToSubmit: any = { 
+        nombre: formData.nombre, 
+        parent_id: formData.parent_id ?? null, 
+        descripcion: formData.descripcion || null, 
+        es_puesto: formData.es_puesto || false, 
+    };
+
+    let error: any = null;
+
+    if (isEditing) {
+        const oldParentId = editingDependencia?.parent_id ?? null;
+        const newParentId = formData.parent_id ?? null;
+        
+        // El cambio de padre o la edición normal se maneja aquí.
+        // Solo necesitamos llamar al RPC si hay un cambio de padre o si se actualizan otros campos
+        if (oldParentId !== newParentId) {
+            // Caso: El padre ha cambiado (Llamar al RPC de cambio y reordenación)
+            const { error: rpcError } = await supabase.rpc('cambiar_padre_y_reordenar_dependencia', {
+                id_a_mover: editingDependencia!.id,
+                nuevo_parent_id: newParentId,
+            });
+            error = rpcError;
+        } else {
+            // Caso: Solo se editan nombre/descripción/es_puesto (Actualización normal)
+            const { error: updateError } = await supabase.from('dependencias').update(dataToSubmit).eq('id', editingDependencia!.id);
+            error = updateError;
+        }
+
+    } else {
+        // Lógica de Creación (Sin Cambios)
         let query = supabase.from('dependencias').select('no', { count: 'exact' });
         const parentId = formData.parent_id ?? null;
         if (parentId) { query = query.eq('parent_id', parentId); } else { query = query.is('parent_id', null); }
         const { count } = await query;
         dataToSubmit.no = (count || 0) + 1;
+        
+        const { error: insertError } = await supabase.from('dependencias').insert(dataToSubmit);
+        error = insertError;
     }
-    const { error } = isEditing ? await supabase.from('dependencias').update(dataToSubmit).eq('id', editingDependencia!.id) : await supabase.from('dependencias').insert(dataToSubmit);
-    if (error) { toast.error('Ocurrió un error al guardar.'); } else { handleCloseForm(); mutateDependencias(); }
+
+    if (error) { 
+        console.error("Error en handleSubmit:", error);
+        toast.error('Ocurrió un error al guardar o reordenar.'); 
+    } else { 
+        handleCloseForm(); 
+        mutateDependencias(); 
+    }
   };
   
   const handleDelete = async (id: string) => {
@@ -258,6 +357,10 @@ export default function Ver() {
     return buildDependencyTree(filteredDependencias, infoUsuarios, usuarios);
   }, [dependencias, searchTerm, infoUsuarios, usuarios]);
 
+  const selectableDependencias = useMemo(() => {
+    return getSelectableDependencies(dependencias, infoUsuarios, usuarios, editingDependencia);
+  }, [dependencias, infoUsuarios, usuarios, editingDependencia]);
+
   const loading = loadingDependencias || loadingUsuarios || loadingInfo || (!!usuarioIdParaContrato && loadingContrato);
 
   return (
@@ -276,7 +379,17 @@ export default function Ver() {
 
       <div ref={exportRef} className='pb-10'>
         <div id="export-logo" className="hidden text-center mb-4"><img src="/images/logo-muni.png" alt="Logo Municipalidad" className="h-40 w-auto inline-block" /><h2 className="text-2xl font-bold mt-2 text-blue-600">Organización Municipal</h2></div>
-        {isFormOpen && (<DependenciaForm isOpen={isFormOpen} onClose={handleCloseForm} onSubmit={handleSubmit} initialData={editingDependencia} todasLasDependencias={dependencias} preselectedParentId={preselectedParentId} /> )}
+        {isFormOpen && (
+            <DependenciaForm 
+                isOpen={isFormOpen} 
+                onClose={handleCloseForm} 
+                onSubmit={handleSubmit} 
+                initialData={editingDependencia} 
+                todasLasDependencias={dependencias} 
+                preselectedParentId={preselectedParentId} 
+                selectableDependencies={selectableDependencias} 
+            />
+        )}
         
         <DependenciaList dependencias={finalTree} onEdit={handleOpenForm} onDelete={handleDelete} onAddSub={handleOpenSubForm} onMove={handleMove} onMoveExtreme={handleMoveExtreme} onAddEmpleado={handleOpenEmpleadoModal} onDeleteEmpleado={handleDeleteEmpleado} onOpenInfoPersonal={handleOpenInfoPersonal} onOpenContrato={handleOpenContrato} onViewCard={handleOpenTarjeta} onOpenDescription={handleOpenDescriptionModal} openNodeIds={openNodeIds} setOpenNodeIds={setOpenNodeIds} />
         
@@ -284,7 +397,6 @@ export default function Ver() {
         <InfoPersonalForm isOpen={isInfoPersonalOpen} onClose={handleCloseModals} onSubmit={handleSubmitInfoPersonal} usuario={selectedUsuario} initialData={infoUsuarios.find(i => i.user_id === selectedUsuario?.id)} />
         <ContratoForm isOpen={isContratoOpen} onClose={handleCloseModals} onSubmit={handleSubmitContrato} usuario={selectedUsuario} initialData={contratoSeleccionado} />
         
-        {/* Llama a TarjetaEmpleado y pasa cargoAsignado */}
         <TarjetaEmpleado 
           isOpen={isTarjetaOpen} 
           onClose={handleCloseTarjeta} 
@@ -292,7 +404,7 @@ export default function Ver() {
           infoUsuario={infoUsuarioParaTarjeta} 
           infoContrato={contratoSeleccionado} 
           cargandoContrato={loadingContrato} 
-          cargoAsignado={cargoAsignado} // <-- Cargo Asignado
+          cargoAsignado={cargoAsignado} 
         />
 
         <DescriptionModal isOpen={descriptionModalOpen} onClose={handleCloseDescriptionModal} title={modalContent.title} description={modalContent.description} />

@@ -1,4 +1,4 @@
-// forms/Dependencia.tsx (Corrected)
+// forms/Dependencia.tsx
 'use client';
 
 import { useForm, SubmitHandler } from 'react-hook-form';
@@ -11,7 +11,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Dependencia as DependenciaType } from '../Ver';
 import { Switch } from '@/components/ui/Switch';
-import { DependenciaNode } from '../DependenciaItem'; // Import DependenciaNode
+import { DependenciaNode } from '../DependenciaItem'; 
+import {
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select'; 
 
 const formSchema = z.object({
   nombre: z.string().min(2, { message: 'El nombre debe tener al menos 2 caracteres.' }),
@@ -22,6 +29,13 @@ const formSchema = z.object({
 
 export type FormData = z.infer<typeof formSchema>;
 
+export interface SelectableDependency {
+  id: string;
+  nombre: string;
+  level: number;
+  prefix: string; 
+}
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -29,9 +43,10 @@ interface Props {
   initialData?: DependenciaNode | null; 
   todasLasDependencias: DependenciaType[];
   preselectedParentId?: string | null;
+  selectableDependencies: SelectableDependency[]; 
 }
 
-export default function Dependencia({ isOpen, onClose, onSubmit, initialData, preselectedParentId, todasLasDependencias }: Props) {
+export default function Dependencia({ isOpen, onClose, onSubmit, initialData, preselectedParentId, todasLasDependencias, selectableDependencies }: Props) { 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -75,6 +90,10 @@ export default function Dependencia({ isOpen, onClose, onSubmit, initialData, pr
     }
   }, [mode, initialData, preselectedParentId, form, isOpen]);
 
+  const handleSelectChange = (value: string) => {
+    form.setValue('parent_id', value === 'null' ? null : value, { shouldValidate: true });
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -83,7 +102,7 @@ export default function Dependencia({ isOpen, onClose, onSubmit, initialData, pr
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         >
           <motion.div
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg" 
             initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 30 }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -143,6 +162,59 @@ export default function Dependencia({ isOpen, onClose, onSubmit, initialData, pr
                       </FormItem>
                     )}
                   />
+                  
+                  {/* Campo de Selección de Padre (parent_id) - SOLO VISIBLE EN MODO EDICIÓN */}
+                  {mode === 'EDIT' && ( 
+                    <FormField
+                      control={form.control}
+                      name="parent_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Dependencia Superior (Padre)</FormLabel>
+                          <Select 
+                            onValueChange={handleSelectChange} 
+                            value={field.value === null || field.value === undefined ? 'null' : field.value} 
+                          >
+                            <FormControl>
+                              <SelectTrigger className="text-xs">
+                                <SelectValue placeholder="Seleccione la dependencia superior..." />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent 
+                              className="text-xs" 
+                              style={{ width: '400px' }} 
+                            >
+                              {/* Opción para Dependencia Raíz (sin padre) */}
+                              <SelectItem key="null" value="null" className="text-xs font-bold">
+                                [ Nivel Raíz ]
+                              </SelectItem>
+                              
+                              {/* Opciones de Dependencias Selectables */}
+                              {selectableDependencies.map((dep) => (
+                                <SelectItem 
+                                  key={dep.id} 
+                                  value={dep.id} 
+                                  className="text-xs p-0" 
+                                >
+                                  {/* Contenedor del texto con padding y estilos de truncamiento */}
+                                  <div 
+                                    className="flex items-center overflow-hidden whitespace-nowrap py-1.5 px-2"
+                                    style={{ paddingLeft: `${dep.level * 15 + 8}px` }} 
+                                  >
+                                    <span className="font-semibold mr-2 flex-shrink-0">{dep.prefix}</span>
+                                    <span className="truncate min-w-0" style={{ maxWidth: `calc(100% - ${dep.prefix.length * 8}px)` }}>
+                                        {dep.nombre}
+                                    </span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                   
                   <div className="flex justify-end gap-2 pt-4">
                     <Button type="button" variant="ghost" onClick={onClose} className="text-xs">Cancelar</Button>

@@ -1,3 +1,4 @@
+//forms/Contrato.tsx
 'use client';
 
 import { useForm, SubmitHandler } from 'react-hook-form';

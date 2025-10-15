@@ -1,3 +1,4 @@
+//DependeciaItem.tsx
 'use client';
 
 import React, { useState } from 'react';
@@ -80,15 +81,13 @@ const DependenciaItem = ({
     }
   };
 
-  // **********************************************
-  // MODIFICACIÓN: La clase 'border' solo aplica al borde superior (border-t).
-  // **********************************************
+
   const getColorClasses = (level: number) => {
     switch (level % 4) {
       case 0: return { bg: 'bg-green-100', text: 'text-green-800', accent: 'bg-green-500', icon: 'text-green-600', border: 'hover:border-t-green-500' };
       case 1: return { bg: 'bg-blue-100', text: 'text-blue-800', accent: 'bg-blue-500', icon: 'text-blue-600', border: 'hover:border-t-blue-500' };
       case 2: return { bg: 'bg-purple-100', text: 'text-purple-800', accent: 'bg-purple-500', icon: 'text-purple-600', border: 'hover:border-t-purple-500' };
-      case 3: return { bg: 'bg-yellow-100', text: 'text-yellow-800', accent: 'bg-yellow-500', icon: 'text-yellow-600', border: 'hover:border-t-yellow-500' };
+      case 3: return { bg: 'bg-orange-100', text: 'text-orange-800', accent: 'bg-orange-500', icon: 'text-orange-600', border: 'hover:border-t-orange-500' };
       default: return { bg: 'bg-gray-100', text: 'text-gray-800', accent: 'bg-gray-500', icon: 'text-gray-600', border: 'hover:border-t-gray-500' };
     }
   };
