@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { User, Trash2, Pencil, Contact } from 'lucide-react';
+import { User, Trash2, Contact, FileSignature } from 'lucide-react';
 import { Usuario } from '@/lib/usuarios/esquemas';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 
@@ -54,12 +54,12 @@ export const EmpleadoItem = ({ empleado, level, onDelete, onOpenInfoPersonal, on
                 <span>Ver Tarjeta</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onOpenInfoPersonal(empleado)}>
-                <Pencil className="mr-2 h-4 w-4" />
+                <User className="mr-2 h-4 w-4" />
                 <span>Info. Personal</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onOpenContrato(empleado)}>
-                <Pencil className="mr-2 h-4 w-4" />
-                <span>Contrato</span>
+                <FileSignature className="mr-2 h-4 w-4" />
+                <span>Contrato o<br/>nombramiento</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onDelete(empleado.id)}>
                 <Trash2 className="mr-2 h-4 w-4 text-red-500" />

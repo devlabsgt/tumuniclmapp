@@ -1,4 +1,3 @@
-//forms/Contrato.tsx
 'use client';
 
 import { useForm, SubmitHandler } from 'react-hook-form';
@@ -7,7 +6,7 @@ import { z } from 'zod';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Usuario } from '@/lib/usuarios/esquemas';
@@ -34,8 +33,12 @@ interface Props {
   initialData?: Partial<Contrato> | null;
 }
 
-const renglonesInfo = {
+const nombramientoRenglones = {
   '011': 'Personal permanente',
+  '061': 'Dietas',
+};
+
+const contratoRenglones = {
   '022': 'Personal por contrato',
   '029': 'Otras remuneraciones de personal temporal',
   '031': 'Jornales',
@@ -49,6 +52,7 @@ type RenglonConfig = RenglonConBono | RenglonSinBono;
 
 const renglonConfig: Record<string, RenglonConfig> = {
   '011': { salarioLabel: '011 - Personal permanente', bonoLabel: '015 - Complementos específicos', placeholder: 'Salario', tieneBono: true },
+  '061': { salarioLabel: '061 - Dietas', placeholder: 'Dietas', tieneBono: false },
   '022': { salarioLabel: '022 - Personal por contrato', bonoLabel: '027 - Complementos específicos', placeholder: 'Salario', tieneBono: true },
   '029': { salarioLabel: '029 - Otras remuneraciones', placeholder: 'Remuneración', tieneBono: false },
   '031': { salarioLabel: '031 - Jornales', bonoLabel: '033 - Complementos específicos', placeholder: 'Jornal', tieneBono: true },
@@ -73,6 +77,7 @@ export default function ContratoForm({ isOpen, onClose, onSubmit, usuario, initi
 
   const renglonSeleccionado = form.watch('renglon');
   const configActual = renglonSeleccionado ? renglonConfig[renglonSeleccionado as RenglonKey] : null;
+  const esNombramiento = renglonSeleccionado && (renglonSeleccionado === '011' || renglonSeleccionado === '061');
 
   useEffect(() => {
     form.reset({
@@ -110,8 +115,9 @@ export default function ContratoForm({ isOpen, onClose, onSubmit, usuario, initi
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
-              <h2 className="text-xl font-bold mb-1">Información de Contrato</h2>
-              <p className="text-sm font-semibold text-blue-500 mb-4"> {usuario?.nombre}</p>
+              <h2 className="text-xl text-blue-500 font-bold mb-1"> {usuario?.nombre}</h2>
+              <hr className="my-4 border-slate-200 dark:border-slate-700" />
+
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit as SubmitHandler<ContratoFormData>)} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   
@@ -129,11 +135,18 @@ export default function ContratoForm({ isOpen, onClose, onSubmit, usuario, initi
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {Object.entries(renglonesInfo).map(([numero, descripcion]) => (
-                                <SelectItem key={numero} value={numero} className="text-xs">
-                                  {numero} - {descripcion}
-                                </SelectItem>
-                              ))}
+                              <SelectGroup>
+                                <SelectLabel>NOMBRAMIENTO</SelectLabel>
+                                {Object.entries(nombramientoRenglones).map(([numero, descripcion]) => (
+                                  <SelectItem key={numero} value={numero} className="text-xs">{numero} - {descripcion}</SelectItem>
+                                ))}
+                              </SelectGroup>
+                              <SelectGroup>
+                                <SelectLabel>CONTRATO</SelectLabel>
+                                {Object.entries(contratoRenglones).map(([numero, descripcion]) => (
+                                  <SelectItem key={numero} value={numero} className="text-xs">{numero} - {descripcion}</SelectItem>
+                                ))}
+                              </SelectGroup>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -190,7 +203,7 @@ export default function ContratoForm({ isOpen, onClose, onSubmit, usuario, initi
                         />
                       )}
                       
-                      <FormField control={form.control} name="contrato_no" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>No. de Contrato</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )} />
+                      <FormField control={form.control} name="contrato_no" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>{esNombramiento ? 'No. de Nombramiento' : 'No. de Contrato'}</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )} />
                       
                       <FormField control={form.control} name="fecha_ini" render={({ field }) => ( <FormItem><FormLabel>Fecha Inicio</FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )} />
                       <FormField control={form.control} name="fecha_fin" render={({ field }) => ( <FormItem><FormLabel>Fecha Fin</FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem> )} />

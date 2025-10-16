@@ -92,23 +92,17 @@ const DependenciaItem = ({
     }
   };
 
-  // --- INICIO DEL CAMBIO ---
-  // Se reemplaza la lógica de color anterior con este bloque if/else
   let colorConfig;
   if (node.es_puesto) {
     if (empleadoAsignado) {
-      // Es un puesto OCUPADO -> Amarillo
       colorConfig = { bg: 'bg-yellow-100', text: 'text-yellow-800', accent: 'bg-yellow-500', icon: 'text-yellow-600', border: 'hover:border-t-yellow-500' };
     } else {
-      // Es un puesto VACANTE -> Verde
       colorConfig = { bg: 'bg-green-100', text: 'text-green-800', accent: 'bg-green-500', icon: 'text-green-600', border: 'hover:border-t-green-500' };
     }
   } else {
-    // No es un puesto, usa la lógica de niveles
     colorConfig = getColorClasses(level);
   }
   const { bg, text, accent, icon, border } = colorConfig;
-  // --- FIN DEL CAMBIO ---
 
   const canMoveUp = index > 0;
   const canMoveDown = index < siblingCount - 1;
