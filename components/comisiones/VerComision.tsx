@@ -141,14 +141,15 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
     <div ref={exportRef} className="bg-white rounded-xl px-6 pb-6 flex flex-col h-full relative">
 
 
- <div className="pt-0 exclude-from-capture">
+      <div className="pt-0 exclude-from-capture">
         <div className="flex flex-wrap justify-center md:justify-between items-center gap-4 mt-2 text-xs md:text-sm">        
             
             <Button
               variant="link"
               onClick={onClose}
+              className='text-blue-600'
             >
-                <LogOut className="mr-2 h-4 w-4 rotate-180" />
+                <LogOut className="mr-2 h-4 w-4 text-blue-600 rotate-180" />
                 Mostrar todas las comisiones
             </Button>
             <Button

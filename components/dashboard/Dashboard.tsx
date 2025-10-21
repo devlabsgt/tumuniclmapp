@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Users, Settings, FileText, Clock } from 'lucide-react';
+import { ArrowRight, Users, Settings, FileText, Clock, StickyNote } from 'lucide-react';
 import { registrarLog } from '@/utils/registrarLog';
 import { motion, AnimatePresence } from 'framer-motion';
 import useUserData from '@/hooks/sesion/useUserData';
@@ -292,19 +292,17 @@ export default function Dashboard() {
         {vistaActiva === 'modulos' ? (
           <motion.div key="modulos" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
             
-            <div className="max-w-[70%] mx-auto">
+            <div className="w-full md:max-w-[70%] mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
                 
-                {/* --- Columna 1: Políticas Públicas --- */}
-                <div className="space-y-4">
+                <div className="space-y-4 mb-4">
                   <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4">Políticas Públicas</h2>
                   <div className="space-y-4">
                     {modulosPoliticas.map((modulo) => renderModuleCard(modulo))}
                   </div>
                 </div>
 
-                {/* --- Columna 2: Gestión Administrativa --- */}
-                <div className="space-y-4">
+                <div className="space-y-4 ">
                    <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4">Gestión Administrativa</h2>
                   <div className="space-y-4">
                     {modulosGestion.map((modulo) => renderModuleCard(modulo))}

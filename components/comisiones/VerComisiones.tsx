@@ -4,7 +4,14 @@ import React, { useMemo, useRef, useState } from 'react';
 import { ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
 import { Usuario } from '@/lib/usuarios/esquemas';
 import { Button } from '@/components/ui/button';
-import { Camera, LogOut } from 'lucide-react';
+import { 
+  Camera, 
+  LogOut, 
+  Clock, 
+  CalendarDays,
+  Users,
+  StickyNote
+} from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toBlob } from 'html-to-image';
@@ -18,7 +25,47 @@ interface VerComisionesProps {
 
 const getUsuarioNombre = (id: string, usuarios: Usuario[]) => {
   const user = usuarios.find(u => u.id === id);
-  return user ? user.nombre : 'Desconocido';
+  if (!user || !user.nombre) return 'Desconocido';
+
+  const parts = user.nombre.trim().split(' ');
+  const len = parts.length;
+  const preposiciones = ['de', 'del', 'la', 'los', 'las'];
+
+  if (len <= 1) {
+    return user.nombre;
+  }
+
+  if (len === 2) {
+    return `${parts[0]} ${parts[1]}`;
+  }
+
+  if (len === 3) {
+    if (preposiciones.includes(parts[1].toLowerCase())) {
+       return `${parts[0]} ${parts[1]} ${parts[2]}`;
+    }
+    return `${parts[0]} ${parts[2]}`;
+  }
+
+  if (len === 4) {
+    if (preposiciones.includes(parts[1].toLowerCase())) {
+      return `${parts[0]} ${parts[1]} ${parts[2]} ${parts[3]}`;
+    }
+    return `${parts[0]} ${parts[2]}`;
+  }
+
+  if (len >= 5) {
+    if (preposiciones.includes(parts[1].toLowerCase())) {
+      return `${parts[0]} ${parts[3]}`;
+    }
+    
+    if (preposiciones.includes(parts[2].toLowerCase())) {
+      return `${parts[0]} ${parts.slice(2).join(' ')}`;
+    }
+
+    return `${parts[0]} ${parts[2]}`;
+  }
+
+  return user.nombre; 
 };
 
 export default function VerComisiones({ comisiones, usuarios, onClose }: VerComisionesProps) {
@@ -95,7 +142,7 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
   };
 
   return (
-    <div ref={exportRef} className="bg-white rounded-xl border border-gray-200 px-2 pb-6 flex flex-col h-full relative">
+    <div ref={exportRef} className="bg-white rounded-xl border border-gray-200 px-2 pb-6 flex flex-col h-full relative text-xs">
             
       <div className="exclude-from-capture border-t pt-4">
         <div className="flex flex-wrap justify-start items-center gap-4 mt-4 text-xs md:text-sm">
@@ -127,8 +174,7 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
         <img
         src="/images/logo-muni.png"
         alt="Logo Municipalidad"
-        className="w-auto mx-auto"
-        style={{ height: '200px' }}
+        className="w-auto mx-auto h-[100px] lg:h-[200px]"
         />
       </div>
 
@@ -141,7 +187,10 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
           return fechaA.getTime() - fechaB.getTime();
         }).map(fecha => (
           <div key={fecha}>
-            <h4 className="text-xs font-semibold text-gray-700 mb-2 capitalize">{fecha}</h4>
+            <h4 className="font-semibold text-gray-900 mb-2 capitalize flex items-center gap-2">
+              <CalendarDays className="h-4 w-4" />
+              {fecha}
+            </h4>
             <div className="space-y-2">
               {comisionesAgrupadasPorFecha[fecha]
                 .sort((a, b) => a.titulo.localeCompare(b.titulo))
@@ -153,42 +202,53 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
                   const notasUnicasComision = notasPorComision.get(comision.id) || [];
                   return (
                     <div key={comision.id} className="bg-gray-50 rounded-md px-3 py-2 border-2 border-gray-400">                      
-                      <div className="flex flex-wrap -mx-2">
-                        <div className="w-[80%] pl-2">
-                          <div className="flex items-start">
-                            <h5 className="text-md font-bold text-gray-800">{comision.titulo}</h5>
-                            <p className="text-sm ml-4 text-gray-600">{format(parseISO(comision.fecha_hora.replace(' ', 'T')), "h:mm a", { locale: es })}</p>
-                          </div>
-                          <div className="border-t mt-2 pt-2">
-                            <div className="flex items-center gap-1 my-1">
-                              <span className="text-md font-semibold text-gray-700">Encargado:</span>
-                              <span className="text-md text-gray-600">{encargado ? getUsuarioNombre(encargado.id, usuarios) : 'No asignado'}</span>
-                            </div>
-                            {asistentes && asistentes.length > 0 && (
-                              <div className="mt-2 pt-2 border-t">
-                                <div className="grid grid-cols-3 gap-x-2 gap-y-1 text-lg text-gray-600">
-                                  {asistentes.map(a => (
-                                    <span key={a.id}>{getUsuarioNombre(a.id, usuarios)}</span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <h5 className="font-bold text-blue-600 flex items-center gap-2">
+                            {comision.titulo}
+                          </h5>
+                          <p className="font-bold text-blue-600 flex items-center gap-2">
+                            <Clock className="h-4 w-4" />
+                            {format(parseISO(comision.fecha_hora.replace(' ', 'T')), "h:mm a", { locale: es })}
+                          </p>
                         </div>
-
-                        <div className="w-[20%] py-2 pl-2 border-l">
-                          {notasUnicasComision && notasUnicasComision.length > 0 && (
-                            <div>
-                              <div className="flex items-center gap-1 mb-1">
-                                <span className="text-sm font-semibold text-gray-700">Notas:</span>
-                              </div>
-                              <div className="text-xs text-gray-600">
-                                {notasUnicasComision.map((comentario, index) => <div key={index}>{comentario}</div>)}
+                        <div className="border-t mt-2 pt-2">
+                          <div className="flex items-center gap-1 my-1">
+                            <span className="font-semibold text-blue-600 flex items-center gap-2">
+                              <Users className="h-4 w-4" />
+                              Encargado:
+                            </span>
+                            <span className="text-gray-600 font-semibold">{encargado ? getUsuarioNombre(encargado.id, usuarios) : 'No asignado'}</span>
+                          </div>
+                          {asistentes && asistentes.length > 0 && (
+                            <div className="mt-2 pt-2 border-t">
+                              <div className="grid grid-cols-3 gap-y-1 text-gray-600 leading-relaxed font-semibold">
+                                {asistentes.map((a, index) => (
+                                  <span 
+                                    key={a.id}
+                                    className={`pl-2 ${index % 3 === 0 ? '' : 'border-l border-gray-300'}`}
+                                  >
+                                    {getUsuarioNombre(a.id, usuarios)}
+                                  </span>
+                                ))}
                               </div>
                             </div>
                           )}
                         </div>
                       </div>
+
+                      {notasUnicasComision && notasUnicasComision.length > 0 && (
+                        <div className="border-t mt-2 pt-2">
+                          <div className="flex items-center gap-1 mb-1">
+                            <span className="font-semibold text-blue-600 flex items-center gap-2">
+                              <StickyNote className="h-4 w-4" />
+                              Notas:
+                            </span>                          </div>
+                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-2 gap-y-1 text-gray-600 leading-relaxed font-semibold">
+                            {notasUnicasComision.map((comentario, index) => <div key={index}>{comentario}</div>)}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
               })}
@@ -198,11 +258,11 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
         {notasGenerales.length > 0 && (
           <div className="border-t m-4 py-4">
             <div className="flex items-center gap-1 mb-4">
-              <span className="text-2xl font-semibold text-gray-700">Notas generales:</span>
+              <span className="font-semibold text-blue-600">Notas generales:</span>
             </div>
-            <ul className="grid grid-cols-2 gap-x-4 gap-y-1 list-disc list-inside ml-4 text-lg font-semibold text-gray-600">
-              {notasGenerales.map((comentario, index) => <li key={index}>{comentario}</li>)}
-            </ul>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-1 font-semibold text-gray-600 leading-relaxed">
+              {notasGenerales.map((comentario, index) => <div key={index}>{comentario}</div>)}
+            </div>
           </div>
         )}
       </div>
