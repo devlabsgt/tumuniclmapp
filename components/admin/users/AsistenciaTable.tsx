@@ -1,40 +1,46 @@
-'use client';
-
-import React, { useState, Fragment, useMemo, KeyboardEvent, useEffect } from 'react';
+import React, { useState, Fragment, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import Mapa from '@/components/ui/modals/Mapa';
-import { Asistencia} from '@/lib/asistencia/esquemas';
-import {
-  format, isSameDay, eachDayOfInterval, isToday, addDays, startOfWeek, endOfWeek, isWithinInterval, getYear, getMonth
-} from 'date-fns';
+import { format, endOfDay, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { useDependencias } from '@/hooks/dependencias/useDependencias';
+import Cargando from '@/components/ui/animations/Cargando';
+import { AsistenciaEnriquecida } from '@/hooks/asistencia/useObtenerAsistencias';
 
-  type Props = {
-    registros: Asistencia[];
-    rolActual: string | null;
-  };
+type Props = {
+  registros: AsistenciaEnriquecida[];
+  rolActual: string | null;
+  loading: boolean;
+  setOficinaId: (id: string | null) => void;
+  setFechaInicio: (fecha: string | null) => void;
+  setFechaFinal: (fecha: string | null) => void;
+};
 
-  type RegistrosAgrupadosPorUsuario = {
-    entrada: Asistencia | null;
-    salida: Asistencia | null;
-    nombre: string;
-    email: string;
-    rol: string;
-    programas: string[];
-    userId: string;
-  };
+type RegistrosAgrupados = {
+  entrada: AsistenciaEnriquecida | null;
+  salida: AsistenciaEnriquecida | null;
+  nombre: string;
+  puesto_nombre: string;
+  oficina_nombre: string;
+  oficina_path_orden: string;
+  userId: string;
+  diaString: string;
+};
 
-export default function AsistenciaTable({ registros, rolActual }: Props) {
-  const [semanaDeReferencia, setSemanaDeReferencia] = useState(new Date());
-  const [fechaDeReferencia, setFechaDeReferencia] = useState<Date | null>(null);
-  const [terminoBusqueda, setTerminoBusqueda] = useState('');
-  const [etiquetas, setEtiquetas] = useState<string[]>([]);
-  const [modalMapaAbierto, setModalMapaAbierto] = useState(false);
+export default function AsistenciaTable({ registros, rolActual, loading, setOficinaId, setFechaInicio, setFechaFinal }: Props) {
+  const { dependencias, loading: loadingDependencias } = useDependencias();
   
-  const [registrosSeleccionadosParaMapa, setRegistrosSeleccionadosParaMapa] = useState<{ entrada: Asistencia | null, salida: Asistencia | null }>({ entrada: null, salida: null });
+  const [modalMapaAbierto, setModalMapaAbierto] = useState(false);
+  const [registrosSeleccionadosParaMapa, setRegistrosSeleccionadosParaMapa] = useState<{ entrada: AsistenciaEnriquecida | null, salida: AsistenciaEnriquecida | null }>({ entrada: null, salida: null });
+  
+  const [fechaInicialRango, setFechaInicialRango] = useState('');
+  const [fechaFinalRango, setFechaFinalRango] = useState('');
+  
+  const [nivel2Id, setNivel2Id] = useState<string | null>(null);
+  const [nivel3Id, setNivel3Id] = useState<string | null>(null);
 
   useEffect(() => {
     if (modalMapaAbierto) {
@@ -47,215 +53,222 @@ export default function AsistenciaTable({ registros, rolActual }: Props) {
     };
   }, [modalMapaAbierto]);
 
+  const oficinasNivel2 = useMemo(() => {
+    const rootIds = new Set(dependencias.filter(d => d.parent_id === null).map(d => d.id));
+    return dependencias
+      .filter(d => !d.es_puesto && d.parent_id !== null && rootIds.has(d.parent_id))
+      .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+  }, [dependencias]);
 
-  const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && terminoBusqueda.trim() !== '') {
-      setEtiquetas([...etiquetas, terminoBusqueda.trim()]);
-      setTerminoBusqueda('');
-      setFechaDeReferencia(null);
+  const oficinasNivel3 = useMemo(() => {
+    if (!nivel2Id) {
+      return [];
     }
-  };
+    return dependencias
+      .filter(d => !d.es_puesto && d.parent_id === nivel2Id)
+      .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+  }, [dependencias, nivel2Id]);
 
-  const handleEliminarEtiqueta = (etiquetaAEliminar: string) => {
-    setEtiquetas(etiquetas.filter(etiqueta => etiqueta !== etiquetaAEliminar));
-  };
-  
-  const handleBorrarTodasLasEtiquetas = () => {
-    setEtiquetas([]);
-  };
+  const registrosAgrupadosPorOficina = useMemo(() => {
+    const agrupadosPorOficina: Record<string, RegistrosAgrupados[]> = {};
+    const registrosTemp: Record<string, Record<string, RegistrosAgrupados>> = {};
 
-  const diasDeLaSemana = useMemo(() => eachDayOfInterval({
-    start: startOfWeek(semanaDeReferencia, { weekStartsOn: 1 }),
-    end: endOfWeek(semanaDeReferencia, { weekStartsOn: 1 }),
-  }), [semanaDeReferencia]);
-  
-  const registrosAgrupados = useMemo(() => {
-    let registrosBase: Asistencia[] = registros;
-    
-    if (terminoBusqueda) {
-        const termino = terminoBusqueda.toLowerCase();
-        registrosBase = registrosBase.filter(r => 
-            (r.nombre?.toLowerCase().includes(termino) || 
-             r.email?.toLowerCase().includes(termino) ||
-             r.rol?.toLowerCase().includes(termino) ||
-             r.programas?.some(p => p.toLowerCase().includes(termino)))
-        );
-    }
-    if (etiquetas.length > 0) {
-        registrosBase = registrosBase.filter(r => {
-            const contenido = `${r.nombre} ${r.email} ${r.rol} ${r.programas?.join(' ')}`.toLowerCase();
-            return etiquetas.every(etiqueta => contenido.includes(etiqueta.toLowerCase()));
-        });
-    }
-    
-    if (fechaDeReferencia) {
-        registrosBase = registrosBase.filter(r => isSameDay(new Date(r.created_at), fechaDeReferencia));
-    } else {
-        const semanaInicio = startOfWeek(semanaDeReferencia, { weekStartsOn: 1 });
-        const semanaFin = endOfWeek(semanaDeReferencia, { weekStartsOn: 1 });
-        registrosBase = registrosBase.filter(r => isWithinInterval(new Date(r.created_at), { start: semanaInicio, end: semanaFin }));
-    }
+    registros.forEach(registro => {
+      const diaString = format(parseISO(registro.created_at), 'yyyy-MM-dd');
+      const userId = registro.user_id;
+      const oficinaNombre = registro.oficina_nombre || 'Sin Oficina';
+      const oficinaPath = registro.oficina_path_orden || '0';
+      const claveUnica = `${diaString}-${userId}`;
 
-    const agrupadosPorDia: Record<string, Record<string, RegistrosAgrupadosPorUsuario>> = {};
-    
-    registrosBase.forEach(registro => {
-        const diaString = format(new Date(registro.created_at), 'yyyy-MM-dd');
-        const userId = registro.user_id;
+      if (!registrosTemp[oficinaNombre]) {
+        registrosTemp[oficinaNombre] = {};
+      }
 
-        if (!agrupadosPorDia[diaString]) {
-            agrupadosPorDia[diaString] = {};
-        }
+      if (!registrosTemp[oficinaNombre][claveUnica]) {
+        registrosTemp[oficinaNombre][claveUnica] = {
+          entrada: null,
+          salida: null,
+          nombre: registro.nombre || 'N/A',
+          puesto_nombre: registro.puesto_nombre || 'N/A',
+          oficina_nombre: oficinaNombre,
+          oficina_path_orden: oficinaPath,
+          userId: userId,
+          diaString: diaString,
+        };
+      }
 
-        if (!agrupadosPorDia[diaString][userId]) {
-            agrupadosPorDia[diaString][userId] = {
-                entrada: null,
-                salida: null,
-                nombre: registro.nombre || 'N/A',
-                email: registro.email || 'N/A',
-                rol: registro.rol || 'N/A',
-                programas: registro.programas || [],
-                userId: userId,
-            };
-        }
-
-        if (registro.tipo_registro === 'Entrada') {
-            agrupadosPorDia[diaString][userId].entrada = registro;
-        } else if (registro.tipo_registro === 'Salida') {
-            agrupadosPorDia[diaString][userId].salida = registro;
-        }
+      if (registro.tipo_registro === 'Entrada') {
+        registrosTemp[oficinaNombre][claveUnica].entrada = registro;
+      } else if (registro.tipo_registro === 'Salida') {
+        registrosTemp[oficinaNombre][claveUnica].salida = registro;
+      }
     });
 
-    return agrupadosPorDia;
-  }, [registros, fechaDeReferencia, semanaDeReferencia, terminoBusqueda, etiquetas]);
+    Object.keys(registrosTemp).forEach(oficina => {
+      agrupadosPorOficina[oficina] = Object.values(registrosTemp[oficina])
+        .sort((a, b) => new Date(b.diaString).getTime() - new Date(a.diaString).getTime() || a.nombre.localeCompare(b.nombre));
+    });
 
-  const diasOrdenados = useMemo(() => Object.keys(registrosAgrupados).sort((a, b) => new Date(b).getTime() - new Date(a).getTime()), [registrosAgrupados]);
+    return agrupadosPorOficina;
+  }, [registros]);
 
-  const handleSeleccionMesAnio = (anio: number, mes: number) => {
-    setSemanaDeReferencia(new Date(anio, mes, 1));
-    setFechaDeReferencia(null);
-  };
-  
-  const handleNavegarSemana = (dias: number) => {
-    setSemanaDeReferencia(addDays(semanaDeReferencia, dias));
-    setFechaDeReferencia(null);
-  };
+  const oficinasOrdenadas = useMemo(() => {
+    return Object.keys(registrosAgrupadosPorOficina).sort((a, b) => {
+      const pathA = registrosAgrupadosPorOficina[a][0]?.oficina_path_orden || '';
+      const pathB = registrosAgrupadosPorOficina[b][0]?.oficina_path_orden || '';
+      return pathA.localeCompare(pathB, undefined, { numeric: true });
+    });
+  }, [registrosAgrupadosPorOficina]);
 
-  const handleAbrirModalMapa = (registrosUsuario: RegistrosAgrupadosPorUsuario) => {
+  const handleAbrirModalMapa = (registro: RegistrosAgrupados) => {
     setRegistrosSeleccionadosParaMapa({
-      entrada: registrosUsuario.entrada,
-      salida: registrosUsuario.salida
+      entrada: registro.entrada,
+      salida: registro.salida
     });
     setModalMapaAbierto(true);
   };
   
+  const handleNivel2Change = (value: string) => {
+    const newId = value === 'todos' ? null : value;
+    setNivel2Id(newId);
+    setNivel3Id(null); 
+  };
+  
+  const handleNivel3Change = (value: string) => {
+    const newId = value === 'todos' ? null : value;
+    setNivel3Id(newId);
+  };
+
+  const handleFiltrar = () => {
+    setOficinaId(nivel3Id || nivel2Id || null);
+    setFechaInicio(fechaInicialRango || null);
+    
+    if (fechaFinalRango) {
+      try {
+        const fechaFin = endOfDay(new Date(fechaFinalRango));
+        setFechaFinal(fechaFin.toISOString());
+      } catch (e) {
+        setFechaFinal(null);
+      }
+    } else {
+      setFechaFinal(null);
+    }
+  };
+
   return (
     <>
     <div className="w-full xl:w-4/5 mx-auto md:px-4">
         <div className="p-2 bg-white rounded-lg shadow-md space-y-4 w-full">
-          <div className="flex justify-between items-center gap-2 p-2 bg-slate-50 rounded-lg">
-            <Button onClick={() => handleNavegarSemana(-7)} variant="ghost" className="p-2 rounded-full hover:bg-slate-200" aria-label="Anterior">
-              <ChevronLeft size={20} />
-            </Button>
-            <div className='flex gap-2 text-xl lg:text-3xl'>
-              <select value={getMonth(semanaDeReferencia)} onChange={(e) => handleSeleccionMesAnio(getYear(semanaDeReferencia), parseInt(e.target.value))} className="p-1 border rounded-md text-xl lg:text-3xl bg-white" aria-label="Seleccionar mes">
-                {Array.from({ length: 12 }).map((_, i) => (<option key={i} value={i} className="capitalize">{format(new Date(2000, i, 1), 'LLLL', { locale: es })}</option>))}
-              </select>
-              <select value={getYear(semanaDeReferencia)} onChange={(e) => handleSeleccionMesAnio(parseInt(e.target.value), getMonth(semanaDeReferencia))} className="p-1 border rounded-md text-xl lg:text-3xl bg-white" aria-label="Seleccionar año">
-                {Array.from({ length: 10 }).map((_, i) => { const anio = getYear(new Date()) - 5 + i; return <option key={anio} value={anio}>{anio}</option>; })}
-              </select>
+          <div className="flex flex-col md:flex-row justify-center items-center gap-3 p-2 bg-slate-50 rounded-lg">
+            <div className='w-full md:w-1/3 flex flex-col gap-2'>
+              <Select onValueChange={handleNivel2Change} value={nivel2Id || 'todos'}>
+                <SelectTrigger className="bg-white text-xs">
+                  <SelectValue placeholder="Seleccionar Oficina" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todas las dependencias/políticas</SelectItem>
+                  {oficinasNivel2.map(oficina => (
+                    <SelectItem key={oficina.id} value={oficina.id}>{oficina.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Select onValueChange={handleNivel3Change} value={nivel3Id || 'todos'} disabled={!nivel2Id}>
+                <SelectTrigger className="bg-white text-xs">
+                  <SelectValue placeholder="Seleccionar Oficina" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todas las oficinas</SelectItem>
+                  {oficinasNivel3.map(oficina => (
+                    <SelectItem key={oficina.id} value={oficina.id}>{oficina.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Button onClick={() => handleNavegarSemana(7)} variant="ghost" className="p-2 rounded-full hover:bg-slate-200" aria-label="Siguiente">
-              <ChevronRight size={20} />
-            </Button>
+            
+            <div className='w-full md:w-2/3 flex items-center gap-2'>
+              <Input 
+                  type="date" 
+                  value={fechaInicialRango} 
+                  onChange={(e) => setFechaInicialRango(e.target.value)} 
+                  className="w-full text-xs" 
+                  placeholder="Fecha Inicio"
+                  aria-label="Fecha inicial del rango"
+              />
+              <span className="text-xs text-gray-500">hasta</span>
+              <Input 
+                  type="date" 
+                  value={fechaFinalRango} 
+                  onChange={(e) => setFechaFinalRango(e.target.value)} 
+                  className="w-full text-xs" 
+                  placeholder="Fecha Fin"
+                  aria-label="Fecha final del rango"
+              />
+            </div>
+            <Button onClick={handleFiltrar} className="w-full md:w-auto text-xs">Aplicar Filtro</Button>
           </div>
-          <div className="grid grid-cols-7 gap-1 text-center">
-            {diasDeLaSemana.map((dia) => (
-              <div key={dia.toString()} className="flex flex-col items-center">
-                <span className="text-xs uppercase font-semibold text-gray-500 mb-1">{format(dia, 'eee', { locale: es })}</span>
-                <button
-                  type="button"
-                  onClick={() => setFechaDeReferencia(isSameDay(dia, fechaDeReferencia || new Date()) ? null : dia)}
-                  className={`w-8 h-8 flex items-center justify-center rounded-md transition-all cursor-pointer text-sm
-                    ${fechaDeReferencia && isSameDay(dia, fechaDeReferencia) ? 'bg-blue-600 text-white shadow' : ''}
-                    ${!fechaDeReferencia && isToday(dia) ? 'bg-blue-100 text-blue-800 font-bold' : ''}
-                    ${!fechaDeReferencia && !isToday(dia) ? 'hover:bg-slate-100 text-slate-600' : ''}
-                    ${registros.some(r => isSameDay(new Date(r.created_at), dia)) ? 'ring-2 ring-blue-500' : ''}
-                  `}
-                >
-                  {format(dia, 'd')}
-                </button>
-              </div>
-            ))}
-          </div>
+          
           <div className="border-t pt-4 mt-4">
-            <div className="flex flex-col mb-4">
-                <div className="relative group w-full">
-                    <Input type="text" placeholder="Buscar por nombre, correo, rol o programa..." value={terminoBusqueda} onChange={(e) => setTerminoBusqueda(e.target.value)} onKeyPress={handleKeyPress} className="w-full"/>
-                    <span className="absolute hidden md:block group-hover:block bottom-full left-1/2 -translate-x-1/2 mb-2 p-2 w-max text-lg text-white bg-gray-800 rounded-md opacity-0 transition-opacity duration-300 pointer-events-none group-hover:opacity-100">
-                        Presiona Enter para crear una etiqueta de búsqueda
-                    </span>
-                </div>
-                {etiquetas.length > 0 && (
-                    <div className="flex flex-wrap items-center mt-2 gap-2">
-                        {etiquetas.map((etiqueta, index) => (<span key={index} className="flex items-center gap-1 bg-gray-200 text-gray-700 text-sm px-2 py-1 rounded-full">{etiqueta}<button onClick={() => handleEliminarEtiqueta(etiqueta)} className="ml-1 text-gray-500 hover:text-gray-900" aria-label="Eliminar filtro"><X size={12} /></button></span>))}
-                        <Button onClick={handleBorrarTodasLasEtiquetas} variant="ghost" size="sm" className="text-red-500 text-xs p-1">Borrar todos</Button>
-                    </div>
-                )}
-            </div>
-
-            {diasOrdenados.length === 0 ? (
-              <p className="text-center text-gray-500 text-xl lg:text-3xl">No hay registros disponibles para el rango seleccionado.</p>
+            {loading || loadingDependencias ? (
+              <Cargando texto="Cargando asistencias..." />
+            ) : oficinasOrdenadas.length === 0 ? (
+              <p className="text-center text-gray-500 text-xs">No hay registros disponibles para el rango seleccionado.</p>
             ) : (
               <div className="w-full overflow-x-auto">
-                <table className="w-full text-sm md:text-base">
+                <table className="w-full table-fixed text-xs">
                   <thead className="bg-gray-50 text-left">
                     <tr>
-                      <th className="px-4 py-2">Usuario</th>
-                      <th className="px-4 py-2">Rol</th>
-                      <th className="px-4 py-2">Programas</th>
-                      <th className="px-4 py-2">Entrada</th>
-                      <th className="px-4 py-2">Salida</th>
+                      <th className="py-2 text-[10px] xl:text-xs w-[20%] xl:w-[30%]">Usuario</th>
+                      <th className="py-2 text-[10px] xl:text-xs w-[50%] xl:w-[30%]">Puesto</th>
+                      <th className="py-2 text-[10px] xl:text-xs w-[15%] xl:w-[20%]">Entrada</th>
+                      <th className="py-2 text-[10px] xl:text-xs w-[15%] xl:w-[20%]">Salida</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {diasOrdenados.map((diaString) => {
-                      const usuariosDelDia = Object.values(registrosAgrupados[diaString]);
+                    {oficinasOrdenadas.map((nombreOficina) => {
+                      const registrosDeOficina = registrosAgrupadosPorOficina[nombreOficina];
+                      let diaActual = "";
+
                       return (
-                        <Fragment key={diaString}>
+                        <Fragment key={nombreOficina}>
                           <tr>
-                            <td colSpan={5} className="bg-slate-100 px-4 py-2 font-bold text-slate-700 border-t border-b border-slate-200">{format(new Date(diaString + 'T00:00:00'), 'EEEE, d \'de\' LLLL', { locale: es })}</td>
+                            <td colSpan={5} className="bg-gray-200 text-center py-1 text-sm font-semibold text-blue-500">
+                              {nombreOficina}
+                            </td>
                           </tr>
-                          {usuariosDelDia.map((usuario) => (
-                            <tr 
-                              key={usuario.userId} 
-                              className="border-b transition-colors hover:bg-gray-100 group cursor-pointer"
-                              onClick={() => handleAbrirModalMapa(usuario)}
-                            >
-                              <td className="px-4 py-2 relative">
-                                {usuario.nombre}
-                                <span className="absolute left-0 top-full mt-2 w-auto p-2 bg-white text-blue-600 font-semibold text-sm rounded-md shadow-lg border border-gray-200 invisible opacity-0 transition-opacity group-hover:visible group-hover:opacity-100 z-10">
-                                  {usuario.email}
-                                </span>
-                              </td>
-                              <td className="px-4 py-2">{usuario.rol}</td>
-                              <td className="px-4 py-2 relative">
-                                {usuario.programas.length > 0 ? (
-                                    <><span>{usuario.programas[0]}</span>{usuario.programas.length > 1 && <span>...</span>}</>
-                                ) : <span className="underline text-gray-500">Sin Programas</span>}
-                                {usuario.programas.length > 1 && (
-                                  <span className="absolute left-0 top-full mt-2 w-auto min-w-[150px] p-2 bg-white text-blue-600 text-xs rounded-md shadow-lg border border-gray-200 invisible opacity-0 transition-opacity group-hover:visible group-hover:opacity-100 z-10 flex flex-col">
-                                      {usuario.programas.map((p, i) => <span key={i}>{p}</span>)}
-                                  </span>
+                          {registrosDeOficina.map((usuario) => {
+                            const mostrarEncabezadoDia = usuario.diaString !== diaActual;
+                            if (mostrarEncabezadoDia) {
+                                diaActual = usuario.diaString;
+                            }
+                            
+                            return (
+                              <Fragment key={usuario.userId + usuario.diaString}>
+                                {mostrarEncabezadoDia && (
+                                  <tr>
+                                    <td colSpan={5} className="text-center bg-slate-100 py-2 font-bold text-slate-700 border-t border-b border-slate-200">{format(parseISO(usuario.diaString + 'T00:00:00'), 'EEEE, d \'de\' LLLL', { locale: es })}</td>
+                                  </tr>
                                 )}
-                              </td>
-                              <td className="px-4 py-2">
-                                {usuario.entrada ? format(new Date(usuario.entrada.created_at), 'hh:mm a', { locale: es }) : <span className="text-red-400 underline">Sin registro</span>}
-                              </td>
-                              <td className="px-4 py-2">
-                                {usuario.salida ? format(new Date(usuario.salida.created_at), 'hh:mm a', { locale: es }) : <span className="text-red-400 underline">Sin registro</span>}
-                              </td>
-                            </tr>
-                          ))}
+                                <tr 
+                                  className="border-b transition-colors hover:bg-gray-100 group cursor-pointer"
+                                  onClick={() => handleAbrirModalMapa(usuario)}
+                                >
+                                  <td className="py-2 text-[10px] xl:text-xs text-gray-800">
+                                    {usuario.nombre}
+                                  </td>
+                                  <td className="py-2 text-[10px] xl:text-xs text-gray-600">{usuario.puesto_nombre}</td>
+
+                                  <td className="py-2 text-[10px] xl:text-xs font-mono text-center">
+                                    {usuario.entrada ? format(parseISO(usuario.entrada.created_at), 'hh:mm a', { locale: es }) : <span className="text-red-400">----</span>}
+                                  </td>
+
+                                  <td className="py-2 text-[10px] xl:text-xs font-mono text-center">
+                                    {usuario.salida ? format(parseISO(usuario.salida.created_at), 'hh:mm a', { locale: es }) : <span className="text-red-400">----</span>}
+                                  </td>
+                                </tr>
+                              </Fragment>
+                            );
+                          })}
                         </Fragment>
                       );
                     })}

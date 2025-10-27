@@ -25,7 +25,6 @@ export const EmpleadoItem = ({ empleado, level, onDelete, onOpenInfoPersonal, on
         className="flex items-center"
         style={{ paddingLeft: `${level * 1.5 + 1.5}rem` }}
       >
-        {/* MOVIMIENTO: motion.div y whileHover se mueven aquí, envolviendo solo el recuadro interactivo */}
         <motion.div
           className="relative inline-flex items-center gap-2"
           whileHover={{ y: -4 }}

@@ -21,7 +21,7 @@ import useGeolocalizacion from '@/hooks/utility/useGeolocalizacion';
 
 export default function Asistencia() {
   const { userId, nombre, cargando: cargandoUsuario } = useUserData();
-  const { asistencias: todosLosRegistros, loading: cargandoRegistros, fetchAsistencias } = useAsistenciaUsuario(userId);
+  const { asistencias: todosLosRegistros, loading: cargandoRegistros, fetchAsistencias } = useAsistenciaUsuario(userId, null, null);
   const fechaHoraGt = useFechaHora();
   const { ubicacion, cargando: cargandoGeo, obtenerUbicacion } = useGeolocalizacion();
 
@@ -142,12 +142,12 @@ export default function Asistencia() {
 
   return (
     <>
-      <div className="w-full max-w-4xl mx-auto">
+      <div className="w-full xl:max-w-3xl mx-auto">
         <div className="border-b flex mb-4 flex-wrap justify-center">
           <button onClick={() => setActiveTab('controlResumen')} className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm ${activeTab === 'controlResumen' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
             <Clock className="h-4 w-4" /> Asistencia
           </button>
-          <button onClick={() => setActiveTab('semanal')} className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm ${activeTab === 'semanal' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
+          <button onClick={() => setActiveTab('semanal')} className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm ${activeTab === 'semanal' ? ' border-blue-600 text-blue-600' : 'text-gray-500'}`}>
             <CalendarCheck className="h-4 w-4" /> Registro Semanal
           </button>
         </div>

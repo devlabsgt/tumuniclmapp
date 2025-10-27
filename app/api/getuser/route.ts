@@ -15,7 +15,6 @@ export async function GET() {
     return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
   }
 
-  // 💡 Llama a la nueva función de la base de datos
   const { data: userData, error: dataError } = await supabaseAdmin.rpc('usuario_sesion', { p_user_id: user.id });
 
   if (dataError || !userData || userData.length === 0) {

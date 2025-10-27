@@ -1,4 +1,3 @@
-//forms/Empleado.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -7,16 +6,34 @@ import { Button } from '@/components/ui/button';
 import { X, UserCheck } from 'lucide-react';
 import { Usuario } from '@/lib/usuarios/esquemas';
 import { DependenciaNode } from '../DependenciaItem';
+import Swal from 'sweetalert2'; 
+
+interface Dependencia {
+    id: string;
+    no: number | null;
+    nombre: string;
+    descripcion: string | null;
+    parent_id: string | null;
+    es_puesto: boolean | null;
+}
+
+interface Asignacion {
+    userId: string;
+    puestoNombre: string;
+    puestoId: string;
+}
 
 interface EmpleadoFormProps {
   isOpen: boolean;
   onClose: () => void;
   dependencia: DependenciaNode | null;
   usuarios: Usuario[];
+  empleadosAsignados: Asignacion[]; 
+  todasLasDependencias: Dependencia[]; 
   onSave: (userId: string, dependenciaId: string) => void;
 }
 
-export default function EmpleadoForm({ isOpen, onClose, dependencia, usuarios, onSave }: EmpleadoFormProps) {
+export default function EmpleadoForm({ isOpen, onClose, dependencia, usuarios, empleadosAsignados, todasLasDependencias, onSave }: EmpleadoFormProps) {
   const [busqueda, setBusqueda] = useState('');
   const [resultados, setResultados] = useState<Usuario[]>([]);
   const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState<Usuario | null>(null);
@@ -53,9 +70,36 @@ export default function EmpleadoForm({ isOpen, onClose, dependencia, usuarios, o
   };
   
   const handleGuardar = () => {
-    if (empleadoSeleccionado && dependencia) {
-      onSave(empleadoSeleccionado.id, dependencia.id);
+    if (!empleadoSeleccionado || !dependencia) return;
+
+    const asignacionExistente = empleadosAsignados.find(a => a.userId === empleadoSeleccionado.id);
+
+    if (asignacionExistente && asignacionExistente.puestoId !== dependencia.id) {
+        
+        const puestoActual = todasLasDependencias.find(d => d.id === asignacionExistente.puestoId);
+        const padreActual = puestoActual?.parent_id ? todasLasDependencias.find(d => d.id === puestoActual.parent_id) : null;
+        
+        const infoPadre = padreActual ? ` en <strong>${padreActual.nombre}</strong>` : '';
+
+        Swal.fire({
+            icon: 'warning',
+            title: '¡Empleado ya asignado!',
+            html: `
+                El empleado: <strong>${empleadoSeleccionado.nombre}</strong>, 
+                ya está asignado al puesto: <strong>${asignacionExistente.puestoNombre}</strong>${infoPadre}.
+                <br/><br/>
+                Favor desasignelo antes y vuelva a asignarlo.
+            `,
+            confirmButtonText: 'Entendido',
+            customClass: {
+                popup: 'text-sm',
+                title: 'text-base'
+            }
+        });
+        return;
     }
+
+    onSave(empleadoSeleccionado.id, dependencia.id);
   };
 
   if (!isOpen || !dependencia) return null;

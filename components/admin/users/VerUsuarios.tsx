@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import UsersTable from '@/components/admin/users/UsersTable';
@@ -17,10 +17,14 @@ type Vistas = 'usuarios' | 'asistencia' | 'comisiones';
 export default function VerUsuarios() {
   const router = useRouter();
   const { rol: rolActual, cargando: cargandoUsuario } = useUserData();
-  const { asistencias, loading: cargandoAsistencias } = useObtenerAsistencias();
-  const { usuarios, loading: cargandoUsuarios } = useListaUsuarios();
   
   const [vistaActiva, setVistaActiva] = useState<Vistas>('usuarios');
+  const [fechaInicio, setFechaInicio] = useState<string | null>(null);
+  const [fechaFinal, setFechaFinal] = useState<string | null>(null);
+  const [oficinaId, setOficinaId] = useState<string | null>(null);
+
+  const { asistencias, loading: cargandoAsistencias } = useObtenerAsistencias(oficinaId, fechaInicio, fechaFinal);
+  const { usuarios, loading: cargandoUsuarios } = useListaUsuarios();
 
   const usuariosFiltrados = useMemo(() => {
     if (rolActual === 'SUPER') {
@@ -37,7 +41,7 @@ export default function VerUsuarios() {
     return asistencias.filter(a => !idsSuper.includes(a.user_id));
   }, [asistencias, usuarios, rolActual]);
 
-  if (cargandoUsuario || cargandoAsistencias || cargandoUsuarios) {
+  if (cargandoUsuario || cargandoUsuarios) {
     return <Cargando texto='Cargando...'/>;
   }
 
@@ -86,7 +90,14 @@ export default function VerUsuarios() {
         )}
         {vistaActiva === 'asistencia' && (
           <motion.div key="asistencia" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
-            <AsistenciaTable registros={asistenciasFiltradas} rolActual={rolActual} />
+            <AsistenciaTable 
+              registros={asistenciasFiltradas} 
+              rolActual={rolActual} 
+              loading={cargandoAsistencias}
+              setOficinaId={setOficinaId}
+              setFechaInicio={setFechaInicio}
+              setFechaFinal={setFechaFinal}
+            />
           </motion.div>
         )}
         {vistaActiva === 'comisiones' && (

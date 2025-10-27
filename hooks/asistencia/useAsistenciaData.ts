@@ -9,7 +9,6 @@ export default function useAsistenciaData(userId: string | undefined) {
   const [cargandoHoy, setCargandoHoy] = useState(true);
   const [cargandoRegistros, setCargandoRegistros] = useState(true);
 
-  // Función para manejar la eliminación de un registro
   const handleEliminarRegistro = async (registro: Registro) => {
     if (!registro.id) return;
     const exito = await eliminarRegistroAsistencia(registro.id);
@@ -20,7 +19,6 @@ export default function useAsistenciaData(userId: string | undefined) {
     }
   };
 
-  // Consulta los registros de hoy y los actualiza cada minuto
   useEffect(() => {
     if (!userId) {
       setCargandoHoy(false);
@@ -42,7 +40,6 @@ export default function useAsistenciaData(userId: string | undefined) {
     return () => clearInterval(intervalId);
   }, [userId]);
 
-  // Consulta todos los registros una sola vez
   useEffect(() => {
     if (!userId) {
       setCargandoRegistros(false);

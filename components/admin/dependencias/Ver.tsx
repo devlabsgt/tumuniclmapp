@@ -1,4 +1,3 @@
-//Ver.tsx
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
@@ -19,14 +18,16 @@ import { createClient } from '@/utils/supabase/client';
 import { Database } from '@/lib/database.types';
 import { useDependencias } from '@/hooks/dependencias/useDependencias';
 import { useListaUsuarios } from '@/hooks/usuarios/useListarUsuarios';
-import { useInfoUsuarios, InfoUsuario } from '@/hooks/usuarios/useInfoUsuario';
-import { useContratoUsuario } from '@/hooks/contratos/useContratoUsuario';
+import { useInfoUsuario, useInfoUsuarios, InfoUsuario } from '@/hooks/usuarios/useInfoUsuario';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { DependenciaNode } from './DependenciaItem';
 import { Usuario } from '@/lib/usuarios/esquemas';
 
 export type Dependencia = Database['public']['Tables']['dependencias']['Row'];
+
+type UserWithDependency = Usuario & { dependencia_id: string | null; };
+
 
 function buildDependencyTree(dependencias: Dependencia[], infoUsuarios: InfoUsuario[], usuarios: Usuario[]): DependenciaNode[] {
     const userMap = new Map(usuarios.map(u => [u.id, u]));
@@ -48,11 +49,11 @@ function buildDependencyTree(dependencias: Dependencia[], infoUsuarios: InfoUsua
         }
     });
 
-    infoUsuarios.forEach(info => {
-        const parentNode = nodeMap.get(info.dependencia_id);
+    infoUsuarios.forEach((info: InfoUsuario) => {
+        const parentNode = nodeMap.get(info.dependencia_id as string);
         const usuario = userMap.get(info.user_id);
         if (parentNode && usuario) {
-            parentNode.children.push({ isEmployee: true, usuario: usuario });
+            parentNode.children.push({ isEmployee: true, usuario: usuario as any });
         }
     });
 
@@ -94,7 +95,6 @@ const findNodeById = (nodes: DependenciaNode[], id: string): DependenciaNode | n
     return null;
 };
 
-// Obtiene todos los descendientes de un nodo dado.
 const getDescendantIds = (node: DependenciaNode, ids: Set<string>) => {
     node.children.forEach(child => {
         if (!('isEmployee' in child)) {
@@ -157,8 +157,8 @@ const getSelectableDependencies = (
 
 
 export default function Ver() {
+  const { usuarios, loading: loadingUsuarios, fetchUsuarios } = useListaUsuarios() as unknown as { usuarios: UserWithDependency[], loading: boolean, fetchUsuarios: () => void };
   const { dependencias, loading: loadingDependencias, mutate: mutateDependencias } = useDependencias();
-  const { usuarios, loading: loadingUsuarios, fetchUsuarios } = useListaUsuarios();
   const { infoUsuarios, loading: loadingInfo, mutate: mutateInfoUsuarios } = useInfoUsuarios();
 
   const supabase = createClient();
@@ -175,18 +175,18 @@ export default function Ver() {
   const [isInfoPersonalOpen, setIsInfoPersonalOpen] = useState(false);
   const [isContratoOpen, setIsContratoOpen] = useState(false);
   const [selectedUsuario, setSelectedUsuario] = useState<Usuario | null>(null);
-  const [usuarioIdParaContrato, setUsuarioIdParaContrato] = useState<string | null>(null);
   
-  const [isTarjetaOpen, setIsTarjetaOpen] = useState(false);
-  const [usuarioParaTarjeta, setUsuarioParaTarjeta] = useState<Usuario | null>(null);
+  const [usuarioIdParaTarjeta, setUsuarioIdParaTarjeta] = useState<string | null>(null);
+  
+  const { 
+    cargando: cargandoDatosTarjeta,
+    fetchUsuario
+  } = useInfoUsuario(usuarioIdParaTarjeta); 
 
+  const [isTarjetaOpen, setIsTarjetaOpen] = useState(false);
+  
   const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState({ title: '', description: '' });
-
-  const infoUsuarioParaTarjeta = infoUsuarios.find(i => i.user_id === usuarioParaTarjeta?.id);
-  const dependenciaIdParaTarjeta = infoUsuarioParaTarjeta?.dependencia_id;
-
-  const { contrato: contratoSeleccionado, loading: loadingContrato, mutate: mutateContrato, cargoAsignado } = useContratoUsuario(usuarioIdParaContrato, dependenciaIdParaTarjeta);
 
   useEffect(() => {
     const isAnyModalOpen = isFormOpen || isInfoPersonalOpen || isContratoOpen || isTarjetaOpen || !!dependenciaParaEmpleado || descriptionModalOpen;
@@ -201,7 +201,7 @@ export default function Ver() {
       document.body.classList.remove('overflow-hidden');
     };
   }, [isFormOpen, isInfoPersonalOpen, isContratoOpen, isTarjetaOpen, dependenciaParaEmpleado, descriptionModalOpen]);
-
+  
   const handleExportar = async () => {
     const elementToExport = exportRef.current;
     if (!elementToExport) return;
@@ -246,23 +246,18 @@ export default function Ver() {
         const oldParentId = editingDependencia?.parent_id ?? null;
         const newParentId = formData.parent_id ?? null;
         
-        // El cambio de padre o la edición normal se maneja aquí.
-        // Solo necesitamos llamar al RPC si hay un cambio de padre o si se actualizan otros campos
         if (oldParentId !== newParentId) {
-            // Caso: El padre ha cambiado (Llamar al RPC de cambio y reordenación)
             const { error: rpcError } = await supabase.rpc('cambiar_padre_y_reordenar_dependencia', {
-                id_a_mover: editingDependencia!.id,
+                id_a_mover: editingDependencia!.id as string,
                 nuevo_parent_id: newParentId,
             });
             error = rpcError;
         } else {
-            // Caso: Solo se editan nombre/descripción/es_puesto (Actualización normal)
-            const { error: updateError } = await supabase.from('dependencias').update(dataToSubmit).eq('id', editingDependencia!.id);
+            const { error: updateError } = await supabase.from('dependencias').update(dataToSubmit).eq('id', editingDependencia!.id as string);
             error = updateError;
         }
 
     } else {
-        // Lógica de Creación (Sin Cambios)
         let query = supabase.from('dependencias').select('no', { count: 'exact' });
         const parentId = formData.parent_id ?? null;
         if (parentId) { query = query.eq('parent_id', parentId); } else { query = query.is('parent_id', null); }
@@ -274,7 +269,7 @@ export default function Ver() {
     }
 
     if (error) { 
-        console.error("Error en handleSubmit:", error);
+        console.error('Error en handleSubmit:', error);
         toast.error('Ocurrió un error al guardar o reordenar.'); 
     } else { 
         handleCloseForm(); 
@@ -283,7 +278,7 @@ export default function Ver() {
   };
   
   const handleDelete = async (id: string) => {
-    const result = await Swal.fire({ title: '¿Está seguro?', text: "No podrá revertir esto.", icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar' });
+    const result = await Swal.fire({ title: '¿Está seguro?', text: 'No podrá revertir esto.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar' });
     if (result.isConfirmed) {
         const { error } = await supabase.rpc('eliminar_dependencia_y_reordenar', { id_a_eliminar: id });
         if (error) { toast.error('Ocurrió un error al eliminar la dependencia.'); } else { await mutateDependencias(); }
@@ -304,43 +299,60 @@ export default function Ver() {
   const handleCloseEmpleadoModal = () => { setDependenciaParaEmpleado(null); };
   
   const handleSaveEmpleado = async (newUserId: string, dependenciaId: string) => {
-    const empleadoInfo = infoUsuarios.find(info => info.user_id === newUserId);
-    if (empleadoInfo && empleadoInfo.dependencia_id && empleadoInfo.dependencia_id !== dependenciaId) {
-        const dependenciaActual = dependencias.find(dep => dep.id === empleadoInfo.dependencia_id);
-        Swal.fire({ title: 'Empleado ya asignado', html: `<p>Este empleado ya está asignado al puesto</p><p style="text-align: center; font-weight: bold; margin: 0.5rem 0;">${dependenciaActual?.nombre}</p><p>Desasígnelo antes de reasignar</p>`, icon: 'warning', confirmButtonText: 'Entendido', confirmButtonColor: '#2563eb' });
-        handleCloseEmpleadoModal(); return;
-    }
-    const oldAssignment = infoUsuarios.find(info => info.dependencia_id === dependenciaId);
+    const oldAssignment = infoUsuarios.find((info: InfoUsuario) => info.dependencia_id === dependenciaId);
+    
     if (oldAssignment && oldAssignment.user_id !== newUserId) {
       const { error: unassignError } = await supabase.from('info_usuario').update({ dependencia_id: null }).eq('user_id', oldAssignment.user_id);
       if (unassignError) { toast.error('Error al desasignar al empleado anterior.'); handleCloseEmpleadoModal(); return; }
     }
+    
     const { error: assignError } = await supabase.from('info_usuario').update({ dependencia_id: dependenciaId }).eq('user_id', newUserId);
-    if (assignError) { toast.error('Error al asignar el empleado.'); } else { const usuario = usuarios.find(u => u.id === newUserId); const dependencia = findNodeById(finalTree, dependenciaId); toast.success(`"${usuario?.nombre}" fue añadido a "${dependencia?.nombre}"`); mutateInfoUsuarios(); }
+    
+    if (assignError) { 
+        toast.error('Error al asignar el empleado.'); 
+    } else { 
+        const usuario = usuarios.find(u => u.id === newUserId); 
+        const dependencia = findNodeById(finalTree, dependenciaId); 
+        toast.success(`"${usuario?.nombre}" fue añadido a "${dependencia?.nombre}"`); 
+        mutateInfoUsuarios(); 
+    }
     handleCloseEmpleadoModal();
   };
   
   const handleDeleteEmpleado = async (userId: string) => {
-    const result = await Swal.fire({ title: '¿Está seguro?', text: "El empleado será desasignado de este puesto.", icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, desasignar', cancelButtonText: 'Cancelar', confirmButtonColor: '#d33', });
+    const result = await Swal.fire({ title: '¿Está seguro?', text: 'El empleado será desasignado de este puesto.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Sí, desasignar', cancelButtonText: 'Cancelar', confirmButtonColor: '#d33' });
     if (result.isConfirmed) {
       const { error } = await supabase.from('info_usuario').update({ dependencia_id: null }).eq('user_id', userId);
-      if(error){ toast.error('Error al desasignar el empleado.'); } else { toast.success('Empleado desvinculado de la dependencia.'); mutateInfoUsuarios(); }
+      if(error){ toast.error('Error al desasignar al empleado.'); } else { toast.success('Empleado desvinculado de la dependencia.'); mutateInfoUsuarios(); }
     }
   };
 
   const handleOpenInfoPersonal = (usuario: Usuario) => { setSelectedUsuario(usuario); setIsInfoPersonalOpen(true); };
-  const handleOpenContrato = (usuario: Usuario) => { setSelectedUsuario(usuario); setUsuarioIdParaContrato(usuario.id); setIsContratoOpen(true); };
-  const handleCloseModals = () => { setIsInfoPersonalOpen(false); setIsContratoOpen(false); setSelectedUsuario(null); setUsuarioIdParaContrato(null); };
+  const handleOpenContrato = (usuario: Usuario) => { setSelectedUsuario(usuario); setIsContratoOpen(true); }; 
+  const handleCloseModals = () => { setIsInfoPersonalOpen(false); setIsContratoOpen(false); setSelectedUsuario(null); }; 
 
-  const handleOpenTarjeta = (usuario: Usuario) => { setUsuarioIdParaContrato(usuario.id); setUsuarioParaTarjeta(usuario); setIsTarjetaOpen(true); };
-  const handleCloseTarjeta = () => { setIsTarjetaOpen(false); setUsuarioParaTarjeta(null); setUsuarioIdParaContrato(null); };
+  const handleOpenTarjeta = (usuario: Usuario) => { 
+    setUsuarioIdParaTarjeta(usuario.id); 
+    setIsTarjetaOpen(true); 
+  };
+  const handleCloseTarjeta = () => { 
+    setIsTarjetaOpen(false); 
+    setUsuarioIdParaTarjeta(null); 
+  };
   
   const handleOpenDescriptionModal = (title: string, description: string) => { setModalContent({ title, description }); setDescriptionModalOpen(true); };
   const handleCloseDescriptionModal = () => { setDescriptionModalOpen(false); setModalContent({ title: '', description: '' }); };
 
   const handleSubmitInfoPersonal = async (data: InfoPersonalFormData) => {
     if (!selectedUsuario) return;
-    const { error } = await supabase.from('info_usuario').update(data).eq('user_id', selectedUsuario.id);
+    const { error } = await supabase.from('info_usuario').update({
+      direccion: data.direccion,
+      telefono: data.telefono,
+      dpi: data.dpi,
+      nit: data.nit,
+      igss: data.igss,
+      cuenta_no: data.cuenta_no
+    }).eq('user_id', selectedUsuario.id);
     if (error) { toast.error('Error al guardar la información personal.'); } else { toast.success('Información guardada.'); handleCloseModals(); mutateInfoUsuarios(); fetchUsuarios(); }
   };
 
@@ -348,20 +360,38 @@ export default function Ver() {
     if (!selectedUsuario) return;
     const dataToSubmit = { ...data, user_id: selectedUsuario.id };
     const { error } = await supabase.from('info_contrato').insert(dataToSubmit);
-    if (error) { toast.error('Error al guardar el contrato.'); } else { toast.success('Contrato guardado.'); handleCloseModals(); mutateContrato(); }
+    if (error) { toast.error('Error al guardar el contrato.'); } else { toast.success('Contrato guardado.'); handleCloseModals(); }
   };
 
   const finalTree = useMemo(() => {
     if (!dependencias || !infoUsuarios || !usuarios) return [];
+    
     const filteredDependencias = !searchTerm ? dependencias : (() => { const lowercasedTerm = searchTerm.toLowerCase(); const dependencyMap = new Map(dependencias.map(d => [d.id, d])); const visibleIds = new Set<string>(); dependencias.forEach(dep => { if (dep.nombre.toLowerCase().includes(lowercasedTerm) || (dep.descripcion || '').toLowerCase().includes(lowercasedTerm)) { visibleIds.add(dep.id); let current = dep; while (current.parent_id && dependencyMap.has(current.parent_id)) { current = dependencyMap.get(current.parent_id)!; visibleIds.add(current.id); } } }); return dependencias.filter(d => visibleIds.has(d.id)); })();
-    return buildDependencyTree(filteredDependencias, infoUsuarios, usuarios);
+    
+    return buildDependencyTree(filteredDependencias, infoUsuarios, usuarios as Usuario[]);
   }, [dependencias, searchTerm, infoUsuarios, usuarios]);
 
   const selectableDependencias = useMemo(() => {
-    return getSelectableDependencies(dependencias, infoUsuarios, usuarios, editingDependencia);
+    if (!dependencias || !infoUsuarios || !usuarios) return [];
+    
+    return getSelectableDependencies(dependencias, infoUsuarios, usuarios as Usuario[], editingDependencia);
   }, [dependencias, infoUsuarios, usuarios, editingDependencia]);
 
-  const loading = loadingDependencias || loadingUsuarios || loadingInfo || (!!usuarioIdParaContrato && loadingContrato);
+  const empleadosAsignadosParaForm = useMemo(() => {
+    if (!infoUsuarios || !dependencias) return [];
+
+    const puestoMap = new Map(dependencias.map(dep => [dep.id, dep.nombre]));
+    
+    return infoUsuarios
+        .filter(info => info.dependencia_id && puestoMap.has(info.dependencia_id))
+        .map(info => ({
+            userId: info.user_id,
+            puestoNombre: puestoMap.get(info.dependencia_id!)!,
+            puestoId: info.dependencia_id!,
+        }));
+  }, [infoUsuarios, dependencias]);
+
+  const loading = loadingDependencias || loadingUsuarios || loadingInfo || cargandoDatosTarjeta;
 
   return (
     <div className="p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
@@ -393,18 +423,22 @@ export default function Ver() {
         
         <DependenciaList dependencias={finalTree} onEdit={handleOpenForm} onDelete={handleDelete} onAddSub={handleOpenSubForm} onMove={handleMove} onMoveExtreme={handleMoveExtreme} onAddEmpleado={handleOpenEmpleadoModal} onDeleteEmpleado={handleDeleteEmpleado} onOpenInfoPersonal={handleOpenInfoPersonal} onOpenContrato={handleOpenContrato} onViewCard={handleOpenTarjeta} onOpenDescription={handleOpenDescriptionModal} openNodeIds={openNodeIds} setOpenNodeIds={setOpenNodeIds} />
         
-        <EmpleadoForm isOpen={!!dependenciaParaEmpleado} onClose={handleCloseEmpleadoModal} dependencia={dependenciaParaEmpleado} usuarios={usuarios} onSave={handleSaveEmpleado} />
-        <InfoPersonalForm isOpen={isInfoPersonalOpen} onClose={handleCloseModals} onSubmit={handleSubmitInfoPersonal} usuario={selectedUsuario} initialData={infoUsuarios.find(i => i.user_id === selectedUsuario?.id)} />
-        <ContratoForm isOpen={isContratoOpen} onClose={handleCloseModals} onSubmit={handleSubmitContrato} usuario={selectedUsuario} initialData={contratoSeleccionado} />
+        <EmpleadoForm 
+            isOpen={!!dependenciaParaEmpleado} 
+            onClose={handleCloseEmpleadoModal} 
+            dependencia={dependenciaParaEmpleado} 
+            usuarios={usuarios} 
+            empleadosAsignados={empleadosAsignadosParaForm} 
+            todasLasDependencias={dependencias}
+            onSave={handleSaveEmpleado} 
+        />
+        <InfoPersonalForm isOpen={isInfoPersonalOpen} onClose={handleCloseModals} onSubmit={handleSubmitInfoPersonal} usuario={selectedUsuario} initialData={infoUsuarios.find((i: InfoUsuario) => i.user_id === selectedUsuario?.id)} />
+        <ContratoForm isOpen={isContratoOpen} onClose={handleCloseModals} onSubmit={handleSubmitContrato} usuario={selectedUsuario} initialData={null} />
         
         <TarjetaEmpleado 
           isOpen={isTarjetaOpen} 
           onClose={handleCloseTarjeta} 
-          usuario={usuarioParaTarjeta} 
-          infoUsuario={infoUsuarioParaTarjeta} 
-          infoContrato={contratoSeleccionado} 
-          cargandoContrato={loadingContrato} 
-          cargoAsignado={cargoAsignado} 
+          userId={usuarioIdParaTarjeta} 
         />
 
         <DescriptionModal isOpen={descriptionModalOpen} onClose={handleCloseDescriptionModal} title={modalContent.title} description={modalContent.description} />

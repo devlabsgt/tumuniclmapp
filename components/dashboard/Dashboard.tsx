@@ -3,20 +3,18 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Users, Settings, FileText, Clock, StickyNote } from 'lucide-react';
+import { ArrowRight, Users, Settings, FileText, Clock } from 'lucide-react';
 import { registrarLog } from '@/utils/registrarLog';
 import { motion, AnimatePresence } from 'framer-motion';
+
 import useUserData from '@/hooks/sesion/useUserData';
+import { useInfoUsuario } from '@/hooks/usuarios/useInfoUsuario'; 
+
 import Asistencia from '@/components/asistencia/Asistencia';
 import AnimatedIcon from '@/components/ui/AnimatedIcon';
 import MisComisiones from '@/components/comisiones/asistencia/MisComisiones';
 import HorarioSistema from '@/components/admin/sistema/HorarioSistema';
-
 import TarjetaEmpleado from '@/components/admin/dependencias/TarjetaEmpleado';
-import { useInfoUsuarios, InfoUsuario } from '@/hooks/usuarios/useInfoUsuario';
-import { useContratoUsuario } from '@/hooks/contratos/useContratoUsuario';
-import { Usuario } from '@/lib/usuarios/esquemas';
-
 
 const TODOS_LOS_MODULOS = [
   {
@@ -34,7 +32,7 @@ const TODOS_LOS_MODULOS = [
     descripcion: 'Gestione beneficiarios, entregas y estadísticas.',
     ruta: '/protected/fertilizante/beneficiarios',
     iconoKey: 'bikvuqcq',
-    colorProps: { primaryColor: '#ffc738', secondaryColor: '#4ade80' },
+    colorProps: { primaryFrom: '#ffc738', secondaryColor: '#4ade80' },
     categoria: 'Políticas Públicas'
   },
   {
@@ -69,45 +67,17 @@ type Vistas = 'modulos' | 'asistencia' | 'comisiones';
 
 export default function Dashboard() {
   const router = useRouter();
-  const userData = useUserData();
+  
+  const { rol, modulos = [], permisos = [], userId } = useUserData();
 
-  const { rol, modulos = [], permisos = [], userId, email, nombre } = userData || {};
-
-  const [vistaActiva, setVistaActiva] = useState<Vistas>('modulos');
   const [mostrarOpciones, setMostrarOpciones] = useState(false);
   const [mostrarTarjetaModal, setMostrarTarjetaModal] = useState(false);
   const [mostrarHorarioModal, setMostrarHorarioModal] = useState(false);
+  const [vistaActiva, setVistaActiva] = useState<Vistas>('modulos');
   const [hoveredModule, setHoveredModule] = useState<string | null>(null);
   const [hoveredButton, setHoveredButton] = useState<string | null>(null);
   const [loadingModule, setLoadingModule] = useState<string | null>(null);
   const configRef = useRef<HTMLDivElement>(null);
-
-  const { infoUsuarios } = useInfoUsuarios();
-  const infoUsuarioActual = useMemo(() => {
-    return infoUsuarios.find((info: InfoUsuario) => info.user_id === userId);
-  }, [infoUsuarios, userId]);
-
-  const dependenciaIdActual = infoUsuarioActual?.dependencia_id;
-
-  const {
-    contrato: infoContratoActual,
-    loading: cargandoContrato,
-    cargoAsignado: cargoAsignadoActual,
-  } = useContratoUsuario(userId || null, dependenciaIdActual);
-
-  const usuarioParaTarjeta: Usuario | null = useMemo(() => {
-    if (!userId || !rol || !email || !nombre) return null;
-
-    return {
-      id: userId,
-      email: email,
-      rol: rol,
-      nombre: nombre,
-      activo: true,
-      programas_asignados: [],
-    } as unknown as Usuario;
-  }, [userId, rol, email, nombre]);
-
 
   useEffect(() => {
     if (mostrarTarjetaModal) {
@@ -281,11 +251,7 @@ export default function Dashboard() {
       <TarjetaEmpleado
         isOpen={mostrarTarjetaModal}
         onClose={() => setMostrarTarjetaModal(false)}
-        usuario={usuarioParaTarjeta}
-        infoUsuario={infoUsuarioActual}
-        infoContrato={infoContratoActual}
-        cargandoContrato={cargandoContrato}
-        cargoAsignado={cargoAsignadoActual}
+        userId={userId} 
       />
 
       <AnimatePresence mode="wait">
