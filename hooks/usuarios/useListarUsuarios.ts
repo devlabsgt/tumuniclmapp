@@ -1,38 +1,46 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { createClient } from '@/utils/supabase/client';
 import { toast } from 'react-toastify';
 import { Usuario } from '@/lib/usuarios/esquemas';
 
+export type UsuarioConJerarquia = Usuario & {
+  puesto_nombre: string | null;
+  oficina_nombre: string | null;
+  oficina_path_orden: string | null;
+};
+
 export function useListaUsuarios() {
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [usuarios, setUsuarios] = useState<UsuarioConJerarquia[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const supabase = createClient();
 
   const fetchUsuarios = useCallback(async () => {
     setLoading(true);
     setError(null);
-    try {
-      const res = await fetch('/api/users/listar');
-      const json = await res.json();
 
-      if (!res.ok) {
-        console.error('Error al obtener usuarios:', json.error);
+    try {
+      const { data, error: rpcError } = await supabase.rpc('obtener_usuarios');
+
+      if (rpcError) {
+        console.error('Error en useListaUsuarios:', rpcError);
         toast.error('Error al cargar la lista de usuarios.');
+        setError(rpcError.message);
         setUsuarios([]);
-        setError(json.error || 'Error al cargar la lista de usuarios.');
-        return;
+      } else {
+        setUsuarios(data as UsuarioConJerarquia[] ?? []);
       }
-      setUsuarios(json.data ?? []);
     } catch (err: any) {
-      console.error('Error inesperado al obtener usuarios:', err);
-      toast.error('Error inesperado al cargar los usuarios.');
+      console.error('Error inesperado en useListaUsuarios:', err);
+      toast.error('Error inesperado al cargar usuarios.');
+      setError(err.message);
       setUsuarios([]);
-      setError(err.message || 'Error inesperado al cargar los usuarios.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     fetchUsuarios();

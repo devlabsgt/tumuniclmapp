@@ -123,3 +123,139 @@ BEGIN
             ' FOR ALL USING (auth.role() = ''authenticated'') WITH CHECK (auth.role() = ''authenticated'');';
 END;
 $$ LANGUAGE plpgsql;
+
+
+--1. Función SQL (Machote Simple)
+
+DROP FUNCTION IF EXISTS public.info_personal(uuid);
+
+CREATE OR REPLACE FUNCTION public.info_personal(p_user_id uuid)
+RETURNS TABLE(
+    nombre text, 
+    email text,
+    direccion text,
+    telefono text
+)
+LANGUAGE sql
+SECURITY DEFINER
+AS $function$
+    SELECT 
+        'Nombre Simulado (Machote)' AS nombre,
+        'correo@simulado.com' AS email,
+        'Dirección Simulada 123' AS direccion,
+        '5555-5555' AS telefono
+    WHERE p_user_id IS NOT NULL;
+$function$;
+
+GRANT EXECUTE ON FUNCTION public.info_personal(uuid) TO authenticated;
+
+--2. Hook (useInfoPersonal.tsx)
+
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { createClient } from '@/utils/supabase/client';
+
+export interface InfoPersonalData {
+  nombre: string | null;
+  email: string | null;
+  direccion: string | null;
+  telefono: string | null;
+}
+
+export function useInfoPersonal(userId: string | null) {
+  const [data, setData] = useState<InfoPersonalData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    if (!userId) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    const supabase = createClient();
+
+    try {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('info_personal', {
+        p_user_id: userId
+      });
+
+      if (rpcError) {
+        throw rpcError;
+      }
+
+      setData(rpcData && rpcData.length > 0 ? rpcData[0] : null);
+
+    } catch (err: any) {
+      console.error('Error al obtener info personal:', err);
+      setError(err.message);
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { data, loading, error, fetchData };
+}
+
+--3. Componente (InfoPersonalCard.tsx)
+
+'use client';
+
+import React from 'react';
+import { useInfoPersonal } from '@/hooks/useInfoPersonal';
+import { User, Mail, MapPin, Phone } from 'lucide-react';
+
+interface InfoItemProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string | null;
+}
+
+const InfoItem = ({ icon, label, value }: InfoItemProps) => (
+  <div className="flex items-start gap-4 py-2">
+    <div className="text-blue-500 mt-1">{icon}</div>
+    <div className="flex flex-col">
+      <p className="text-xs text-gray-500">{label}</p>
+      <h3 className="text-xs font-semibold text-gray-800">{value || '--'}</h3>
+    </div>
+  </div>
+);
+
+interface InfoPersonalCardProps {
+  userId: string | null;
+}
+
+export default function InfoPersonalCard({ userId }: InfoPersonalCardProps) {
+  const { data, loading, error } = useInfoPersonal(userId);
+
+  if (loading) {
+    return <div className="p-4 text-xs">Cargando datos...</div>;
+  }
+
+  if (error) {
+    return <div className="p-4 text-xs text-red-500">Error: {error}</div>;
+  }
+
+  if (!data) {
+    return <div className="p-4 text-xs">No se encontraron datos.</div>;
+  }
+
+  return (
+    <div className="p-6 bg-white rounded-lg shadow-md w-full max-w-md">
+      <h2 className="text-sm font-bold text-gray-700 border-b pb-2 mb-2">Información Personal (Simulada)</h2>
+      <InfoItem icon={<User size={18} />} label="Nombre Completo" value={data.nombre} />
+      <InfoItem icon={<Mail size={18} />} label="Email" value={data.email} />
+      <InfoItem icon={<Phone size={18} />} label="Teléfono" value={data.telefono} />
+      <InfoItem icon={<MapPin size={18} />} label="Dirección" value={data.direccion} />
+    </div>
+  );
+}

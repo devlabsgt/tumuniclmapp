@@ -15,58 +15,108 @@ import { motion, AnimatePresence } from 'framer-motion';
 import UsuarioPage from './ver/UsuarioPage';
 import UsuarioForm from './forms/UsuarioForm';
 import Swal from 'sweetalert2';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { useDependencias } from '@/hooks/dependencias/useDependencias';
+import Cargando from '@/components/ui/animations/Cargando';
+import { CircleAlert } from 'lucide-react';
+
+type UsuarioConJerarquia = Usuario & {
+  puesto_nombre: string | null;
+  oficina_nombre: string | null;
+  oficina_path_orden: string | null;
+};
 
 type Props = {
-  usuarios: Usuario[];
+  usuarios: UsuarioConJerarquia[];
   rolActual: string | null;
 };
 
 export default function UsersTable({ usuarios, rolActual }: Props) {
   const router = useRouter();
 
-  const [listaUsuarios, setListaUsuarios] = useState(usuarios);
-  const [paginaActual, setPaginaActual] = useState(1);
-  const [usuariosPorPagina, setUsuariosPorPagina] = useState(10);
+  const [listaUsuarios, setListaUsuarios] = useState<UsuarioConJerarquia[]>(usuarios);
   const [terminoBusqueda, setTerminoBusqueda] = useState('');
   const [usuarioIdSeleccionado, setUsuarioIdSeleccionado] = useState<string | null>(null);
   const [modoModal, setModoModal] = useState<'informacion' | 'editar'>('informacion');
   const [eliminando, setEliminando] = useState(false);
 
+  const [nivel2Id, setNivel2Id] = useState<string | null>(null);
+  const [nivel3Id, setNivel3Id] = useState<string | null>(null);
+  
+  const { dependencias, loading: cargandoDependencias } = useDependencias();
+
   useEffect(() => {
     setListaUsuarios(usuarios);
   }, [usuarios]);
 
-  const usuariosFiltrados = useMemo(() => {
-    let usuariosOrdenados = [...listaUsuarios].sort((a, b) =>
-      (a.nombre || '').localeCompare(b.nombre || '')
-    );
+  const oficinasNivel2 = useMemo(() => {
+    const rootIds = new Set(dependencias.filter(d => d.parent_id === null).map(d => d.id));
+    return dependencias
+      .filter(d => !d.es_puesto && d.parent_id !== null && rootIds.has(d.parent_id))
+      .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+  }, [dependencias]);
 
-    if (terminoBusqueda) {
-      const termino = terminoBusqueda.toLowerCase();
-      usuariosOrdenados = usuariosOrdenados.filter(
-        (usuario) =>
-          (usuario.nombre?.toLowerCase() || '').includes(termino) ||
-          (usuario.email?.toLowerCase() || '').includes(termino) ||
-          (usuario.rol?.toLowerCase() || '').includes(termino)
-      );
+  const oficinasNivel3 = useMemo(() => {
+    if (!nivel2Id) {
+      return [];
     }
-    return usuariosOrdenados;
-  }, [listaUsuarios, terminoBusqueda]);
-
-  const totalPaginas = Math.ceil(usuariosFiltrados.length / usuariosPorPagina);
-  const inicio = (paginaActual - 1) * usuariosPorPagina;
-  const usuariosPaginados = usuariosFiltrados.slice(inicio, inicio + usuariosPorPagina);
+    return dependencias
+      .filter(d => !d.es_puesto && d.parent_id === nivel2Id)
+      .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+  }, [dependencias, nivel2Id]);
 
   const usuariosAgrupados = useMemo(() => {
-    return usuariosPaginados.reduce((acc, usuario) => {
-      const primeraLetra = (usuario.nombre || '#').charAt(0).toUpperCase();
-      if (!acc[primeraLetra]) {
-        acc[primeraLetra] = [];
+    let usuariosFiltrados = [...listaUsuarios];
+    
+    let oficinasPermitidas: Set<string | null> | null = null;
+
+    if (nivel3Id) {
+      const oficina = dependencias.find(d => d.id === nivel3Id);
+      if (oficina) {
+        oficinasPermitidas = new Set([oficina.nombre]);
       }
-      acc[primeraLetra].push(usuario);
-      return acc;
-    }, {} as Record<string, Usuario[]>);
-  }, [usuariosPaginados]);
+    } else if (nivel2Id) {
+      oficinasPermitidas = new Set(
+        dependencias
+          .filter(d => d.parent_id === nivel2Id && !d.es_puesto)
+          .map(d => d.nombre)
+      );
+    }
+    
+    usuariosFiltrados = usuariosFiltrados.filter(usuario => {
+      const busquedaCoincide = terminoBusqueda === '' ||
+        (usuario.nombre?.toLowerCase() || '').includes(terminoBusqueda.toLowerCase()) ||
+        (usuario.email?.toLowerCase() || '').includes(terminoBusqueda.toLowerCase()) ||
+        (usuario.puesto_nombre?.toLowerCase() || '').includes(terminoBusqueda.toLowerCase()) ||
+        (usuario.oficina_nombre?.toLowerCase() || '').includes(terminoBusqueda.toLowerCase());
+
+      const oficinaCoincide = !oficinasPermitidas || (oficinasPermitidas.has(usuario.oficina_nombre));
+
+      return busquedaCoincide && oficinaCoincide;
+    });
+
+
+    const grupos: Record<string, { path_orden: string, usuarios: UsuarioConJerarquia[] }> = {};
+
+    for (const usuario of usuariosFiltrados) {
+      const oficina = usuario.oficina_nombre || 'Sin Oficina Asignada';
+      const path = usuario.oficina_path_orden || '9999';
+
+      if (!grupos[oficina]) {
+        grupos[oficina] = { path_orden: path, usuarios: [] };
+      }
+      grupos[oficina].usuarios.push(usuario);
+    }
+
+    return Object.entries(grupos)
+      .map(([oficina_nombre, data]) => ({
+        oficina_nombre,
+        path_orden: data.path_orden,
+        usuarios: data.usuarios.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')),
+      }))
+      .sort((a, b) => a.path_orden.localeCompare(b.path_orden, undefined, { numeric: true }));
+
+  }, [listaUsuarios, terminoBusqueda, nivel2Id, nivel3Id, dependencias]);
 
   const handleVerUsuario = (id: string) => {
     setUsuarioIdSeleccionado(id);
@@ -87,160 +137,166 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
   };
 
   const handleEliminarUsuario = async () => {
-      if (!usuarioIdSeleccionado) return;
-    
-      const result = await Swal.fire({
-        title: '¿Está seguro?',
-        text: 'Esta acción no se puede deshacer.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar',
-      });
-    
-      if (result.isConfirmed) {
-        setEliminando(true);
-    
-        try {
-          const res = await fetch(`/api/users?id=${usuarioIdSeleccionado}`, {
-            method: 'DELETE',
-          });
-    
-          if (!res.ok) {
-            const json = await res.json();
-            return Swal.fire('Error', json.error || 'No se pudo eliminar el usuario.', 'error');
-          }
-          
-          const idEliminado = usuarioIdSeleccionado;
-          setListaUsuarios(prevUsuarios => prevUsuarios.filter(u => u.id !== idEliminado));
-          
-          handleCerrarModal();
-          Swal.fire('¡Eliminado!', 'El usuario ha sido eliminado correctamente.', 'success');
-          
-        } catch (error) {
-          Swal.fire('Error', 'Ocurrió un error al intentar eliminar el usuario.', 'error');
-        } finally {
-          setEliminando(false);
+    if (!usuarioIdSeleccionado) return;
+  
+    const result = await Swal.fire({
+      title: '¿Está seguro?',
+      text: 'Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+    });
+  
+    if (result.isConfirmed) {
+      setEliminando(true);
+  
+      try {
+        const res = await fetch(`/api/users?id=${usuarioIdSeleccionado}`, {
+          method: 'DELETE',
+        });
+  
+        if (!res.ok) {
+          const json = await res.json();
+          return Swal.fire('Error', json.error || 'No se pudo eliminar el usuario.', 'error');
         }
+        
+        const idEliminado = usuarioIdSeleccionado;
+        setListaUsuarios(prevUsuarios => prevUsuarios.filter(u => u.id !== idEliminado));
+        
+        handleCerrarModal();
+        Swal.fire('¡Eliminado!', 'El usuario ha sido eliminado correctamente.', 'success');
+        
+      } catch (error) {
+        Swal.fire('Error', 'Ocurrió un error al intentar eliminar el usuario.', 'error');
+      } finally {
+        setEliminando(false);
       }
-    };
+    }
+  };
+
+  const handleNivel2Change = (value: string) => {
+    const newId = value === 'todos' ? null : value;
+    setNivel2Id(newId);
+    setNivel3Id(null); 
+  };
+  
+  const handleNivel3Change = (value: string) => {
+    const newId = value === 'todos' ? null : value;
+    setNivel3Id(newId);
+  };
 
   return (
-    <div className="w-full mx-auto md:px-4">
-      <div className="flex justify-between items-center mb-4 gap-4">
-        <Input
-          type="text"
-          placeholder="Buscar por nombre, correo o rol..."
-          value={terminoBusqueda}
-          onChange={(e) => {
-            setTerminoBusqueda(e.target.value);
-            setPaginaActual(1);
-          }}
-          className="flex-grow"
-        />
-          <Button
-            onClick={() => router.push("/protected/admin/sign-up")}
-            className="px-4 py-2 text-white bg-green-600 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 flex-shrink-0"
-          >
-            Nuevo Usuario
-          </Button>
-      </div>
+    <>
+      <div className="w-full xl:w-4/5 mx-auto md:px-4">
+        <div className="p-2 bg-white rounded-lg shadow-md space-y-4 w-full">
+          
+          <div className="flex flex-col md:flex-row justify-between items-center gap-3 p-2 bg-slate-50 rounded-lg">
+            
+            <div className="w-full md:w-1/3">
+              <Input
+                type="text"
+                placeholder="Buscar por nombre, usuario, puesto..."
+                value={terminoBusqueda}
+                onChange={(e) => setTerminoBusqueda(e.target.value)}
+                className="w-full text-xs"
+              />
+            </div>
 
-      <div className="w-full overflow-x-auto border-[2.5px] border-gray-400">
-        <table className="w-full border-collapse border-[2.5px] border-gray-300 text-xs sm:text-sm table-fixed">
-          <thead>
-            <tr className="text-left text-xs sm:text-sm font-semibold bg-gray-200 border-b-[2.5px] border-gray-400">
-              <th className="p-2 border-[1.5px] border-gray-300 text-center w-[40px]">No.</th>
-              <th className="p-2 border-[1.5px] border-gray-300 text-center w-[250px]">Nombre</th>
-              <th className="p-2 border-[1.5px] border-gray-300 text-center w-[250px]">Correo</th>
-              <th className="p-2 border-[1.5px] border-gray-300 text-center w-[150px]">Rol</th>
-            </tr>
-          </thead>
-          <tbody>
-            {usuariosPaginados.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="p-3 text-center text-muted-foreground border-[1.5px] border-gray-300">
-                  No hay resultados
-                </td>
-              </tr>
+            {cargandoDependencias ? (
+              <div className="w-full md:w-1/3">
+                <Cargando texto="Cargando filtros..." />
+              </div>
             ) : (
-              Object.keys(usuariosAgrupados).sort().map((letra) => (
-                <Fragment key={letra}>
-                  <tr className="bg-slate-100">
-                    <td colSpan={4} className="px-2 py-1 font-bold text-slate-700 text-xs sm:text-base text-center">
-                      {letra}
-                    </td>
-                  </tr>
-                  {usuariosAgrupados[letra].map((usuario) => (
-                    <tr
-                      key={usuario.id}
-                      onClick={() => handleVerUsuario(usuario.id)}
-                      className="hover:bg-gray-50 border-[1.5px] border-gray-300 cursor-pointer"
-                    >
-                      <td className="p-2 border-[1.5px] border-gray-300 text-center">
-                        {usuariosFiltrados.findIndex(u => u.id === usuario.id) + 1}
-                      </td>
-                      <td className="p-2 border-[1.5px] border-gray-300 truncate">{usuario.nombre || '—'}</td>
-                      <td className="p-2 border-[1.5px] border-gray-300 truncate">{usuario.email}</td>
-                      <td className="p-2 border-[1.5px] border-gray-300 truncate">{usuario.rol || '—'}</td>
-                    </tr>
-                  ))}
-                </Fragment>
-              ))
+              <div className='w-full md:w-1/3 flex flex-col gap-2'>
+                <Select onValueChange={handleNivel2Change} value={nivel2Id || 'todos'}>
+                  <SelectTrigger className="bg-white text-xs">
+                    <SelectValue placeholder="Dependencias/Políticas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas las dependencias/políticas</SelectItem>
+                    {oficinasNivel2.map(oficina => (
+                      <SelectItem key={oficina.id} value={oficina.id}>{oficina.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Select onValueChange={handleNivel3Change} value={nivel3Id || 'todos'} disabled={!nivel2Id}>
+                  <SelectTrigger className="bg-white text-xs">
+                    <SelectValue placeholder="Oficina" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas las oficinas</SelectItem>
+                    {oficinasNivel3.map(oficina => (
+                      <SelectItem key={oficina.id} value={oficina.id}>{oficina.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             )}
-          </tbody>
-        </table>
-      </div>
 
-      <div className="flex justify-center mt-6 mb-4 gap-2 flex-wrap items-center text-sm">
-        <span className="font-medium">Ver por:</span>
-        <select
-          value={usuariosPorPagina}
-          onChange={(e) => {
-            setUsuariosPorPagina(parseInt(e.target.value));
-            setPaginaActual(1);
-          }}
-          className="border border-gray-300 rounded px-2 py-1"
-        >
-          <option value={5}>5</option>
-          <option value={10}>10</option>
-          <option value={20}>20</option>
-          <option value={50}>50</option>
-        </select>
-      </div>
+            <div className="w-full md:w-1/3 flex justify-end">
+              <Button
+                onClick={() => router.push("/protected/admin/sign-up")}
+                className="px-4 py-2 text-white bg-green-600 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 flex-shrink-0 text-xs w-full md:w-auto"
+              >
+                Nuevo Usuario
+              </Button>
+            </div>
+          </div>
 
-      <div className="flex justify-center mt-2 mb-6 gap-2 flex-wrap">
-        <button
-          onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
-          disabled={paginaActual === 1}
-          className={`px-3 py-2 rounded border ${
-            paginaActual === 1 ? 'bg-gray-200 text-gray-500' : 'bg-white hover:bg-blue-50'
-          }`}
-        >
-          ←
-        </button>
-        {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((n) => (
-          <button
-            key={n}
-            onClick={() => setPaginaActual(n)}
-            className={`px-4 py-2 rounded border font-medium ${
-              paginaActual === n ? 'bg-blue-600 text-white' : 'bg-white hover:bg-blue-50'
-            }`}
-          >
-            {n}
-          </button>
-        ))}
-        <button
-          onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
-          disabled={paginaActual === totalPaginas}
-          className={`px-3 py-2 rounded border ${
-            paginaActual === totalPaginas ? 'bg-gray-200 text-gray-500' : 'bg-white hover:bg-blue-50'
-          }`}
-        >
-          →
-        </button>
+          <div className="border-t pt-4 mt-4">
+            {cargandoDependencias ? (
+              <Cargando texto="Cargando usuarios..." />
+            ) : usuariosAgrupados.length === 0 ? (
+              <p className="text-center text-gray-500 text-xs">
+                No se encontraron usuarios con los filtros seleccionados.
+              </p>
+            ) : (
+              <div className="w-full overflow-x-auto">
+                <table className="w-full table-fixed text-xs">
+                  <thead className="bg-gray-50 text-left">
+                    <tr>
+                      <th className="py-2 px-2 text-[10px] xl:text-xs w-[30%]">Nombre</th>
+                      <th className="py-2 px-2 text-[10px] xl:text-xs w-[30%]">Usuario (Email)</th>
+                      <th className="py-2 px-2 text-[10px] xl:text-xs w-[40%]">Puesto</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usuariosAgrupados.map((grupo) => (
+                      <Fragment key={grupo.path_orden}>
+                        <tr>
+                          <td colSpan={3} className="bg-gray-200 text-center py-1 px-2 text-sm font-semibold text-blue-500">
+                            {grupo.oficina_nombre}
+                          </td>
+                        </tr>
+                        {grupo.usuarios.map((usuario) => (
+                          <tr
+                            key={usuario.id}
+                            onClick={() => handleVerUsuario(usuario.id)}
+                            className="border-b transition-colors hover:bg-gray-100 group cursor-pointer"
+                          >
+                            <td className="py-2 px-2 text-[10px] xl:text-xs text-gray-800 truncate">
+                              {usuario.nombre || '—'}
+                            </td>
+                            <td className="py-2 px-2 text-[10px] xl:text-xs text-gray-600 truncate">
+                              {usuario.email}
+                            </td>
+                            <td className="py-2 px-2 text-[10px] xl:text-xs text-gray-600 truncate">
+                              {usuario.puesto_nombre || '—'}
+                            </td>
+                          </tr>
+                        ))}
+                      </Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
       
       <Transition show={!!usuarioIdSeleccionado} as={Fragment}>
@@ -324,6 +380,6 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
           </div>
         </Dialog>
       </Transition>
-    </div>
+    </>
   );
 }

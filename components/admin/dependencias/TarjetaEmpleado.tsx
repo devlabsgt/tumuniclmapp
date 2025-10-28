@@ -4,8 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, Shield, Fingerprint, Hash, MapPin, Phone, FileText, CircleDollarSign, BadgeDollarSign, FileSignature, CalendarPlus, CalendarMinus, X, Loader2, Briefcase, Banknote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Cargando from '@/components/ui/animations/Cargando';
-
-// Importa el hook inteligente para obtener los datos
 import { useInfoUsuario } from '@/hooks/usuarios/useInfoUsuario';
 
 const InfoItem = ({ icon, label, value, isLoading }: { icon: React.ReactNode, label: string, value?: string | number | null, isLoading?: boolean }) => (
@@ -22,7 +20,6 @@ const InfoItem = ({ icon, label, value, isLoading }: { icon: React.ReactNode, la
   </div>
 );
 
-// La tarjeta solo recibe el ID del usuario y el estado del modal
 interface TarjetaEmpleadoProps {
   isOpen: boolean;
   onClose: () => void;
@@ -30,7 +27,6 @@ interface TarjetaEmpleadoProps {
 }
 
 export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpleadoProps) {
-  // 1. Usa el hook para cargar la información
   const { 
     usuario: datosCompletos, 
     cargando: cargandoDatos
@@ -60,7 +56,17 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
   };
 
   const bonificacionValue = datosCompletos?.bonificacion;
-  const isGlobalLoading = cargandoDatos; // El estado de carga lo da el hook
+  const isGlobalLoading = cargandoDatos;
+
+  const pathItems = datosCompletos?.puesto_path_jerarquico
+    ? datosCompletos.puesto_path_jerarquico
+        .split(' > ')
+        .filter(item => {
+          const upperItem = item.toUpperCase();
+          return upperItem !== 'SIN DIRECCIÓN' && upperItem !== 'SIN DIRECCION';
+        })
+        .slice(1)
+    : [];
 
   return (
     <AnimatePresence>
@@ -88,18 +94,36 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
               </div>
             ) : (
               <div className="p-8">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-full">
+                <div className="flex flex-col items-center mb-8 lg:flex-row lg:items-center lg:gap-4">
+                  
+                  <div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-full mb-4 lg:mb-0">
                     <User className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <div>
+                  
+                  <div className="flex flex-col items-start w-full">
                     <h2 className="text-xl font-bold">{datosCompletos?.nombre || 'N/A'}</h2>
-                    <p className="text-sm text-gray-500">{datosCompletos?.email || 'N/A'}</p>
+                    <p className="text-sm text-gray-500 mt-1">{datosCompletos?.email || 'N/A'}</p>
                     
-                    {datosCompletos?.puesto_path_jerarquico && (
-                      <div className="flex items-center gap-1.5 mt-1.5">
-                        <Briefcase className="h-3 w-3 text-gray-400" />
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{datosCompletos.puesto_path_jerarquico}</p>
+                    {pathItems.length > 0 && (
+                      <div className="mt-4 w-full border-t border-gray-200 dark:border-gray-700 pt-3">
+                        <h4 className="flex items-center text-xs font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                          <Briefcase size={14} className="mr-2 text-blue-500 flex-shrink-0" />
+                          Ubicación Organizacional
+                        </h4>
+                        
+                        <div className="flex flex-col lg:hidden">
+                          {pathItems.map((item, index) => (
+                            <p key={index} className="text-xs text-gray-500 leading-snug">
+                              {item}{index < pathItems.length - 1 ? ',' : ''}
+                            </p>
+                          ))}
+                        </div>
+                        
+                        <div className="hidden lg:flex items-center gap-1.5">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {pathItems.join(' / ')}
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>
