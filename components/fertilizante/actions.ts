@@ -10,18 +10,46 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+/**
+ * Carga TODOS los beneficiarios para un año específico, manejando
+ * la paginación de Supabase (límite de 1000) internamente.
+ */
 export const cargarBeneficiariosPorAnio = async (anio: string): Promise<Beneficiario[]> => {
-  const { data, error } = await supabase
-    .from('beneficiarios_fertilizante')
-    .select('*')
-    .eq('anio', anio);
+  const PAGE_SIZE = 1000; // Límite de Supabase por consulta
+  let todosLosBeneficiarios: Beneficiario[] = [];
+  let paginaActual = 0;
+  let masDatos = true;
 
-  if (error) {
-    console.error('Error al cargar beneficiarios:', error.message);
-    return [];
+  while (masDatos) {
+    const inicio = paginaActual * PAGE_SIZE;
+    const fin = inicio + PAGE_SIZE - 1;
+
+    const { data, error } = await supabase
+      .from('beneficiarios_fertilizante')
+      .select('*')
+      .eq('anio', anio)
+      .range(inicio, fin); // <-- Se usa .range() para la paginación
+
+    if (error) {
+      console.error('Error al cargar beneficiarios por página:', error.message);
+      // Devuelve lo que se haya logrado cargar hasta el momento del error
+      return todosLosBeneficiarios;
+    }
+
+    if (data && data.length > 0) {
+      todosLosBeneficiarios = [...todosLosBeneficiarios, ...data];
+    }
+
+    // Si Supabase devuelve menos datos que el tamaño de la página,
+    // significa que hemos llegado al final.
+    if (!data || data.length < PAGE_SIZE) {
+      masDatos = false;
+    }
+
+    paginaActual++;
   }
 
-  return data as Beneficiario[];
+  return todosLosBeneficiarios as Beneficiario[];
 };
 
 export const obtenerAniosDisponibles = async (): Promise<string[]> => {

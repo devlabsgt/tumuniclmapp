@@ -80,7 +80,7 @@ export default function VerBeneficiarios() {
   });
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 py-6 overflow-x-hidden">
+    <div className="w-full  mx-auto px-10 py-6 overflow-x-hidden">
   
       
       <motion.div initial="hidden" animate="visible" variants={itemVariants} transition={getTransition(0.2)}>
@@ -164,7 +164,7 @@ export default function VerBeneficiarios() {
           <div className="flex justify-center mt-5 mb-2 text-sm gap-2 items-center">
             <span className="font-medium">Ver por:</span>
             <select value={beneficiariosPorPagina} onChange={e => setBeneficiariosPorPagina(parseInt(e.target.value))} className="border border-gray-300 rounded px-2 py-1">
-              <option value={10}>10</option><option value={20}>20</option><option value={50}>50</option><option value={100}>100</option>
+              <option value={20}>20</option><option value={50}>50</option><option value={100}>100</option><option value={200}>200</option>
             </select>
           </div>
           <div className="flex justify-center mt-4 gap-2 flex-wrap">

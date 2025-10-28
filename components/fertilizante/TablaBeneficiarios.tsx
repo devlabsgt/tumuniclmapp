@@ -80,18 +80,18 @@ const calcularEdad = (fechaNacimiento?: string | null) => {
                 ))
               : data.map((b) => (
                   <tr key={b.id} className="hover:bg-green-50 bg-white border-[2.5px] border-gray-300">
-                    <td className="p-2 border-[1.5px] text-center border-gray-300">{mostrar(b.codigo)}</td>
-                    <td className="p-2 border-[1.5px] border-gray-300">{mostrar(b.lugar)}</td>
-                    <td className="p-2 border-[1.5px] border-gray-300">{formatearFecha(b.fecha)}</td>
-                    <td className="p-2 border-r-[1.5px] border-r-gray-400 text-center">{mostrar(b.cantidad)}</td>
-                    <td className="p-2 border-r-[2.5px] text-center border-gray-400">{mostrar(b.estado)}</td>
-                    <td className="p-2 border-[1.5px] border-gray-300">{mostrar(b.nombre_completo)}</td>
-                    <td className="p-2 border-[1.5px] border-gray-300">{mostrar(b.dpi)}</td>
-                    <td className="p-2 border-[1.5px] border-gray-300">{mostrar(b.telefono)}</td>
-                    <td className="p-2 border-[1.5px] border-gray-300">{formatearFecha(b.fecha_nacimiento)}</td>
-                    <td className="p-2 border-[1.5px] text-center border-gray-300">{calcularEdad(b.fecha_nacimiento)}</td>
-                    <td className="p-2 border-r-[2.5px] text-center border-gray-400">{mostrar(b.sexo)}</td>
-                    <td className="p-2 border-[1.5px] border-gray-300 text-center">
+                    <td className="pl-2 border-[1.5px] text-center border-gray-300">{mostrar(b.codigo)}</td>
+                    <td className="pl-2 border-[1.5px] border-gray-300">{mostrar(b.lugar)}</td>
+                    <td className="pl-2 border-[1.5px] border-gray-300">{formatearFecha(b.fecha)}</td>
+                    <td className="pl-2 border-r-[1.5px] border-r-gray-400 text-center">{mostrar(b.cantidad)}</td>
+                    <td className="pl-2 border-r-[2.5px] text-center border-gray-400">{mostrar(b.estado)}</td>
+                    <td className="pl-2 border-[1.5px] border-gray-300">{mostrar(b.nombre_completo)}</td>
+                    <td className="pl-2 border-[1.5px] border-gray-300">{mostrar(b.dpi)}</td>
+                    <td className="pl-2 border-[1.5px] border-gray-300">{mostrar(b.telefono)}</td>
+                    <td className="pl-2 border-[1.5px] border-gray-300">{formatearFecha(b.fecha_nacimiento)}</td>
+                    <td className="pl-2 border-[1.5px] text-center border-gray-300">{calcularEdad(b.fecha_nacimiento)}</td>
+                    <td className="pl-2 border-r-[2.5px] text-center border-gray-400">{mostrar(b.sexo)}</td>
+                    <td className="pl s-2 border-[1.5px] border-gray-300 text-center">
                       {permisos.includes('EDITAR') || permisos.includes('TODO') ? (
                         <Button
                           variant="ghost"
