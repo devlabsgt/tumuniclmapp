@@ -16,7 +16,7 @@ import { AnimatePresence } from 'framer-motion';
 
 export default function Ver() {
     const router = useRouter();
-    const { rol, cargando: cargandoUsuario, programas: programasAsignados } = useUserData();
+    const { rol, cargando: cargandoUsuario, programas: programasAsignados, permisos } = useUserData();
     const { programas, loading: cargandoData, fetchData, aniosDisponibles } = useEducacionData();
     
     const [filtroAnio, setFiltroAnio] = useState<string>(new Date().getFullYear().toString());
@@ -36,7 +36,6 @@ export default function Ver() {
         }
     }, [aniosDisponibles, filtroAnio]);
 
-    // Hook para controlar el desplazamiento del body
     useEffect(() => {
       if (isFormProgramaOpen || isFormMaestroOpen || isAsignarProgramasOpen) {
         document.body.classList.add('overflow-hidden');
@@ -80,26 +79,22 @@ export default function Ver() {
       setIsFormMaestroOpen(false);
     };
 
-    // Filtra los programas según el rol. Si es SUPER o ADMINISTRADOR, ve todos, si no, solo los asignados.
     const programasFiltrados = useMemo(() => {
-        if (rol === 'SUPER' || rol === 'ADMINISTRADOR'|| rol === 'SECRETARIO'|| rol === 'DIGITADOR') {
+        if (rol === 'SUPER' || rol === 'ADMINISTRADOR'|| rol === 'SECRETARIO'|| rol === 'DIGITADOR'|| rol === 'INVITADO' ) {
             return programas
                 .filter(p => p.parent_id === null && p.anio?.toString() === filtroAnio && p.nombre.toLowerCase().includes(searchTerm.toLowerCase()))
                 .sort((a, b) => a.nombre.localeCompare(b.nombre));
         } else {
-            // Filtra por los programas asignados al usuario y por el año y término de búsqueda
             return programas
                 .filter(p => p.parent_id === null && programasAsignados.includes(p.nombre) && p.anio?.toString() === filtroAnio && p.nombre.toLowerCase().includes(searchTerm.toLowerCase()))
                 .sort((a, b) => a.nombre.localeCompare(b.nombre));
         }
     }, [programas, programasAsignados, filtroAnio, searchTerm, rol]);
     
-    // Si los datos del hook o del usuario están cargando, muestra un loading genérico
     if (cargandoData || cargandoUsuario) {
         return <div className="text-center py-10">Cargando Módulo...</div>;
     }
 
-    // Si el usuario no tiene rol ni programas asignados, muestra un mensaje
     if (!rol && (programasAsignados || []).length === 0) {
       return (
         <div className="mx-auto w-full lg:w-4/5 max-w-7xl p-4 lg:p-6 text-center">
@@ -115,7 +110,7 @@ export default function Ver() {
                     <div className="flex flex-col sm:flex-row lg:flex-row lg:justify-between items-start lg:items-center gap-4">
                         <BotonVolver ruta="/" />
                         <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-2">
-                           {(rol === 'SUPER' || rol === 'ADMINISTRADOR'|| rol === 'DIGITADOR' || rol === 'SECRETARIO' ) && (
+                           {(permisos.includes('CREAR') || permisos.includes('TODO')) && (
                             <>
                                 <Button onClick={handleOpenAsignarProgramas} variant="outline" className="w-full sm:w-auto gap-2 whitespace-nowrap bg-gray-100 border border-gray-300 text-gray-700 hover:bg-gray-200">
                                     <Link className="h-4 w-4"/>
@@ -179,7 +174,7 @@ export default function Ver() {
                                             {programa.descripcion || 'Este programa no tiene una descripción.'}
                                         </p>
                                     </div>
-                                    {(rol === 'SUPER' || rol === 'ADMINISTRADOR'|| rol === 'SECRETARIO') && (
+                                    {(permisos.includes('EDITAR') || permisos.includes('TODO')) && (
                                         <Button
                                             variant="outline"
                                             size="sm"

@@ -2,18 +2,17 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Eye, Pencil, UserX } from 'lucide-react';
 import type { Alumno } from '@/components/educacion/lib/esquemas';
-// No se necesita importar SweetAlert2 aquí
 
 interface TarjetaProps {
     alumno?: Alumno | null;
     onClose: () => void;
     onView?: () => void;
     onEdit?: (alumno: Alumno) => void;
-    // La función onDesinscribir ya no recibe argumentos y solo notifica al padre
     onDesinscribir?: () => void;
+    permisos: string[];
 }
 
-export default function Tarjeta({ alumno, onClose, onView, onEdit, onDesinscribir }: TarjetaProps) {
+export default function Tarjeta({ alumno, onClose, onView, onEdit, onDesinscribir, permisos }: TarjetaProps) {
     return (
         <motion.div
             className="fixed inset-0 z-50 flex items-center justify-center"
@@ -27,7 +26,6 @@ export default function Tarjeta({ alumno, onClose, onView, onEdit, onDesinscribi
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.9, y: 30 }}
             >
-                {/* Lógica para mostrar las acciones del alumno */}
                 <>
                     <h4 className="text-xl font-bold text-gray-800">{alumno?.nombre_completo}</h4>
                     <div className="grid grid-cols-1 gap-2">
@@ -37,18 +35,24 @@ export default function Tarjeta({ alumno, onClose, onView, onEdit, onDesinscribi
                         >
                             <Eye className="h-5 w-5" /> Ver Tarjeta
                         </Button>
-                        <Button 
-                            onClick={() => onEdit && alumno && onEdit(alumno)} 
-                            className="bg-blue-100 text-blue-700 hover:bg-blue-200 gap-2 text-base font-semibold"
-                        >
-                            <Pencil className="h-5 w-5" /> Editar Alumno
-                        </Button>
-                        <Button 
-                            onClick={onDesinscribir} 
-                            className="bg-red-100 text-red-700 hover:bg-red-200 gap-2 text-base font-semibold"
-                        >
-                            <UserX className="h-5 w-5" /> Desasignar Alumno
-                        </Button>
+                        
+                        {(permisos.includes('EDITAR') || permisos.includes('TODO')) && onEdit && (
+                            <Button 
+                                onClick={() => alumno && onEdit(alumno)} 
+                                className="bg-blue-100 text-blue-700 hover:bg-blue-200 gap-2 text-base font-semibold"
+                            >
+                                <Pencil className="h-5 w-5" /> Editar Alumno
+                            </Button>
+                        )}
+                        
+                        {(permisos.includes('EDITAR') || permisos.includes('TODO')) && onDesinscribir && (
+                            <Button 
+                                onClick={onDesinscribir} 
+                                className="bg-red-100 text-red-700 hover:bg-red-200 gap-2 text-base font-semibold"
+                            >
+                                <UserX className="h-5 w-5" /> Desasignar Alumno
+                            </Button>
+                        )}
                     </div>
                     <Button 
                         type="button" 

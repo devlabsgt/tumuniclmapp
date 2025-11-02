@@ -9,9 +9,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Users, CalendarClock, CheckSquare, Square, CalendarCheck } from 'lucide-react';
 import { Typewriter } from 'react-simple-typewriter';
 
-// Asegúrese de que el tipo de datos sea correcto.
 import { ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
-import { getUsuarioNombre } from './Ver'; // Importamos la función helper
+import { getUsuarioNombre } from './Ver';
 
 interface Props {
   vista: 'proximas' | 'terminadas';
@@ -30,6 +29,7 @@ interface Props {
   onSeleccionarComision: (comision: ComisionConFechaYHoraSeparada) => void;
   onSeleccionarTodas: () => void;
   onVerMultiplesComisiones: () => void;
+  rolActual: string | null; // <-- 1. AÑADIR ROL A LAS PROPS
 }
 
 export default function ListaComisiones({
@@ -49,8 +49,12 @@ export default function ListaComisiones({
   onSeleccionarComision,
   onSeleccionarTodas,
   onVerMultiplesComisiones,
+  rolActual, // <-- 2. OBTENER ROL
 }: Props) {
   const timeZone = 'America/Guatemala';
+  
+  // 3. CREAR FLAG DE PERMISO
+  const hasCreatePermission = rolActual === 'SUPER' || rolActual === 'RRHH' || rolActual === 'SECRETARIO';
 
   return (
     <>
@@ -80,9 +84,12 @@ export default function ListaComisiones({
           </select>
         </div>
         <div className='flex flex-row gap-2'>
-          <Button onClick={onCrearComision} className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white">
-            Crear Comisión
-          </Button>
+          {/* 4. APLICAR CONDICIÓN AL BOTÓN */}
+          {hasCreatePermission && (
+            <Button onClick={onCrearComision} className="w-full md:w-auto bg-green-600 hover:bg-green-700 text-white">
+              Crear Comisión
+            </Button>
+          )}
         </div>
       </div>
 

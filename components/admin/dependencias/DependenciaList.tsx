@@ -1,4 +1,3 @@
-//DependenciaList.tsx
 'use client';
 
 import React from 'react';
@@ -7,6 +6,7 @@ import { Usuario } from '@/lib/usuarios/esquemas';
 
 interface DependenciaListProps {
   dependencias: DependenciaNode[];
+  rol: string | null; // <-- 1. RECIBIR EL ROL
   onEdit: (dependencia: DependenciaNode) => void;
   onDelete: (id: string) => void;
   onAddSub: (parent: DependenciaNode) => void;
@@ -24,6 +24,7 @@ interface DependenciaListProps {
 
 export default function DependenciaList({
   dependencias,
+  rol, // <-- 2. OBTENERLO AQUÍ
   onEdit,
   onDelete,
   onAddSub,
@@ -55,6 +56,7 @@ export default function DependenciaList({
             )}
             <DependenciaItem
               node={node}
+              rol={rol} 
               onEdit={onEdit}
               onDelete={onDelete}
               onAddSub={onAddSub}

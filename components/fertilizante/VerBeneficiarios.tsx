@@ -6,7 +6,6 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { FiltroBeneficiarios } from './FiltroBeneficiarios';
 import { TablaBeneficiarios } from './TablaBeneficiarios';
-import { generarPdfBeneficiarios } from '@/components/utils/PdfBeneficiarios';
 import EstadisticasBeneficiarios from './EstadisticasBeneficiarios';
 import MISSINGFolioModal from './MISSINGFolioModal';
 import type { Beneficiario, CampoFiltro, OrdenFiltro } from './types';
@@ -18,15 +17,19 @@ import {
   filtrarYOrdenarBeneficiarios,
   generarResumenBeneficiarios,
 } from './actions';
+import useUserData from '@/hooks/sesion/useUserData';
 
 export default function VerBeneficiarios() {
+  // --- Estados del Componente ---
   const [beneficiarios, setBeneficiarios] = useState<Beneficiario[]>([]);
   const [paginaActual, setPaginaActual] = useState(1);
   const [orden, setOrden] = useState<OrdenFiltro>('codigo_asc');
-  const [permisos, setPermisos] = useState<string[]>([]);
   const [aniosDisponibles, setAniosDisponibles] = useState<string[]>([]);
   const [mostrarModalFolio, setMostrarModalFolio] = useState(false);
-  const [beneficiariosPorPagina, setBeneficiariosPorPagina] = useState(10);
+  
+  // AQUÍ ESTÁ LA CORRECCIÓN: El estado debe empezar en 20 (igual que la primera opción del select)
+  const [beneficiariosPorPagina, setBeneficiariosPorPagina] = useState(20);
+  
   const [mostrarOpciones, setMostrarOpciones] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
@@ -37,8 +40,11 @@ export default function VerBeneficiarios() {
     anio: new Date().getFullYear().toString(),
   });
 
+  // --- Hooks ---
   const router = useRouter();
+  const { permisos, cargando: cargandoUsuario } = useUserData();
 
+  // --- Carga de Datos ---
   const cargarDatos = async () => {
     const data = await cargarBeneficiariosPorAnio(filtros.anio);
     setBeneficiarios(data);
@@ -46,19 +52,19 @@ export default function VerBeneficiarios() {
   };
 
   useEffect(() => {
-    fetch('/api/getuser')
-      .then(res => res.json())
-      .then(data => setPermisos(data.permisos || []));
     obtenerAniosDisponibles().then(setAniosDisponibles);
     cargarDatos();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
   useEffect(() => {
     if (!initialLoading) {
       cargarDatos();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtros.anio]);
 
+  // --- Procesamiento y Paginación ---
   const beneficiariosFiltrados = filtrarYOrdenarBeneficiarios(beneficiarios, filtros, orden);
   const totalPaginas = Math.ceil(beneficiariosFiltrados.length / beneficiariosPorPagina);
   const inicio = (paginaActual - 1) * beneficiariosPorPagina;
@@ -69,6 +75,7 @@ export default function VerBeneficiarios() {
     setPaginaActual(1);
   }, [filtros, orden, beneficiariosPorPagina]);
 
+  // --- Animaciones ---
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 },
@@ -79,24 +86,27 @@ export default function VerBeneficiarios() {
     delay,
   });
 
+  // --- Renderizado ---
   return (
-    <div className="w-full  mx-auto px-10 py-6 overflow-x-hidden">
+    <div className="w-full mx-auto p-2 md:px-10">
   
       
       <motion.div initial="hidden" animate="visible" variants={itemVariants} transition={getTransition(0.2)}>
         <div className="flex flex-col md:flex-row md:items-center justify-between my-6 gap-2">
-          <Button variant="ghost" onClick={() => router.push('/protected')} className="text-blue-600 text-base underline">
-            Volver
-          </Button>
           <h1 className="text-2xl font-bold text-left">Beneficiarios de Fertilizante</h1>
           <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-            {(permisos.includes('IMPRIMIR') || permisos.includes('TODO')) && (
-              <Button onClick={() => generarPdfBeneficiarios(beneficiariosFiltrados)} className="h-12 bg-green-600 hover:bg-green-700 text-white px-4 w-full sm:w-auto">
-                Generar Reporte PDF
+            {(permisos.includes('CREAR') || permisos.includes('TODO')) ? (
+              <Button 
+                onClick={() => router.push('/protected/fertilizante/beneficiarios/crear')} 
+                className="h-12 bg-blue-600 hover:bg-blue-700 text-white px-4 w-full sm:w-auto"
+              >
+                Nuevo Beneficiario
               </Button>
-            )}
-            {(permisos.includes('CREAR') || permisos.includes('TODO')) && (
-              <Button onClick={() => router.push('/protected/fertilizante/beneficiarios/crear')} className="h-12 bg-blue-600 hover:bg-blue-700 text-white px-4 w-full sm:w-auto">
+            ) : (
+              <Button 
+                disabled 
+                className="h-12 bg-gray-400 text-gray-700 cursor-not-allowed px-4 w-full sm:w-auto"
+              >
                 Nuevo Beneficiario
               </Button>
             )}
@@ -128,9 +138,15 @@ export default function VerBeneficiarios() {
           {(permisos.includes('TODO') || permisos.includes('LEER')) && (
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-fit">
               <div className="relative inline-block text-left">
-                <Button className="h-12 bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto" onClick={() => setMostrarOpciones(!mostrarOpciones)}>
-                  Gestionar Documentos
-                </Button>
+                {(permisos.includes('CREAR') || permisos.includes('TODO')) ? (
+                  <Button className="h-12 bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto" onClick={() => setMostrarOpciones(!mostrarOpciones)}>
+                    Gestionar Documentos
+                  </Button>
+                ) : (
+                   <Button disabled className="h-12 bg-gray-400 text-gray-700 cursor-not-allowed px-4 w-full sm:w-auto">
+                    Gestionar Documentos
+                  </Button>
+                )}
                 {mostrarOpciones && (
                   <div className="absolute z-10 mt-2 w-40 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
                     <div className="py-1">
@@ -150,7 +166,7 @@ export default function VerBeneficiarios() {
       </motion.div>
       
       <motion.div initial="hidden" animate="visible" variants={itemVariants} transition={getTransition(0.6)}>
-        {initialLoading ? (
+        {(initialLoading || cargandoUsuario) ? (
             <div className="text-center text-gray-500 my-10 text-lg">Cargando beneficiarios...</div>
         ) : beneficiariosFiltrados.length === 0 ? (
             <div className="text-center text-gray-600 my-8 text-2xl"><strong>No se encontraron beneficiarios.</strong></div>
@@ -159,7 +175,7 @@ export default function VerBeneficiarios() {
         )}
       </motion.div>
 
-      {!initialLoading && beneficiariosFiltrados.length > 0 && (
+      {!(initialLoading || cargandoUsuario) && beneficiariosFiltrados.length > 0 && (
         <motion.div initial="hidden" animate="visible" variants={itemVariants} transition={getTransition(0.7)}>
           <div className="flex justify-center mt-5 mb-2 text-sm gap-2 items-center">
             <span className="font-medium">Ver por:</span>

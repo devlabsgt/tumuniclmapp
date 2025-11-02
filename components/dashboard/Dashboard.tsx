@@ -113,7 +113,7 @@ export default function Dashboard() {
   const modulosDisponibles = useMemo(() =>
     TODOS_LOS_MODULOS
       .filter(m => {
-        if (rol === 'SUPER') return true;
+        if (rol === 'SUPER' || rol === 'INVITADO') return true;
         return modulos.includes(m.nombre);
       })
       .sort((a, b) => a.titulo.localeCompare(b.titulo))

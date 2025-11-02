@@ -24,6 +24,7 @@ export interface DependenciaNode {
 
 interface DependenciaItemProps {
   node: DependenciaNode;
+  rol: string | null;
   onEdit: (d: DependenciaNode) => void;
   onDelete: (id: string) => void;
   onAddSub: (parent: DependenciaNode) => void;
@@ -46,6 +47,7 @@ interface DependenciaItemProps {
 
 const DependenciaItem = ({
   node,
+  rol,
   onEdit,
   onDelete,
   onAddSub,
@@ -67,9 +69,14 @@ const DependenciaItem = ({
 }: DependenciaItemProps) => {
   const hasChildren = node.children && node.children.length > 0;
   const isOpen = openNodeIds.includes(node.id);
-  // Esta línea es clave: nos dice si hay un empleado asignado
   const empleadoAsignado = node.children?.find(child => 'isEmployee' in child) as EmpleadoNode | undefined;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const isAdmin = rol === 'SUPER' || rol === 'SECRETARIO';
+  const isRRHH = rol === 'RRHH';
+  const isPuestoDisponible = node.es_puesto && !empleadoAsignado;
+
+  const canShowMenu = isAdmin || (isRRHH && isPuestoDisponible);
 
   const handleToggle = () => {
     if (hasChildren) {
@@ -126,18 +133,18 @@ const DependenciaItem = ({
         >
           <div onClick={handleToggle} className={`${hasChildren ? 'cursor-pointer' : ''}`}>
             <DropdownMenu onOpenChange={setIsMenuOpen}>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger asChild disabled={!canShowMenu}>
                 <motion.div
-                  whileHover={{ y: -4 }}
+                  whileHover={canShowMenu ? { y: -4 } : {}}
                   transition={{ type: 'spring', stiffness: 300 }}
                 >
-                  {/* Div que reemplaza al botón numérico */}
                   <div 
                     className={`
-                      relative flex-shrink-0 h-7 px-2 ${bg} ${text} rounded-md font-bold text-[10px] shadow-sm z-10 p-0 cursor-pointer
+                      relative flex-shrink-0 h-7 px-2 ${bg} ${text} rounded-md font-bold text-[10px] shadow-sm z-10 p-0
                       flex items-center justify-center 
                       transition-colors
-                      border-t-2 border-x-0 border-b-0 border-transparent ${border}
+                      border-t-2 border-x-0 border-b-0 border-transparent 
+                      ${canShowMenu ? `cursor-pointer ${border}` : 'cursor-default'}
                     `} 
                     onClick={(e: React.MouseEvent) => e.stopPropagation()} 
                     style={minWidthStyle}
@@ -147,18 +154,28 @@ const DependenciaItem = ({
                   </div>
                 </motion.div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent
-                side="top"
-                align="start"
-                sideOffset={10}
-                className="cursor-pointer"
-              >
-                {!node.es_puesto && (<DropdownMenuItem onSelect={() => onAddSub(node)} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><GitBranchPlus className={`mr-2 h-4 w-4 ${icon}`} /><span>Añadir Sub-dependencia</span></DropdownMenuItem>)}
-                {node.es_puesto && !empleadoAsignado && (<DropdownMenuItem onSelect={() => onAddEmpleado(node)} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><UserPlus className={`mr-2 h-4 w-4 ${icon}`} /><span>Asignar Empleado</span></DropdownMenuItem>)}
-                <DropdownMenuItem onSelect={() => onEdit(node)} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><Pencil className="mr-2 h-4 w-4" /><span>Editar</span></DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => onDelete(node.id)} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><Trash2 className="mr-2 h-4 w-4 text-red-600" /><span>Eliminar</span></DropdownMenuItem>
-                {(canMoveUp || canMoveDown) && (<DropdownMenuSub><DropdownMenuSubTrigger onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><span>Mover</span></DropdownMenuSubTrigger><DropdownMenuSubContent>{canMoveUp && ( <DropdownMenuItem onSelect={() => onMove(node.id, 'up')} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"> <ArrowUp className="mr-2 h-4 w-4" /> <span>Mover Arriba</span> </DropdownMenuItem> )}{canMoveDown && ( <DropdownMenuItem onSelect={() => onMove(node.id, 'down')} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"> <ArrowDown className="mr-2 h-4 w-4" /> <span>Mover Abajo</span> </DropdownMenuItem> )}{canMoveUp && ( <DropdownMenuItem onSelect={() => onMoveExtreme(node.id, 'inicio')} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"> <ChevronsUp className="mr-2 h-4 w-4" /> <span>Mover al inicio</span> </DropdownMenuItem> )}{canMoveDown && ( <DropdownMenuItem onSelect={() => onMoveExtreme(node.id, 'final')} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"> <ChevronsDown className="mr-2 h-4 w-4" /> <span>Mover al final</span> </DropdownMenuItem> )}</DropdownMenuSubContent></DropdownMenuSub>)}
-              </DropdownMenuContent>
+              
+              {canShowMenu && (
+                <DropdownMenuContent
+                  side="top"
+                  align="start"
+                  sideOffset={10}
+                  className="cursor-pointer"
+                >
+                  {isAdmin && !node.es_puesto && (<DropdownMenuItem onSelect={() => onAddSub(node)} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><GitBranchPlus className={`mr-2 h-4 w-4 ${icon}`} /><span>Añadir Sub-dependencia</span></DropdownMenuItem>)}
+                  
+                  {isPuestoDisponible && (isAdmin || isRRHH) && (
+                    <DropdownMenuItem onSelect={() => onAddEmpleado(node)} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer">
+                      <UserPlus className={`mr-2 h-4 w-4 ${icon}`} />
+                      <span>Asignar Empleado</span>
+                    </DropdownMenuItem>
+                  )}
+
+                  {isAdmin && (<DropdownMenuItem onSelect={() => onEdit(node)} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><Pencil className="mr-2 h-4 w-4" /><span>Editar</span></DropdownMenuItem>)}
+                  {isAdmin && (<DropdownMenuItem onSelect={() => onDelete(node.id)} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><Trash2 className="mr-2 h-4 w-4 text-red-600" /><span>Eliminar</span></DropdownMenuItem>)}
+                  {isAdmin && (canMoveUp || canMoveDown) && (<DropdownMenuSub><DropdownMenuSubTrigger onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><span>Mover</span></DropdownMenuSubTrigger><DropdownMenuSubContent>{canMoveUp && ( <DropdownMenuItem onSelect={() => onMove(node.id, 'up')} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"> <ArrowUp className="mr-2 h-4 w-4" /> <span>Mover Arriba</span> </DropdownMenuItem> )}{canMoveDown && ( <DropdownMenuItem onSelect={() => onMove(node.id, 'down')} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"> <ArrowDown className="mr-2 h-4 w-4" /> <span>Mover Abajo</span> </DropdownMenuItem> )}{canMoveUp && ( <DropdownMenuItem onSelect={() => onMoveExtreme(node.id, 'inicio')} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"> <ChevronsUp className="mr-2 h-4 w-4" /> <span>Mover al inicio</span> </DropdownMenuItem> )}{canMoveDown && ( <DropdownMenuItem onSelect={() => onMoveExtreme(node.id, 'final')} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"> <ChevronsDown className="mr-2 h-4 w-4" /> <span>Mover al final</span> </DropdownMenuItem> )}</DropdownMenuSubContent></DropdownMenuSub>)}
+                </DropdownMenuContent>
+              )}
             </DropdownMenu>
           </div>
           
@@ -174,7 +191,7 @@ const DependenciaItem = ({
                   onOpenDescription(node.nombre, node.descripcion!);
                 }}
               >
-                <Info className={`h-10 w-10 ml-1 ${text}`} />
+                <Info className={`h-4 w-4`} />
               </div>
             )}
           </div>
@@ -185,10 +202,10 @@ const DependenciaItem = ({
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
             {node.children.map((child, childIndex) => {
               if ('isEmployee' in child) {
-                return ( <EmpleadoItem key={child.usuario.id} empleado={child.usuario} level={level + 1} onDelete={() => onDeleteEmpleado(child.usuario.id)} onOpenInfoPersonal={onOpenInfoPersonal} onOpenContrato={onOpenContrato} onViewCard={onViewCard} /> );
+                return ( <EmpleadoItem key={child.usuario.id} empleado={child.usuario} level={level + 1} onDelete={() => onDeleteEmpleado(child.usuario.id)} onOpenInfoPersonal={onOpenInfoPersonal} onOpenContrato={onOpenContrato} onViewCard={onViewCard} rol={rol} /> );
               } else {
                 const subDependencias = node.children.filter(c => !('isEmployee' in c));
-                return ( <DependenciaItem key={child.id} node={child} onEdit={onEdit} onDelete={onDelete} onAddSub={onAddSub} onMove={onMove} onMoveExtreme={onMoveExtreme} onAddEmpleado={onAddEmpleado} onDeleteEmpleado={onDeleteEmpleado} onOpenInfoPersonal={onOpenInfoPersonal} onOpenContrato={onOpenContrato} onViewCard={onViewCard} onOpenDescription={onOpenDescription} level={level + 1} index={childIndex} prefix={`${prefix}.${child.no}`} isLast={childIndex === subDependencias.length - 1} openNodeIds={openNodeIds} setOpenNodeIds={setOpenNodeIds} siblingCount={subDependencias.length} /> );
+                return ( <DependenciaItem key={child.id} node={child} rol={rol} onEdit={onEdit} onDelete={onDelete} onAddSub={onAddSub} onMove={onMove} onMoveExtreme={onMoveExtreme} onAddEmpleado={onAddEmpleado} onDeleteEmpleado={onDeleteEmpleado} onOpenInfoPersonal={onOpenInfoPersonal} onOpenContrato={onOpenContrato} onViewCard={onViewCard} onOpenDescription={onOpenDescription} level={level + 1} index={childIndex} prefix={`${prefix}.${child.no}`} isLast={childIndex === subDependencias.length - 1} openNodeIds={openNodeIds} setOpenNodeIds={setOpenNodeIds} siblingCount={subDependencias.length} /> );
               }
             })}
           </motion.div>

@@ -28,7 +28,7 @@ export default function Nivel() {
   const router = useRouter();
   const params = useParams();
   const nivelId = params.nivelId as string;
-  const { rol } = useUserData();
+  const { permisos, cargando: cargandoUsuario } = useUserData();
   const { nivel, alumnosDelNivel, maestros, loading, fetchData } = useNivelData(nivelId);
 
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState<Alumno | null>(null);
@@ -126,7 +126,7 @@ export default function Nivel() {
     return maestros.find(m => m.id === nivel.maestro_id) || null;
   }, [nivel, maestros]);
   
-  if (loading || !nivel) {
+  if (loading || cargandoUsuario || !nivel) {
     return <div className="text-center py-10">Cargando Nivel...</div>;
   }
 
@@ -168,25 +168,29 @@ export default function Nivel() {
                     {nivel.descripcion || 'Sin descripción'}
                   </div>
                   <DropdownMenu.Separator className="h-px bg-gray-200 my-1" />
-                  <DropdownMenu.Item asChild>
-                    <Button
-                      variant="ghost"
-                      className="w-full flex justify-start gap-2 text-blue-600 hover:bg-blue-50"
-                      onClick={() => setIsFormNivelOpen(true)}
-                    >
-                      <Pencil className="h-4 w-4" /> Editar Nivel
-                    </Button>
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item asChild>
-                    <Button
-                      variant="ghost"
-                      className="w-full flex justify-start gap-2 text-blue-600 hover:bg-blue-50"
-                      onClick={handleOpenFormAlumno}
-                    >
-                      <UserPlus className="h-4 w-4" /> Inscribir Alumno
-                    </Button>
-                  </DropdownMenu.Item>
-                  {(rol === 'SUPER' || rol === 'ADMINISTRADOR' || rol === 'DIGITADOR'|| rol === 'SECRETARIO' ) && (
+                  {(permisos.includes('EDITAR') || permisos.includes('TODO')) && (
+                    <DropdownMenu.Item asChild>
+                      <Button
+                        variant="ghost"
+                        className="w-full flex justify-start gap-2 text-blue-600 hover:bg-blue-50"
+                        onClick={() => setIsFormNivelOpen(true)}
+                      >
+                        <Pencil className="h-4 w-4" /> Editar Nivel
+                      </Button>
+                    </DropdownMenu.Item>
+                  )}
+                  {(permisos.includes('EDITAR') || permisos.includes('TODO')) && (
+                    <DropdownMenu.Item asChild>
+                      <Button
+                        variant="ghost"
+                        className="w-full flex justify-start gap-2 text-blue-600 hover:bg-blue-50"
+                        onClick={handleOpenFormAlumno}
+                      >
+                        <UserPlus className="h-4 w-4" /> Inscribir Alumno
+                      </Button>
+                    </DropdownMenu.Item>
+                  )}
+                  {(permisos.includes('EDITAR') || permisos.includes('TODO')) && (
                     <DropdownMenu.Item asChild>
                       <Button
                         variant="ghost"
@@ -204,7 +208,6 @@ export default function Nivel() {
         </header>
               
         <div className="flex flex-col gap-4">
-          {/* Este div ya no es necesario, el menú desplegable lo reemplaza. */}
         </div>
 
         <div className="flex flex-col gap-6 mt-4">
@@ -223,8 +226,9 @@ export default function Nivel() {
             alumno={accionesAbiertas}
             onClose={() => setAccionesAbiertas(null)}
             onView={() => setAlumnoSeleccionado(accionesAbiertas)}
-            onEdit={handleOpenEditarAlumno}
-            onDesinscribir={() => handleDesinscribir(accionesAbiertas)}
+            onEdit={(permisos.includes('EDITAR') || permisos.includes('TODO')) ? handleOpenEditarAlumno : undefined}
+            onDesinscribir={(permisos.includes('EDITAR') || permisos.includes('TODO')) ? () => handleDesinscribir(accionesAbiertas) : undefined}
+            permisos={permisos}
           />
         )}
       </AnimatePresence>

@@ -48,7 +48,7 @@ const getButtonClasses = (estado: string) => {
 
 export default function Ver() {
   const router = useRouter();
-  const { rol, cargando: cargandoUsuario } = useUserData();
+  const { permisos, cargando: cargandoUsuario } = useUserData();
   const [agendas, setAgendas] = useState<AgendaConcejo[]>([]);
   const [agendasFiltradas, setAgendasFiltradas] = useState<AgendaConcejo[]>([]);
   const [cargandoAgendas, setCargandoAgendas] = useState(true);
@@ -180,7 +180,7 @@ export default function Ver() {
             </select>
           </div>
         </div>
-        {(rol === 'SUPER' || rol === 'SECRETARIO') && (
+        {(permisos.includes('EDITAR') || permisos.includes('TODO')) && (
           <Button
             onClick={() => {
               setAgendaAEditar(null);
@@ -226,10 +226,9 @@ export default function Ver() {
                   animate={isLoadingThisAgenda ? 'loading' : 'idle'}
                   whileHover={!isLoadingThisAgenda ? hoverEffect : {}}
                   transition={isLoadingThisAgenda ? { duration: 1.5, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
-                  onClick={isLoadingThisAgenda ? undefined : () => handleGoToAgenda(agenda.id)}
-                  className={`bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-lg dark:border-gray-700 border-l-4 ${borderColorClass} flex flex-col md:flex-row md:items-start md:justify-between gap-4 cursor-pointer transition-all duration-300 ${loadingAgendaId && !isLoadingThisAgenda ? 'opacity-50 pointer-events-none' : ''}`}
+                  className={`group bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-lg dark:border-gray-700 border-l-4 ${borderColorClass} flex flex-col md:flex-row md:items-start md:justify-between gap-4 cursor-default transition-all duration-300 ${loadingAgendaId && !isLoadingThisAgenda ? 'opacity-50 pointer-events-none' : ''}`}
                 >
-                  <div className="flex-1 pointer-events-none">
+                  <div className="flex-1">
                     <div className="flex items-baseline gap-x-3 flex-wrap">
                       <p className="font-semibold text-gray-800 text-sm md:text-2xl">{agenda.titulo}</p>
                       <span className="text-gray-500 font-normal whitespace-nowrap text-sm md:text-2xl">
@@ -248,27 +247,37 @@ export default function Ver() {
                   </div>
 
                   <div className="flex flex-row gap-2 self-end">
-                    {(rol === 'SUPER' || rol === 'SECRETARIO') && (
+                    {(permisos.includes('EDITAR') || permisos.includes('TODO')) && (
                       <Button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleOpenEditModal(agenda);
                         }}
                         variant="ghost"
-                        className={`w-1/2 ${buttonClasses.ghost} transition-colors flex items-center justify-center gap-1`}
+                        className={`w-auto px-3 ${buttonClasses.ghost} transition-colors flex items-center justify-center gap-1`}
                       >
                         <Pencil className="h-4 w-4" /> Editar
                       </Button>
                     )}
+                    
                     <Button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleGoToAgenda(agenda.id);
                       }}
                       variant="default"
-                      className={`w-1/2 ${buttonClasses.default} transition-colors flex items-center justify-center gap-1`}
+                      className={`
+                        ${buttonClasses.default} 
+                        w-10 h-10 p-0 flex items-center justify-center rounded-full
+                        group-hover:w-24 
+                        transition-all duration-300 ease-in-out overflow-hidden cursor-pointer
+                      `}
+                      aria-label={`Entrar a la agenda ${agenda.titulo}`}
                     >
-                      <ArrowRight className="h-4 w-4" /> Entrar
+                      <ArrowRight className="h-4 w-4 flex-shrink-0 transition-all duration-300 group-hover:-translate-x-2" />
+                      <span className="ml-1 text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all delay-150 duration-200">
+                        Entrar
+                      </span>
                     </Button>
                   </div>
                 </motion.div>

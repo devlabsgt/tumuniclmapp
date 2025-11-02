@@ -45,6 +45,9 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
   
   const { dependencias, loading: cargandoDependencias } = useDependencias();
 
+  const hasCreatePermission = rolActual === 'SUPER' || rolActual === 'RRHH' || rolActual === 'SECRETARIO';
+  const canOpenModal = rolActual === 'SUPER' || rolActual === 'RRHH' || rolActual === 'SECRETARIO';
+
   useEffect(() => {
     setListaUsuarios(usuarios);
   }, [usuarios]);
@@ -119,6 +122,8 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
   }, [listaUsuarios, terminoBusqueda, nivel2Id, nivel3Id, dependencias]);
 
   const handleVerUsuario = (id: string) => {
+    if (!canOpenModal) return;
+    
     setUsuarioIdSeleccionado(id);
     setModoModal('informacion');
   };
@@ -238,12 +243,14 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
             )}
 
             <div className="w-full md:w-1/3 flex justify-end">
-              <Button
-                onClick={() => router.push("/protected/admin/sign-up")}
-                className="px-4 py-2 text-white bg-green-600 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 flex-shrink-0 text-xs w-full md:w-auto"
-              >
-                Nuevo Usuario
-              </Button>
+              {hasCreatePermission && (
+                <Button
+                  onClick={() => router.push("/protected/admin/sign-up")}
+                  className="px-4 py-2 text-white bg-green-600 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 flex-shrink-0 text-xs w-full md:w-auto"
+                >
+                  Nuevo Usuario
+                </Button>
+              )}
             </div>
           </div>
 
@@ -276,7 +283,7 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                           <tr
                             key={usuario.id}
                             onClick={() => handleVerUsuario(usuario.id)}
-                            className="border-b transition-colors hover:bg-gray-100 group cursor-pointer"
+                            className={`border-b transition-colors hover:bg-gray-100 group ${canOpenModal ? 'cursor-pointer' : 'cursor-default'}`}
                           >
                             <td className="py-2 px-2 text-[10px] xl:text-xs text-gray-800 truncate">
                               {usuario.nombre || '—'}

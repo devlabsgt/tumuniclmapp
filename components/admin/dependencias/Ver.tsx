@@ -19,6 +19,7 @@ import { Database } from '@/lib/database.types';
 import { useDependencias } from '@/hooks/dependencias/useDependencias';
 import { useListaUsuarios } from '@/hooks/usuarios/useListarUsuarios';
 import { useInfoUsuario, useInfoUsuarios, InfoUsuario } from '@/hooks/usuarios/useInfoUsuario';
+import useUserData from '@/hooks/sesion/useUserData'; // <--- 1. IMPORTADO
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { DependenciaNode } from './DependenciaItem';
@@ -157,6 +158,7 @@ const getSelectableDependencies = (
 
 
 export default function Ver() {
+  const { rol, cargando: cargandoUsuario } = useUserData(); // <--- 2. OBTENER ROL Y CARGANDO
   const { usuarios, loading: loadingUsuarios, fetchUsuarios } = useListaUsuarios() as unknown as { usuarios: UserWithDependency[], loading: boolean, fetchUsuarios: () => void };
   const { dependencias, loading: loadingDependencias, mutate: mutateDependencias } = useDependencias();
   const { infoUsuarios, loading: loadingInfo, mutate: mutateInfoUsuarios } = useInfoUsuarios();
@@ -187,6 +189,8 @@ export default function Ver() {
   
   const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState({ title: '', description: '' });
+
+  const hasPermission = rol === 'SUPER' || rol === 'SECRETARIO'; // <--- 3. CREAR FLAG DE PERMISO
 
   useEffect(() => {
     const isAnyModalOpen = isFormOpen || isInfoPersonalOpen || isContratoOpen || isTarjetaOpen || !!dependenciaParaEmpleado || descriptionModalOpen;
@@ -391,7 +395,7 @@ export default function Ver() {
         }));
   }, [infoUsuarios, dependencias]);
 
-  const loading = loadingDependencias || loadingUsuarios || loadingInfo || cargandoDatosTarjeta;
+  const loading = loadingDependencias || loadingUsuarios || loadingInfo || cargandoDatosTarjeta || cargandoUsuario; // <--- 2. AÑADIR 'cargandoUsuario'
 
   return (
     <div className="p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
@@ -401,7 +405,10 @@ export default function Ver() {
         <h1 className="text-lg lg:text-2xl font-bold text-blue-600 text-center md:text-left whitespace-nowrap">Organización Municipal 🏛️</h1>
         <div className="relative w-full flex-grow exclude-from-capture"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" /><Input placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 w-full text-xs"/></div>
         <div className="w-full md:w-auto flex items-center gap-2 exclude-from-capture">
-            <Button onClick={() => handleOpenForm()} className="w-full text-xs md:w-auto bg-blue-100 text-blue-800 hover:bg-blue-200"><PlusCircle className="mr-2 h-4 w-4" /> Nueva Dependencia</Button>
+            {/* 4. APLICAR CONDICIÓN AL BOTÓN */}
+            {hasPermission && (
+              <Button onClick={() => handleOpenForm()} className="w-full text-xs md:w-auto bg-blue-100 text-blue-800 hover:bg-blue-200"><PlusCircle className="mr-2 h-4 w-4" /> Nueva Dependencia</Button>
+            )}
             <Button onClick={handleExportar} disabled={isExporting} className="text-xs bg-purple-100 text-purple-800 hover:bg-purple-200"><Download className="h-4 w-4" /></Button>
             <Button onClick={handleToggleAll} className="text-xs bg-green-100 text-green-800 hover:bg-green-200"><motion.div animate={{ rotate: areAllOpen ? 90 : 0 }} transition={{ duration: 0.2 }}><ChevronsUpDown className="h-4 w-4" /></motion.div></Button>
         </div>
@@ -421,7 +428,23 @@ export default function Ver() {
             />
         )}
         
-        <DependenciaList dependencias={finalTree} onEdit={handleOpenForm} onDelete={handleDelete} onAddSub={handleOpenSubForm} onMove={handleMove} onMoveExtreme={handleMoveExtreme} onAddEmpleado={handleOpenEmpleadoModal} onDeleteEmpleado={handleDeleteEmpleado} onOpenInfoPersonal={handleOpenInfoPersonal} onOpenContrato={handleOpenContrato} onViewCard={handleOpenTarjeta} onOpenDescription={handleOpenDescriptionModal} openNodeIds={openNodeIds} setOpenNodeIds={setOpenNodeIds} />
+        <DependenciaList 
+            dependencias={finalTree} 
+            rol={rol} 
+            onEdit={handleOpenForm} 
+            onDelete={handleDelete} 
+            onAddSub={handleOpenSubForm} 
+            onMove={handleMove} 
+            onMoveExtreme={handleMoveExtreme} 
+            onAddEmpleado={handleOpenEmpleadoModal} 
+            onDeleteEmpleado={handleDeleteEmpleado} 
+            onOpenInfoPersonal={handleOpenInfoPersonal} 
+            onOpenContrato={handleOpenContrato} 
+            onViewCard={handleOpenTarjeta} 
+            onOpenDescription={handleOpenDescriptionModal} 
+            openNodeIds={openNodeIds} 
+            setOpenNodeIds={setOpenNodeIds} 
+        />
         
         <EmpleadoForm 
             isOpen={!!dependenciaParaEmpleado} 

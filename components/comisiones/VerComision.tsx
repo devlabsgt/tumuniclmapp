@@ -90,6 +90,8 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
   const exportRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
 
+  const hasPermission = rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO';
+
   const fechaCompleta = parseISO(comision.fecha_hora.replace(' ', 'T'));
   const fechaHoraAbreviada = format(fechaCompleta, "EEE, d MMM, yyyy | h:mm a", { locale: es });
 
@@ -152,22 +154,28 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
                 <LogOut className="mr-2 h-4 w-4 text-blue-600 rotate-180" />
                 Mostrar todas las comisiones
             </Button>
-            <Button
-              variant="link"
-              onClick={() => onEdit(comision)}
-              className="text-green-600 gap-2"
-            >
-              <Pencil className="h-4 w-4" />
-              Editar
-            </Button>
-            <Button
-              variant="link"
-              onClick={() => onDelete(comision.id)}
-              className="text-red-600 gap-2"
-            >
-              <Trash2 className="h-4 w-4" />
-              Eliminar
-            </Button>
+            
+            {hasPermission && (
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="link"
+                  onClick={() => onEdit(comision)}
+                  className="text-green-600 gap-2"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Editar
+                </Button>
+                <Button
+                  variant="link"
+                  onClick={() => onDelete(comision.id)}
+                  className="text-red-600 gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Eliminar
+                </Button>
+              </div>
+            )}
+
             <Button
               variant="link"
               onClick={handleExportarComoImagen}

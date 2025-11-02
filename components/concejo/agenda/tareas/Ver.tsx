@@ -119,7 +119,6 @@ export default function VerTareas() {
               let newWidth = imgWidth;
               let newHeight = imgHeight;
 
-              // Escalar la imagen para que se ajuste a una sola página
               const widthRatio = usableWidth / imgWidth;
               const heightRatio = usableHeight / imgHeight;
               const scale = Math.min(widthRatio, heightRatio);
@@ -162,6 +161,10 @@ export default function VerTareas() {
   const isAgendaFinalizada = agenda?.estado === 'Finalizada';
 
   const handleOpenEditModal = (tarea: Tarea) => {
+    if (rol === 'INVITADO') {
+      toast.info('No tiene permisos para editar.');
+      return;
+    }
     if (isAgendaFinalizada) {
       toast.info('No se pueden editar puntos de una agenda finalizada.');
     } else {

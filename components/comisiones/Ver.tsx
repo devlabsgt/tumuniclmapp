@@ -209,6 +209,7 @@ export default function Ver({ usuarios }: { usuarios: Usuario[] }) {
                 onSeleccionarComision={handleSeleccionarComision}
                 onSeleccionarTodas={handleSeleccionarTodas}
                 onVerMultiplesComisiones={handleVerMultiplesComisiones}
+                rolActual={rol}
               />
             </motion.div>
           )}

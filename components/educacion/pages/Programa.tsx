@@ -11,6 +11,7 @@ import { useProgramaData } from '@/hooks/educacion/useProgramaData';
 import { AnimatePresence } from 'framer-motion';
 import Maestros from '../charts/Maestros';
 import FormMaestro from '../forms/Maestro';
+import useUserData from '@/hooks/sesion/useUserData';
 
 interface MaestroAlumnos {
   id: number;
@@ -23,6 +24,7 @@ export default function Programa() {
   const params = useParams();
   const programaId = params.id as string;
   
+  const { permisos, cargando: cargandoUsuario } = useUserData();
   const { programa, nivelesDelPrograma, alumnosDelPrograma, maestrosDelPrograma, loading, fetchData } = useProgramaData(programaId);
   const [isFormNivelOpen, setIsFormNivelOpen] = useState(false);
   const [isFormMaestroOpen, setIsFormMaestroOpen] = useState(false);
@@ -68,7 +70,7 @@ export default function Programa() {
     fetchData();
   };
 
-  if (loading) {
+  if (loading || cargandoUsuario) {
     return <div className="text-center py-10">Cargando Programa...</div>;
   }
   
@@ -90,13 +92,17 @@ export default function Programa() {
                     Volver
                 </Button>
                 <div className="flex flex-col sm:flex-row justify-end gap-2 w-full md:w-auto">
-                    <Button onClick={() => setIsFormMaestroOpen(true)} className="w-full sm:w-auto gap-2 whitespace-nowrap bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100" variant="outline">
-                        <GraduationCap className="h-4 w-4"/>
-                        Nuevo Maestro
-                    </Button>
-                    <Button onClick={() => setIsFormNivelOpen(true)} className="w-full sm:w-auto gap-2 whitespace-nowrap">
-                        Nuevo Nivel
-                    </Button>
+                    {(permisos.includes('CREAR') || permisos.includes('TODO')) && (
+                      <>
+                        <Button onClick={() => setIsFormMaestroOpen(true)} className="w-full sm:w-auto gap-2 whitespace-nowrap bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100" variant="outline">
+                            <GraduationCap className="h-4 w-4"/>
+                            Nuevo Maestro
+                        </Button>
+                        <Button onClick={() => setIsFormNivelOpen(true)} className="w-full sm:w-auto gap-2 whitespace-nowrap">
+                            Nuevo Nivel
+                        </Button>
+                      </>
+                    )}
                 </div>
             </div>
             <div>

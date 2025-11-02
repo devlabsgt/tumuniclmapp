@@ -1,8 +1,6 @@
 // middleware.ts (en la raíz del proyecto)
 
-// --- ESTA ES LA LÍNEA QUE SOLUCIONA TODO ---
 export const runtime = 'nodejs';
-// -----------------------------------------
 
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/utils/supabase/middleware'
@@ -43,6 +41,7 @@ export async function middleware(request: NextRequest) {
         rolNombre !== "SUPER" &&
         rolNombre !== "ADMINISTRADOR" &&
         rolNombre !== "SECRETARIO" &&
+        rolNombre !== "INVITADO" &&
         rolNombre !== "RRHH"
       ) {
         return NextResponse.redirect(new URL("/unauthorized", request.url));
