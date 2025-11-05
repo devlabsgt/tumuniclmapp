@@ -105,6 +105,7 @@ export default function EstadisticasNiveles({ niveles, alumnos, onBarClick }: Pr
                             <div>
                                 <span className="text-lg truncate font-bold">{item.nombre}</span>
                                 <div className="text-xs text-gray-500">{item.descripcion || ' '}</div>
+                                
                             </div>
                             <span className="font-bold">{item.alumnos_count}</span>
                         </div>

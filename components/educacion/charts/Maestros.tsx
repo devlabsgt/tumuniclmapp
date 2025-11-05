@@ -15,10 +15,18 @@ interface MaestroAlumnos {
 interface MaestrosProps {
   onEdit: (maestro: MaestroAlumnos) => void;
   maestros: MaestroAlumnos[];
+  rol: string | null; // <-- 1. RECIBIR EL ROL
 }
 
-export default function Maestros({ onEdit, maestros }: MaestrosProps) {
+export default function Maestros({ onEdit, maestros, rol }: MaestrosProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // 2. CREAR EL FLAG DE PERMISO
+  const hasEditPermission = 
+    rol === 'SUPER' || 
+    rol === 'RRHH' || 
+    rol === 'DIGITADOR' || 
+    rol === 'SECRETARIO';
 
   const totalAlumnos = useMemo(() => {
     return maestros.reduce((sum, maestro) => sum + maestro.ctd_alumnos, 0);
@@ -65,21 +73,31 @@ export default function Maestros({ onEdit, maestros }: MaestrosProps) {
             transition={{ duration: 0.5, ease: "easeInOut" }}
             className="overflow-hidden mt-4"
           >
-            <div className="text-sm text-green-700 my-4">
-                <Typewriter
-                    words={['Seleccione un maestro para editar']}
-                    loop={1}
-                    cursor
-                    cursorStyle="_"
-                    typeSpeed={40}
-                />
-            </div>
+            {/* 3. CONDICIONAR EL TEXTO DE AYUDA */}
+            {hasEditPermission && (
+              <div className="text-sm text-green-700 my-4">
+                  <Typewriter
+                      words={['Seleccione un maestro para editar']}
+                      loop={1}
+                      cursor
+                      cursorStyle="_"
+                      typeSpeed={40}
+                  />
+              </div>
+            )}
             <div className="space-y-4">
               {maestros.map((item) => (
                 <div 
                   key={item.id} 
-                  className="space-y-4 cursor-pointer bg-gray-50 p-4 rounded-md shadow-sm transition-transform duration-200 hover:bg-green-50 hover:scale-105 mx-3"
-                  onClick={() => onEdit(item)}
+                  className={`
+                    space-y-4 bg-gray-50 p-4 rounded-md shadow-sm transition-transform duration-200 mx-3
+                    ${hasEditPermission ? 'cursor-pointer hover:bg-green-50 hover:scale-105' : 'cursor-default'}
+                  `}
+                  onClick={() => {
+                    if (hasEditPermission) {
+                      onEdit(item);
+                    }
+                  }}
                 >
                   <div className="flex justify-between items-center text-sm font-medium text-gray-600">
                     <span className="truncate">{item.nombre}</span>

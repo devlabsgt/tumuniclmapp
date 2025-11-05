@@ -24,7 +24,7 @@ export default function Programa() {
   const params = useParams();
   const programaId = params.id as string;
   
-  const { permisos, cargando: cargandoUsuario } = useUserData();
+  const { permisos, rol, cargando: cargandoUsuario } = useUserData();
   const { programa, nivelesDelPrograma, alumnosDelPrograma, maestrosDelPrograma, loading, fetchData } = useProgramaData(programaId);
   const [isFormNivelOpen, setIsFormNivelOpen] = useState(false);
   const [isFormMaestroOpen, setIsFormMaestroOpen] = useState(false);
@@ -132,6 +132,7 @@ export default function Programa() {
             <Maestros
               onEdit={handleOpenEditMaestro}
               maestros={maestrosDelPrograma}
+              rol={rol}
             />
           )}
                     {alumnosDelPrograma ? (

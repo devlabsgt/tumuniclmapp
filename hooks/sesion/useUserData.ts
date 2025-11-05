@@ -13,6 +13,10 @@ interface UserData {
   modulos: string[];
   programas: string[];
   cargando: boolean;
+  horario_nombre: string | null;
+  horario_dias: number[] | null;
+  horario_entrada: string | null;
+  horario_salida: string | null;
 }
 
 export default function useUserData(): UserData {
@@ -24,6 +28,10 @@ export default function useUserData(): UserData {
   const [modulos, setModulos] = useState<string[]>([]);
   const [programas, setProgramas] = useState<string[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [horario_nombre, setHorarioNombre] = useState<string | null>(null);
+  const [horario_dias, setHorarioDias] = useState<number[] | null>(null);
+  const [horario_entrada, setHorarioEntrada] = useState<string | null>(null);
+  const [horario_salida, setHorarioSalida] = useState<string | null>(null);
   
   const pathname = usePathname(); 
 
@@ -45,6 +53,10 @@ export default function useUserData(): UserData {
           setPermisos([]);
           setModulos([]);
           setProgramas([]);
+          setHorarioNombre(null);
+          setHorarioDias(null);
+          setHorarioEntrada(null);
+          setHorarioSalida(null);
         } else {
           const resultado = userData[0];
           setUserId(resultado.id || null);
@@ -54,6 +66,10 @@ export default function useUserData(): UserData {
           setPermisos(resultado.permisos || []);
           setModulos(resultado.modulos || []);
           setProgramas(resultado.programas || []);
+          setHorarioNombre(resultado.horario_nombre || null);
+          setHorarioDias(resultado.horario_dias || null);
+          setHorarioEntrada(resultado.horario_entrada || null);
+          setHorarioSalida(resultado.horario_salida || null);
         }
       } else {
         setUserId(null);
@@ -63,6 +79,10 @@ export default function useUserData(): UserData {
         setPermisos([]);
         setModulos([]);
         setProgramas([]);
+        setHorarioNombre(null);
+        setHorarioDias(null);
+        setHorarioEntrada(null);
+        setHorarioSalida(null);
       }
       setCargando(false);
     };
@@ -70,5 +90,18 @@ export default function useUserData(): UserData {
     obtenerUsuario();
   }, [pathname]); 
 
-  return { userId, nombre, email, rol, permisos, modulos, programas, cargando };
+  return { 
+    userId, 
+    nombre, 
+    email, 
+    rol, 
+    permisos, 
+    modulos, 
+    programas, 
+    cargando, 
+    horario_nombre, 
+    horario_dias, 
+    horario_entrada, 
+    horario_salida 
+  };
 }

@@ -1,5 +1,3 @@
-// hooks/usuarios/useInfoUsuario.tsx
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -29,6 +27,10 @@ export interface InfoUsuarioData {
   contrato_no: string | null;
   fecha_ini: string | null;
   fecha_fin: string | null;
+  horario_nombre: string | null;
+  horario_dias: number[] | null;
+  horario_entrada: string | null;
+  horario_salida: string | null;
 }
 
 export interface InfoUsuario {

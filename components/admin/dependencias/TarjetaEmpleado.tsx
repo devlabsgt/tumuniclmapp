@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Shield, Fingerprint, Hash, MapPin, Phone, FileText, CircleDollarSign, BadgeDollarSign, FileSignature, CalendarPlus, CalendarMinus, X, Loader2, Briefcase, Banknote } from 'lucide-react';
+import { User, Shield, Fingerprint, Hash, MapPin, Phone, FileText, CircleDollarSign, BadgeDollarSign, FileSignature, CalendarPlus, CalendarMinus, X, Loader2, Briefcase, Banknote, Clock, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Cargando from '@/components/ui/animations/Cargando';
 import { useInfoUsuario } from '@/hooks/usuarios/useInfoUsuario';
@@ -55,6 +55,30 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
     }
   };
 
+  const formatTime = (timeString: string | null | undefined) => {
+    if (!timeString) return '--';
+    try {
+      // Creamos una fecha falsa solo para poder formatear la hora
+      const [hours, minutes, seconds] = timeString.split(':');
+      const date = new Date();
+      date.setHours(parseInt(hours), parseInt(minutes), parseInt(seconds));
+      return new Intl.DateTimeFormat('es-GT', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }).format(date);
+    } catch (e) {
+      return timeString;
+    }
+  };
+  
+  const formatDays = (days: number[] | null | undefined) => {
+    if (!days || days.length === 0) return '--';
+    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    return days.sort((a, b) => a - b).map(d => dayNames[d] || '?').join(', ');
+  };
+
+
   const bonificacionValue = datosCompletos?.bonificacion;
   const isGlobalLoading = cargandoDatos;
 
@@ -67,6 +91,13 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
         })
         .slice(1)
     : [];
+    
+  const horario = datosCompletos?.horario_nombre ? {
+    nombre: datosCompletos.horario_nombre,
+    dias: formatDays(datosCompletos.horario_dias),
+    entrada: formatTime(datosCompletos.horario_entrada),
+    salida: formatTime(datosCompletos.horario_salida)
+  } : null;
 
   return (
     <AnimatePresence>
@@ -126,6 +157,30 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
                         </div>
                       </div>
                     )}
+                    
+                    {horario && (
+                      <div className="mt-4 w-full border-t border-gray-200 dark:border-gray-700 pt-3">
+                        <h4 className="flex items-center text-xs font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                          <Clock size={14} className="mr-2 text-blue-500 flex-shrink-0" />
+                          Información de Horario
+                        </h4>
+                        <div className="flex flex-col lg:flex-row lg:items-center lg:gap-4">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Horario:</span> {horario.nombre}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 lg:border-l lg:pl-4">
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Días:</span> {horario.dias}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 lg:border-l lg:pl-4">
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Entrada:</span> {horario.entrada}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 lg:border-l lg:pl-4">
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Salida:</span> {horario.salida}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    
                   </div>
                 </div>
 

@@ -48,15 +48,6 @@ export default function VerUsuarios() {
   return (
     <div className='p-0 lg:p-5'>
       <div className="flex flex-col gap-4 w-full mx-auto pb-6 md:flex-row md:justify-between  md:px-4 ">  
-          
-            <Button
-              variant="ghost"
-              onClick={() => router.push("/protected/admin")}
-              className="text-blue-600 text-base underline w-full md:w-auto flex-shrink-0"
-            >
-              Volver
-            </Button>
-          
             <div className="flex rounded-lg border p-1 bg-gray-100 dark:bg-gray-800 h-14 w-full md:w-auto">
               <button
                 type="button"

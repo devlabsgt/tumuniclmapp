@@ -18,7 +18,7 @@ import Swal from 'sweetalert2';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useDependencias } from '@/hooks/dependencias/useDependencias';
 import Cargando from '@/components/ui/animations/Cargando';
-import { CircleAlert } from 'lucide-react';
+import { CircleAlert, User, Clock } from 'lucide-react'; // <-- Iconos importados
 
 type UsuarioConJerarquia = Usuario & {
   puesto_nombre: string | null;
@@ -242,14 +242,24 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
               </div>
             )}
 
-            <div className="w-full md:w-1/3 flex justify-end">
+            <div className="w-full md:w-1/3 flex flex-col md:flex-row justify-end gap-2">
               {hasCreatePermission && (
-                <Button
-                  onClick={() => router.push("/protected/admin/sign-up")}
-                  className="px-4 py-2 text-white bg-green-600 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 flex-shrink-0 text-xs w-full md:w-auto"
-                >
-                  Nuevo Usuario
-                </Button>
+                <>
+                  <Button
+                    onClick={() => router.push("/protected/admin/horarios")} // Asumo esta ruta, cámbiala si es necesario
+                    className="px-4 py-2 text-white bg-blue-600 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 flex-shrink-0 text-xs w-full md:w-auto flex items-center justify-center gap-2"
+                  >
+                    <Clock className="h-4 w-4" />
+                    Asignación de Horarios
+                  </Button>
+                  <Button
+                    onClick={() => router.push("/protected/admin/sign-up")}
+                    className="px-4 py-2 text-white bg-green-600 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 flex-shrink-0 text-xs w-full md:w-auto flex items-center justify-center gap-2"
+                  >
+                    <User className="h-4 w-4" />
+                    Nuevo Usuario
+                  </Button>
+                </>
               )}
             </div>
           </div>
