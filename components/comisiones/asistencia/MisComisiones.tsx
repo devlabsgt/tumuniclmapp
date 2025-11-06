@@ -1,8 +1,7 @@
-// src/app/mis-comisiones/MisComisiones.tsx
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { getMonth, getYear, parseISO, isToday, isPast, differenceInCalendarDays } from 'date-fns';
+import { getMonth, getYear, parseISO, isToday, isPast } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -10,7 +9,7 @@ import { useObtenerComisiones, ComisionConFechaYHoraSeparada } from '@/hooks/com
 import useUserData from '@/hooks/sesion/useUserData';
 import Cargando from '@/components/ui/animations/Cargando';
 import Mapa from '@/components/ui/modals/Mapa';
-import ListaMisComisiones from './ListaMisComisiones'; // Nuevo componente importado
+import ListaMisComisiones from './ListaMisComisiones'; 
 
 export default function MisComisiones() {
   const [mesSeleccionado, setMesSeleccionado] = useState(getMonth(new Date()));
@@ -22,7 +21,9 @@ export default function MisComisiones() {
   const [vista, setVista] = useState<'proximas' | 'terminadas'>('proximas');
   
   const { userId, nombre, cargando: cargandoUsuario } = useUserData();
-  const { comisiones, loading, error, refetch } = useObtenerComisiones(mesSeleccionado, anioSeleccionado, userId);
+  
+  const hookUserId = cargandoUsuario ? null : (userId || null);
+  const { comisiones, loading, error, refetch } = useObtenerComisiones(mesSeleccionado, anioSeleccionado, hookUserId);
   
   useEffect(() => {
     const html = document.documentElement;
@@ -40,22 +41,58 @@ export default function MisComisiones() {
     setOpenComisionId(null);
   }, [vista]);
 
-  const comisionesParaMostrar = useMemo(() => {
-    let comisionesFiltradas = comisiones || [];
-    const ahora = new Date();
+  const comisionesData = useMemo(() => {
+    if (cargandoUsuario || !comisiones) {
+      return { lista: [], countProximas: 0, countTerminadas: 0 };
+    }
+
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0); 
     
-    comisionesFiltradas = comisionesFiltradas.filter(c => {
-        const fechaComision = parseISO(c.fecha_hora.replace(' ', 'T'));
-        const esPasada = isPast(fechaComision) && !isToday(fechaComision);
-        return vista === 'proximas' ? !esPasada : esPasada;
+    let countProximas = 0;
+    let countTerminadas = 0;
+
+    const aprobadasYSorteadas = comisiones
+      .filter(c => c.aprobado === true)
+      .sort((a, b) => 
+        parseISO(b.fecha_hora.replace(' ', 'T')).getTime() - 
+        parseISO(a.fecha_hora.replace(' ', 'T')).getTime()
+      );
+
+    aprobadasYSorteadas.forEach(c => {
+      const fechaComision = parseISO(c.fecha_hora.split(' ')[0]);
+      if (fechaComision >= hoy) {
+        countProximas++;
+      } else {
+        countTerminadas++;
+      }
     });
 
+    return { lista: aprobadasYSorteadas, countProximas, countTerminadas };
+  }, [comisiones, cargandoUsuario]);
+
+  const comisionesParaMostrar = useMemo(() => {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0); 
+
+    let comisionesFiltradas = [];
+
+    if (vista === 'proximas') {
+      comisionesFiltradas = comisionesData.lista.filter(c => 
+        parseISO(c.fecha_hora.split(' ')[0]) >= hoy
+      );
+    } else { 
+      comisionesFiltradas = comisionesData.lista.filter(c => 
+        parseISO(c.fecha_hora.split(' ')[0]) < hoy
+      );
+    }
+
     if (openComisionId) {
-        return comisionesFiltradas.filter(c => c.id === openComisionId);
+      return comisionesFiltradas.filter(c => c.id === openComisionId);
     }
     
     return comisionesFiltradas;
-  }, [comisiones, openComisionId, vista]);
+  }, [comisionesData, openComisionId, vista]);
 
   const handleToggleComision = (comisionId: string) => {
     setOpenComisionId(prevId => (prevId === comisionId ? null : comisionId));
@@ -80,6 +117,10 @@ export default function MisComisiones() {
   if (loading || cargandoUsuario) {
     return <Cargando texto='Cargando sus comisiones...' />;
   }
+  
+  if (!userId) {
+    return <p className="text-center text-red-500 py-8">Error: No se pudo cargar su información de usuario.</p>;
+  }
 
   if (error) {
     return <p className="text-center text-red-500 py-8">Error: {error}</p>;
@@ -102,6 +143,8 @@ export default function MisComisiones() {
           onAsistenciaMarcada={handleAsistenciaMarcada}
           userId={userId!}
           nombreUsuario={nombre!}
+          countProximas={comisionesData.countProximas}
+          countTerminadas={comisionesData.countTerminadas}
         />
       </div>
 

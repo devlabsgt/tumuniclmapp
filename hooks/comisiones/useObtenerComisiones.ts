@@ -11,9 +11,14 @@ export interface Asistente extends Usuario {
 export interface Comision {
   id: string;
   titulo: string;
-  fecha_hora: string; 
-  comentarios?: string[]; 
+  fecha_hora: string;
+  comentarios?: string[];
   asistentes: Asistente[] | null;
+  aprobado: boolean;
+  creado_por?: string;
+  creador_nombre?: string;
+  aprobado_por?: string;
+  aprobador_nombre?: string;
 }
 
 export interface ComisionConFechaYHoraSeparada extends Comision {
@@ -27,7 +32,9 @@ export function useObtenerComisiones(mes: number, anio: number, usuarioId?: stri
   const [error, setError] = useState<string | null>(null);
 
   const fetchComisiones = useCallback(async () => {
+
     if (usuarioId === null) {
+      setComisiones([]);
       setLoading(false);
       return;
     }

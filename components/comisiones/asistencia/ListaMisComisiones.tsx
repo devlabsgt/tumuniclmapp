@@ -1,4 +1,5 @@
-// src/app/mis-comisiones/ListaMisComisiones.tsx
+'use client';
+
 import React, { useMemo } from 'react';
 import { format, setMonth, parseISO, isToday, differenceInCalendarDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -26,6 +27,8 @@ interface Props {
   onAsistenciaMarcada: () => void;
   userId: string;
   nombreUsuario: string;
+  countProximas: number;
+  countTerminadas: number;
 }
 
 const meses = [
@@ -34,6 +37,18 @@ const meses = [
 ];
 const anios = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i - 2);
 const timeZone = 'America/Guatemala';
+
+const formatNombreCorto = (nombreCompleto?: string | null): string => {
+  if (!nombreCompleto) return 'N/A';
+  const partes = nombreCompleto.split(' ').filter(Boolean);
+  if (partes.length === 0) return 'N/A';
+  if (partes.length === 1) return partes[0];
+  if (partes.length === 2) return partes.join(' ');
+  if (partes.length >= 3) {
+    return `${partes[0]} ${partes[2]}`;
+  }
+  return nombreCompleto;
+};
 
 export default function ListaMisComisiones({
   vista,
@@ -49,12 +64,17 @@ export default function ListaMisComisiones({
   onAsistenciaMarcada,
   userId,
   nombreUsuario,
+  countProximas = 0,
+  countTerminadas = 0,
 }: Props) {
+
   const comisionesAgrupadasPorFecha = useMemo(() => {
     const grupos: { [key: string]: ComisionConFechaYHoraSeparada[] } = {};
     if (!comisionesParaMostrar) return grupos;
 
-    comisionesParaMostrar.forEach(comision => {
+    const comisionesAprobadas = comisionesParaMostrar.filter(comision => comision.aprobado === true);
+
+    comisionesAprobadas.forEach(comision => {
       const fecha = parseISO(comision.fecha_hora.replace(' ', 'T'));
       const fechaClave = format(fecha, 'EEEE d', { locale: es });
       if (!grupos[fechaClave]) {
@@ -62,26 +82,44 @@ export default function ListaMisComisiones({
       }
       grupos[fechaClave].push(comision);
     });
-    return grupos;
+
+    const fechasOrdenadas = Object.keys(grupos).sort((a, b) => {
+      const fechaA = parseISO(grupos[a][0].fecha_hora.replace(' ', 'T'));
+      const fechaB = parseISO(grupos[b][0].fecha_hora.replace(' ', 'T'));
+      return fechaB.getTime() - fechaA.getTime();
+    });
+
+    const gruposOrdenados: { [key: string]: ComisionConFechaYHoraSeparada[] } = {};
+    fechasOrdenadas.forEach(fecha => {
+      gruposOrdenados[fecha] = grupos[fecha];
+    });
+    
+    return gruposOrdenados;
   }, [comisionesParaMostrar]);
 
   return (
     <>
       <div className="flex flex-col gap-4 border-b pb-5 mb-5">
+        
         <div className="border-b flex mb-4 flex-wrap justify-center">
-          <button
-            onClick={() => setVista('proximas')}
-            className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm ${vista === 'proximas' ? 'border-b-2 border-green-600 text-green-600' : 'text-gray-500'}`}
-          >
-            <CalendarCheck className="h-4 w-4" /> Próximas
-          </button>
-          <button
-            onClick={() => setVista('terminadas')}
-            className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm ${vista === 'terminadas' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-500'}`}
-          >
-            <CalendarCheck className="h-4 w-4" /> Terminadas
-          </button>
+          {countProximas > 0 && (
+            <button
+              onClick={() => setVista('proximas')}
+              className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm ${vista === 'proximas' ? 'border-b-2 border-green-600 text-green-600' : 'text-gray-500'}`}
+            >
+              <CalendarCheck className="h-4 w-4" /> Próximas ({countProximas})
+            </button>
+          )}
+          {countTerminadas > 0 && (
+            <button
+              onClick={() => setVista('terminadas')}
+              className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm ${vista === 'terminadas' ? 'border-b-2 border-red-600 text-red-600' : 'text-gray-500'}`}
+            >
+              <CalendarCheck className="h-4 w-4" /> Terminadas ({countTerminadas})
+            </button>
+          )}
         </div>
+        
         <div className='flex gap-2 items-center justify-center md:justify-start'>
           <select value={mesSeleccionado} onChange={(e) => setMesSeleccionado(Number(e.target.value))} className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 capitalize">
             {meses.map((mes, index) => <option key={index} value={index}>{mes}</option>)}
@@ -103,18 +141,19 @@ export default function ListaMisComisiones({
                 {comisionesDelDia.map(comision => {
                   const usuariosDeLaComision = (comision.asistentes?.map(a => ({ id: a.id, nombre: a.nombre })) || []) as Usuario[];
                   const isOpen = openComisionId === comision.id;
+                  
                   const fechaHora = parseISO(comision.fecha_hora.replace(' ', 'T'));
-                  const esHoy = isToday(fechaHora);
+                  const fechaComision = toZonedTime(fechaHora, timeZone);
+                  const esHoy = isToday(fechaComision);
 
                   const ahora = new Date();
-                  const fechaComision = toZonedTime(fechaHora, timeZone);
                   const diasRestantes = differenceInCalendarDays(fechaComision, ahora);
                   const integrantesCount = comision.asistentes?.length || 0;
 
                   let textoDias = '';
                   let colorDias = 'text-gray-500';
 
-                  if (isToday(fechaComision)) {
+                  if (esHoy) {
                     textoDias = 'Hoy';
                     colorDias = 'text-blue-600 font-semibold';
                   } else if (diasRestantes === 1) {
@@ -131,8 +170,21 @@ export default function ListaMisComisiones({
                     colorDias = 'text-red-500';
                   }
 
+                  let textoEstado = null;
+                  const creador = formatNombreCorto(comision.creador_nombre);
+                  const aprobador = formatNombreCorto(comision.aprobador_nombre);
+
+                  if (comision.creado_por && comision.aprobado_por && comision.creado_por === comision.aprobado_por) {
+                    textoEstado = (<>Creado y Aprobado por: <span className="font-bold">{creador}</span></>);
+                  } else if (comision.aprobador_nombre) {
+                    textoEstado = (<>Aprobado por: <span className="font-bold">{aprobador}</span></>);
+                  } else if (comision.creador_nombre) {
+                    textoEstado = (<>Creado por: <span className="font-bold">{creador}</span></>);
+                  }
+
                   return (
                     <div key={comision.id} className="rounded-xl border border-gray-200 overflow-hidden relative">
+                      
                       <div className="cursor-pointer p-4" onClick={() => onToggleComision(comision.id)}>
                         <div className="flex justify-between items-center">
                           {isOpen ? (
@@ -144,7 +196,7 @@ export default function ListaMisComisiones({
                               )}
                             </div>
                           ) : (
-                            <div className='flex-grow flex flex-col md:gap-3'>
+                            <div className='flex-grow flex flex-col'>
                               <div className="flex items-center justify-between gap-2 pr-2">
                                 <h4 className="text-xs font-bold text-gray-800">{comision.titulo}</h4>
                                 <div className="flex items-center gap-1 text-blue-600">
@@ -152,13 +204,18 @@ export default function ListaMisComisiones({
                                   <span>{integrantesCount}</span>
                                 </div>
                               </div>
-                              <div className="flex items-center justify-between gap-2 pr-2">
+                              <div className="flex items-center justify-between gap-2 pr-2 mt-2">
                                 <p className="text-xs  text-gray-700 whitespace-nowrap capitalize">{format(fechaHora, 'h:mm a', { locale: es })}</p>
                                 <div className={`flex items-center gap-1 ${colorDias}`}>
                                   <CalendarClock size={12} />
                                   <span>{textoDias}</span>
                                 </div>
                               </div>
+                              {textoEstado && (
+                                <p className="text-gray-500 text-xs text-right w-full break-words pr-2 mt-2">
+                                  {textoEstado}
+                                </p>
+                              )}
                             </div>
                           )}
                           <ChevronDown className={`h-5 w-5 text-gray-500 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />

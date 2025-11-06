@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
+import { format, parseISO, differenceInMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Swal from 'sweetalert2';
 
@@ -19,6 +19,30 @@ interface AsistenciaComisionProps {
   onAsistenciaMarcada: () => void;
 }
 
+type PendingAction = {
+  tipo: 'Entrada' | 'Salida';
+  comisionId: string;
+  notaParaEnviar: string;
+};
+
+const formatarMinutos = (minutos: number) => {
+  const absMinutos = Math.abs(minutos);
+  const horas = Math.floor(absMinutos / 60);
+  const minsRestantes = absMinutos % 60;
+  let resultado = '';
+
+  if (horas > 0) {
+    resultado += `${horas} hora${horas > 1 ? 's' : ''}`;
+  }
+  if (minsRestantes > 0) {
+    resultado += `${horas > 0 ? ' y ' : ''}${minsRestantes} minuto${minsRestantes > 1 ? 's' : ''}`;
+  }
+  if (resultado === '') {
+    return '0 minutos';
+  }
+  return resultado;
+};
+
 export default function AsistenciaComision({ comision, userId, nombreUsuario, onAsistenciaMarcada }: AsistenciaComisionProps) {
   const { ubicacion, cargando: cargandoGeo, obtenerUbicacion } = useGeolocalizacion();
   const fechaHoraGt = useFechaHora();
@@ -26,7 +50,7 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario, on
 
   const [cargandoMarcaje, setCargandoMarcaje] = useState(false);
   const [notas, setNotas] = useState('');
-  const [pendingAction, setPendingAction] = useState<{ tipo: 'Entrada' | 'Salida'; comisionId: string } | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
 
   const registrosDeLaComision = useMemo(() => {
     const registrosFiltrados = registros.filter(r => r.comision_id === comision.id);
@@ -35,33 +59,95 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario, on
     return { registroEntrada, registroSalida };
   }, [registros, comision.id]);
 
-
   useEffect(() => {
     if (ubicacion && pendingAction) {
-      handleMarcarAsistencia(pendingAction.tipo, pendingAction.comisionId, ubicacion);
+      handleMarcarAsistencia(
+        pendingAction.tipo, 
+        pendingAction.comisionId, 
+        ubicacion, 
+        pendingAction.notaParaEnviar
+      );
       setPendingAction(null);
     }
   }, [ubicacion, pendingAction]);
 
   const handleIniciarMarcado = async (tipo: 'Entrada' | 'Salida', comisionId: string) => {
-    const result = await Swal.fire({
-      title: '¿Está seguro?',
-      text: `¿Quiere marcar su ${tipo.toLowerCase()} ahora?`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: `Sí, marcar ${tipo}`,
-      cancelButtonText: 'Cancelar',
-    });
+    let notaParaEnviar = notas;
+    let confirmacionSwal;
 
-    if (result.isConfirmed) {
-      setPendingAction({ tipo, comisionId });
-      obtenerUbicacion();
+    if (tipo === 'Entrada') {
+      const fechaComision = parseISO(comision.fecha_hora.replace(' ', 'T') + 'Z');
+      const diffMinutes = differenceInMinutes(fechaHoraGt, fechaComision);
+      let requiereNotas = false;
+      let justificacionHtml = '';
+
+      if (diffMinutes > 15) {
+        requiereNotas = true;
+        const tiempoFormateado = formatarMinutos(diffMinutes);
+        justificacionHtml = `Está marcando <b>${tiempoFormateado} tarde</b>.<br/>Por favor, ingrese una justificación:`;
+      } else if (diffMinutes < -15) {
+        requiereNotas = true;
+        const tiempoFormateado = formatarMinutos(diffMinutes);
+        justificacionHtml = `Está marcando <b>${tiempoFormateado} temprano</b>.<br/>Por favor, ingrese una justificación:`;
+      }
+
+      if (requiereNotas && !notas.trim()) {
+        const { value: justificacion, isConfirmed } = await Swal.fire({
+          title: 'Justificación Requerida',
+          html: justificacionHtml,
+          icon: 'warning',
+          input: 'textarea',
+          inputPlaceholder: 'Escriba su justificación aquí...',
+          showCancelButton: true,
+          confirmButtonText: 'Confirmar y Marcar Entrada',
+          cancelButtonText: 'Cancelar',
+          inputValidator: (value) => {
+            if (!value || value.trim() === '') {
+              return '¡Necesita escribir una justificación!';
+            }
+            return null;
+          }
+        });
+
+        if (!isConfirmed) return;
+        notaParaEnviar = justificacion;
+        setNotas(justificacion);
+      
+      } else {
+        confirmacionSwal = await Swal.fire({
+          title: '¿Está seguro?',
+          text: `¿Quiere marcar su ${tipo.toLowerCase()} ahora?`,
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: `Sí, marcar ${tipo}`,
+          cancelButtonText: 'Cancelar',
+        });
+        if (!confirmacionSwal.isConfirmed) return;
+      }
+    } else {
+      confirmacionSwal = await Swal.fire({
+        title: '¿Está seguro?',
+        text: `¿Quiere marcar su ${tipo.toLowerCase()} ahora?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: `Sí, marcar ${tipo}`,
+        cancelButtonText: 'Cancelar',
+      });
+      if (!confirmacionSwal.isConfirmed) return;
     }
+
+    setPendingAction({ tipo, comisionId, notaParaEnviar });
+    obtenerUbicacion();
   };
   
-  const handleMarcarAsistencia = async (tipo: string, comisionId: string, ubicacionActual: { lat: number; lng: number }) => {
+  const handleMarcarAsistencia = async (
+    tipo: string, 
+    comisionId: string, 
+    ubicacionActual: { lat: number; lng: number }, 
+    notaFinal: string
+  ) => {
     setCargandoMarcaje(true);
-    const registro = await marcarAsistenciaComision(userId, comisionId, tipo, ubicacionActual, notas);
+    const registro = await marcarAsistenciaComision(userId, comisionId, tipo, ubicacionActual, notaFinal);
     if (registro) {
       Swal.fire('¡Éxito!', `Se ha registrado su ${tipo.toLowerCase()} correctamente.`, 'success');
       fetchRegistros();
@@ -99,14 +185,14 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario, on
                 </div>
                 {!entradaMarcada ? (
                   <div className="flex gap-4 items-stretch">
-                    <textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Agregar notas (opcional)..." rows={2} className="w-3/5 p-2 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs md:text-sm"/>
+                    <textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Notas (opcional, o para justificación)..." rows={2} className="w-3/5 p-2 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs md:text-sm"/>
                     <Button onClick={() => handleIniciarMarcado('Entrada', comision.id)} disabled={cargandoMarcaje || cargandoGeo} className="w-2/5 bg-green-600 hover:bg-green-700 text-xs py-4 h-auto">
                       {cargandoGeo ? 'Obteniendo ubicación...' : (cargandoMarcaje ? 'Marcando...' : 'Entrada')}
                     </Button>
                   </div>
                 ) : (
                   <div className="flex gap-4 items-stretch">
-                    <textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Agregar notas (opcional)..." rows={2} className="w-3/5 p-2 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs md:text-sm"/>
+                    <textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Notas (opcional)..." rows={2} className="w-3/5 p-2 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs md:text-sm"/>
                     <Button onClick={() => handleIniciarMarcado('Salida', comision.id)} disabled={cargandoMarcaje || salidaMarcada || cargandoGeo} className="w-2/5 bg-orange-600 hover:bg-orange-700 text-xs py-4 h-auto">
                       {cargandoGeo ? 'Obteniendo ubicación...' : (salidaMarcada ? 'Salida ya marcada' : (cargandoMarcaje ? 'Marcando...' : 'Salida'))}
                     </Button>

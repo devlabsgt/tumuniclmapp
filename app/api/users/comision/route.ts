@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import supabaseAdmin from '@/utils/supabase/admin';
+import { createClient } from '@/utils/supabase/server';
 
 export async function GET(request: Request) {
   try {
@@ -25,23 +26,47 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'No se pudieron obtener las comisiones' }, { status: 500 });
     }
     
-    // Devolver los datos directamente sin procesar
     return NextResponse.json({ data: data || [] });
   } catch (err) {
     console.error('Error inesperado:', err);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
-// MANEJA LA CREACIÓN DE UNA NUEVA COMISIÓN
+
 export async function POST(request: Request) {
     try {
-        const { titulo, fecha_hora, encargadoId, userIds, comentarios } = await request.json();
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          return NextResponse.json({ error: 'Usuario no autenticado' }, { status: 401 });
+        }
+
+        const { titulo, fecha_hora, encargadoId, userIds, comentarios, aprobado } = await request.json();
 
         const comentariosArray = Array.isArray(comentarios) ? comentarios : comentarios ? [comentarios] : [];
 
+        const insertData: {
+          titulo: string;
+          fecha_hora: string;
+          comentarios: string[];
+          aprobado: boolean;
+          creado_por: string;
+          aprobado_por?: string | null;
+        } = {
+          titulo,
+          fecha_hora,
+          comentarios: comentariosArray,
+          aprobado: aprobado || false,
+          creado_por: user.id,
+        };
+
+        if (insertData.aprobado) {
+          insertData.aprobado_por = user.id;
+        }
+
         const { data: comisionData, error: comisionError } = await supabaseAdmin
             .from('comisiones')
-            .insert({ titulo, fecha_hora, comentarios: comentariosArray })
+            .insert(insertData)
             .select()
             .single();
 
@@ -84,10 +109,15 @@ export async function POST(request: Request) {
     }
 }
 
-// MANEJA LA ACTUALIZACIÓN DE UNA COMISIÓN
 export async function PUT(request: Request) {
     try {
-        const { id, titulo, fecha_hora, userIds, encargadoId, comentarios } = await request.json();
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          return NextResponse.json({ error: 'Usuario no autenticado' }, { status: 401 });
+        }
+
+        const { id, titulo, fecha_hora, userIds, encargadoId, comentarios, aprobado } = await request.json();
 
         if (!id) {
             return NextResponse.json({ error: 'El ID de la comisión es obligatorio' }, { status: 400 });
@@ -95,9 +125,30 @@ export async function PUT(request: Request) {
 
         const comentariosArray = Array.isArray(comentarios) ? comentarios : comentarios ? [comentarios] : [];
 
+        const updateData: {
+          titulo: string;
+          fecha_hora: string;
+          comentarios: string[];
+          aprobado?: boolean;
+          aprobado_por?: string | null;
+        } = {
+          titulo,
+          fecha_hora,
+          comentarios: comentariosArray,
+        };
+
+        if (aprobado !== undefined) {
+            updateData.aprobado = aprobado;
+            if (aprobado === true) {
+              updateData.aprobado_por = user.id;
+            } else {
+              updateData.aprobado_por = null;
+            }
+        }
+
         const { data: comisionData, error: comisionError } = await supabaseAdmin
             .from('comisiones')
-            .update({ titulo, fecha_hora, comentarios: comentariosArray })
+            .update(updateData)
             .match({ id })
             .select()
             .single();
@@ -143,7 +194,54 @@ export async function PUT(request: Request) {
     }
 }
 
-// MANEJA LA ELIMINACIÓN DE UNA COMISIÓN
+export async function PATCH(request: Request) {
+    try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          return NextResponse.json({ error: 'Usuario no autenticado' }, { status: 401 });
+        }
+
+        const { id, aprobado } = await request.json();
+
+        if (!id) {
+            return NextResponse.json({ error: 'El ID de la comisión es obligatorio' }, { status: 400 });
+        }
+
+        const updateData: { aprobado?: boolean; aprobado_por?: string | null } = {};
+
+        if (aprobado !== undefined) {
+            updateData.aprobado = aprobado;
+            if (aprobado === true) {
+              updateData.aprobado_por = user.id;
+            } else {
+              updateData.aprobado_por = null;
+            }
+        }
+
+        if (Object.keys(updateData).length === 0) {
+             return NextResponse.json({ error: 'Se requiere al menos un campo para actualizar' }, { status: 400 });
+        }
+
+        const { data, error } = await supabaseAdmin
+            .from('comisiones')
+            .update(updateData)
+            .match({ id })
+            .select()
+            .single();
+
+        if (error) {
+            throw new Error(`Error al actualizar la comisión: ${error.message}`);
+        }
+
+        return NextResponse.json(data, { status: 200 });
+    } catch (error: any) {
+        console.error(`Error en PATCH /api/users/comision:`, error);
+        return NextResponse.json({ error: error.message || 'No se pudo actualizar la comisión' }, { status: 500 });
+    }
+}
+
+
 export async function DELETE(request: Request) {
     try {
         const { id } = await request.json();
@@ -159,6 +257,15 @@ export async function DELETE(request: Request) {
 
         if (deleteAsistentesError) {
             throw new Error(`Error al eliminar asistentes de la comisión: ${deleteAsistentesError.message}`);
+        }
+
+        const { error: deleteRegistrosError } = await supabaseAdmin
+            .from('registros_comision')
+            .delete()
+            .match({ comision_id: id });
+
+        if (deleteRegistrosError) {
+            console.warn(`Error al eliminar registros de la comisión ${id}: ${deleteRegistrosError.message}`);
         }
 
         const { error: deleteComisionError } = await supabaseAdmin

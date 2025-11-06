@@ -61,6 +61,14 @@ const TODOS_LOS_MODULOS = [
     iconoKey: 'daeumrty',
     categoria: 'Gestión Administrativa'
   },
+  {
+    nombre: 'COMISIONES',
+    titulo: 'Gestión de Comisiones',
+    descripcion: 'Cree, apruebe y gestione las comisiones.',
+    ruta: '/protected/comisiones',
+    iconoKey: 'vqkaxtlm',
+    categoria: 'Gestión Administrativa'
+  },
 ];
 
 type Vistas = 'modulos' | 'asistencia' | 'comisiones';
@@ -114,10 +122,21 @@ export default function Dashboard() {
     TODOS_LOS_MODULOS
       .filter(m => {
         if (rol === 'SUPER' || rol === 'INVITADO') return true;
-        return modulos.includes(m.nombre);
+
+        const tieneModuloAsignado = modulos.includes(m.nombre);
+
+        if (m.nombre === 'COMISIONES') {
+          const esJefe = rol && rol.toUpperCase().includes('JEFE');
+          return esJefe || rol === 'RRHH' || rol === 'SECRETARIO';
+        }
+        
+        // RRHH y todos los demás módulos siguen esta regla:
+        return tieneModuloAsignado;
       })
       .sort((a, b) => a.titulo.localeCompare(b.titulo))
     , [rol, modulos]);
+
+
 
   const modulosPoliticas = useMemo(() =>
     modulosDisponibles.filter(m => m.categoria === 'Políticas Públicas'),
@@ -261,20 +280,23 @@ export default function Dashboard() {
             <div className="w-full md:max-w-[70%] mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
                 
-                <div className="space-y-4 mb-4">
-                  <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4">Políticas Públicas</h2>
-                  <div className="space-y-4">
-                    {modulosPoliticas.map((modulo) => renderModuleCard(modulo))}
+                {modulosPoliticas.length > 0 && (
+                  <div className="space-y-4 mb-4">
+                    <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4">Políticas Públicas</h2>
+                    <div className="space-y-4">
+                      {modulosPoliticas.map((modulo) => renderModuleCard(modulo))}
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="space-y-4 ">
-                   <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4">Gestión Administrativa</h2>
-                  <div className="space-y-4">
-                    {modulosGestion.map((modulo) => renderModuleCard(modulo))}
+                {modulosGestion.length > 0 && (
+                  <div className="space-y-4 ">
+                    <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4">Gestión Administrativa</h2>
+                    <div className="space-y-4">
+                      {modulosGestion.map((modulo) => renderModuleCard(modulo))}
+                    </div>
                   </div>
-                </div>
-
+                )}
               </div>
             </div>
 
@@ -285,7 +307,9 @@ export default function Dashboard() {
           </motion.div>
         ) : (
           <motion.div key="comisiones" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
+
             <MisComisiones />
+          
           </motion.div>
         )}
       </AnimatePresence>

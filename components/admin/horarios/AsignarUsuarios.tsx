@@ -17,7 +17,6 @@ interface AsignarUsuarioProps {
   horario: Horario;
 }
 
-// Componente para una sola fila de usuario en el modal
 function FilaUsuario({ 
   usuario, 
   horarioQueSeAsigna, 
@@ -36,18 +35,6 @@ function FilaUsuario({
   const handleAsignar = async () => {
     setIsSaving(true);
     
-    // Si el usuario ya tiene este horario, la acción es "Quitar" (asignar a Normal/null)
-    if (tieneEsteHorario) {
-      const success = await asignarHorarioUsuario(usuario.user_id, null);
-      if (success) {
-        toast.success(`Horario quitado a ${usuario.nombre}. (Vuelve a Normal)`);
-        onUsuarioAsignado(usuario.user_id, null);
-      }
-      setIsSaving(false);
-      return;
-    }
-
-    // Si tiene otro horario, pedir confirmación
     if (tieneOtroHorario) {
       const { isConfirmed } = await Swal.fire({
         title: 'Confirmar reasignación',
@@ -66,7 +53,6 @@ function FilaUsuario({
       }
     }
 
-    // Asignar el nuevo horario
     const success = await asignarHorarioUsuario(usuario.user_id, horarioQueSeAsigna.id);
     if (success) {
       toast.success(`Horario asignado a ${usuario.nombre}.`);
@@ -80,7 +66,6 @@ function FilaUsuario({
     <div className="flex items-center justify-between gap-2 p-2 hover:bg-gray-50">
       <div className="flex flex-col">
         <span className="text-xs font-medium text-gray-800">{usuario.nombre}</span>
-        {/* Mostramos el estado actual */}
         {(tieneEsteHorario || esHorarioNormal) && (
           <span className="text-xs text-green-600 font-semibold">
             Asignado: {horarioQueSeAsigna.nombre}
@@ -96,24 +81,23 @@ function FilaUsuario({
       <Button
         size="sm"
         onClick={handleAsignar}
-        disabled={isSaving}
-        className={`text-xs px-2 py-1 h-auto ${
+        disabled={isSaving || tieneEsteHorario || esHorarioNormal}
+        className={`text-xs px-2 py-1 h-auto text-white ${
           (tieneEsteHorario || esHorarioNormal) 
-            ? 'bg-red-600 hover:bg-red-700' 
+            ? 'bg-green-600 hover:bg-green-600 cursor-default' 
             : 'bg-blue-600 hover:bg-blue-700'
         }`}
       >
         {isSaving 
           ? <Loader2 className="h-4 w-4 animate-spin" /> 
           : (tieneEsteHorario || esHorarioNormal) 
-            ? 'Quitar' 
+            ? 'Asignado' 
             : 'Asignar'}
       </Button>
     </div>
   );
 }
 
-// Componente principal del Modal
 export default function AsignarUsuario({ isOpen, onClose, horario }: AsignarUsuarioProps) {
   const [usuarios, setUsuarios] = useState<UsuarioConHorario[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,25 +116,26 @@ export default function AsignarUsuario({ isOpen, onClose, horario }: AsignarUsua
     }
   }, [isOpen, loadData]);
 
-  const { usuariosAsignados, usuariosFiltrados } = useMemo(() => {
-    const asignados = usuarios.filter(u => 
+  const { usuariosAsignadosFiltrados, usuariosDisponiblesFiltrados } = useMemo(() => {
+    const lowerSearchTerm = searchTerm.toLowerCase();
+
+    const usuariosPreFiltrados = searchTerm
+      ? usuarios.filter(u => u.nombre?.toLowerCase().includes(lowerSearchTerm))
+      : usuarios;
+
+    const asignados = usuariosPreFiltrados.filter(u => 
       u.horario_id === horario.id || (horario.nombre === 'Normal' && u.horario_id === null)
     );
     
-    let filtrados: UsuarioConHorario[] = [];
-    if (searchTerm) {
-      filtrados = usuarios.filter(u => 
-        u.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        u.horario_id !== horario.id &&
-        !(horario.nombre === 'Normal' && u.horario_id === null)
-      );
-    }
+    const disponibles = usuariosPreFiltrados.filter(u => 
+      u.horario_id !== horario.id &&
+      !(horario.nombre === 'Normal' && u.horario_id === null)
+    );
     
-    return { usuariosAsignados: asignados, usuariosFiltrados: filtrados };
+    return { usuariosAsignadosFiltrados: asignados, usuariosDisponiblesFiltrados: disponibles };
   }, [usuarios, searchTerm, horario]);
   
   const handleUsuarioAsignado = (userId: string, newHorarioId: string | null) => {
-    // Actualiza la lista localmente
     setUsuarios(prevUsuarios => 
       prevUsuarios.map(u => 
         u.user_id === userId 
@@ -190,7 +175,7 @@ export default function AsignarUsuario({ isOpen, onClose, horario }: AsignarUsua
               <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Buscar usuario para asignar..."
+                  placeholder="Buscar usuario..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9 w-full text-xs"
@@ -203,30 +188,37 @@ export default function AsignarUsuario({ isOpen, onClose, horario }: AsignarUsua
                 <Cargando texto="Cargando usuarios..." />
               ) : (
                 <>
-                  {/* Lista de usuarios encontrados por el buscador */}
-                  {searchTerm && usuariosFiltrados.length > 0 && (
+                  {searchTerm && (
                     <div className="space-y-2">
-                      <h4 className="text-xs font-semibold text-gray-500 mt-2">Resultados de búsqueda:</h4>
-                      {usuariosFiltrados.map(usuario => (
-                        <FilaUsuario 
-                          key={usuario.user_id}
-                          usuario={usuario}
-                          horarioQueSeAsigna={horario}
-                          onUsuarioAsignado={handleUsuarioAsignado}
-                        />
-                      ))}
+                      <h4 className="text-xs font-semibold text-gray-500 mt-2">Resultados (disponibles):</h4>
+                      {usuariosDisponiblesFiltrados.length === 0 ? (
+                        <p className="text-center text-xs text-gray-500 py-2">No hay usuarios disponibles con ese nombre.</p>
+                      ) : (
+                        usuariosDisponiblesFiltrados.map(usuario => (
+                          <FilaUsuario 
+                            key={usuario.user_id}
+                            usuario={usuario}
+                            horarioQueSeAsigna={horario}
+                            onUsuarioAsignado={handleUsuarioAsignado}
+                          />
+                        ))
+                      )}
                       <hr className="my-4" />
                     </div>
                   )}
 
-                  {/* Lista de usuarios ya asignados a este horario */}
                   <h4 className="text-xs font-semibold text-gray-500">
-                    Usuarios ya asignados a este horario ({usuariosAsignados.length}):
+                    Usuarios ya asignados a este horario ({usuariosAsignadosFiltrados.length}):
                   </h4>
-                  {usuariosAsignados.length === 0 ? (
-                    <p className="text-center text-xs text-gray-500 py-4">Aún no hay usuarios asignados a este horario.</p>
+                  {usuariosAsignadosFiltrados.length === 0 ? (
+                    <p className="text-center text-xs text-gray-500 py-4">
+                      {searchTerm 
+                        ? 'No hay usuarios asignados que coincidan.' 
+                        : 'Aún no hay usuarios asignados a este horario.'
+                      }
+                    </p>
                   ) : (
-                    usuariosAsignados.map(usuario => (
+                    usuariosAsignadosFiltrados.map(usuario => (
                       <FilaUsuario 
                         key={usuario.user_id}
                         usuario={usuario}

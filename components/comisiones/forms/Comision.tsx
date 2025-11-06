@@ -15,6 +15,7 @@ import Comentarios from './Comentarios';
 import Asistentes from './Asistentes';
 import { X } from 'lucide-react';
 import Swal from 'sweetalert2';
+import useUserData from '@/hooks/sesion/useUserData';
 
 const customToast = (color: string) => Swal.mixin({
   toast: true,
@@ -42,6 +43,7 @@ interface ComisionFormProps {
 
 export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisionAEditar }: ComisionFormProps) {
   const [fechaSeleccionada, setFechaSeleccionada] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const { rol } = useUserData();
 
   const methods = useForm<ComisionFormData>({
     resolver: zodResolver(comisionSchema),
@@ -90,12 +92,24 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
     let hour24 = parseInt(formData.hora, 10);
     if (formData.periodo === 'PM' && hour24 < 12) {
       hour24 += 12;
-    } else if (formData.periodo === 'AM' && hour24 === 12) { // Medianoche
+    } else if (formData.periodo === 'AM' && hour24 === 12) { 
       hour24 = 0;
     }
 
     const [year, month, day] = fechaSeleccionada.split('-').map(Number);
     const fechaHora = new Date(year, month - 1, day, hour24, parseInt(formData.minuto, 10));
+
+    const esJefe = rol && rol.toUpperCase().includes('JEFE');
+    const esAdminSuperior = rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO';
+
+    let aprobado = false;
+    if (esAdminSuperior) {
+      aprobado = true;
+    }
+    
+    if (comisionAEditar && esJefe) {
+      aprobado = false;
+    }
 
     const datosComision = {
       titulo: formData.titulo,
@@ -103,6 +117,7 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
       fecha_hora: fechaHora.toISOString(),
       encargadoId: formData.encargadoId,
       userIds: formData.userIds,
+      aprobado: aprobado,
       ...(comisionAEditar && { id: comisionAEditar.id }),
     };
 
@@ -118,10 +133,26 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
         throw new Error(errorData.error || 'Error al guardar la comisión.');
       }
       
-      customToast(comisionAEditar ? '#3b82f6' : '#22c55e').fire({
-        icon: 'success',
-        title: comisionAEditar ? 'Comisión actualizada!' : 'Comisión creada!'
-      });
+      if (esJefe) {
+        const titulo = comisionAEditar ? 'Comisión Editada con Éxito' : 'Comisión Creada con Éxito';
+        await Swal.fire({
+          icon: 'success',
+          title: titulo,
+          text: 'Debe de ser aprobada por Recursos Humanos antes de estar disponible.'
+        });
+      } else if (esAdminSuperior) {
+        const titulo = comisionAEditar ? 'Comisión Actualizada y Aprobada' : 'Comisión Creada y Aprobada';
+        await Swal.fire({
+          icon: 'success',
+          title: titulo,
+          text: 'La comisión ha sido guardada y aprobada exitosamente.'
+        });
+      } else {
+        customToast(comisionAEditar ? '#3b82f6' : '#22c55e').fire({
+          icon: 'success',
+          title: comisionAEditar ? 'Comisión actualizada!' : 'Comisión creada!'
+        });
+      }
       
       onSave();
       onClose();
@@ -135,7 +166,6 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          // --- MODIFICADO: Se quita backdrop-blur y se añade fondo semitransparente ---
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -143,7 +173,6 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
           onClick={onClose}
         >
           <motion.div
-            // --- MODIFICADO: Se añade borde ---
             className="bg-slate-50 rounded-xl border border-gray-300 w-full max-w-4xl max-h-[90vh] overflow-y-auto"
             initial={{ scale: 0.9, y: 30 }}
             animate={{ scale: 1, y: 0 }}
@@ -171,16 +200,13 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          {/* --- MODIFICADO: Se quita shadow-sm --- */}
                           <select {...register("hora")} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                             {Array.from({ length: 12 }, (_, i) => i + 1).map(h => (<option key={h} value={h.toString().padStart(2, '0')}>{h.toString().padStart(2, '0')}</option>))}
                           </select>
                           <span>:</span>
-                          {/* --- MODIFICADO: Se quita shadow-sm --- */}
                           <select {...register("minuto")} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                             {Array.from({ length: 12 }, (_, i) => i * 5).map(m => (<option key={m} value={m.toString().padStart(2, '0')}>{m.toString().padStart(2, '0')}</option>))}
                           </select>
-                          {/* --- MODIFICADO: Se quita shadow-sm --- */}
                           <select {...register("periodo")} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                             <option value="AM">AM</option>
                             <option value="PM">PM</option>

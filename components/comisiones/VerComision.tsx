@@ -90,7 +90,10 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
   const exportRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  const hasPermission = rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO';
+  const hasPermissionEditar = rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO'|| (rol && rol.toUpperCase().includes('JEFE'));
+
+    const hasPermissionEliminar= rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO';
+
 
   const fechaCompleta = parseISO(comision.fecha_hora.replace(' ', 'T'));
   const fechaHoraAbreviada = format(fechaCompleta, "EEE, d MMM, yyyy | h:mm a", { locale: es });
@@ -152,11 +155,15 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
               className='text-blue-600'
             >
                 <LogOut className="mr-2 h-4 w-4 text-blue-600 rotate-180" />
-                Mostrar todas las comisiones
+                Volver a todas las comisiones
             </Button>
             
-            {hasPermission && (
+
+
               <div className="flex items-center gap-4">
+            {hasPermissionEditar && (
+
+
                 <Button
                   variant="link"
                   onClick={() => onEdit(comision)}
@@ -165,6 +172,11 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
                   <Pencil className="h-4 w-4" />
                   Editar
                 </Button>
+
+                )}
+
+                  {hasPermissionEliminar && (
+
                 <Button
                   variant="link"
                   onClick={() => onDelete(comision.id)}
@@ -173,8 +185,10 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
                   <Trash2 className="h-4 w-4" />
                   Eliminar
                 </Button>
+
+                      )}
               </div>
-            )}
+      
 
             <Button
               variant="link"

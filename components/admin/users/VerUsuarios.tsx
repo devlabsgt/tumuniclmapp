@@ -9,10 +9,9 @@ import AsistenciaTable from '@/components/admin/users/AsistenciaTable';
 import useUserData from '@/hooks/sesion/useUserData';
 import { useObtenerAsistencias } from '@/hooks/asistencia/useObtenerAsistencias';
 import { useListaUsuarios } from '@/hooks/usuarios/useListarUsuarios';
-import VerComision from '../../comisiones/Ver';
 import Cargando from '@/components/ui/animations/Cargando';
 
-type Vistas = 'usuarios' | 'asistencia' | 'comisiones';
+type Vistas = 'usuarios' | 'asistencia';
 
 export default function VerUsuarios() {
   const router = useRouter();
@@ -63,13 +62,6 @@ export default function VerUsuarios() {
               >
                 Asistencia
               </button>
-              <button
-                type="button"
-                onClick={() => setVistaActiva('comisiones')}
-                className={`flex-1 px-4 py-2 rounded-md transition-all duration-200 ${vistaActiva === 'comisiones' ? 'bg-purple-100 text-purple-600 shadow text-sm font-bold ' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}
-              >
-                Comisiones
-              </button>
             </div>
       </div>
 
@@ -89,11 +81,6 @@ export default function VerUsuarios() {
               setFechaInicio={setFechaInicio}
               setFechaFinal={setFechaFinal}
             />
-          </motion.div>
-        )}
-        {vistaActiva === 'comisiones' && (
-          <motion.div key="comisiones" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
-            <VerComision usuarios={usuariosFiltrados} />
           </motion.div>
         )}
       </AnimatePresence>
