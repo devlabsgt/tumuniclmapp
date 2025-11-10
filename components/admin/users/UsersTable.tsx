@@ -17,7 +17,7 @@ import Swal from 'sweetalert2';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useDependencias } from '@/hooks/dependencias/useDependencias';
 import Cargando from '@/components/ui/animations/Cargando';
-import { User, Clock, LogOut, Trash2, Search } from 'lucide-react';
+import { User, Clock, LogOut, Trash2, Search, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp } from 'lucide-react';
 
 type UsuarioConJerarquia = Usuario & {
   puesto_nombre: string | null;
@@ -43,6 +43,9 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
   const [nivel3Id, setNivel3Id] = useState<string | null>(null);
   
   const { dependencias, loading: cargandoDependencias } = useDependencias();
+
+  const [oficinasAbiertas, setOficinasAbiertas] = useState<Record<string, boolean>>({});
+  const [todosAbiertos, setTodosAbiertos] = useState(false);
 
   const hasCreatePermission = rolActual === 'SUPER' || rolActual === 'RRHH' || rolActual === 'SECRETARIO';
   const canOpenModal = rolActual === 'SUPER' || rolActual === 'RRHH' || rolActual === 'SECRETARIO';
@@ -185,11 +188,32 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
     const newId = value === 'todos' ? null : value;
     setNivel2Id(newId);
     setNivel3Id(null); 
+    setOficinasAbiertas({});
+    setTodosAbiertos(false);
   };
   
   const handleNivel3Change = (value: string) => {
     const newId = value === 'todos' ? null : value;
     setNivel3Id(newId);
+    setOficinasAbiertas({});
+    setTodosAbiertos(false);
+  };
+
+  const toggleOficina = (nombreOficina: string) => {
+    setOficinasAbiertas(prev => ({
+      ...prev,
+      [nombreOficina]: !prev[nombreOficina]
+    }));
+  };
+
+  const toggleTodos = () => {
+    const nuevoEstado = !todosAbiertos;
+    setTodosAbiertos(nuevoEstado);
+    const nuevasOficinasAbiertas: Record<string, boolean> = {};
+    usuariosAgrupados.forEach(grupo => {
+      nuevasOficinasAbiertas[grupo.oficina_nombre] = nuevoEstado;
+    });
+    setOficinasAbiertas(nuevasOficinasAbiertas);
   };
 
   return (
@@ -276,40 +300,89 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                 No se encontraron usuarios con los filtros seleccionados.
               </p>
             ) : (
-              <div className="w-full overflow-x-auto">
-                <table className="w-full table-fixed text-xs">
-                  <thead className="bg-gray-50 text-left">
-                    <tr>
-                      <th className="py-2 px-2 text-[10px] xl:text-xs w-[45%]">Nombre</th>
-                      <th className="py-2 px-2 text-[10px] xl:text-xs w-[55%]">Puesto</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {usuariosAgrupados.map((grupo) => (
-                      <Fragment key={grupo.path_orden}>
-                        <tr>
-                          <td colSpan={3} className="bg-gray-200 text-center py-1 px-2 text-sm font-semibold text-blue-500">
-                            {grupo.oficina_nombre}
-                          </td>
-                        </tr>
-                        {grupo.usuarios.map((usuario) => (
-                          <tr
-                            key={usuario.id}
-                            onClick={() => handleVerUsuario(usuario.id)}
-                            className={`border-b transition-colors hover:bg-gray-100 group ${canOpenModal ? 'cursor-pointer' : 'cursor-default'}`}
-                          >
-                            <td className="py-2 px-2 text-[10px] xl:text-xs text-gray-800 truncate">
-                              {usuario.nombre || '—'}
-                            </td>
-                            <td className="py-2 px-2 text-[10px] xl:text-xs text-gray-600 truncate">
-                              {usuario.puesto_nombre || '—'}
-                            </td>
-                          </tr>
-                        ))}
-                      </Fragment>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="w-full">
+                <div className="flex flex-col md:flex-row md:justify-center mb-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={toggleTodos}
+                    className="w-full md:w-auto text-xs flex items-center justify-center gap-2 h-9 px-4 rounded-sm"
+                  >
+                    {todosAbiertos ? <ChevronsUp className="h-3.5 w-3.5" /> : <ChevronsDown className="h-3.5 w-3.5" />}
+                    {todosAbiertos ? 'Cerrar todas las oficinas' : 'Abrir todas las oficinas'}
+                  </Button>
+                </div>
+
+                <div className="w-full overflow-x-auto">
+                  <table className="w-full table-fixed text-xs">
+                    <thead className="bg-slate-50 text-left">
+                      <tr>
+                        <th className="py-3 px-4 text-[10px] xl:text-xs w-[45%] font-semibold text-slate-600">Nombre</th>
+                        <th className="py-3 px-2 text-[10px] xl:text-xs w-[55%] font-semibold text-slate-600 pl-4">Puesto</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {usuariosAgrupados.map((grupo) => {
+                         const estaAbierta = oficinasAbiertas[grupo.oficina_nombre] || false;
+
+                         return (
+                          <Fragment key={grupo.path_orden}>
+                            <tr className="border-b border-slate-100">
+                              <td colSpan={2} className="p-1">
+                                <div 
+                                  onClick={() => toggleOficina(grupo.oficina_nombre)}
+                                  className="bg-slate-100 hover:bg-slate-200 cursor-pointer transition-colors py-2.5 px-4 text-sm font-semibold text-blue-600 flex items-center justify-between rounded-sm"
+                                >
+                                  <span>{grupo.oficina_nombre} ({grupo.usuarios.length})</span>
+                                  <motion.div
+                                    initial={false}
+                                    animate={{ rotate: estaAbierta ? 180 : 0 }}
+                                    transition={{ duration: 0.3 }}
+                                  >
+                                    <ChevronDown className="h-4 w-4 text-gray-600" />
+                                  </motion.div>
+                                </div>
+                              </td>
+                            </tr>
+
+                            <AnimatePresence initial={false}>
+                              {estaAbierta && (
+                                <motion.tr
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: 'auto' }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                                  style={{ overflow: 'hidden' }}
+                                >
+                                  <td colSpan={2} className="p-0">
+                                    <table className="w-full">
+                                      <tbody>
+                                        {grupo.usuarios.map((usuario) => (
+                                          <tr
+                                            key={usuario.id}
+                                            onClick={() => handleVerUsuario(usuario.id)}
+                                            className={`border-b border-slate-100 transition-colors hover:bg-blue-50 group ${canOpenModal ? 'cursor-pointer' : 'cursor-default'}`}
+                                          >
+                                            <td className="py-3 px-4 text-[11px] xl:text-xs text-slate-700 w-[45%] truncate">
+                                              {usuario.nombre || '—'}
+                                            </td>
+                                            <td className="py-3 px-2 text-[11px] xl:text-xs text-slate-600 w-[55%] truncate pl-4">
+                                              {usuario.puesto_nombre || '—'}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </td>
+                                </motion.tr>
+                              )}
+                            </AnimatePresence>
+                          </Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
