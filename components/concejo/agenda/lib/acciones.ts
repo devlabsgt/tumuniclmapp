@@ -93,6 +93,22 @@ export const actualizarEstadoAgenda = async (id: string, estado: string): Promis
   }
 };
 
+export const eliminarAgenda = async (id: string): Promise<boolean> => {
+  const { error } = await supabase
+    .from('agenda_concejo')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error al eliminar la agenda:', error.message);
+    toast.error('Error al eliminar la agenda.');
+    return false;
+  }
+  
+  toast.success('Agenda eliminada con éxito.');
+  return true;
+};
+
 export const fetchCategorias = async (): Promise<CategoriaItem[]> => {
   const { data, error } = await supabase
     .from('categorias_tareas_concejo')

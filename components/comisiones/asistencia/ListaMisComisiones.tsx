@@ -239,6 +239,7 @@ export default function ListaMisComisiones({
                                   rol={null}
                                   onClose={() => {}}
                                   onAbrirMapa={onAbrirMapa}
+                                  onAprobar={() => {}}
                                   onEdit={() => {}}
                                   onDelete={() => {}}
                                 />

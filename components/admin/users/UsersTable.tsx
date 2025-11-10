@@ -12,13 +12,12 @@ import {
   TransitionChild,
 } from '@headlessui/react';
 import { motion, AnimatePresence } from 'framer-motion';
-import UsuarioPage from './ver/UsuarioPage';
 import UsuarioForm from './forms/UsuarioForm';
 import Swal from 'sweetalert2';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useDependencias } from '@/hooks/dependencias/useDependencias';
 import Cargando from '@/components/ui/animations/Cargando';
-import { CircleAlert, User, Clock } from 'lucide-react'; // <-- Iconos importados
+import { User, Clock, LogOut, Trash2, Search } from 'lucide-react';
 
 type UsuarioConJerarquia = Usuario & {
   puesto_nombre: string | null;
@@ -37,7 +36,7 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
   const [listaUsuarios, setListaUsuarios] = useState<UsuarioConJerarquia[]>(usuarios);
   const [terminoBusqueda, setTerminoBusqueda] = useState('');
   const [usuarioIdSeleccionado, setUsuarioIdSeleccionado] = useState<string | null>(null);
-  const [modoModal, setModoModal] = useState<'informacion' | 'editar'>('informacion');
+  const [modoModal, setModoModal] = useState<'editar'>('editar');
   const [eliminando, setEliminando] = useState(false);
 
   const [nivel2Id, setNivel2Id] = useState<string | null>(null);
@@ -87,11 +86,12 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
     }
     
     usuariosFiltrados = usuariosFiltrados.filter(usuario => {
+      const lowerTermino = terminoBusqueda.toLowerCase();
       const busquedaCoincide = terminoBusqueda === '' ||
-        (usuario.nombre?.toLowerCase() || '').includes(terminoBusqueda.toLowerCase()) ||
-        (usuario.email?.toLowerCase() || '').includes(terminoBusqueda.toLowerCase()) ||
-        (usuario.puesto_nombre?.toLowerCase() || '').includes(terminoBusqueda.toLowerCase()) ||
-        (usuario.oficina_nombre?.toLowerCase() || '').includes(terminoBusqueda.toLowerCase());
+        (usuario.nombre?.toLowerCase() || '').includes(lowerTermino) ||
+        (usuario.email?.toLowerCase() || '').includes(lowerTermino) ||
+        (usuario.puesto_nombre?.toLowerCase() || '').includes(lowerTermino) ||
+        (usuario.oficina_nombre?.toLowerCase() || '').includes(lowerTermino);
 
       const oficinaCoincide = !oficinasPermitidas || (oficinasPermitidas.has(usuario.oficina_nombre));
 
@@ -123,14 +123,13 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
 
   const handleVerUsuario = (id: string) => {
     if (!canOpenModal) return;
-    
     setUsuarioIdSeleccionado(id);
-    setModoModal('informacion');
+    setModoModal('editar');
   };
 
   const handleCerrarModal = () => {
     setUsuarioIdSeleccionado(null);
-    setModoModal('informacion');
+    setModoModal('editar');
   };
   
   const handleSuccess = () => {
@@ -198,69 +197,74 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
       <div className="w-full xl:w-4/5 mx-auto md:px-4">
         <div className="p-2 bg-white rounded-lg shadow-md space-y-4 w-full">
           
-          <div className="flex flex-col md:flex-row justify-between items-center gap-3 p-2 bg-slate-50 rounded-lg">
+          <div className="flex flex-col gap-3 p-2 bg-slate-50 rounded-lg">
             
-            <div className="w-full md:w-1/3">
-              <Input
-                type="text"
-                placeholder="Buscar por nombre, usuario, puesto..."
-                value={terminoBusqueda}
-                onChange={(e) => setTerminoBusqueda(e.target.value)}
-                className="w-full text-xs"
-              />
-            </div>
-
-            {cargandoDependencias ? (
-              <div className="w-full md:w-1/3">
-                <Cargando texto="Cargando filtros..." />
-              </div>
-            ) : (
-              <div className='w-full md:w-1/3 flex flex-col gap-2'>
-                <Select onValueChange={handleNivel2Change} value={nivel2Id || 'todos'}>
-                  <SelectTrigger className="bg-white text-xs">
-                    <SelectValue placeholder="Dependencias/Políticas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todas las dependencias/políticas</SelectItem>
-                    {oficinasNivel2.map(oficina => (
-                      <SelectItem key={oficina.id} value={oficina.id}>{oficina.nombre}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                
-                <Select onValueChange={handleNivel3Change} value={nivel3Id || 'todos'} disabled={!nivel2Id}>
-                  <SelectTrigger className="bg-white text-xs">
-                    <SelectValue placeholder="Oficina" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todas las oficinas</SelectItem>
-                    {oficinasNivel3.map(oficina => (
-                      <SelectItem key={oficina.id} value={oficina.id}>{oficina.nombre}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="w-full md:w-1/3 flex flex-col md:flex-row justify-end gap-2">
-              {hasCreatePermission && (
+            {/* Fila 1: Selects de Dependencias (50% ancho en md+) */}
+            <div className="flex flex-col md:flex-row gap-2 w-full md:w-1/2">
+              {cargandoDependencias ? (
+                  <Cargando texto="Cargando filtros..." />
+              ) : (
                 <>
-                  <Button
-                    onClick={() => router.push("/protected/admin/horarios")} // Asumo esta ruta, cámbiala si es necesario
-                    className="px-4 py-2 text-white bg-blue-600 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 flex-shrink-0 text-xs w-full md:w-auto flex items-center justify-center gap-2"
-                  >
-                    <Clock className="h-4 w-4" />
-                    Asignación de Horarios
-                  </Button>
-                  <Button
-                    onClick={() => router.push("/protected/admin/sign-up")}
-                    className="px-4 py-2 text-white bg-green-600 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 flex-shrink-0 text-xs w-full md:w-auto flex items-center justify-center gap-2"
-                  >
-                    <User className="h-4 w-4" />
-                    Nuevo Usuario
-                  </Button>
+                  <Select onValueChange={handleNivel2Change} value={nivel2Id || 'todos'}>
+                    <SelectTrigger className="bg-white text-xs w-full">
+                      <SelectValue placeholder="Dependencias/Políticas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todas las dependencias/políticas</SelectItem>
+                      {oficinasNivel2.map(oficina => (
+                        <SelectItem key={oficina.id} value={oficina.id}>{oficina.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Select onValueChange={handleNivel3Change} value={nivel3Id || 'todos'} disabled={!nivel2Id}>
+                    <SelectTrigger className="bg-white text-xs w-full">
+                      <SelectValue placeholder="Oficina" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todas las oficinas</SelectItem>
+                      {oficinasNivel3.map(oficina => (
+                        <SelectItem key={oficina.id} value={oficina.id}>{oficina.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </>
               )}
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-2 w-full items-center">
+                <div className="relative w-full md:w-3/4  mt-4">
+                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                        type="text"
+                        placeholder="Buscar por Nombre, Dependencia o Puesto..."
+                        value={terminoBusqueda}
+                        onChange={(e) => setTerminoBusqueda(e.target.value)}
+                        className="w-full text-xs pl-8 bg-white h-9"
+                    />
+                </div>
+                <div className="flex w-full md:w-1/4 gap-2 mt-4">
+                    {hasCreatePermission && (
+                        <>
+                        <Button
+                            onClick={() => router.push("/protected/admin/horarios")}
+                            className="flex-1 px-2 py-2 text-white bg-blue-600 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 text-xs flex items-center justify-center gap-1 h-9"
+                            title="Asignación de Horarios"
+                        >
+                            <Clock className="h-4 w-4" />
+                            <span className="text-xs">Horarios</span>
+                        </Button>
+                        <Button
+                            onClick={() => router.push("/protected/admin/sign-up")}
+                            className="flex-1 px-2 py-2 text-white bg-green-600 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 text-xs flex items-center justify-center gap-1 h-9"
+                            title="Nuevo Usuario"
+                        >
+                            <User className="h-4 w-4" />
+                            <span className="text-xs">Crear Usuario</span>
+                        </Button>
+                        </>
+                    )}
+                </div>
             </div>
           </div>
 
@@ -276,9 +280,8 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                 <table className="w-full table-fixed text-xs">
                   <thead className="bg-gray-50 text-left">
                     <tr>
-                      <th className="py-2 px-2 text-[10px] xl:text-xs w-[30%]">Nombre</th>
-                      <th className="py-2 px-2 text-[10px] xl:text-xs w-[30%]">Usuario (Email)</th>
-                      <th className="py-2 px-2 text-[10px] xl:text-xs w-[40%]">Puesto</th>
+                      <th className="py-2 px-2 text-[10px] xl:text-xs w-[45%]">Nombre</th>
+                      <th className="py-2 px-2 text-[10px] xl:text-xs w-[55%]">Puesto</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -299,9 +302,6 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                               {usuario.nombre || '—'}
                             </td>
                             <td className="py-2 px-2 text-[10px] xl:text-xs text-gray-600 truncate">
-                              {usuario.email}
-                            </td>
-                            <td className="py-2 px-2 text-[10px] xl:text-xs text-gray-600 truncate">
                               {usuario.puesto_nombre || '—'}
                             </td>
                           </tr>
@@ -317,7 +317,7 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
       </div>
       
       <Transition show={!!usuarioIdSeleccionado} as={Fragment}>
-        <Dialog onClose={handleCerrarModal} className="relative z-50">
+        <Dialog onClose={() => {}} className="relative z-50">
           <TransitionChild as={Fragment}
             enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100"
             leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
@@ -325,58 +325,32 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
           </TransitionChild>
           <div className="fixed inset-0 flex items-center justify-center p-4">
             <DialogPanel className="bg-white rounded-lg w-full max-w-lg min-h-[600px] p-6 shadow-xl">
+              
               <div className="flex justify-between items-center mb-6">
-                <div className="flex gap-4">
-                  <Button variant="link" onClick={handleCerrarModal} className="text-blue-600 text-base underline flex-shrink-0">
-                    Salir
-                  </Button>
-                  {(rolActual === 'SUPER') && (
-                    <Button
-                      variant="link"
-                      onClick={handleEliminarUsuario}
-                      disabled={eliminando}
-                      className="text-red-600 hover:text-red-700 underline flex-shrink-0"
-                    >
-                      {eliminando ? 'Eliminando...' : 'Eliminar'}
-                    </Button>
-                  )}
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex rounded-md border p-1 bg-gray-50 flex-shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setModoModal('informacion')}
-                      className={`flex-1 rounded-md py-2 px-4 text-sm font-semibold transition-colors duration-200 ${
-                        modoModal === 'informacion' ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      Información
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setModoModal('editar')}
-                      className={`flex-1 rounded-md py-2 px-4 text-sm font-semibold transition-colors duration-200 ${
-                        modoModal === 'editar' ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      Editar
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <AnimatePresence mode="wait">
-                {modoModal === 'informacion' && (
-                  <motion.div
-                    key="info"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.3 }}
+                <Button 
+                  variant="ghost" 
+                  onClick={handleCerrarModal} 
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex items-center gap-2"
+                >
+                  <LogOut className="h-4 w-4 rotate-180" />
+                  Salir
+                </Button>
+
+                {(rolActual === 'SUPER') && (
+                  <Button
+                    variant="ghost"
+                    onClick={handleEliminarUsuario}
+                    disabled={eliminando}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-2"
                   >
-                    <UsuarioPage id={usuarioIdSeleccionado} onClose={handleCerrarModal} />
-                  </motion.div>
+                    <Trash2 className="h-4 w-4" />
+                    {eliminando ? 'Eliminando...' : 'Eliminar'}
+                  </Button>
                 )}
-                {modoModal === 'editar' && usuarioIdSeleccionado && (
+              </div>
+
+              <AnimatePresence mode="wait">
+                {usuarioIdSeleccionado && (
                   <motion.div
                     key="editar"
                     initial={{ opacity: 0, x: 20 }}

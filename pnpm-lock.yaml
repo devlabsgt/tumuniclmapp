@@ -155,6 +155,9 @@ importers:
       react-icons:
         specifier: ^5.5.0
         version: 5.5.0(react@19.0.0)
+      react-simple-pull-to-refresh:
+        specifier: ^1.3.3
+        version: 1.3.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       react-simple-typewriter:
         specifier: ^5.0.1
         version: 5.0.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -3302,6 +3305,12 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
+
+  react-simple-pull-to-refresh@1.3.3:
+    resolution: {integrity: sha512-6qXsa5RtNVmKJhLWvDLIX8UK51HFtCEGjdqQGf+M1Qjrcc4qH4fki97sgVpGEFBRwbY7DiVDA5N5p97kF16DTw==}
+    peerDependencies:
+      react: ^16.10.2 || ^17.0.0 || ^18.0.0
+      react-dom: ^16.10.2 || ^17.0.0 || ^18.0.0
 
   react-simple-typewriter@5.0.1:
     resolution: {integrity: sha512-vA5HkABwJKL/DJ4RshSlY/igdr+FiVY4MLsSQYJX6FZG/f1/VwN4y1i3mPXRyfaswrvI8xii1kOVe1dYtO2Row==}
@@ -7329,6 +7338,11 @@ snapshots:
       use-sidecar: 1.1.3(@types/react@19.1.16)(react@19.0.0)
     optionalDependencies:
       '@types/react': 19.1.16
+
+  react-simple-pull-to-refresh@1.3.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
+    dependencies:
+      react: 19.0.0
+      react-dom: 19.0.0(react@19.0.0)
 
   react-simple-typewriter@5.0.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
     dependencies:

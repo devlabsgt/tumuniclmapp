@@ -4,24 +4,22 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import useUserData from '@/hooks/sesion/useUserData';
 import { es } from 'date-fns/locale';
-import { 
-  format, 
-  isSameDay, 
-  getHours, 
-  getMinutes, 
-  getDay, 
-  set, 
-  addMinutes, 
-  isBefore, 
-  isAfter, 
-  parseISO 
+import {
+  format,
+  isSameDay,
+  getDay,
+  set,
+  addMinutes,
+  isBefore,
+  isAfter,
+  parseISO
 } from 'date-fns';
-import { Clock, CalendarCheck, CalendarDays } from 'lucide-react'; 
+import { Clock, CalendarCheck, CalendarDays, List } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Calendario from './Calendario';
 import Mapa from '../ui/modals/Mapa';
 import Cargando from '@/components/ui/animations/Cargando';
-import Swal from 'sweetalert2';
+import Swal, { SweetAlertOptions } from 'sweetalert2';
 
 import {
   marcarNuevaAsistencia
@@ -46,40 +44,36 @@ const formatScheduleTime = (timeString: string | null | undefined) => {
 
 const formatScheduleDays = (days: number[] | null | undefined): string => {
   if (!days || days.length === 0) return 'Horario no asignado';
-  
   if (days.length === 5 && days[0] === 1 && days[1] === 2 && days[2] === 3 && days[3] === 4 && days[4] === 5) {
     return 'Lunes a Viernes';
   }
-
   if (days.length === 6 && days[0] === 1 && days[1] === 2 && days[2] === 3 && days[3] === 4 && days[4] === 5 && days[5] === 6) {
     return 'Lunes a Sábado';
   }
-
   const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
   return days.sort((a, b) => a - b).map(d => dayNames[d] || '?').join(', ');
 };
 
 export default function Asistencia() {
-  const { 
-    userId, 
-    nombre, 
-    cargando: cargandoUsuario, 
+  const {
+    userId,
+    nombre,
+    cargando: cargandoUsuario,
     horario_nombre,
     horario_dias,
     horario_entrada,
-    horario_salida 
+    horario_salida
   } = useUserData();
-  
+
   const { asistencias: todosLosRegistros, loading: cargandoRegistros, fetchAsistencias } = useAsistenciaUsuario(userId, null, null);
   const fechaHoraGt = useFechaHora();
   const { ubicacion, cargando: cargandoGeo, obtenerUbicacion } = useGeolocalizacion();
 
   const [cargando, setCargando] = useState(false);
-  const [notas, setNotas] = useState('');
   const [modalMapaAbierto, setModalMapaAbierto] = useState(false);
-  const [registrosSeleccionadosParaMapa, setRegistrosSeleccionadosParaMapa] = useState<{ entrada: any | null, salida: any | null }>({ entrada: null, salida: null });
+  const [registrosSeleccionadosParaMapa, setRegistrosSeleccionadosParaMapa] = useState<{ entrada: any | null, salida: any | null, multiple?: any[] }>({ entrada: null, salida: null });
   const [activeTab, setActiveTab] = useState<'controlResumen' | 'semanal'>('controlResumen');
-  const [tipoRegistroPendiente, setTipoRegistroPendiente] = useState<'Entrada' | 'Salida' | null>(null);
+  const [tipoRegistroPendiente, setTipoRegistroPendiente] = useState<'Entrada' | 'Salida' | 'Marca' | null>(null);
   const [notasPendientes, setNotasPendientes] = useState('');
 
   const {
@@ -87,7 +81,8 @@ export default function Asistencia() {
     scheduleEntrada,
     scheduleSalida,
     scheduleSalidaTarde,
-    horarioFormateado
+    horarioFormateado,
+    esHorarioMultiple
   } = useMemo(() => {
     const horaEntradaStr = horario_entrada || '08:00:00';
     const horaSalidaStr = horario_salida || '16:00:00';
@@ -104,15 +99,17 @@ export default function Asistencia() {
     const esDiaLaboral = diasLaborales.includes(diaDeLaSemana);
 
     const estaFueraDeHorario = !esDiaLaboral || isBefore(fechaHoraGt, scheduleEntrada) || isAfter(fechaHoraGt, scheduleSalida);
-    
+
     const horarioFormateado = {
       nombre: horario_nombre || 'Normal',
       dias: formatScheduleDays(horario_dias),
       entrada: formatScheduleTime(horario_entrada),
       salida: formatScheduleTime(horario_salida)
     };
-    
-    return { estaFueraDeHorario, scheduleEntrada, scheduleSalida, scheduleSalidaTarde, horarioFormateado };
+
+    const esHorarioMultiple = horario_nombre?.trim().toLowerCase() === 'multiple';
+
+    return { estaFueraDeHorario, scheduleEntrada, scheduleSalida, scheduleSalidaTarde, horarioFormateado, esHorarioMultiple };
   }, [fechaHoraGt, horario_entrada, horario_salida, horario_dias, horario_nombre]);
 
   const registroEntradaHoy = useMemo(() => {
@@ -127,6 +124,11 @@ export default function Asistencia() {
     return todosLosRegistros.find((r: any) =>
       isSameDay(parseISO(r.created_at), fechaHoraGt) && r.tipo_registro === 'Salida'
     );
+  }, [todosLosRegistros, fechaHoraGt]);
+
+  const registrosHoyMultiple = useMemo(() => {
+    if (!todosLosRegistros) return [];
+    return todosLosRegistros.filter((r: any) => isSameDay(parseISO(r.created_at), fechaHoraGt));
   }, [todosLosRegistros, fechaHoraGt]);
 
   useEffect(() => {
@@ -146,108 +148,75 @@ export default function Asistencia() {
       setTipoRegistroPendiente(null);
       setNotasPendientes('');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ubicacion, tipoRegistroPendiente]);
 
-  const handleIniciarMarcado = async (tipo: 'Entrada' | 'Salida') => {
-    let notasDeJustificacion = notas;
-    let proceder = false;
+  const handleIniciarMarcado = async (tipo: 'Entrada' | 'Salida' | 'Marca') => {
+    let swalConfig: SweetAlertOptions = {
+      input: 'textarea',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: `Sí, realizar marca`,
+      cancelButtonText: 'Cancelar',
+    };
 
-    if (tipo === 'Salida') {
+    if (tipo === 'Marca') {
+      swalConfig = {
+        ...swalConfig,
+        title: 'Realizar Marca',
+        text: 'Por favor especifique el detalle de esta marca.',
+        icon: 'info',
+        inputPlaceholder: 'Por favor escriba el tipo de Marca que está realizando...',
+        confirmButtonText: 'Confirmar Marca',
+        inputValidator: (value) => {
+          if (!value) return '¡Debe especificar el tipo de marca que está realizando!';
+        }
+      };
+    } else if (tipo === 'Salida') {
+      swalConfig.confirmButtonText = 'Sí, marcar Salida';
       const esSalidaTemprana = isBefore(fechaHoraGt, scheduleSalida);
       const esSalidaTarde = isAfter(fechaHoraGt, scheduleSalidaTarde);
-
       if (esSalidaTemprana || esSalidaTarde) {
         const motivo = esSalidaTemprana ? 'antes' : 'después';
-        const titulo = esSalidaTemprana ? 'Justificación de Salida Temprana' : 'Justificación de Salida Tarde';
-        
-        const { value: notasSwal, isConfirmed } = await Swal.fire({
-          title: titulo,
-          text: `Está marcando su salida ${motivo} del horario asignado (${format(scheduleSalida, 'h:mm a', { locale: es })}). Por favor, ingrese una justificación.`,
-          input: 'textarea',
-          inputPlaceholder: 'Escriba su justificación aquí...',
+        swalConfig = {
+          ...swalConfig,
+          title: esSalidaTemprana ? 'Justificación de Salida Temprana' : 'Justificación de Salida Tarde',
+          text: `Está marcando su salida ${motivo} del horario asignado (${format(scheduleSalida, 'h:mm a', { locale: es })}). Por favor, ingrese una justificación obligatoria.`,
           icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#3085d6',
-          cancelButtonColor: '#d33',
-          confirmButtonText: 'Marcar Salida',
-          cancelButtonText: 'Cancelar',
-          inputValidator: (value) => {
-            if (!value) {
-              return '¡Necesita escribir una justificación para marcar su salida!';
-            }
-          }
-        });
-
-        if (isConfirmed && notasSwal) {
-          if (esSalidaTemprana) {
-            notasDeJustificacion = `Salida Temprano: ${notasSwal}`;
-          } else {
-            notasDeJustificacion = `Salida Tarde: ${notasSwal}`;
-          }
-          proceder = true;
-        }
+          inputPlaceholder: 'Escriba su justificación aquí (requerido)...',
+          inputValidator: (value) => { if (!value) return '¡Necesita justificación!'; }
+        };
       } else {
-        const result = await Swal.fire({
-          title: '¿Está seguro?',
-          text: `¿Quiere marcar su ${tipo.toLowerCase()} ahora?`,
-          icon: 'question',
-          showCancelButton: true,
-          confirmButtonColor: '#3085d6',
-          cancelButtonColor: '#d33',
-          confirmButtonText: `Sí, marcar ${tipo}`,
-          cancelButtonText: 'Cancelar'
-        });
-        if (result.isConfirmed) {
-          proceder = true;
-        }
+        swalConfig = { ...swalConfig, title: 'Confirmar Salida', text: '¿Desea agregar nota opcional?', icon: 'question', inputPlaceholder: 'Notas opcionales...' };
       }
     } else {
+      swalConfig.confirmButtonText = 'Sí, marcar Entrada';
       const scheduleEntradaTarde = addMinutes(scheduleEntrada, 15);
       const esEntradaTarde = isAfter(fechaHoraGt, scheduleEntradaTarde);
-
       if (esEntradaTarde) {
-        const { value: notasSwal, isConfirmed } = await Swal.fire({
+        swalConfig = {
+          ...swalConfig,
           title: 'Justificación de Entrada Tarde',
-          text: `Está marcando su entrada después del límite de 15 minutos (${format(scheduleEntradaTarde, 'h:mm a', { locale: es })}). Por favor, ingrese una justificación.`,
-          input: 'textarea',
-          inputPlaceholder: 'Escriba su justificación aquí...',
+          text: `Está marcando entrada tarde (${format(scheduleEntradaTarde, 'h:mm a', { locale: es })}). Justificación obligatoria.`,
           icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#3085d6',
-          cancelButtonColor: '#d33',
-          confirmButtonText: 'Marcar Entrada',
-          cancelButtonText: 'Cancelar',
-          inputValidator: (value) => {
-            if (!value) {
-              return '¡Necesita escribir una justificación para marcar su entrada!';
-            }
-          }
-        });
-
-        if (isConfirmed && notasSwal) {
-          notasDeJustificacion = `Entrada Tarde: ${notasSwal}`;
-          proceder = true;
-        }
+          inputPlaceholder: 'Escriba su justificación aquí (requerido)...',
+          inputValidator: (value) => { if (!value) return '¡Necesita justificación!'; }
+        };
       } else {
-        const result = await Swal.fire({
-          title: '¿Está seguro?',
-          text: `¿Quiere marcar su ${tipo.toLowerCase()} ahora?`,
-          icon: 'question',
-          showCancelButton: true,
-          confirmButtonColor: '#3085d6',
-          cancelButtonColor: '#d33',
-          confirmButtonText: `Sí, marcar ${tipo}`,
-          cancelButtonText: 'Cancelar'
-        });
-        if (result.isConfirmed) {
-          proceder = true;
-        }
+        swalConfig = { ...swalConfig, title: 'Confirmar Entrada', text: '¿Desea agregar nota opcional?', icon: 'question', inputPlaceholder: 'Notas opcionales...' };
       }
     }
 
-    if (proceder) {
-      setNotasPendientes(notasDeJustificacion);
+    const { value: notaIngresada, isConfirmed } = await Swal.fire(swalConfig);
+
+    if (isConfirmed) {
+      let notasFinales = notaIngresada || '';
+      if (tipo !== 'Marca') {
+        if (tipo === 'Salida' && isBefore(fechaHoraGt, scheduleSalida)) notasFinales = `Salida Temprano: ${notasFinales}`;
+        else if (tipo === 'Salida' && isAfter(fechaHoraGt, scheduleSalidaTarde)) notasFinales = `Salida Tarde: ${notasFinales}`;
+        else if (tipo === 'Entrada' && isAfter(fechaHoraGt, addMinutes(scheduleEntrada, 15))) notasFinales = `Entrada Tarde: ${notasFinales}`;
+      }
+      setNotasPendientes(notasFinales);
       setTipoRegistroPendiente(tipo);
       obtenerUbicacion();
     }
@@ -257,57 +226,71 @@ export default function Asistencia() {
     setCargando(true);
     if (!userId) {
       Swal.fire('Error', 'No se encontró el ID de usuario.', 'error');
-      setCargando(false);
-      return;
+      setCargando(false); return;
     }
-
     const nuevoRegistro = await marcarNuevaAsistencia(userId, tipo, ubicacionActual, notasDeMarcado);
-
     if (nuevoRegistro) {
-      Swal.fire(`¡${tipo} Marcada!`, `Se ha registrado su ${tipo.toLowerCase()} correctamente.`, 'success');
+      Swal.fire(`¡${tipo === 'Marca' ? 'Marca' : tipo} Exitosa!`, `Registrado correctamente.`, 'success');
       fetchAsistencias();
-      setNotas('');
     }
     setCargando(false);
   };
 
   const handleAbrirMapa = (registro: any) => {
     if (!registro?.ubicacion) return;
-
     const fechaRegistro = new Date(registro.created_at);
     const registrosDeEseDia = todosLosRegistros.filter((r: any) => isSameDay(new Date(r.created_at), fechaRegistro));
-
-    const entrada = registrosDeEseDia.find(r => r.tipo_registro === 'Entrada') || null;
-    const salida = registrosDeEseDia.find(r => r.tipo_registro === 'Salida') || null;
-
-    setRegistrosSeleccionadosParaMapa({ entrada, salida });
+    setRegistrosSeleccionadosParaMapa({
+      entrada: registrosDeEseDia.find(r => r.tipo_registro === 'Entrada') || null,
+      salida: registrosDeEseDia.find(r => r.tipo_registro === 'Salida') || null,
+      multiple: esHorarioMultiple ? registrosDeEseDia : undefined
+    });
     setModalMapaAbierto(true);
   };
-  
+
   const handleAbrirMapaHoy = () => {
-    if (registroEntradaHoy || registroSalidaHoy) {
-      setRegistrosSeleccionadosParaMapa({
-        entrada: registroEntradaHoy || null,
-        salida: registroSalidaHoy || null,
-      });
-      setModalMapaAbierto(true);
-    }
-  };
-  
-  const formatTimeWithAMPM = (dateString: string | undefined) => {
-    if (!dateString) return '---';
-    const date = new Date(dateString);
-    const hora = format(date, 'hh:mm', { locale: es });
-    const periodo = format(date, 'a', { locale: es }).replace(/\./g, '').toUpperCase();
-    return `${hora} ${periodo}`;
+    setRegistrosSeleccionadosParaMapa({
+      entrada: null,
+      salida: null,
+      multiple: registrosHoyMultiple
+    });
+    setModalMapaAbierto(true);
   };
 
   const entradaMarcada = !!registroEntradaHoy;
   const salidaMarcada = !!registroSalidaHoy;
+  const hayRegistrosHoy = registrosHoyMultiple.length > 0;
 
-  if (cargandoUsuario || cargandoRegistros) {
-    return <Cargando texto='Asistencia...' />;
-  }
+  if (cargandoUsuario || cargandoRegistros) return <Cargando texto='Asistencia...' />;
+
+  const renderBotonMarcado = () => {
+    if (esHorarioMultiple) {
+      return (
+        <Button
+          onClick={() => handleIniciarMarcado('Marca')}
+          disabled={cargando || cargandoGeo}
+          className="w-full py-6 text-base bg-blue-600 hover:bg-blue-700"
+        >
+          {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Registrando...' : 'Marcar')}
+        </Button>
+      );
+    }
+    if (!entradaMarcada) {
+      return (
+        <Button onClick={() => handleIniciarMarcado('Entrada')} disabled={cargando || cargandoGeo} className="w-full py-6 text-base bg-green-600 hover:bg-green-700">
+          {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Marcando...' : 'Marcar Entrada')}
+        </Button>
+      );
+    } else if (!salidaMarcada) {
+      return (
+        <Button onClick={() => handleIniciarMarcado('Salida')} disabled={cargando || cargandoGeo} className="w-full py-6 text-base bg-red-600 hover:bg-red-700">
+          {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Marcando...' : 'Marcar Salida')}
+        </Button>
+      );
+    } else {
+      return <p className="text-center text-gray-500 font-semibold p-4 bg-gray-100 rounded-md">Jornada completada por hoy</p>;
+    }
+  };
 
   return (
     <>
@@ -326,83 +309,51 @@ export default function Asistencia() {
             <motion.div key="controlResumen" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
               <div className="flex flex-col gap-8 w-full">
                 <div className="p-6 bg-white rounded-lg shadow-md space-y-4">
-                  
+
                   <div className="text-center bg-slate-100 p-3 rounded-md">
                     <p className="font-semibold text-xs lg:text-sm">{nombre || 'Usuario no identificado'}</p>
                   </div>
-                                    <div className="text-center text-xs font-semibold text-blue-600 flex flex-col lg:flex-row justify-center lg:gap-4">
-                    <p className='pb-2'>
-                      Horario: {horarioFormateado.nombre}
-                    </p>
-                     <p className="flex items-center justify-center gap-1 pb-2">
-                      <Clock className="h-3 w-3" />
-                      {horarioFormateado.entrada} a {horarioFormateado.salida}
-                    </p>
-                    <p className="flex items-center justify-center gap-1 pb-2">
-                      <CalendarDays className="h-3 w-3" />
-                      {horarioFormateado.dias}
-                    </p>
 
+                  {!esHorarioMultiple && (
+                    <div className="text-center text-xs font-semibold text-blue-600 flex flex-col lg:flex-row justify-center lg:gap-4">
+                      <p className='pb-2'>Horario: {horarioFormateado.nombre}</p>
+                      <p className="flex items-center justify-center gap-1 pb-2"><Clock className="h-3 w-3" />{horarioFormateado.entrada} a {horarioFormateado.salida}</p>
+                      <p className="flex items-center justify-center gap-1 pb-2"><CalendarDays className="h-3 w-3" />{horarioFormateado.dias}</p>
+                    </div>
+                  )}
+
+                  <div className="text-center border-y py-4">
+                    <p className="text-xs lg:text-sm text-slate-600">
+                      <span className="capitalize">{format(fechaHoraGt, "EEEE, dd/MM/yyyy", { locale: es })}</span>
+                      <span className={`font-mono font-bold ml-2 ${estaFueraDeHorario && !esHorarioMultiple ? 'text-red-700' : ''}`}>
+                        {format(fechaHoraGt, 'hh:mm:ss aa', { locale: es })}
+                      </span>
+                    </p>
                   </div>
-                  {
-                    !salidaMarcada && (
-                      <>
-                      <div className="text-center border-y py-4">
-                        <p className="text-xs lg:text-sm text-slate-600">
-                          <span className="capitalize">
-                            {format(fechaHoraGt, "EEEE, dd/MM/yyyy", { locale: es })}
-                          </span>
-                            <span className={`font-mono font-bold ml-2 ${estaFueraDeHorario ? 'text-red-700' : ''}`}>
-                              {format(fechaHoraGt, 'hh:mm:ss aa', { locale: es })}
-                            </span>
-                        </p>
-                      </div>
-                        
-                        <div className="flex gap-4 items-stretch">
-                          <textarea 
-                            value={notas} 
-                            onChange={(e) => setNotas(e.target.value)} 
-                            placeholder="Agregar notas (opcional para entrada)..." 
-                            className="w-3/5 md:w-4/5 p-2 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs lg:text-sm"
-                          />
-                          
-                          <div className="w-2/5 md:w-1/5">
-                            {!entradaMarcada ? (
-                              <Button onClick={() => handleIniciarMarcado('Entrada')} disabled={cargando || cargandoGeo} className="w-full h-full bg-green-600 hover:bg-green-700 text-xs lg:text-sm">
-                                {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Marcando...' : 'Marcar Entrada')}
-                              </Button>
-                            ) : (
-                              <Button onClick={() => handleIniciarMarcado('Salida')} disabled={cargando || cargandoGeo} className="w-full h-full bg-red-600 hover:bg-red-700 text-xs lg:text-sm">
-                                {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Marcando...' : 'Marcar Salida')}
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </>
-                    )
-                  }
+                  <div className="flex justify-center w-full">
+                    <div className="w-full">
+                      {renderBotonMarcado()}
+                    </div>
+                  </div>
 
                   <div className="mt-6 border-t pt-4">
                     <h4 className="text-xs lg:text-sm font-semibold mb-2">Registros de hoy:</h4>
-                    {(registroEntradaHoy || registroSalidaHoy) ? (
+                    {hayRegistrosHoy ? (
                       <>
-                        <p className="text-xs text-gray-500 mb-2">Haga clic en el registro para ver las ubicaciones.</p>
-                        <div 
+                        <p className="text-xs text-gray-500 mb-2">Haga clic para ver detalles de ubicación.</p>
+                        <div
                           onClick={handleAbrirMapaHoy}
-                          className="p-3 rounded-md bg-slate-100 cursor-pointer hover:bg-slate-200 transition-colors flex justify-between items-center gap-4"
+                          className="p-3 rounded-md bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors flex justify-center items-center gap-2 text-blue-700 font-semibold"
                         >
-                          <p className="text-xs lg:text-sm font-mono">
-                            <span className="font-semibold">Entrada:</span> {formatTimeWithAMPM(registroEntradaHoy?.created_at)}
-                          </p>
-                          <p className="text-xs lg:text-sm font-mono">
-                            <span className="font-semibold">Salida:</span> {formatTimeWithAMPM(registroSalidaHoy?.created_at)}
-                          </p>
+                          <List className="h-4 w-4" />
+                          Ver Asistencia de hoy ({registrosHoyMultiple.length})
                         </div>
                       </>
                     ) : (
                       <p className="text-xs lg:text-sm text-gray-500">No hay registros hoy.</p>
                     )}
                   </div>
+
                 </div>
               </div>
             </motion.div>
@@ -417,15 +368,10 @@ export default function Asistencia() {
           )}
         </AnimatePresence>
       </div>
-      
+
       <AnimatePresence>
         {modalMapaAbierto && (
-          <Mapa
-            isOpen={modalMapaAbierto}
-            onClose={() => setModalMapaAbierto(false)}
-            registros={registrosSeleccionadosParaMapa}
-            nombreUsuario={nombre}
-          />
+          <Mapa isOpen={modalMapaAbierto} onClose={() => setModalMapaAbierto(false)} registros={registrosSeleccionadosParaMapa} nombreUsuario={nombre} />
         )}
       </AnimatePresence>
     </>

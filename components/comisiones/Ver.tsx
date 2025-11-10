@@ -16,6 +16,9 @@ import Swal from 'sweetalert2';
 import Cargando from '@/components/ui/animations/Cargando';
 import Mapa from '@/components/ui/modals/Mapa';
 import { motion, AnimatePresence } from 'framer-motion';
+import PullToRefresh from 'react-simple-pull-to-refresh';
+import { ArrowDown, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export const getUsuarioNombre = (id: string, usuarios: Usuario[]) => {
   const user = usuarios.find(u => u.id === id);
@@ -33,6 +36,7 @@ export default function Ver() {
   const [modalMapaAbierto, setModalMapaAbierto] = useState(false);
   const [registrosParaMapa, setRegistrosParaMapa] = useState<{ entrada: any | null, salida: any | null }>({ entrada: null, salida: null });
   const [nombreParaMapa, setNombreParaMapa] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
 
   const [mesSeleccionado, setMesSeleccionado] = useState(getMonth(new Date()));
   const [anioSeleccionado, setAnioSeleccionado] = useState(getYear(new Date()));
@@ -46,6 +50,15 @@ export default function Ver() {
 
   const esJefe = rol && rol.toUpperCase().includes('JEFE');
 
+  useEffect(() => {
+    const checkDevice = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkDevice();
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
+  }, []);
+
   const usuariosFiltrados = useMemo(() => {
     if (!usuarios) return [];
     if (rol === 'SUPER') {
@@ -54,7 +67,7 @@ export default function Ver() {
     return usuarios.filter(u => u.rol !== 'SUPER');
   }, [usuarios, rol]);
 
-const comisionesVisibles = useMemo(() => {
+  const comisionesVisibles = useMemo(() => {
     if (!comisiones) return [];
     if (esJefe && userId) {
       return comisiones.filter(c => 
@@ -77,17 +90,73 @@ const comisionesVisibles = useMemo(() => {
     setComisionesSeleccionadas([]);
   }, [mesSeleccionado, anioSeleccionado, vista]);
 
+  const counts = useMemo(() => {
+    if (!comisionesVisibles) return { pendientes: 0, proximas: 0, terminadas: 0 };
+
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    let pendientes = 0;
+    let proximas = 0;
+    let terminadas = 0;
+    
+    comisionesVisibles.forEach(c => {
+      const fechaComision = parseISO(c.fecha_hora.split(' ')[0]);
+
+      if (c.aprobado === false) {
+        pendientes++;
+      } else if (c.aprobado === true && fechaComision >= hoy) {
+        proximas++;
+      } else if (c.aprobado === true && fechaComision < hoy) {
+        terminadas++;
+      }
+    });
+
+    return { pendientes, proximas, terminadas };
+  }, [comisionesVisibles]);
+
   useEffect(() => {
-  if (!loading && comisionesVisibles && !haCargadoVistaInicial) {
-    if (!esJefe) {
-      const hayPendientes = comisionesVisibles.some(c => c.aprobado === false);
-      if (hayPendientes) {
-        setVista('pendientes');
+    if (loading || cargandoUsuarios || !comisiones) {
+      return;
+    }
+
+    const vistaActualEstaVacia = 
+      (vista === 'pendientes' && counts.pendientes === 0) ||
+      (vista === 'proximas' && counts.proximas === 0) ||
+      (vista === 'terminadas' && counts.terminadas === 0);
+      
+    if (!haCargadoVistaInicial || vistaActualEstaVacia) {
+      
+      if (esJefe) {
+        if (counts.proximas > 0) {
+          setVista('proximas');
+        } else if (counts.terminadas > 0) {
+          setVista('terminadas');
+        } else if (counts.pendientes > 0) {
+          setVista('pendientes');
+        } else {
+          setVista('proximas'); 
+        }
+      } 
+      else {
+        if (counts.pendientes > 0) {
+          setVista('pendientes');
+        } else if (counts.proximas > 0) {
+          setVista('proximas');
+        } else if (counts.terminadas > 0) {
+          setVista('terminadas');
+        } else {
+          setVista('pendientes'); 
+        }
+      }
+      
+      if (!haCargadoVistaInicial) {
+        setHaCargadoVistaInicial(true);
       }
     }
-    setHaCargadoVistaInicial(true);
-  }
-  }, [comisionesVisibles, loading, haCargadoVistaInicial, esJefe]);
+    
+  }, [counts, vista, haCargadoVistaInicial, loading, cargandoUsuarios, esJefe, comisiones]);
+
 
   const handleCrearComision = () => {
     setComisionAEditar(null);
@@ -132,6 +201,7 @@ const comisionesVisibles = useMemo(() => {
         if (res.ok) {
           Swal.fire('¡Aprobada!', 'La comisión ha sido aprobada.', 'success');
           refetch();
+          setComisionAVer(null);
         } else {
           const { error } = await res.json();
           Swal.fire('Error', error || 'No se pudo aprobar la comisión.', 'error');
@@ -204,30 +274,9 @@ const comisionesVisibles = useMemo(() => {
     setComisionesAVerMultiples(comisionesOrdenadas);
   };
 
-const counts = useMemo(() => {
-    if (!comisionesVisibles) return { pendientes: 0, proximas: 0, terminadas: 0 };
-
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-
-    let pendientes = 0;
-    let proximas = 0;
-    let terminadas = 0;
-    
-    comisionesVisibles.forEach(c => {
-      const fechaComision = parseISO(c.fecha_hora.split(' ')[0]);
-
-      if (c.aprobado === false) {
-        pendientes++;
-      } else if (c.aprobado === true && fechaComision >= hoy) {
-        proximas++;
-      } else if (c.aprobado === true && fechaComision < hoy) {
-        terminadas++;
-      }
-    });
-
-    return { pendientes, proximas, terminadas };
-  }, [comisionesVisibles]);
+  const handleRefresh = async () => {
+    await refetch();
+  };
 
   const comisionesFiltradas = useMemo(() => {
     if (loading || error || !comisionesVisibles) return [];
@@ -287,8 +336,36 @@ const counts = useMemo(() => {
     return gruposOrdenados;
   }, [comisionesFiltradas]);
 
-  if (loading || cargando || cargandoUsuarios) return <Cargando texto='Cargando comisiones...' />;
+  if (loading || cargando || cargandoUsuarios || !haCargadoVistaInicial) return <Cargando texto='Cargando comisiones...' />;
   if (error) return <p className="text-center text-red-500 py-8">Error al cargar datos: {error}</p>;
+
+  const listaComisionesContenido = (
+    <motion.div key="lista-principal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+      <ListaComisiones
+        vista={vista}
+        setVista={setVista}
+        terminoBusqueda={terminoBusqueda}
+        setTerminoBusqueda={setTerminoBusqueda}
+        mesSeleccionado={mesSeleccionado}
+        setMesSeleccionado={setMesSeleccionado}
+        anioSeleccionado={anioSeleccionado}
+        setAnioSeleccionado={setAnioSeleccionado}
+        comisionesFiltradas={comisionesFiltradas}
+        comisionesAgrupadasPorFecha={comisionesAgrupadasPorFecha}
+        onVerComision={handleVerComision}
+        onCrearComision={handleCrearComision}
+        comisionesSeleccionadas={comisionesSeleccionadas}
+        onSeleccionarComision={handleSeleccionarComision}
+        onSeleccionarTodas={handleSeleccionarTodas}
+        onVerMultiplesComisiones={handleVerMultiplesComisiones}
+        rolActual={rol}
+        countPendientes={counts.pendientes}
+        countProximas={counts.proximas}
+        countTerminadas={counts.terminadas}
+        onAprobarComision={handleAprobarComision}
+      />
+    </motion.div>
+  );
 
   return (
     <>
@@ -300,6 +377,7 @@ const counts = useMemo(() => {
                 comision={comisionAVer} usuarios={usuariosFiltrados} rol={rol}
                 onClose={() => setComisionAVer(null)} onAbrirMapa={handleAbrirMapa}
                 onEdit={handleEditarComision} onDelete={handleEliminarComision}
+                onAprobar={handleAprobarComision}
               />
             </motion.div>
           ) : comisionesAVerMultiples ? (
@@ -310,31 +388,41 @@ const counts = useMemo(() => {
               />
             </motion.div>
           ) : (
-            <motion.div key="lista-principal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-              <ListaComisiones
-                vista={vista}
-                setVista={setVista}
-                terminoBusqueda={terminoBusqueda}
-                setTerminoBusqueda={setTerminoBusqueda}
-                mesSeleccionado={mesSeleccionado}
-                setMesSeleccionado={setMesSeleccionado}
-                anioSeleccionado={anioSeleccionado}
-                setAnioSeleccionado={setAnioSeleccionado}
-                comisionesFiltradas={comisionesFiltradas}
-                comisionesAgrupadasPorFecha={comisionesAgrupadasPorFecha}
-                onVerComision={handleVerComision}
-                onCrearComision={handleCrearComision}
-                comisionesSeleccionadas={comisionesSeleccionadas}
-                onSeleccionarComision={handleSeleccionarComision}
-                onSeleccionarTodas={handleSeleccionarTodas}
-                onVerMultiplesComisiones={handleVerMultiplesComisiones}
-                rolActual={rol}
-                countPendientes={counts.pendientes}
-                countProximas={counts.proximas}
-                countTerminadas={counts.terminadas}
-                onAprobarComision={handleAprobarComision}
-              />
-            </motion.div>
+            <>
+            {!isMobile && (
+                <div className="flex justify-center">
+                  <Button onClick={handleRefresh} variant="ghost">
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Actualizar
+                  </Button>
+                </div>
+              )}
+              {isMobile ? (
+                <PullToRefresh
+                  onRefresh={handleRefresh}
+                  pullingContent={
+                    <div className="flex flex-col justify-center items-center h-16">
+                      <p className="text-xs text-gray-500 mb-1 animate-bounce">
+                        Suelta para actualizar
+                      </p>
+                      <ArrowDown className="h-4 w-4 text-gray-500" />
+                    </div>
+                  }
+                  refreshingContent={
+                    <div className="flex flex-col justify-center items-center h-16">
+                      <p className="text-xs text-gray-500 mb-1 animate-bounce">
+                        Suelta para actualizar
+                      </p>
+                      <ArrowDown className="h-4 w-4 text-gray-500" />
+                    </div>
+                  }
+                >
+                  {listaComisionesContenido}
+                </PullToRefresh>
+              ) : (
+                listaComisionesContenido
+              )}
+            </>
           )}
         </AnimatePresence>
       </div>

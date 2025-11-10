@@ -6,7 +6,7 @@ import { es } from 'date-fns/locale';
 import { ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
 import { Usuario } from '@/lib/usuarios/esquemas';
 import { Button } from '@/components/ui/button';
-import {  LogOut, Calendar, Users, User, FileText, Camera, Pencil, Trash2 } from 'lucide-react';
+import { LogOut, Calendar, Users, User, FileText, Camera, Pencil, Trash2, CheckSquare } from 'lucide-react';
 import { useRegistrosDeComision } from '@/hooks/comisiones/useRegistrosDeComision';
 import Cargando from '@/components/ui/animations/Cargando';
 import { toBlob } from 'html-to-image';
@@ -78,6 +78,7 @@ interface VerComisionDetalleProps {
   onAbrirMapa: (registros: any, nombre: string) => void;
   onEdit: (comision: ComisionConFechaYHoraSeparada) => void;
   onDelete: (comisionId: string) => void;
+  onAprobar: (comisionId: string) => void;
 }
 
 const getUsuarioNombre = (id: string, usuarios: Usuario[]) => {
@@ -85,14 +86,14 @@ const getUsuarioNombre = (id: string, usuarios: Usuario[]) => {
   return user ? user.nombre : 'Desconocido';
 };
 
-export default function VerComision({ comision, usuarios, rol, onClose, onAbrirMapa, onEdit, onDelete }: VerComisionDetalleProps) {
+export default function VerComision({ comision, usuarios, rol, onClose, onAbrirMapa, onEdit, onDelete, onAprobar }: VerComisionDetalleProps) {
   const { registros, loading: cargandoRegistros } = useRegistrosDeComision(comision.id);
   const exportRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
 
   const hasPermissionEditar = rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO'|| (rol && rol.toUpperCase().includes('JEFE'));
-
-    const hasPermissionEliminar= rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO';
+  const canAprobar = rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO';
+  const hasPermissionEliminar = rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO';
 
 
   const fechaCompleta = parseISO(comision.fecha_hora.replace(' ', 'T'));
@@ -161,9 +162,19 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
 
 
               <div className="flex items-center gap-4">
+            
+              {canAprobar && !comision.aprobado && (
+                <Button
+                  variant="link"
+                  onClick={() => onAprobar(comision.id)}
+                  className="text-blue-600 gap-2"
+                >
+                  <CheckSquare className="h-4 w-4" />
+                  Aprobar
+                </Button>
+              )}  
+            
             {hasPermissionEditar && (
-
-
                 <Button
                   variant="link"
                   onClick={() => onEdit(comision)}
@@ -172,11 +183,9 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
                   <Pencil className="h-4 w-4" />
                   Editar
                 </Button>
-
                 )}
 
                   {hasPermissionEliminar && (
-
                 <Button
                   variant="link"
                   onClick={() => onDelete(comision.id)}
@@ -185,7 +194,6 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
                   <Trash2 className="h-4 w-4" />
                   Eliminar
                 </Button>
-
                       )}
               </div>
       

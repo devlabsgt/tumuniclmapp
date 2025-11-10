@@ -2,11 +2,10 @@
 
 import React, { Fragment, useEffect, useState } from 'react';
 import useUserData from '@/hooks/sesion/useUserData';
-import { cargarAgendas } from './lib/acciones';
+import { cargarAgendas, eliminarAgenda } from './lib/acciones';
 import { type AgendaConcejo } from './lib/esquemas';
-
 import AgendaForm from './forms/Sesion';
-import { CalendarPlus, Pencil, ArrowRight } from 'lucide-react';
+import { CalendarPlus, Pencil, ArrowRight, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
@@ -14,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { getYear, setMonth, format, differenceInDays, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import BotonVolver from '@/components/ui/botones/BotonVolver';
+import Swal from 'sweetalert2';
 
 const calcularDiasRestantes = (fechaReunion: string): string => {
   const fecha = new Date(fechaReunion);
@@ -123,6 +123,27 @@ export default function Ver() {
     setTimeout(() => {
       router.push(`/protected/concejo/agenda/${id}`);
     }, 0);
+  };
+
+const handleDeleteAgenda = async (id: string) => {
+    const result = await Swal.fire({
+      title: '¿Está seguro?',
+      text: "Esta acción no se puede deshacer.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
+      const exito = await eliminarAgenda(id);
+      
+      if (exito) {
+        fetchAgendas();
+      }
+    }
   };
 
   const cardVariants = {
@@ -247,7 +268,7 @@ export default function Ver() {
                   </div>
 
                   <div className="flex flex-row gap-2 self-end">
-                    {(permisos.includes('EDITAR') || permisos.includes('TODO')) && (
+                    {(permisos.includes('EDITAR') || permisos.includes('TODO')) && agenda.estado !== 'Finalizada' && (
                       <Button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -257,6 +278,19 @@ export default function Ver() {
                         className={`w-auto px-3 ${buttonClasses.ghost} transition-colors flex items-center justify-center gap-1`}
                       >
                         <Pencil className="h-4 w-4" /> Editar
+                      </Button>
+                    )}
+
+                    {(permisos.includes('EDITAR') || permisos.includes('TODO')) && agenda.estado === 'En preparación' && (
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteAgenda(agenda.id);
+                        }}
+                        variant="ghost"
+                        className="w-auto px-3 text-red-600 hover:bg-red-200 transition-colors flex items-center justify-center gap-1"
+                      >
+                        <Trash2 className="h-4 w-4" /> Eliminar
                       </Button>
                     )}
                     

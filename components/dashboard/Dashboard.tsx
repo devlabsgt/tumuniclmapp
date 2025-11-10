@@ -275,9 +275,9 @@ export default function Dashboard() {
 
       <AnimatePresence mode="wait">
         {vistaActiva === 'modulos' ? (
-          <motion.div key="modulos" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
+            <motion.div key="modulos" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
             
-            <div className="w-full md:max-w-[70%] mx-auto">
+            <div className="w-full lg:max-w-[100%] xl:max-w-[90%] mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
                 
                 {modulosPoliticas.length > 0 && (

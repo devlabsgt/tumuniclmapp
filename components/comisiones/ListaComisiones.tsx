@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { getMonth, setMonth, parseISO, isToday, differenceInCalendarDays, format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -71,7 +73,7 @@ export default function ListaComisiones({
   countTerminadas = 0,
 }: Props) {
   
-const hasAdminPermissions = rolActual === 'SUPER' || rolActual === 'RRHH' || rolActual === 'SECRETARIO' || (rolActual && rolActual.toUpperCase().includes('JEFE'));
+  const hasAdminPermissions = rolActual === 'SUPER' || rolActual === 'RRHH' || rolActual === 'SECRETARIO' || (rolActual && rolActual.toUpperCase().includes('JEFE'));
   const canApprove = rolActual === 'SUPER' || rolActual === 'RRHH' || rolActual === 'SECRETARIO';
 
   return (
@@ -143,7 +145,7 @@ const hasAdminPermissions = rolActual === 'SUPER' || rolActual === 'RRHH' || rol
             <div className={`text-xs ml-5 font-semibold ${vista === 'pendientes' ? 'text-blue-600' : 'text-purple-600'}`}>
               <p>
                 {vista === 'pendientes' ? 
-                  (canApprove ? 'Seleccione una comisión para aprobarla' : 'Pendientes de aprobación por RRHH') 
+                  (canApprove ? 'Seleccione una comisión para ver detalles' : 'Pendientes de aprobación por RRHH') 
                   : 'Seleccione una comisión para ver sus detalles'}
               </p>
             </div>
@@ -190,7 +192,7 @@ const hasAdminPermissions = rolActual === 'SUPER' || rolActual === 'RRHH' || rol
                         textoEstado = (
                           <>
                             <p className="text-blue-600 font-semibold text-left md:text-right w-full break-words pt-1">
-                              Selecciona esta comisión para aprobarla
+                              Selecciona para ver detalles y aprobar
                             </p>
                             {comision.creador_nombre && (
                               <p className="text-gray-600 text-left md:text-right w-full break-words pt-1">
@@ -240,12 +242,14 @@ const hasAdminPermissions = rolActual === 'SUPER' || rolActual === 'RRHH' || rol
                       }
                     }
                     
-                    const onClickAction = vista === 'pendientes'
-                      ? (canApprove ? () => onAprobarComision(comision.id) : undefined)
+                    const isJefeViewingPending = vista === 'pendientes' && !canApprove;
+
+                    const onClickAction = isJefeViewingPending
+                      ? undefined
                       : () => onVerComision(comision);
                     
-                    const cursorStyle = vista === 'pendientes'
-                      ? (canApprove ? 'cursor-pointer' : 'cursor-default')
+                    const cursorStyle = isJefeViewingPending
+                      ? 'cursor-default'
                       : 'cursor-pointer';
 
                     return (

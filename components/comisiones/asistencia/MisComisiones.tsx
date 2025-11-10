@@ -5,11 +5,15 @@ import { getMonth, getYear, parseISO, isToday, isPast } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import PullToRefresh from 'react-simple-pull-to-refresh';
+import { ArrowDown, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
 import { useObtenerComisiones, ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
 import useUserData from '@/hooks/sesion/useUserData';
 import Cargando from '@/components/ui/animations/Cargando';
 import Mapa from '@/components/ui/modals/Mapa';
-import ListaMisComisiones from './ListaMisComisiones'; 
+import ListaMisComisiones from './ListaMisComisiones';
 
 export default function MisComisiones() {
   const [mesSeleccionado, setMesSeleccionado] = useState(getMonth(new Date()));
@@ -19,12 +23,22 @@ export default function MisComisiones() {
   const [registrosParaMapa, setRegistrosParaMapa] = useState<any>(null);
   const [nombreUsuarioParaMapa, setNombreUsuarioParaMapa] = useState('');
   const [vista, setVista] = useState<'proximas' | 'terminadas'>('proximas');
-  
+  const [isMobile, setIsMobile] = useState(false);
+
   const { userId, nombre, cargando: cargandoUsuario } = useUserData();
-  
+
   const hookUserId = cargandoUsuario ? null : (userId || null);
   const { comisiones, loading, error, refetch } = useObtenerComisiones(mesSeleccionado, anioSeleccionado, hookUserId);
-  
+
+  useEffect(() => {
+    const checkDevice = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkDevice();
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
+  }, []);
+
   useEffect(() => {
     const html = document.documentElement;
     if (modalMapaAbierto) {
@@ -47,15 +61,15 @@ export default function MisComisiones() {
     }
 
     const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0); 
-    
+    hoy.setHours(0, 0, 0, 0);
+
     let countProximas = 0;
     let countTerminadas = 0;
 
     const aprobadasYSorteadas = comisiones
       .filter(c => c.aprobado === true)
-      .sort((a, b) => 
-        parseISO(b.fecha_hora.replace(' ', 'T')).getTime() - 
+      .sort((a, b) =>
+        parseISO(b.fecha_hora.replace(' ', 'T')).getTime() -
         parseISO(a.fecha_hora.replace(' ', 'T')).getTime()
       );
 
@@ -73,16 +87,16 @@ export default function MisComisiones() {
 
   const comisionesParaMostrar = useMemo(() => {
     const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0); 
+    hoy.setHours(0, 0, 0, 0);
 
     let comisionesFiltradas = [];
 
     if (vista === 'proximas') {
-      comisionesFiltradas = comisionesData.lista.filter(c => 
+      comisionesFiltradas = comisionesData.lista.filter(c =>
         parseISO(c.fecha_hora.split(' ')[0]) >= hoy
       );
-    } else { 
-      comisionesFiltradas = comisionesData.lista.filter(c => 
+    } else {
+      comisionesFiltradas = comisionesData.lista.filter(c =>
         parseISO(c.fecha_hora.split(' ')[0]) < hoy
       );
     }
@@ -90,7 +104,7 @@ export default function MisComisiones() {
     if (openComisionId) {
       return comisionesFiltradas.filter(c => c.id === openComisionId);
     }
-    
+
     return comisionesFiltradas;
   }, [comisionesData, openComisionId, vista]);
 
@@ -103,7 +117,7 @@ export default function MisComisiones() {
     setNombreUsuarioParaMapa(nombreUsuario);
     setModalMapaAbierto(true);
   };
-  
+
   const handleCerrarMapa = () => {
     setModalMapaAbierto(false);
     setRegistrosParaMapa(null);
@@ -114,10 +128,14 @@ export default function MisComisiones() {
     refetch();
   };
 
+  const handleRefresh = async () => {
+    await refetch();
+  };
+
   if (loading || cargandoUsuario) {
     return <Cargando texto='Cargando sus comisiones...' />;
   }
-  
+
   if (!userId) {
     return <p className="text-center text-red-500 py-8">Error: No se pudo cargar su información de usuario.</p>;
   }
@@ -126,32 +144,69 @@ export default function MisComisiones() {
     return <p className="text-center text-red-500 py-8">Error: {error}</p>;
   }
 
+  const listaComisionesContenido = (
+    <div className="bg-white rounded-lg w-full mx-auto">
+      <ListaMisComisiones
+        vista={vista}
+        setVista={setVista}
+        mesSeleccionado={mesSeleccionado}
+        setMesSeleccionado={setMesSeleccionado}
+        anioSeleccionado={anioSeleccionado}
+        setAnioSeleccionado={setAnioSeleccionado}
+        comisionesParaMostrar={comisionesParaMostrar}
+        openComisionId={openComisionId}
+        onToggleComision={handleToggleComision}
+        onAbrirMapa={handleAbrirMapa}
+        onAsistenciaMarcada={handleAsistenciaMarcada}
+        userId={userId!}
+        nombreUsuario={nombre!}
+        countProximas={comisionesData.countProximas}
+        countTerminadas={comisionesData.countTerminadas}
+      />
+    </div>
+  );
+
   return (
     <>
-      <div className="bg-white rounded-lg w-full mx-auto">
-        <ListaMisComisiones
-          vista={vista}
-          setVista={setVista}
-          mesSeleccionado={mesSeleccionado}
-          setMesSeleccionado={setMesSeleccionado}
-          anioSeleccionado={anioSeleccionado}
-          setAnioSeleccionado={setAnioSeleccionado}
-          comisionesParaMostrar={comisionesParaMostrar}
-          openComisionId={openComisionId}
-          onToggleComision={handleToggleComision}
-          onAbrirMapa={handleAbrirMapa}
-          onAsistenciaMarcada={handleAsistenciaMarcada}
-          userId={userId!}
-          nombreUsuario={nombre!}
-          countProximas={comisionesData.countProximas}
-          countTerminadas={comisionesData.countTerminadas}
-        />
-      </div>
+      {!isMobile && (
+        <div className="flex justify-center">
+          <Button onClick={handleRefresh} variant="ghost">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Actualizar
+          </Button>
+        </div>
+      )}
+
+      {isMobile ? (
+        <PullToRefresh
+          onRefresh={handleRefresh}
+          pullingContent={
+            <div className="flex flex-col justify-center items-center h-16">
+              <p className="text-xs text-gray-500 mb-1 animate-bounce">
+                Suelta para actualizar
+              </p>
+              <ArrowDown className="h-4 w-4 text-gray-500" />
+            </div>
+          }
+          refreshingContent={
+            <div className="flex flex-col justify-center items-center h-16">
+              <p className="text-xs text-gray-500 mb-1 animate-bounce">
+                Suelta para actualizar
+              </p>
+              <ArrowDown className="h-4 w-4 text-gray-500" />
+            </div>
+          }
+        >
+          {listaComisionesContenido}
+        </PullToRefresh>
+      ) : (
+        listaComisionesContenido
+      )}
 
       <AnimatePresence>
         {modalMapaAbierto && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-white backdrop-blur-sm" 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-white backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
