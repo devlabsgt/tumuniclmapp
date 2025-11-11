@@ -75,8 +75,17 @@ export default function InfoFinancieraForm({ isOpen, onClose, onSubmit, dependen
   const configActual = renglonSeleccionado ? renglonConfig[renglonSeleccionado] : null;
 
   useEffect(() => {
-    if (configActual && !configActual.tieneBono) {
-      form.setValue('bonificacion', undefined);
+    if (configActual) {
+      if (!configActual.tieneBono) {
+        form.setValue('bonificacion', undefined);
+      } else {
+        // Si el renglón admite bonificación y el valor actual es 0 o undefined,
+        // establece el valor por defecto de 250.
+        const currentBonus = form.getValues('bonificacion');
+        if (currentBonus === undefined || currentBonus === 0) {
+          form.setValue('bonificacion', 250);
+        }
+      }
     }
   }, [renglonSeleccionado, configActual, form]);
 
@@ -161,7 +170,7 @@ export default function InfoFinancieraForm({ isOpen, onClose, onSubmit, dependen
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">Q</span>
                                 <Input
                                   type="number"
-                                  step="1"
+                                  step="0.01"
                                   min="0"
                                   className="pl-7"
                                   placeholder={configActual.placeholder}
@@ -191,7 +200,7 @@ export default function InfoFinancieraForm({ isOpen, onClose, onSubmit, dependen
                                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">Q</span>
                                   <Input
                                     type="number"
-                                    step="1"
+                                    step="0.01"
                                     min="0"
                                     className="pl-7"
                                     placeholder="Bonificación"
