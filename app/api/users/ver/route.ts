@@ -8,14 +8,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'ID no proporcionado' }, { status: 400 });
   }
 
-  // 1. Obtener datos del perfil
   const { data: perfil, error: perfilError } = await supabaseAdmin
     .from('info_usuario')
     .select('*')
     .eq('user_id', id)
     .maybeSingle();
 
-  // 2. Obtener relación roles/permisos/módulos
   const { data: relacion, error } = await supabaseAdmin
     .from('usuarios_roles')
     .select(`
@@ -33,7 +31,6 @@ export async function POST(req: Request) {
     .eq('user_id', id)
     .maybeSingle();
 
-  // 3. Obtener datos del usuario en auth
   const { data: userResult, error: userError } = await supabaseAdmin.auth.admin.getUserById(id);
 
   if (error || !relacion?.roles || !userResult?.user || userError) {
@@ -55,16 +52,21 @@ export async function POST(req: Request) {
         .filter((nombre: string | undefined): nombre is string => !!nombre)
     : [];
 
-  return NextResponse.json({
+  const responsePayload = {
     usuario: {
       id: user.id,
       email: user.email,
       nombre: perfil?.nombre || '',
       rol: rol?.nombre || null,
-      rol_id: relacion?.rol_id || null, // ← añadido aquí
+      rol_id: relacion?.rol_id || null,
       permisos,
       modulos,
       activo: perfil?.activo ?? true,
+      esjefe: perfil?.esjefe ?? false,
     },
-  });
+  };
+
+  console.log('Debug: Enviando payload de usuario:', JSON.stringify(responsePayload, null, 2));
+
+  return NextResponse.json(responsePayload);
 }

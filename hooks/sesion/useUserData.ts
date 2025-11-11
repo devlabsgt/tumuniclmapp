@@ -9,6 +9,7 @@ interface UserData {
   nombre: string;
   email: string;
   rol: string;
+  esjefe: boolean; 
   permisos: string[];
   modulos: string[];
   programas: string[];
@@ -17,6 +18,7 @@ interface UserData {
   horario_dias: number[] | null;
   horario_entrada: string | null;
   horario_salida: string | null;
+  dependencia_id: string | null; 
 }
 
 export default function useUserData(): UserData {
@@ -24,6 +26,7 @@ export default function useUserData(): UserData {
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [rol, setRol] = useState('');
+  const [esjefe, setEsJefe] = useState(false); // <-- 2. Añadido aquí
   const [permisos, setPermisos] = useState<string[]>([]);
   const [modulos, setModulos] = useState<string[]>([]);
   const [programas, setProgramas] = useState<string[]>([]);
@@ -32,6 +35,7 @@ export default function useUserData(): UserData {
   const [horario_dias, setHorarioDias] = useState<number[] | null>(null);
   const [horario_entrada, setHorarioEntrada] = useState<string | null>(null);
   const [horario_salida, setHorarioSalida] = useState<string | null>(null);
+  const [dependencia_id, setDependenciaId] = useState<string | null>(null); 
   
   const pathname = usePathname(); 
 
@@ -50,6 +54,7 @@ export default function useUserData(): UserData {
           setEmail(user.email || '');
           setNombre('');
           setRol('');
+          setEsJefe(false); 
           setPermisos([]);
           setModulos([]);
           setProgramas([]);
@@ -57,12 +62,22 @@ export default function useUserData(): UserData {
           setHorarioDias(null);
           setHorarioEntrada(null);
           setHorarioSalida(null);
+          setDependenciaId(null); 
+          
+          console.log("USUARIO SIN DATOS (ERROR RPC/VACÍO):", {
+            rol: '',
+            esjefe: false,
+            dependencia_id: null,
+            error: dataError 
+          });
+          
         } else {
           const resultado = userData[0];
           setUserId(resultado.id || null);
           setNombre(resultado.nombre || '');
           setEmail(resultado.email || ''); 
           setRol(resultado.rol || '');
+          setEsJefe(resultado.esjefe || false); 
           setPermisos(resultado.permisos || []);
           setModulos(resultado.modulos || []);
           setProgramas(resultado.programas || []);
@@ -70,12 +85,20 @@ export default function useUserData(): UserData {
           setHorarioDias(resultado.horario_dias || null);
           setHorarioEntrada(resultado.horario_entrada || null);
           setHorarioSalida(resultado.horario_salida || null);
+          setDependenciaId(resultado.dependencia_id || null); 
+
+          console.log("USUARIO CARGADO:", {
+            rol: resultado.rol,
+            esjefe: resultado.esjefe,
+            dependencia_id: resultado.dependencia_id 
+          });
         }
       } else {
         setUserId(null);
         setNombre('');
         setEmail('');
         setRol('');
+        setEsJefe(false); 
         setPermisos([]);
         setModulos([]);
         setProgramas([]);
@@ -83,6 +106,9 @@ export default function useUserData(): UserData {
         setHorarioDias(null);
         setHorarioEntrada(null);
         setHorarioSalida(null);
+        setDependenciaId(null);
+        
+        console.log("USUARIO NO AUTENTICADO");
       }
       setCargando(false);
     };
@@ -95,6 +121,7 @@ export default function useUserData(): UserData {
     nombre, 
     email, 
     rol, 
+    esjefe,
     permisos, 
     modulos, 
     programas, 
@@ -102,6 +129,7 @@ export default function useUserData(): UserData {
     horario_nombre, 
     horario_dias, 
     horario_entrada, 
-    horario_salida 
+    horario_salida,
+    dependencia_id 
   };
 }

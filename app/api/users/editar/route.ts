@@ -6,7 +6,7 @@ import { createClient } from '@/utils/supabase/server';
 
 export async function POST(req: Request) {
   try {
-    const { id, email, nombre, rol, password, activo, direccion, telefono, dpi, nit, igss, cuenta_no } = await req.json();
+    const { id, email, nombre, rol, password, activo, esJefe, direccion, telefono, dpi, nit, igss, cuenta_no } = await req.json();
 
     if (!id || !email || !nombre || !rol) {
       return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 });
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     // 1. Obtener datos actuales
     const { data: perfilActual, error: errorPerfilActual } = await supabaseAdmin
       .from('info_usuario')
-      .select('nombre, activo, direccion, telefono, dpi, nit, igss, cuenta_no')
+      .select('nombre, activo, esjefe, direccion, telefono, dpi, nit, igss, cuenta_no')
       .eq('user_id', id)
       .single();
 
@@ -39,6 +39,7 @@ export async function POST(req: Request) {
 
     const nombreAnterior = perfilActual.nombre ?? '—';
     const activoAnterior = perfilActual.activo;
+    const esjefeAnterior = perfilActual.esjefe ?? false;
     const direccionAnterior = perfilActual.direccion ?? '—';
     const telefonoAnterior = perfilActual.telefono ?? '—';
     const dpiAnterior = perfilActual.dpi ?? '—';
@@ -62,7 +63,7 @@ export async function POST(req: Request) {
     // 3. Actualizar perfil
     const { error: errorPerfil } = await supabaseAdmin
       .from('info_usuario')
-      .update({ nombre, activo, direccion, telefono, dpi, nit, igss, cuenta_no })
+      .update({ nombre, activo, esjefe: esJefe, direccion, telefono, dpi, nit, igss, cuenta_no })
       .eq('user_id', id);
 
     if (errorPerfil) {
@@ -98,6 +99,12 @@ export async function POST(req: Request) {
       const estadoAnterior = activoAnterior ? 'activo' : 'inactivo';
       const estadoNuevo = activo ? 'activo' : 'inactivo';
       cambios.push(`Estado: "${estadoAnterior}" → "${estadoNuevo}"`);
+    }
+    
+    if (esJefe !== esjefeAnterior) {
+      const estadoAnterior = esjefeAnterior ? 'Sí' : 'No';
+      const estadoNuevo = esJefe ? 'Sí' : 'No';
+      cambios.push(`Es Jefe: "${estadoAnterior}" → "${estadoNuevo}"`);
     }
     
     if (direccion !== direccionAnterior) {

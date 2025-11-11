@@ -8,7 +8,6 @@ import { registrarLog } from '@/utils/registrarLog';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import useUserData from '@/hooks/sesion/useUserData';
-import { useInfoUsuario } from '@/hooks/usuarios/useInfoUsuario'; 
 
 import Asistencia from '@/components/asistencia/Asistencia';
 import AnimatedIcon from '@/components/ui/AnimatedIcon';
@@ -62,6 +61,14 @@ const TODOS_LOS_MODULOS = [
     categoria: 'Gestión Administrativa'
   },
   {
+    nombre: 'ASISTENCIA',
+    titulo: 'Control de Asistencia',
+    descripcion: 'Supervise la asistencia de su equipo.',
+    ruta: '/protected/asistencias',
+    iconoKey: 'daeumrty',
+    categoria: 'Gestión Administrativa'
+  },
+  {
     nombre: 'COMISIONES',
     titulo: 'Gestión de Comisiones',
     descripcion: 'Cree, apruebe y gestione las comisiones.',
@@ -76,7 +83,8 @@ type Vistas = 'modulos' | 'asistencia' | 'comisiones';
 export default function Dashboard() {
   const router = useRouter();
   
-  const { rol, modulos = [], permisos = [], userId } = useUserData();
+  // CAMBIO 1: Añadir 'esjefe'
+  const { rol, modulos = [], permisos = [], userId, esjefe } = useUserData();
 
   const [mostrarOpciones, setMostrarOpciones] = useState(false);
   const [mostrarTarjetaModal, setMostrarTarjetaModal] = useState(false);
@@ -121,22 +129,29 @@ export default function Dashboard() {
   const modulosDisponibles = useMemo(() =>
     TODOS_LOS_MODULOS
       .filter(m => {
-        if (rol === 'SUPER' || rol === 'INVITADO') return true;
+        if (rol === 'SUPER') return true;
+
+        if (rol === 'INVITADO') return modulos.includes(m.nombre);
 
         const tieneModuloAsignado = modulos.includes(m.nombre);
+        // CAMBIO 2: Esta línea se elimina
+        // const esJefe = rol && rol.toUpperCase().includes('JEFE');
 
         if (m.nombre === 'COMISIONES') {
-          const esJefe = rol && rol.toUpperCase().includes('JEFE');
-          return esJefe || rol === 'RRHH' || rol === 'SECRETARIO';
+          // CAMBIO 3: Usar 'esjefe' (del hook)
+          return esjefe || rol === 'RRHH' || rol === 'SECRETARIO' || tieneModuloAsignado;
+        }
+
+        if (m.nombre === 'ASISTENCIA') {
+            // CAMBIO 4: Usar 'esjefe' (del hook)
+            return esjefe || tieneModuloAsignado;
         }
         
-        // RRHH y todos los demás módulos siguen esta regla:
         return tieneModuloAsignado;
       })
       .sort((a, b) => a.titulo.localeCompare(b.titulo))
-    , [rol, modulos]);
-
-
+    // CAMBIO 5: Añadir 'esjefe' a las dependencias
+    , [rol, modulos, esjefe]);
 
   const modulosPoliticas = useMemo(() =>
     modulosDisponibles.filter(m => m.categoria === 'Políticas Públicas'),

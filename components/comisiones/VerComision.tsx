@@ -11,6 +11,7 @@ import { useRegistrosDeComision } from '@/hooks/comisiones/useRegistrosDeComisio
 import Cargando from '@/components/ui/animations/Cargando';
 import { toBlob } from 'html-to-image';
 import Swal from 'sweetalert2';
+import useUserData from '@/hooks/sesion/useUserData';
 
 const RegistroAsistenciaItem = ({ asistenteId, registros, nombre, onAbrirMapa }: any) => {
   const registrosDelAsistente = useMemo(() => {
@@ -73,7 +74,6 @@ const RegistroAsistenciaItem = ({ asistenteId, registros, nombre, onAbrirMapa }:
 interface VerComisionDetalleProps {
   comision: ComisionConFechaYHoraSeparada;
   usuarios: Usuario[];
-  rol: string | null;
   onClose: () => void;
   onAbrirMapa: (registros: any, nombre: string) => void;
   onEdit: (comision: ComisionConFechaYHoraSeparada) => void;
@@ -86,15 +86,15 @@ const getUsuarioNombre = (id: string, usuarios: Usuario[]) => {
   return user ? user.nombre : 'Desconocido';
 };
 
-export default function VerComision({ comision, usuarios, rol, onClose, onAbrirMapa, onEdit, onDelete, onAprobar }: VerComisionDetalleProps) {
+export default function VerComision({ comision, usuarios, onClose, onAbrirMapa, onEdit, onDelete, onAprobar }: VerComisionDetalleProps) {
+  const { rol, esjefe } = useUserData();
   const { registros, loading: cargandoRegistros } = useRegistrosDeComision(comision.id);
   const exportRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  const hasPermissionEditar = rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO'|| (rol && rol.toUpperCase().includes('JEFE'));
+  const hasPermissionEditar = rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO' || esjefe;
   const canAprobar = rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO';
   const hasPermissionEliminar = rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO';
-
 
   const fechaCompleta = parseISO(comision.fecha_hora.replace(' ', 'T'));
   const fechaHoraAbreviada = format(fechaCompleta, "EEE, d MMM, yyyy | h:mm a", { locale: es });
@@ -146,7 +146,6 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
   return (
     <div ref={exportRef} className="bg-white rounded-xl px-6 pb-6 flex flex-col h-full relative">
 
-
       <div className="pt-0 exclude-from-capture">
         <div className="flex flex-wrap justify-center md:justify-between items-center gap-4 mt-2 text-xs md:text-sm">        
             
@@ -159,8 +158,6 @@ export default function VerComision({ comision, usuarios, rol, onClose, onAbrirM
                 Volver a todas las comisiones
             </Button>
             
-
-
               <div className="flex items-center gap-4">
             
               {canAprobar && !comision.aprobado && (

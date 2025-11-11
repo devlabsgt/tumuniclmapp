@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
-import { Pencil, Trash2, GitBranchPlus, ArrowUp, ArrowDown, UserPlus, ChevronsUp, ChevronsDown, Info } from 'lucide-react';
+import { Pencil, Trash2, GitBranchPlus, ArrowUp, ArrowDown, UserPlus, ChevronsUp, ChevronsDown, Info, Banknote } from 'lucide-react';
 import { EmpleadoItem } from './EmpleadoItem';
 import { Usuario } from '@/lib/usuarios/esquemas';
 
@@ -19,6 +19,10 @@ export interface DependenciaNode {
   descripcion: string | null;
   parent_id: string | null;
   es_puesto: boolean | null;
+  renglon?: string | null;
+  salario?: number | null;
+  bonificacion?: number | null;
+  totalPresupuesto?: number;
   children: (DependenciaNode | EmpleadoNode)[];
 }
 
@@ -36,6 +40,7 @@ interface DependenciaItemProps {
   onOpenContrato: (usuario: Usuario) => void;
   onViewCard: (usuario: Usuario) => void;
   onOpenDescription: (title: string, description: string) => void;
+  onOpenInfoFinanciera: (node: DependenciaNode) => void;
   level: number;
   index: number;
   prefix: string;
@@ -59,6 +64,7 @@ const DependenciaItem = ({
   onOpenContrato,
   onViewCard,
   onOpenDescription,
+  onOpenInfoFinanciera,
   level,
   index,
   prefix,
@@ -74,9 +80,8 @@ const DependenciaItem = ({
 
   const isAdmin = rol === 'SUPER' || rol === 'SECRETARIO';
   const isRRHH = rol === 'RRHH';
+  const canShowMenu = isAdmin || (isRRHH && node.es_puesto);
   const isPuestoDisponible = node.es_puesto && !empleadoAsignado;
-
-  const canShowMenu = isAdmin || (isRRHH && isPuestoDisponible);
 
   const handleToggle = () => {
     if (hasChildren) {
@@ -87,7 +92,6 @@ const DependenciaItem = ({
       );
     }
   };
-
 
   const getColorClasses = (level: number) => {
     switch (level % 4) {
@@ -115,6 +119,14 @@ const DependenciaItem = ({
   const canMoveDown = index < siblingCount - 1;
 
   const minWidthStyle = { minWidth: `${1.5 + level * 0.25}rem` };
+
+  const formatMoney = (amount: number) => {
+    return new Intl.NumberFormat('es-GT', { style: 'currency', currency: 'GTQ' }).format(amount);
+  };
+
+  const tienePresupuesto = node.renglon || (node.salario && node.salario > 0) || (node.bonificacion && node.bonificacion > 0);
+  const totalFinancieroPuesto = (node.salario || 0) + (node.bonificacion || 0);
+  const totalPresupuestoGeneral = node.totalPresupuesto || 0;
 
   return (
     <motion.div layout className="w-full relative text-xs py-1">
@@ -171,7 +183,14 @@ const DependenciaItem = ({
                     </DropdownMenuItem>
                   )}
 
-                  {isAdmin && (<DropdownMenuItem onSelect={() => onEdit(node)} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><Pencil className="mr-2 h-4 w-4" /><span>Editar</span></DropdownMenuItem>)}
+                  {node.es_puesto && (isAdmin || isRRHH) && (
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onOpenInfoFinanciera(node); }} className="cursor-pointer">
+                      <Banknote className={`mr-2 h-4 w-4 ${icon}`} />
+                      <span>{tienePresupuesto ? 'Editar Info. Financiera' : 'Asignar Info. Financiera'}</span>
+                    </DropdownMenuItem>
+                  )}
+
+                  {isAdmin && (<DropdownMenuItem onSelect={() => onEdit(node)} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><Pencil className="mr-2 h-4 w-4" /><span>Editar Nombre</span></DropdownMenuItem>)}
                   {isAdmin && (<DropdownMenuItem onSelect={() => onDelete(node.id)} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><Trash2 className="mr-2 h-4 w-4 text-red-600" /><span>Eliminar</span></DropdownMenuItem>)}
                   {isAdmin && (canMoveUp || canMoveDown) && (<DropdownMenuSub><DropdownMenuSubTrigger onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><span>Mover</span></DropdownMenuSubTrigger><DropdownMenuSubContent>{canMoveUp && ( <DropdownMenuItem onSelect={() => onMove(node.id, 'up')} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"> <ArrowUp className="mr-2 h-4 w-4" /> <span>Mover Arriba</span> </DropdownMenuItem> )}{canMoveDown && ( <DropdownMenuItem onSelect={() => onMove(node.id, 'down')} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"> <ArrowDown className="mr-2 h-4 w-4" /> <span>Mover Abajo</span> </DropdownMenuItem> )}{canMoveUp && ( <DropdownMenuItem onSelect={() => onMoveExtreme(node.id, 'inicio')} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"> <ChevronsUp className="mr-2 h-4 w-4" /> <span>Mover al inicio</span> </DropdownMenuItem> )}{canMoveDown && ( <DropdownMenuItem onSelect={() => onMoveExtreme(node.id, 'final')} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"> <ChevronsDown className="mr-2 h-4 w-4" /> <span>Mover al final</span> </DropdownMenuItem> )}</DropdownMenuSubContent></DropdownMenuSub>)}
                 </DropdownMenuContent>
@@ -179,21 +198,63 @@ const DependenciaItem = ({
             </DropdownMenu>
           </div>
           
-          <div className="flex items-center min-w-0 pl-2">
-            <span onClick={handleToggle} className={`font-medium text-gray-800 dark:text-white truncate ${hasChildren ? 'cursor-pointer' : ''}`}>{node.nombre}</span>
-            {node.descripcion && (
-              <div
-                role="button" 
-                tabIndex={0}
-                className="flex-shrink-0 h-6 w-6 text-gray-400 hover:text-blue-600 ml-1 rounded-md transition-colors cursor-pointer flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700" 
-                onClick={(e: React.MouseEvent) => {
-                  e.stopPropagation();
-                  onOpenDescription(node.nombre, node.descripcion!);
-                }}
-              >
-                <Info className={`h-4 w-4`} />
+          <div className="flex flex-col justify-center min-w-0 pl-2">
+            <div className="flex items-center gap-2">
+              <span onClick={handleToggle} className={`font-medium text-gray-800 dark:text-white truncate ${hasChildren ? 'cursor-pointer' : ''}`}>
+                {node.nombre}
+              </span>
+
+              {node.descripcion && (
+                <div
+                  role="button" 
+                  tabIndex={0}
+                  className="flex-shrink-0 h-6 w-6 text-gray-400 hover:text-blue-600 rounded-md transition-colors cursor-pointer flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700" 
+                  onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    onOpenDescription(node.nombre, node.descripcion!);
+                  }}
+                >
+                  <Info className={`h-4 w-4`} />
+                </div>
+              )}
+            </div>
+            
+            {!node.es_puesto && totalPresupuestoGeneral > 0 && (
+              <div className="text-[11px] leading-tight mt-1.5">
+                 <div className="pt-1 border-t border-gray-200/70 dark:border-gray-700/50 font-bold text-green-600 dark:text-green-500">
+                    {formatMoney(totalPresupuestoGeneral)}
+                 </div>
               </div>
             )}
+
+            {node.es_puesto && (
+              <div className="text-[11px] leading-tight mt-1.5">
+                {tienePresupuesto ? (
+                  <div className="flex flex-wrap items-center gap-x-1.5 pt-1 border-t border-gray-200/70 dark:border-gray-700/50 text-gray-600 dark:text-gray-400">
+                    {node.renglon && (
+                      <span className="font-bold text-gray-700 dark:text-gray-300" title="Renglón">{node.renglon}</span>
+                    )}
+                    
+                    {node.renglon && (node.salario || node.bonificacion) && (
+                      <span className="text-gray-300 dark:text-gray-600">|</span>
+                    )}
+                    
+                    {(node.salario || node.bonificacion) && (
+                      <>
+                        <span className="font-bold text-green-600 dark:text-green-500" title="Total Mensual">
+                            {formatMoney(totalFinancieroPuesto)}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-amber-600/70 dark:text-amber-500/70 font-medium italic text-[10px]">
+                    Sin información financiera
+                  </span>
+                )}
+              </div>
+            )}
+
           </div>
         </div>
       </div>
@@ -202,10 +263,9 @@ const DependenciaItem = ({
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
             {node.children.map((child, childIndex) => {
               if ('isEmployee' in child) {
-                return ( <EmpleadoItem key={child.usuario.id} empleado={child.usuario} level={level + 1} onDelete={() => onDeleteEmpleado(child.usuario.id)} onOpenInfoPersonal={onOpenInfoPersonal} onOpenContrato={onOpenContrato} onViewCard={onViewCard} rol={rol} /> );
+                return ( <EmpleadoItem key={child.usuario.id} empleado={child.usuario} level={level + 1} onDelete={() => onDeleteEmpleado(child.usuario.id)} onOpenInfoPersonal={onOpenInfoPersonal} onViewCard={onViewCard} rol={rol} /> );
               } else {
-                const subDependencias = node.children.filter(c => !('isEmployee' in c));
-                return ( <DependenciaItem key={child.id} node={child} rol={rol} onEdit={onEdit} onDelete={onDelete} onAddSub={onAddSub} onMove={onMove} onMoveExtreme={onMoveExtreme} onAddEmpleado={onAddEmpleado} onDeleteEmpleado={onDeleteEmpleado} onOpenInfoPersonal={onOpenInfoPersonal} onOpenContrato={onOpenContrato} onViewCard={onViewCard} onOpenDescription={onOpenDescription} level={level + 1} index={childIndex} prefix={`${prefix}.${child.no}`} isLast={childIndex === subDependencias.length - 1} openNodeIds={openNodeIds} setOpenNodeIds={setOpenNodeIds} siblingCount={subDependencias.length} /> );
+                return ( <DependenciaItem key={child.id} node={child} rol={rol} onEdit={onEdit} onDelete={onDelete} onAddSub={onAddSub} onMove={onMove} onMoveExtreme={onMoveExtreme} onAddEmpleado={onAddEmpleado} onDeleteEmpleado={onDeleteEmpleado} onOpenInfoPersonal={onOpenInfoPersonal} onOpenContrato={onOpenContrato} onViewCard={onViewCard} onOpenDescription={onOpenDescription} onOpenInfoFinanciera={onOpenInfoFinanciera} level={level + 1} index={childIndex} prefix={`${prefix}.${child.no}`} isLast={childIndex === (node.children.filter(c => !('isEmployee' in c)).length - 1)} openNodeIds={openNodeIds} setOpenNodeIds={setOpenNodeIds} siblingCount={node.children.filter(c => !('isEmployee' in c)).length} /> );
               }
             })}
           </motion.div>

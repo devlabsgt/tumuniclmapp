@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, MapPin } from 'lucide-react';
+import { X, MapPin, ArrowUpDown, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -21,9 +21,13 @@ interface MapaModalProps {
   nombreUsuario: string;
 }
 
+type SortOrder = 'asc' | 'desc';
+
 export default function Mapa({ isOpen, onClose, registros, nombreUsuario }: MapaModalProps) {
-  const [listaRegistros, setListaRegistros] = useState<Registro[]>([]);
+  const [rawRegistros, setRawRegistros] = useState<Registro[]>([]);
   const [registroActivo, setRegistroActivo] = useState<Registro | null>(null);
+  const [mapaVisible, setMapaVisible] = useState(true);
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
   useEffect(() => {
     if (isOpen) {
@@ -35,18 +39,36 @@ export default function Mapa({ isOpen, onClose, registros, nombreUsuario }: Mapa
         if (registros.salida) nuevosRegistros.push(registros.salida);
       }
       
-      nuevosRegistros.sort((b, a) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      
-      setListaRegistros(nuevosRegistros);
-      if (nuevosRegistros.length > 0) {
-        setRegistroActivo(nuevosRegistros[0]);
-      } else {
-        setRegistroActivo(null);
-      }
+      setRawRegistros(nuevosRegistros);
+      setMapaVisible(true);
+      setSortOrder('asc');
     }
   }, [isOpen, registros]);
 
-  const fechaRegistro = listaRegistros.length > 0 ? listaRegistros[0].created_at : null;
+  const listaRegistros = useMemo(() => {
+    const sorted = [...rawRegistros];
+    if (sortOrder === 'asc') {
+      sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    } else {
+      sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+    return sorted;
+  }, [rawRegistros, sortOrder]);
+
+  useEffect(() => {
+    if (isOpen && listaRegistros.length > 0) {
+      setRegistroActivo(listaRegistros[0]);
+    } else if (isOpen) {
+      setRegistroActivo(null);
+    }
+  }, [isOpen, listaRegistros]);
+
+
+  const toggleSortOrder = () => {
+    setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
+  };
+
+  const fechaRegistro = rawRegistros.length > 0 ? rawRegistros[0].created_at : null;
   const fechaFormateada = fechaRegistro ? format(new Date(fechaRegistro), 'PPPP', { locale: es }) : '';
 
   const formatTimeWithAMPM = (dateString: string | undefined | null) => {
@@ -76,7 +98,11 @@ export default function Mapa({ isOpen, onClose, registros, nombreUsuario }: Mapa
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
           >
             {/* --- LISTA LATERAL --- */}
-            <div className="w-full md:w-80 bg-slate-50 border-r flex flex-col h-1/3 md:h-full">
+            <div className={`
+              w-full md:w-80 bg-slate-50 border-r flex flex-col
+              ${mapaVisible ? 'h-1/2' : 'h-full'}
+              md:h-full
+            `}>
               <div className="p-4 border-b flex justify-between items-center bg-white">
                 <div className="overflow-hidden">
                   <h3 className="font-semibold text-gray-800 truncate" title={nombreUsuario}>{nombreUsuario}</h3>
@@ -87,11 +113,29 @@ export default function Mapa({ isOpen, onClose, registros, nombreUsuario }: Mapa
                 </button>
               </div>
               
+              <div className="p-2 bg-gray-100 border-b grid grid-cols-2 gap-2">
+                 <button
+                    type="button"
+                    onClick={toggleSortOrder}
+                    className="w-full text-xs text-gray-600 bg-white hover:bg-gray-50 p-2 rounded-md flex items-center justify-center gap-1.5 transition-colors shadow-sm border"
+                  >
+                    <ArrowUpDown size={14} />
+                    {sortOrder === 'asc' ? 'Recientes' : 'Antiguos'}
+                  </button>
+                
+                 <button
+                    type="button"
+                    onClick={() => setMapaVisible(p => !p)}
+                    className="w-full text-xs text-blue-600 bg-blue-50 hover:bg-blue-100 p-2 rounded-md flex items-center justify-center gap-1.5 transition-colors shadow-sm border border-blue-100 md:hidden"
+                  >
+                    {mapaVisible ? <EyeOff size={14} /> : <Eye size={14} />}
+                    {mapaVisible ? 'Ocultar Mapa' : 'Mostrar Mapa'}
+                  </button>
+              </div>
+              
               <div className="flex-grow overflow-y-auto p-2 space-y-2 scrollbar-thin">
                 {listaRegistros.map((registro, index) => {
-                   // LÓGICA DE VISUALIZACIÓN
                    const esTipoEstandar = ['Entrada', 'Salida'].includes(registro.tipo_registro || '');
-                   // Si NO es estándar (es Multiple), usamos la nota como título principal.
                    const tituloPrincipal = esTipoEstandar 
                         ? (registro.tipo_registro) 
                         : (registro.notas || 'Marca sin nota');
@@ -106,7 +150,6 @@ export default function Mapa({ isOpen, onClose, registros, nombreUsuario }: Mapa
                             : 'bg-white border-transparent hover:bg-gray-100'
                         }`}
                     >
-                        {/* Fila Superior: Título (Tipo o Nota según el caso) y Hora */}
                         <div className="flex justify-between items-start mb-1 gap-2">
                             <span className={`font-semibold text-sm line-clamp-2 ${registroActivo === registro ? 'text-blue-700' : 'text-gray-700'}`}>
                                 {tituloPrincipal}
@@ -116,14 +159,12 @@ export default function Mapa({ isOpen, onClose, registros, nombreUsuario }: Mapa
                             </span>
                         </div>
 
-                        {/* Si es estándar y tiene notas, las mostramos debajo en texto normal */}
                         {esTipoEstandar && registro.notas && (
                             <p className="text-xs text-gray-600 mt-1 mb-2 line-clamp-3">
                                 {registro.notas}
                             </p>
                         )}
 
-                        {/* Fila Inferior: Ubicación */}
                         <div className="flex justify-between items-end mt-2">
                             {registro.ubicacion ? (
                                 <div className="flex items-center gap-1 text-[11px] text-gray-400">
@@ -142,7 +183,11 @@ export default function Mapa({ isOpen, onClose, registros, nombreUsuario }: Mapa
             </div>
 
             {/* --- MAPA PRINCIPAL --- */}
-            <div className="flex-grow flex flex-col h-2/3 md:h-full relative">
+            <div className={`
+              flex-grow flex flex-col relative
+              ${mapaVisible ? 'h-1/2' : 'hidden'}
+              md:flex md:h-full
+            `}>
                <button 
                  onClick={onClose} 
                  className="hidden md:flex absolute top-4 right-4 z-10 bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-md hover:bg-white transition-colors"

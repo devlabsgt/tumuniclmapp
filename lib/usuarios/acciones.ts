@@ -3,7 +3,6 @@ import { createClient } from '@/utils/supabase/client';
 
 const supabase = createClient();
 
-// 💡 Nueva función
 export const fetchUsuario = async (id: string) => {
   const res = await fetch('/api/users/ver', {
     method: 'POST',

@@ -72,6 +72,7 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
   const [email, setEmail] = useState('');
   const [rol, setRol] = useState<string | null>(null);
   const [activo, setActivo] = useState(true);
+  const [esJefe, setEsJefe] = useState(false);
 
   const [direccion, setDireccion] = useState('');
   const [telefono, setTelefono] = useState('');
@@ -93,6 +94,7 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
     email: '',
     rol: '',
     activo: true,
+    esJefe: false,
     direccion: '',
     telefono: '',
     dpi: '',
@@ -109,11 +111,9 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
   const [errors, setErrors] = useState<z.ZodIssue[]>([]);
   
   const rolesFiltrados = useMemo(() => {
-    // Si el usuario actual es SUPER, muestra todos los roles sin filtrar.
     if (rolUsuarioActual === 'SUPER') {
       return rolesDisponibles;
     }
-    // Para cualquier otro rol, filtra la lista.
     return rolesDisponibles.filter(rol => {
       const nombreRol = rol.nombre.trim().toUpperCase();
       return !nombreRol.includes('SUPER') && !nombreRol.includes('AFILIA');
@@ -125,6 +125,7 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
     email !== original.email ||
     rol !== original.rol ||
     activo !== original.activo ||
+    esJefe !== original.esJefe ||
     direccion !== original.direccion ||
     telefono !== original.telefono ||
     dpi !== original.dpi ||
@@ -156,6 +157,8 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
     setEmail(usuario.email || '');
     setRol(rolId);
     setActivo(usuario.activo);
+    // AQUÍ ESTÁ LA CORRECCIÓN 1:
+    setEsJefe(usuario.esjefe || false); // Cambiado de esJefe a esjefe
 
     setDireccion(usuario.direccion || '');
     setTelefono(usuario.telefono || '');
@@ -169,6 +172,8 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
       email: usuario.email || '',
       rol: rolId || '',
       activo: usuario.activo,
+      // AQUÍ ESTÁ LA CORRECCIÓN 2:
+      esJefe: usuario.esjefe || false, // Cambiado de esJefe a esjefe
       direccion: usuario.direccion || '',
       telefono: usuario.telefono || '',
       dpi: usuario.dpi || '',
@@ -219,6 +224,7 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
       nombre,
       rol,
       activo,
+      esJefe, // Aquí está bien 'esJefe' (camelCase) porque es el state local de React
       direccion,
       telefono,
       dpi,
@@ -322,7 +328,10 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
             {errors.find(err => err.path[0] === 'rol') && <p className="text-red-500 text-xs mt-1">{errors.find(err => err.path[0] === 'rol')?.message}</p>}
           </div>
         </div>
-
+      </div>
+      
+      <div className="flex justify-center items-center gap-4">
+        
         <div className="flex items-center justify-end">
           <label htmlFor="toggle-activo" className="flex items-center cursor-pointer">
             <div className="relative">
@@ -339,6 +348,26 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
             </div>
             <div className="ml-3 text-gray-700 text-xs">
               {activo ? 'Activo' : 'Inactivo'}
+            </div>
+          </label>
+        </div>
+        
+        <div className="flex items-center justify-end">
+          <label htmlFor="toggle-esjefe" className="flex items-center cursor-pointer">
+            <div className="relative">
+              <input
+                type="checkbox"
+                id="toggle-esjefe"
+                name="esJefe"
+                className="sr-only peer"
+                checked={esJefe}
+                onChange={() => setEsJefe(!esJefe)}
+              />
+              <div className="block h-6 w-10 rounded-full bg-gray-200 peer-checked:bg-blue-600 transition-colors duration-200"></div>
+              <div className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition-all duration-200 peer-checked:translate-x-4"></div>
+            </div>
+            <div className="ml-3 text-gray-700 text-xs">
+              {esJefe ? 'Es Jefe' : 'No es Jefe'}
             </div>
           </label>
         </div>

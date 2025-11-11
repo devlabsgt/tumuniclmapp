@@ -1,4 +1,3 @@
-// forms/Dependencia.tsx
 'use client';
 
 import { useForm, SubmitHandler } from 'react-hook-form';
@@ -108,30 +107,35 @@ export default function Dependencia({ isOpen, onClose, onSubmit, initialData, pr
           >
             <div className="p-6">
               <h2 className="text-xl font-bold mb-4">
-                {initialData ? 'Editar Dependencia' : 'Nueva Dependencia'}
+                {mode === 'EDIT' ? 'Editar Dependencia' : 'Nueva Dependencia'}
               </h2>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit as SubmitHandler<FormData>)} className="space-y-4">
-                                    <FormField
-                    control={form.control}
-                    name="es_puesto"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm mt-4">
-                        <div className="space-y-0.5">
-                          <FormLabel>¿Es un Puesto?</FormLabel>
-                          <p className="text-[10px] text-gray-500">
-                            Habilita esta opción si es un puesto al que se le asignará un empleado.
-                          </p>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                  
+                  {/* Solo mostramos el Switch si NO estamos en modo edición */}
+                  {mode !== 'EDIT' && (
+                    <FormField
+                      control={form.control}
+                      name="es_puesto"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm mt-4">
+                          <div className="space-y-0.5">
+                            <FormLabel>¿Es un Puesto?</FormLabel>
+                            <p className="text-[10px] text-gray-500">
+                              Habilita esta opción si es un puesto al que se le asignará un empleado.
+                            </p>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
                   <FormField
                     control={form.control}
                     name="nombre"
@@ -163,14 +167,13 @@ export default function Dependencia({ isOpen, onClose, onSubmit, initialData, pr
                     )}
                   />
                   
-                  {/* Campo de Selección de Padre (parent_id) - SOLO VISIBLE EN MODO EDICIÓN */}
                   {mode === 'EDIT' && ( 
                     <FormField
                       control={form.control}
                       name="parent_id"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Dependencia Superior (Padre)</FormLabel>
+                          <FormLabel>Mover a otra dependencia</FormLabel>
                           <Select 
                             onValueChange={handleSelectChange} 
                             value={field.value === null || field.value === undefined ? 'null' : field.value} 
@@ -181,22 +184,19 @@ export default function Dependencia({ isOpen, onClose, onSubmit, initialData, pr
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent 
-                              className="text-xs [&>div]:!p-0 [&>div]:!gap-0" // <-- CLASES PARA OCULTAR BOTONES DE NAVEGACIÓN
+                              className="text-xs [&>div]:!p-0 [&>div]:!gap-0" 
                               style={{ width: '400px' }} 
                             >
-                              {/* Opción para Dependencia Raíz (sin padre) */}
                               <SelectItem key="null" value="null" className="text-xs font-bold">
                                 [ Nivel Raíz ]
                               </SelectItem>
                               
-                              {/* Opciones de Dependencias Selectables */}
                               {selectableDependencies.map((dep) => (
                                 <SelectItem 
                                   key={dep.id} 
                                   value={dep.id} 
                                   className="text-xs p-0" 
                                 >
-                                  {/* Contenedor del texto con padding y estilos de truncamiento */}
                                   <div 
                                     className="flex items-center overflow-hidden whitespace-nowrap py-1.5 px-2 w-full"
                                     style={{ paddingLeft: `${dep.level * 15 + 8}px` }} 

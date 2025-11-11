@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, CalendarClock, CheckSquare, Square, CalendarCheck, ClipboardCheck } from 'lucide-react';
+import useUserData from '@/hooks/sesion/useUserData';
 
 import { ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
 
@@ -27,7 +28,6 @@ interface Props {
   onSeleccionarComision: (comision: ComisionConFechaYHoraSeparada) => void;
   onSeleccionarTodas: () => void;
   onVerMultiplesComisiones: () => void;
-  rolActual: string | null;
   onAprobarComision: (comisionId: string) => void;
   countPendientes: number;
   countProximas: number;
@@ -66,14 +66,15 @@ export default function ListaComisiones({
   onSeleccionarComision,
   onSeleccionarTodas,
   onVerMultiplesComisiones,
-  rolActual,
   onAprobarComision,
   countPendientes = 0,
   countProximas = 0,
   countTerminadas = 0,
 }: Props) {
   
-  const hasAdminPermissions = rolActual === 'SUPER' || rolActual === 'RRHH' || rolActual === 'SECRETARIO' || (rolActual && rolActual.toUpperCase().includes('JEFE'));
+  const { rol: rolActual, esjefe } = useUserData();
+  
+  const hasAdminPermissions = rolActual === 'SUPER' || rolActual === 'RRHH' || rolActual === 'SECRETARIO' || esjefe;
   const canApprove = rolActual === 'SUPER' || rolActual === 'RRHH' || rolActual === 'SECRETARIO';
 
   return (

@@ -6,7 +6,7 @@ import { Usuario } from '@/lib/usuarios/esquemas';
 
 interface DependenciaListProps {
   dependencias: DependenciaNode[];
-  rol: string | null; // <-- 1. RECIBIR EL ROL
+  rol: string | null;
   onEdit: (dependencia: DependenciaNode) => void;
   onDelete: (id: string) => void;
   onAddSub: (parent: DependenciaNode) => void;
@@ -18,13 +18,14 @@ interface DependenciaListProps {
   onOpenContrato: (usuario: Usuario) => void;
   onViewCard: (usuario: Usuario) => void;
   onOpenDescription: (title: string, description: string) => void;
+  onOpenInfoFinanciera: (node: DependenciaNode) => void; // NUEVA PROP
   openNodeIds: string[];
   setOpenNodeIds: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 export default function DependenciaList({
   dependencias,
-  rol, // <-- 2. OBTENERLO AQUÍ
+  rol,
   onEdit,
   onDelete,
   onAddSub,
@@ -36,6 +37,7 @@ export default function DependenciaList({
   onOpenContrato,
   onViewCard,
   onOpenDescription,
+  onOpenInfoFinanciera, // RECIBIR LA NUEVA PROP
   openNodeIds,
   setOpenNodeIds
 }: DependenciaListProps) {
@@ -56,7 +58,7 @@ export default function DependenciaList({
             )}
             <DependenciaItem
               node={node}
-              rol={rol} 
+              rol={rol}
               onEdit={onEdit}
               onDelete={onDelete}
               onAddSub={onAddSub}
@@ -68,6 +70,7 @@ export default function DependenciaList({
               onOpenContrato={onOpenContrato}
               onViewCard={onViewCard}
               onOpenDescription={onOpenDescription}
+              onOpenInfoFinanciera={onOpenInfoFinanciera} // PASARLA
               level={0}
               index={index}
               prefix={`${node.no}`}

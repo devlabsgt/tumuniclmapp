@@ -43,7 +43,7 @@ interface ComisionFormProps {
 
 export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisionAEditar }: ComisionFormProps) {
   const [fechaSeleccionada, setFechaSeleccionada] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
-  const { rol } = useUserData();
+  const { rol, esjefe } = useUserData();
 
   const methods = useForm<ComisionFormData>({
     resolver: zodResolver(comisionSchema),
@@ -99,7 +99,6 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
     const [year, month, day] = fechaSeleccionada.split('-').map(Number);
     const fechaHora = new Date(year, month - 1, day, hour24, parseInt(formData.minuto, 10));
 
-    const esJefe = rol && rol.toUpperCase().includes('JEFE');
     const esAdminSuperior = rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO';
 
     let aprobado = false;
@@ -107,7 +106,7 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
       aprobado = true;
     }
     
-    if (comisionAEditar && esJefe) {
+    if (comisionAEditar && esjefe) {
       aprobado = false;
     }
 
@@ -133,7 +132,7 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
         throw new Error(errorData.error || 'Error al guardar la comisión.');
       }
       
-      if (esJefe) {
+      if (esjefe) {
         const titulo = comisionAEditar ? 'Comisión Editada con Éxito' : 'Comisión Creada con Éxito';
         await Swal.fire({
           icon: 'success',

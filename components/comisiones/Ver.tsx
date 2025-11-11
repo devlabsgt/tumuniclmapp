@@ -42,13 +42,11 @@ export default function Ver() {
   const [anioSeleccionado, setAnioSeleccionado] = useState(getYear(new Date()));
   const [vista, setVista] = useState<'proximas' | 'terminadas' | 'pendientes'>('proximas');
 
-  const { rol, cargando, userId } = useUserData();
+  const { rol, cargando, userId, esjefe } = useUserData();
   const { comisiones, loading, error, refetch } = useObtenerComisiones(mesSeleccionado, anioSeleccionado);
   const { usuarios, loading: cargandoUsuarios } = useListaUsuarios();
 
   const timeZone = 'America/Guatemala';
-
-  const esJefe = rol && rol.toUpperCase().includes('JEFE');
 
   useEffect(() => {
     const checkDevice = () => {
@@ -69,13 +67,13 @@ export default function Ver() {
 
   const comisionesVisibles = useMemo(() => {
     if (!comisiones) return [];
-    if (esJefe && userId) {
+    if (esjefe && userId) {
       return comisiones.filter(c => 
         c.creado_por === userId
       );
     }
     return comisiones;
-  }, [comisiones, rol, userId, esJefe]);
+  }, [comisiones, rol, userId, esjefe]);
 
   useEffect(() => {
     if (comisionAVer && comisionesVisibles) {
@@ -127,7 +125,7 @@ export default function Ver() {
       
     if (!haCargadoVistaInicial || vistaActualEstaVacia) {
       
-      if (esJefe) {
+      if (esjefe) {
         if (counts.proximas > 0) {
           setVista('proximas');
         } else if (counts.terminadas > 0) {
@@ -155,7 +153,7 @@ export default function Ver() {
       }
     }
     
-  }, [counts, vista, haCargadoVistaInicial, loading, cargandoUsuarios, esJefe, comisiones]);
+  }, [counts, vista, haCargadoVistaInicial, loading, cargandoUsuarios, esjefe, comisiones]);
 
 
   const handleCrearComision = () => {
@@ -358,7 +356,6 @@ export default function Ver() {
         onSeleccionarComision={handleSeleccionarComision}
         onSeleccionarTodas={handleSeleccionarTodas}
         onVerMultiplesComisiones={handleVerMultiplesComisiones}
-        rolActual={rol}
         countPendientes={counts.pendientes}
         countProximas={counts.proximas}
         countTerminadas={counts.terminadas}
@@ -374,7 +371,7 @@ export default function Ver() {
           {comisionAVer ? (
             <motion.div key="verComision" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <VerComision
-                comision={comisionAVer} usuarios={usuariosFiltrados} rol={rol}
+                comision={comisionAVer} usuarios={usuariosFiltrados}
                 onClose={() => setComisionAVer(null)} onAbrirMapa={handleAbrirMapa}
                 onEdit={handleEditarComision} onDelete={handleEliminarComision}
                 onAprobar={handleAprobarComision}

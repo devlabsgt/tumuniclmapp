@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { User, Trash2, Contact, FileSignature } from 'lucide-react';
+import { User, Trash2, Contact } from 'lucide-react';
 import { Usuario } from '@/lib/usuarios/esquemas';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 
@@ -12,11 +12,11 @@ interface EmpleadoItemProps {
   rol: string | null;
   onDelete: (userId: string) => void;
   onOpenInfoPersonal: (usuario: Usuario) => void;
-  onOpenContrato: (usuario: Usuario) => void;
+  // onOpenContrato ELIMINADO DE AQUÍ
   onViewCard: (usuario: Usuario) => void;
 }
 
-export const EmpleadoItem = ({ empleado, level, rol, onDelete, onOpenInfoPersonal, onOpenContrato, onViewCard }: EmpleadoItemProps) => {
+export const EmpleadoItem = ({ empleado, level, rol, onDelete, onOpenInfoPersonal, onViewCard }: EmpleadoItemProps) => {
   
   const hasFullPermission = rol === 'SUPER' || rol === 'RRHH';
   const hasMenuAccess = hasFullPermission || rol === 'SECRETARIO';
@@ -59,16 +59,10 @@ export const EmpleadoItem = ({ empleado, level, rol, onDelete, onOpenInfoPersona
                 </DropdownMenuItem>
                 
                 {hasFullPermission && (
-                  <>
-                    <DropdownMenuItem onClick={() => onOpenInfoPersonal(empleado)}>
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Info. Personal</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onOpenContrato(empleado)}>
-                      <FileSignature className="mr-2 h-4 w-4" />
-                      <span>Contrato o<br/>nombramiento</span>
-                    </DropdownMenuItem>
-                  </>
+                  <DropdownMenuItem onClick={() => onOpenInfoPersonal(empleado)}>
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Info. Personal</span>
+                  </DropdownMenuItem>
                 )}
                 
                 <DropdownMenuItem onClick={() => onDelete(empleado.id)}>
