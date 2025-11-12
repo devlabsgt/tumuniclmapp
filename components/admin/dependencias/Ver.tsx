@@ -247,7 +247,8 @@ export default function Ver() {
       const { error } = await supabase.from('dependencias').update({
           renglon: data.renglon,
           salario: data.salario,
-          bonificacion: data.bonificacion
+          bonificacion: data.bonificacion,
+          prima: data.prima
       }).eq('id', dependenciaFinanciera.id);
 
       if (error) {

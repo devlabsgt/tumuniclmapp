@@ -24,6 +24,7 @@ export interface DependenciaNode {
   bonificacion?: number | null;
   totalPresupuesto?: number;
   children: (DependenciaNode | EmpleadoNode)[];
+  prima?: boolean | null;
 }
 
 interface DependenciaItemProps {

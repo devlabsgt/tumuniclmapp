@@ -172,7 +172,6 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
       email: usuario.email || '',
       rol: rolId || '',
       activo: usuario.activo,
-      // AQUÍ ESTÁ LA CORRECCIÓN 2:
       esJefe: usuario.esjefe || false, // Cambiado de esJefe a esjefe
       direccion: usuario.direccion || '',
       telefono: usuario.telefono || '',

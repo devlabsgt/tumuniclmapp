@@ -106,11 +106,13 @@ export function useInfoUsuario(userId: string | null) {
 
       setUsuario(data && data.length > 0 ? data[0] : null);
 
-    } catch (err: any) {
-      console.error('Error al obtener info completa del usuario:', err);
-      setError(err.message);
-      setUsuario(null);
-    } finally {
+// ...
+} catch (err: any) {
+  console.error('--- ERROR REAL DE SUPABASE ---'); // <-- Mensaje clave
+  console.error(err); // <-- Imprime el objeto de error COMPLETO
+  setError(err.message);
+  setUsuario(null);
+} finally {
       setCargando(false);
     }
   }, [userId]);
