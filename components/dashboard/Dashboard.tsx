@@ -65,7 +65,7 @@ const TODOS_LOS_MODULOS = [
     titulo: 'Control de Asistencia',
     descripcion: 'Supervise la asistencia de su equipo.',
     ruta: '/protected/asistencias',
-    iconoKey: 'daeumrty',
+    iconoKey: 'sgtmgpft',
     categoria: 'Gestión Administrativa'
   },
   {

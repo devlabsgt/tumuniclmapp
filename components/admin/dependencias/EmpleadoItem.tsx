@@ -12,7 +12,6 @@ interface EmpleadoItemProps {
   rol: string | null;
   onDelete: (userId: string) => void;
   onOpenInfoPersonal: (usuario: Usuario) => void;
-  // onOpenContrato ELIMINADO DE AQUÍ
   onViewCard: (usuario: Usuario) => void;
 }
 

@@ -183,11 +183,15 @@ export default function Ver() {
   const [isContratoOpen, setIsContratoOpen] = useState(false);
   const [selectedUsuario, setSelectedUsuario] = useState<Usuario | null>(null);
   const [usuarioIdParaTarjeta, setUsuarioIdParaTarjeta] = useState<string | null>(null);
-  const { cargando: cargandoDatosTarjeta } = useInfoUsuario(usuarioIdParaTarjeta); 
+  const { cargando: cargandoDatosTarjeta } = useInfoUsuario(usuarioIdParaTarjeta);
   const [isTarjetaOpen, setIsTarjetaOpen] = useState(false);
   const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState({ title: '', description: '' });
   const hasPermission = rol === 'SUPER' || rol === 'SECRETARIO';
+
+  const { 
+      usuario: datosCompletosParaForm 
+  } = useInfoUsuario(selectedUsuario ? selectedUsuario.id : null);
 
   useEffect(() => {
     const isAnyModalOpen = isFormOpen || isInfoPersonalOpen || isContratoOpen || isTarjetaOpen || !!dependenciaParaEmpleado || descriptionModalOpen || isInfoFinancieraOpen;
@@ -346,7 +350,7 @@ export default function Ver() {
         <DependenciaList dependencias={finalTree} rol={rol} onEdit={handleOpenForm} onDelete={handleDelete} onAddSub={handleOpenSubForm} onMove={handleMove} onMoveExtreme={handleMoveExtreme} onAddEmpleado={handleOpenEmpleadoModal} onDeleteEmpleado={handleDeleteEmpleado} onOpenInfoPersonal={handleOpenInfoPersonal} onOpenContrato={handleOpenContrato} onViewCard={handleOpenTarjeta} onOpenDescription={handleOpenDescriptionModal} onOpenInfoFinanciera={handleOpenInfoFinanciera} openNodeIds={openNodeIds} setOpenNodeIds={setOpenNodeIds} />
         
         <EmpleadoForm isOpen={!!dependenciaParaEmpleado} onClose={handleCloseEmpleadoModal} dependencia={dependenciaParaEmpleado} usuarios={usuarios} empleadosAsignados={empleadosAsignadosParaForm} todasLasDependencias={dependencias} onSave={handleSaveEmpleado} />
-        <InfoPersonalForm isOpen={isInfoPersonalOpen} onClose={handleCloseModals} onSubmit={handleSubmitInfoPersonal} usuario={selectedUsuario} initialData={infoUsuarios.find((i: InfoUsuario) => i.user_id === selectedUsuario?.id)} />
+        <InfoPersonalForm isOpen={isInfoPersonalOpen} onClose={handleCloseModals} onSubmit={handleSubmitInfoPersonal} usuario={selectedUsuario} initialData={datosCompletosParaForm || undefined} />
         <ContratoForm isOpen={isContratoOpen} onClose={handleCloseModals} onSubmit={handleSubmitContrato} usuario={selectedUsuario} initialData={null} />
         <TarjetaEmpleado isOpen={isTarjetaOpen} onClose={handleCloseTarjeta} userId={usuarioIdParaTarjeta} />
         <DescriptionModal isOpen={descriptionModalOpen} onClose={handleCloseDescriptionModal} title={modalContent.title} description={modalContent.description} />

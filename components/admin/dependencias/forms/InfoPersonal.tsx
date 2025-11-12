@@ -1,4 +1,3 @@
-//forms/InfoPersonal.tsx
 'use client';
 
 import { useForm, SubmitHandler } from 'react-hook-form';
@@ -10,9 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Usuario } from '@/lib/usuarios/esquemas';
-import { Database } from '@/lib/database.types';
-
-type InfoUsuario = Database['public']['Tables']['info_usuario']['Row'];
+// Importamos el tipo que Ver.tsx SÍ está usando:
+import { type InfoUsuarioData } from '@/hooks/usuarios/useInfoUsuario';
 
 const formSchema = z.object({
   nombre: z.string().min(3, { message: 'El nombre es requerido.' }),
@@ -31,7 +29,8 @@ interface Props {
   onClose: () => void;
   onSubmit: (data: InfoPersonalFormData) => void;
   usuario: Usuario | null;
-  initialData?: Partial<InfoUsuario>;
+  // Corregimos el tipo de 'initialData' para que coincida con el hook
+  initialData?: Partial<InfoUsuarioData>;
 }
 
 export default function InfoPersonalForm({ isOpen, onClose, onSubmit, usuario, initialData }: Props) {
@@ -70,9 +69,10 @@ export default function InfoPersonalForm({ isOpen, onClose, onSubmit, usuario, i
         <motion.div
           className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          onClick={onClose}
         >
           <motion.div
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg m-4"
             initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -90,7 +90,9 @@ export default function InfoPersonalForm({ isOpen, onClose, onSubmit, usuario, i
                   <FormField control={form.control} name="cuenta_no" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>No. de Cuenta Bancaria</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                   <div className="flex justify-end gap-2 pt-4 md:col-span-2">
                     <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
-                    <Button type="submit">Guardar Cambios</Button>
+                    <Button type="submit" disabled={form.formState.isSubmitting}>
+                      {form.formState.isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
+                    </Button>
                   </div>
                 </form>
               </Form>
