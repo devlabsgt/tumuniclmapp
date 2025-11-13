@@ -24,6 +24,7 @@ export interface InfoUsuarioData {
   salario: number | null;
   bonificacion: number | null;
   renglon: string | null;
+  prima: boolean | null;
   contrato_no: string | null;
   fecha_ini: string | null;
   fecha_fin: string | null;
@@ -96,7 +97,7 @@ export function useInfoUsuario(userId: string | null) {
     const supabase = createClient();
 
     try {
-      const { data, error: rpcError } = await supabase.rpc('info_usuario', {
+      const { data, error: rpcError } = await supabase.rpc('info_usuario2', {
         p_user_id: userId
       });
 
@@ -108,8 +109,8 @@ export function useInfoUsuario(userId: string | null) {
 
 // ...
 } catch (err: any) {
-  console.error('--- ERROR REAL DE SUPABASE ---'); // <-- Mensaje clave
-  console.error(err); // <-- Imprime el objeto de error COMPLETO
+  console.error('--- ERROR REAL DE SUPABASE ---'); 
+  console.error(err); 
   setError(err.message);
   setUsuario(null);
 } finally {

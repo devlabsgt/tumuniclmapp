@@ -6,15 +6,14 @@ import {
   CircleDollarSign, BadgeDollarSign, Wallet,
   TrendingDown, Banknote,
   X, Loader2, Briefcase, Clock,
-  Lock, // Icono para Prima de Fianza
-  Building2, // Icono para Plan de Prestaciones
-  Landmark // Icono para ISR
+  Lock,
+  Building2,
+  Landmark
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Cargando from '@/components/ui/animations/Cargando';
 import { useInfoUsuario } from '@/hooks/usuarios/useInfoUsuario';
 
-// --- Configuración de Renglones ---
 type RenglonConfig = { salarioLabel: string; bonoLabel?: string; tieneBono: boolean };
 
 const renglonConfig: Record<string, RenglonConfig> = {
@@ -26,7 +25,6 @@ const renglonConfig: Record<string, RenglonConfig> = {
   '035': { salarioLabel: 'Retribución a destajo (035)', tieneBono: false },
   '036': { salarioLabel: 'Retribución por servicios (036)', tieneBono: false },
 };
-// ------------------------------------
 
 
 const InfoItem = ({ icon, label, value, isLoading, isDeduction = false, isTotal = false }: { 
@@ -60,24 +58,17 @@ interface TarjetaEmpleadoProps {
   userId: string | null;
 }
 
-// --- CONSTANTES GENERALES ---
 const PORCENTAJE_IGSS = 0.0483;
 const PORCENTAJE_PLAN_PRESTACIONES = 0.07; 
 const GASTOS_PERSONALES_ANUAL_ISR = 48000;
 const TECHO_COTIZACION_IGSS = 6075; 
-const DEDUCCION_ADICIONAL_ANUAL_MUNI = 9093.36; // Deducción proyectada para cuadrar ISR Q297.44
-// ---------------------------------------------
+const DEDUCCION_ADICIONAL_ANUAL_MUNI = 9093.36; 
 
-// --- CONSTANTES DE PRIMA DE FIANZA ---
 const FIANZA_FACTOR_ASEGURADA = 24;
-const FIANZA_PORCENTAJE = 0.0005; // 0.05%
-const IVA_PORCENTAJE = 0.12;     // 12%
-// ------------------------------------
+const FIANZA_PORCENTAJE = 0.0005;
+const IVA_PORCENTAJE = 0.12;
 
 
-/**
- * Calcula la Prima de Fianza (Base + IVA) en función del salario base.
- */
 const calcularPrimaFianza = (salarioBase: number): number => {
   if (salarioBase <= 0) return 0;
   const sumaAsegurada = salarioBase * FIANZA_FACTOR_ASEGURADA;
@@ -87,18 +78,13 @@ const calcularPrimaFianza = (salarioBase: number): number => {
 };
 
 
-/**
- * Calcula la retención mensual de ISR para un empleado. (Ahora siempre se ejecuta)
- */
 const calcularISR = (salarioBase: number): number => {
   if (salarioBase === 0) return 0;
 
   const rentaGravadaAnual = salarioBase * 12;
 
-  // 1. IGSS deducible de ISR (sobre el *mínimo* entre el salario y el techo)
   const igssDeducibleAnual = Math.min(salarioBase, TECHO_COTIZACION_IGSS) * PORCENTAJE_IGSS * 12;
 
-  // 2. Total de deducciones anuales (Fijos + IGSS Deducible + Proyectada Municipal)
   const deduccionesISRAnual = 
     GASTOS_PERSONALES_ANUAL_ISR + 
     igssDeducibleAnual +
@@ -134,7 +120,6 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
     return options.sign === 'negative' ? `- ${formatted}` : formatted;
   };
   
-  // ... (otras funciones format) ...
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return '--';
     try {
@@ -158,10 +143,8 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
     const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
     return days.sort((a, b) => a - b).map(d => dayNames[d] || '?').join(', ');
   };
-  // ---------------------------------
 
 
-  // --- Lógica de Contrato/Finanzas ---
   const isGlobalLoading = cargandoDatos;
   const renglon = datosCompletos?.renglon;
   const salarioBase = datosCompletos?.salario || 0;
@@ -175,19 +158,16 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
   
   const totalDevengado = salarioBase + bonificacion;
 
-  // --- CONTROL Y CÁLCULO DE DEDUCCIONES ---
-  // Esta es la ÚNICA variable de control condicional de descuento
-  const aplicaPrimaFianza = true; 
+  const aplicaPrimaFianza = datosCompletos?.prima || false; 
   
   const deduccionIGSS = salarioBase * PORCENTAJE_IGSS; 
   const deduccionPlan = salarioBase * PORCENTAJE_PLAN_PRESTACIONES;
-  const deduccionISR = calcularISR(salarioBase); // ISR se calcula SIEMPRE
+  const deduccionISR = calcularISR(salarioBase);
   const deduccionPrimaFianza = aplicaPrimaFianza ? calcularPrimaFianza(salarioBase) : 0; 
   
 
   const totalDeducciones = deduccionIGSS + deduccionPlan + deduccionISR + deduccionPrimaFianza;
   const liquidoARecibir = totalDevengado - totalDeducciones;
-  // ---------------------------------
 
 
   const pathItems = datosCompletos?.puesto_path_jerarquico
@@ -226,7 +206,6 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
             ) : (
               <div className="p-8">
                 
-                {/* ... (Encabezado con nombre, email, ubicación y horario) ... */}
                 <div className="flex flex-col items-center mb-8 lg:flex-row lg:items-center lg:gap-4">
                   <div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-full mb-4 lg:mb-0">
                     <User className="h-8 w-8 text-blue-600 dark:text-blue-400" />
@@ -260,10 +239,8 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
                   </div>
                 </div>
 
-                {/* --- SECCIÓN DE 3 COLUMNAS --- */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   
-                  {/* --- COLUMNA 1: INFO PERSONAL --- */}
                   <div className="flex flex-col space-y-4">
                     <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300 border-b pb-2 mb-2">Información Personal</h3>
                       <InfoItem icon={<User size={18} />} label="Nombre Completo" value={datosCompletos?.nombre} />
@@ -275,7 +252,6 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
                       <InfoItem icon={<MapPin size={18} />} label="Dirección" value={datosCompletos?.direccion} />
                   </div>
 
-                  {/* --- COLUMNA 2: INFO CONTRATO (INGRESOS) --- */}
                   <div className="flex flex-col space-y-4">
                     <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300 border-b pb-2 mb-2">Información de Contrato</h3>
                       <InfoItem icon={<Briefcase size={18} />} label="Cargo" value={datosCompletos?.puesto_nombre} />
@@ -303,28 +279,29 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
                       </div>
                   </div>
 
-                  {/* --- COLUMNA 3: DEDUCCIONES Y LÍQUIDO --- */}
                   <div className="flex flex-col space-y-4">
                     <h3 className="font-semibold text-sm text-red-600 dark:text-red-400 border-b border-red-200 dark:border-red-800 pb-2 mb-2">Deducciones de Ley y Municipales</h3>
                     
                     <InfoItem 
-                      icon={<Shield size={18} />} // Icono de escudo en rojo para IGSS
+                      icon={<Shield size={18} />}
                       label={`IGSS (${(PORCENTAJE_IGSS * 100).toFixed(2)}%)`}
                       value={formatCurrency(deduccionIGSS, { sign: 'negative' })}
                       isDeduction={true}
                     />
                     <InfoItem 
-                      icon={<Building2 size={18} />} // Icono de edificio para Plan de Prestaciones
+                      icon={<Building2 size={18} />}
                       label={`Plan de Prestaciones (${(PORCENTAJE_PLAN_PRESTACIONES * 100).toFixed(0)}%)`}
                       value={formatCurrency(deduccionPlan, { sign: 'negative' })}
                       isDeduction={true}
                     />
-                    <InfoItem 
-                         icon={<Landmark size={18} />} // Icono de monumento para ISR
-                         label="ISR (Retención Mensual)" 
-                         value={formatCurrency(deduccionISR, { sign: 'negative' })}
-                         isDeduction={true}
-                    />
+                    {deduccionISR > 0 && (
+                      <InfoItem 
+                           icon={<Landmark size={18} />}
+                           label="ISR (Retención Mensual)" 
+                           value={formatCurrency(deduccionISR, { sign: 'negative' })}
+                           isDeduction={true}
+                      />
+                    )}
                      {aplicaPrimaFianza && (
                        <InfoItem 
                          icon={<Lock size={18} />} 
@@ -340,7 +317,7 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
                         label="Total Deducciones" 
                         value={formatCurrency(totalDeducciones, { sign: 'negative' })}
                         isDeduction={true}
-                        isTotal={true} // Re-usa el estilo total pero en rojo
+                        isTotal={true}
                       />
                     </div>
                     
