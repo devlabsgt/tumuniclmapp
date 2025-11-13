@@ -35,7 +35,7 @@ const InfoItem = ({ icon, label, value, isLoading, isDeduction = false, isTotal 
   isDeduction?: boolean,
   isTotal?: boolean
 }) => (
-  <div className="flex items-start gap-4 py-2">
+  <div className="flex items-start gap-4 py-1">
     <div className={`mt-1 ${isDeduction ? 'text-red-500' : 'text-blue-500 dark:text-blue-400'} ${isTotal ? 'text-green-600 dark:text-green-500' : ''}`}>
       {icon}
     </div>
@@ -218,7 +218,7 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
                         <h4 className="flex items-center text-xs font-semibold text-gray-800 dark:text-gray-200 mb-2">
                           <Briefcase size={14} className="mr-2 text-blue-500 flex-shrink-0" /> Ubicación Organizacional
                         </h4>
-                        <div className="hidden lg:flex items-center gap-1.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           <p className="text-xs text-gray-500 dark:text-gray-400"> {pathItems.join(' / ')} </p>
                         </div>
                       </div>
@@ -239,9 +239,9 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8">
                   
-                  <div className="flex flex-col space-y-4">
+                  <div className="flex flex-col">
                     <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300 border-b pb-2 mb-2">Información Personal</h3>
                       <InfoItem icon={<User size={18} />} label="Nombre Completo" value={datosCompletos?.nombre} />
                       <InfoItem icon={<Phone size={18} />} label="Teléfono" value={datosCompletos?.telefono} />
@@ -252,7 +252,7 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
                       <InfoItem icon={<MapPin size={18} />} label="Dirección" value={datosCompletos?.direccion} />
                   </div>
 
-                  <div className="flex flex-col space-y-4">
+                  <div className="flex flex-col mt-6 md:mt-0">
                     <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300 border-b pb-2 mb-2">Información de Contrato</h3>
                       <InfoItem icon={<Briefcase size={18} />} label="Cargo" value={datosCompletos?.puesto_nombre} />
                       <InfoItem icon={<FileText size={18} />} label="Renglón" value={renglon} />
@@ -269,49 +269,43 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
                           value={formatCurrency(bonificacion)} 
                         />
                       )}
-                      <div className="border-t pt-4">
-                        <InfoItem 
-                          icon={<Wallet size={18} />} 
-                          label="Total Devengado" 
-                          value={formatCurrency(totalDevengado)}
-                          isTotal={true}
-                        />
-                      </div>
-                  </div>
-
-                  <div className="flex flex-col space-y-4">
-                    <h3 className="font-semibold text-sm text-red-600 dark:text-red-400 border-b border-red-200 dark:border-red-800 pb-2 mb-2">Deducciones de Ley y Municipales</h3>
-                    
-                    <InfoItem 
-                      icon={<Shield size={18} />}
-                      label={`IGSS (${(PORCENTAJE_IGSS * 100).toFixed(2)}%)`}
-                      value={formatCurrency(deduccionIGSS, { sign: 'negative' })}
-                      isDeduction={true}
-                    />
-                    <InfoItem 
-                      icon={<Building2 size={18} />}
-                      label={`Plan de Prestaciones (${(PORCENTAJE_PLAN_PRESTACIONES * 100).toFixed(0)}%)`}
-                      value={formatCurrency(deduccionPlan, { sign: 'negative' })}
-                      isDeduction={true}
-                    />
-                    {deduccionISR > 0 && (
+                      
                       <InfoItem 
-                           icon={<Landmark size={18} />}
-                           label="ISR (Retención Mensual)" 
-                           value={formatCurrency(deduccionISR, { sign: 'negative' })}
-                           isDeduction={true}
+                        icon={<Wallet size={18} />} 
+                        label="Total Devengado" 
+                        value={formatCurrency(totalDevengado)}
+                        isTotal={true}
                       />
-                    )}
-                     {aplicaPrimaFianza && (
-                       <InfoItem 
-                         icon={<Lock size={18} />} 
-                         label="Prima de Fianza" 
-                         value={formatCurrency(deduccionPrimaFianza, { sign: 'negative' })}
-                         isDeduction={true}
-                       />
-                     )}
-                    
-                    <div className="border-t border-red-200 dark:border-red-800 pt-4">
+                      
+                      <InfoItem 
+                        icon={<Shield size={18} />}
+                        label={`IGSS (${(PORCENTAJE_IGSS * 100).toFixed(2)}%)`}
+                        value={formatCurrency(deduccionIGSS, { sign: 'negative' })}
+                        isDeduction={true}
+                      />
+                      <InfoItem 
+                        icon={<Building2 size={18} />}
+                        label={`Plan de Prestaciones (${(PORCENTAJE_PLAN_PRESTACIONES * 100).toFixed(0)}%)`}
+                        value={formatCurrency(deduccionPlan, { sign: 'negative' })}
+                        isDeduction={true}
+                      />
+                      {deduccionISR > 0 && (
+                        <InfoItem 
+                             icon={<Landmark size={18} />}
+                             label="ISR (Retención Mensual)" 
+                             value={formatCurrency(deduccionISR, { sign: 'negative' })}
+                             isDeduction={true}
+                        />
+                      )}
+                       {aplicaPrimaFianza && (
+                         <InfoItem 
+                           icon={<Lock size={18} />} 
+                           label="Prima de Fianza" 
+                           value={formatCurrency(deduccionPrimaFianza, { sign: 'negative' })}
+                           isDeduction={true}
+                         />
+                       )}
+                      
                       <InfoItem 
                         icon={<TrendingDown size={18} />} 
                         label="Total Deducciones" 
@@ -319,16 +313,15 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
                         isDeduction={true}
                         isTotal={true}
                       />
-                    </div>
-                    
-                    <div className="border-t border-green-200 dark:border-green-800 pt-4 mt-4">
-                      <InfoItem 
-                        icon={<Banknote size={20} />} 
-                        label="Líquido a Recibir" 
-                        value={formatCurrency(liquidoARecibir)}
-                        isTotal={true}
-                      />
-                    </div>
+                      
+                      <div className="border-t border-gray-200 ">
+                        <InfoItem 
+                          icon={<Banknote size={20} />} 
+                          label="Líquido a Recibir" 
+                          value={formatCurrency(liquidoARecibir)}
+                          isTotal={true}
+                        />
+                      </div>
                   </div>
 
                 </div>
