@@ -223,7 +223,6 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
           
           <div className="flex flex-col gap-3 p-2 bg-slate-50 rounded-lg">
             
-            {/* Fila 1: Selects de Dependencias (50% ancho en md+) */}
             <div className="flex flex-col md:flex-row gap-2 w-full md:w-1/2">
               {cargandoDependencias ? (
                   <Cargando texto="Cargando filtros..." />
@@ -317,8 +316,9 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                   <table className="w-full table-fixed text-xs">
                     <thead className="bg-slate-50 text-left">
                       <tr>
-                        <th className="py-3 px-4 text-[10px] xl:text-xs w-[45%] font-semibold text-slate-600">Nombre</th>
-                        <th className="py-3 px-2 text-[10px] xl:text-xs w-[55%] font-semibold text-slate-600 pl-4">Puesto</th>
+                        <th className="py-3 px-4 text-[10px] xl:text-xs w-[35%] font-semibold text-slate-600">Nombre</th>
+                        <th className="py-3 px-2 text-[10px] xl:text-xs w-[35%] font-semibold text-slate-600 pl-4">Usuario</th>
+                        <th className="py-3 px-2 text-[10px] xl:text-xs w-[30%] font-semibold text-slate-600 pl-4">Puesto</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -328,7 +328,7 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                          return (
                           <Fragment key={grupo.path_orden}>
                             <tr className="border-b border-slate-100">
-                              <td colSpan={2} className="p-1">
+                              <td colSpan={3} className="p-1">
                                 <div 
                                   onClick={() => toggleOficina(grupo.oficina_nombre)}
                                   className="bg-slate-100 hover:bg-slate-200 cursor-pointer transition-colors py-2.5 px-4 text-sm font-semibold text-blue-600 flex items-center justify-between rounded-sm"
@@ -354,7 +354,7 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                                   transition={{ duration: 0.3, ease: "easeInOut" }}
                                   style={{ overflow: 'hidden' }}
                                 >
-                                  <td colSpan={2} className="p-0">
+                                  <td colSpan={3} className="p-0">
                                     <table className="w-full">
                                       <tbody>
                                         {grupo.usuarios.map((usuario) => (
@@ -363,10 +363,13 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                                             onClick={() => handleVerUsuario(usuario.id)}
                                             className={`border-b border-slate-100 transition-colors hover:bg-blue-50 group ${canOpenModal ? 'cursor-pointer' : 'cursor-default'}`}
                                           >
-                                            <td className="py-3 px-4 text-[11px] xl:text-xs text-slate-700 w-[45%] truncate">
+                                            <td className="py-3 px-4 text-[11px] xl:text-xs text-slate-700 w-[35%] truncate">
                                               {usuario.nombre || '—'}
                                             </td>
-                                            <td className="py-3 px-2 text-[11px] xl:text-xs text-slate-600 w-[55%] truncate pl-4">
+                                            <td className="py-3 px-2 text-[11px] xl:text-xs text-slate-600 w-[35%] truncate pl-4">
+                                              {usuario.email || '—'}
+                                            </td>
+                                            <td className="py-3 px-2 text-[11px] xl:text-xs text-slate-600 w-[30%] truncate pl-4">
                                               {usuario.puesto_nombre || '—'}
                                             </td>
                                           </tr>
