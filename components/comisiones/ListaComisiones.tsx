@@ -81,6 +81,10 @@ export default function ListaComisiones({
   const hasAdminPermissions = rolActual === 'SUPER' || rolActual === 'RRHH' || rolActual === 'SECRETARIO' || esjefe;
   const canApprove = rolActual === 'SUPER' || rolActual === 'RRHH' || rolActual === 'SECRETARIO';
 
+  const showDeleteButton = 
+    (canApprove && (vista === 'hoy' || vista === 'proximas')) ||
+    (rolActual === 'SUPER' && vista === 'terminadas');
+
   return (
     <>
       <div className="border-b flex mb-4 flex-wrap justify-center">
@@ -356,7 +360,7 @@ export default function ListaComisiones({
               Ver {comisionesSeleccionadas.length} comision{comisionesSeleccionadas.length > 1 ? 'es' : ''}
             </Button>
             
-            {canApprove && (
+            {showDeleteButton && (
               <Button onClick={onEliminarComisiones} className="bg-red-600 hover:bg-red-700 text-white shadow-lg flex items-center gap-2">
                 <Trash2 size={16} />
                 Eliminar {comisionesSeleccionadas.length}

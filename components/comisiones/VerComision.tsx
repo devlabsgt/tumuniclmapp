@@ -92,11 +92,26 @@ export default function VerComision({ comision, usuarios, onClose, onAbrirMapa, 
   const exportRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  const hasPermissionEditar = rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO' || esjefe;
-  const canAprobar = rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO';
-  const hasPermissionEliminar = rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO';
-
+  const esSuper = rol === 'SUPER';
+  const esAdmin = rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO';
+  
   const fechaCompleta = parseISO(comision.fecha_hora.replace(' ', 'T'));
+  
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+
+  const fechaComisionDate = new Date(fechaCompleta);
+  fechaComisionDate.setHours(0, 0, 0, 0);
+
+  const comisionYaPaso = fechaComisionDate < hoy;
+
+  const puedeEditarNormal = esAdmin || esjefe;
+  const puedeEliminarNormal = esAdmin;
+  const canAprobar = esAdmin;
+
+  const hasPermissionEditar = esSuper || (!comisionYaPaso && puedeEditarNormal);
+  const hasPermissionEliminar = esSuper || (!comisionYaPaso && puedeEliminarNormal);
+
   const fechaHoraAbreviada = format(fechaCompleta, "EEE, d MMM, yyyy | h:mm a", { locale: es });
 
   const encargado = comision.asistentes?.find(a => a.encargado);
