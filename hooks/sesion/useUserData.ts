@@ -63,13 +63,7 @@ export default function useUserData(): UserData {
           setHorarioEntrada(null);
           setHorarioSalida(null);
           setDependenciaId(null); 
-          
-          console.log("USUARIO SIN DATOS (ERROR RPC/VACÍO):", {
-            rol: '',
-            esjefe: false,
-            dependencia_id: null,
-            error: dataError 
-          });
+
           
         } else {
           const resultado = userData[0];
@@ -87,11 +81,6 @@ export default function useUserData(): UserData {
           setHorarioSalida(resultado.horario_salida || null);
           setDependenciaId(resultado.dependencia_id || null); 
 
-          console.log("USUARIO CARGADO:", {
-            rol: resultado.rol,
-            esjefe: resultado.esjefe,
-            dependencia_id: resultado.dependencia_id 
-          });
         }
       } else {
         setUserId(null);
@@ -108,7 +97,6 @@ export default function useUserData(): UserData {
         setHorarioSalida(null);
         setDependenciaId(null);
         
-        console.log("USUARIO NO AUTENTICADO");
       }
       setCargando(false);
     };

@@ -66,7 +66,5 @@ export async function POST(req: Request) {
     },
   };
 
-  console.log('Debug: Enviando payload de usuario:', JSON.stringify(responsePayload, null, 2));
-
   return NextResponse.json(responsePayload);
 }

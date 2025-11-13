@@ -18,18 +18,7 @@ export default function useAsistenciasOficina(
 
     useEffect(() => {
         const fetchAsistencias = async () => {
-            if (!oficinaId) {
-                console.log("HOOK: No hay oficinaId, no se busca nada."); // Log 1
-                setRegistros([]);
-                setLoading(false);
-                return;
-            }
 
-            console.log("HOOK: Buscando asistencias con:", { // Log 2
-                oficinaId, 
-                fechaInicio, 
-                fechaFinal 
-            });
 
             setLoading(true);
             const supabase = createClient();
@@ -43,11 +32,6 @@ export default function useAsistenciasOficina(
                 p_fecha_final: p_fecha_final
             });
 
-            // --- ¡ESTE ES EL LOG MÁS IMPORTANTE! ---
-            console.log("HOOK: Respuesta de la RPC 'asistencias_oficinas'"); // Log 3
-            console.log("   -> Data:", data);
-            console.log("   -> Error:", error);
-            // ------------------------------------------
 
             if (error) {
                 console.error("Error fetching asistencias_oficinas:", error);

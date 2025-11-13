@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import PasswordForm from './PasswordForm';
@@ -66,7 +66,6 @@ const formSchema = z.object({
 
 
 export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: UserFormProps) {
-  console.log('ROL RECIBIDO EN FORMULARIO:', rolUsuarioActual); 
 
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
@@ -74,20 +73,11 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
   const [activo, setActivo] = useState(true);
   const [esJefe, setEsJefe] = useState(false);
 
-  const [direccion, setDireccion] = useState('');
-  const [telefono, setTelefono] = useState('');
-  const [dpi, setDpi] = useState('');
-  const [nit, setNit] = useState('');
-  const [igss, setIgss] = useState('');
-  const [cuentaNo, setCuentaNo] = useState('');
-
   const [cargando, setCargando] = useState(false);
   const [rolesDisponibles, setRolesDisponibles] = useState<Rol[]>([]);
 
   const [password, setPassword] = useState('');
   const [confirmar, setConfirmar] = useState('');
-
-  const [vistaActiva, setVistaActiva] = useState<TabState>('personal');
 
   const [original, setOriginal] = useState({
     nombre: '',
@@ -95,12 +85,6 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
     rol: '',
     activo: true,
     esJefe: false,
-    direccion: '',
-    telefono: '',
-    dpi: '',
-    nit: '',
-    igss: '',
-    cuentaNo: '',
   });
 
   const { data: usuario, error, isLoading } = useSWR(
@@ -126,13 +110,7 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
     rol !== original.rol ||
     activo !== original.activo ||
     esJefe !== original.esJefe ||
-    direccion !== original.direccion ||
-    telefono !== original.telefono ||
-    dpi !== original.dpi ||
-    nit !== original.nit ||
-    igss !== original.igss ||
-    cuentaNo !== original.cuentaNo ||
-    (vistaActiva === 'password' && (password || confirmar));
+    (password || confirmar);
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -157,28 +135,14 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
     setEmail(usuario.email || '');
     setRol(rolId);
     setActivo(usuario.activo);
-    // AQUÍ ESTÁ LA CORRECCIÓN 1:
-    setEsJefe(usuario.esjefe || false); // Cambiado de esJefe a esjefe
-
-    setDireccion(usuario.direccion || '');
-    setTelefono(usuario.telefono || '');
-    setDpi(usuario.dpi || '');
-    setNit(usuario.nit || '');
-    setIgss(usuario.igss || '');
-    setCuentaNo(usuario.cuenta_no || '');
+    setEsJefe(usuario.esjefe || false);
 
     setOriginal({
       nombre: usuario.nombre || '',
       email: usuario.email || '',
       rol: rolId || '',
       activo: usuario.activo,
-      esJefe: usuario.esjefe || false, // Cambiado de esJefe a esjefe
-      direccion: usuario.direccion || '',
-      telefono: usuario.telefono || '',
-      dpi: usuario.dpi || '',
-      nit: usuario.nit || '',
-      igss: usuario.igss || '',
-      cuentaNo: usuario.cuenta_no || '',
+      esJefe: usuario.esjefe || false,
     });
   }, [usuario, rolesDisponibles]);
   
@@ -223,13 +187,7 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
       nombre,
       rol,
       activo,
-      esJefe, // Aquí está bien 'esJefe' (camelCase) porque es el state local de React
-      direccion,
-      telefono,
-      dpi,
-      nit,
-      igss,
-      cuentaNo,
+      esJefe,
       password: password || undefined,
     };
     
@@ -372,91 +330,20 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
         </div>
       </div>
 
-      <div className="flex rounded-md border p-1 bg-gray-100 dark:bg-gray-800 h-12 mt-4">
-        <button
-          type="button"
-          onClick={() => setVistaActiva('personal')}
-          className={`flex-1 rounded-md text-sm md:text-base font-semibold transition-all duration-200 ${
-            vistaActiva === 'personal' ? 'bg-blue-100 text-blue-600 shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'
-          }`}
-        >
-          Información personal
-        </button>
-        <button
-          type="button"
-          onClick={() => setVistaActiva('password')}
-          className={`flex-1 rounded-md text-sm md:text-base font-semibold transition-colors duration-200 ${
-            vistaActiva === 'password' ? 'bg-blue-100 text-blue-600 shadow' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700'
-          }`}
-        >
-          Contraseña
-        </button>
-      </div>
+      <div className="border-t my-4"></div>
 
-      {vistaActiva === 'personal' && (
-        <AnimatePresence mode="wait">
-          <motion.div
-            key="personal"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="w-full mt-4 grid grid-cols-2 gap-4">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="direccion" className="text-xs w-20">Dirección</Label>
-                <Input id="direccion" name="direccion" value={direccion} onChange={(e) => setDireccion(e.target.value)} />
-              </div>
-              <div className="flex items-center gap-2">
-                <Label htmlFor="telefono" className="text-xs w-20">Teléfono</Label>
-                <Input id="telefono" name="telefono" value={telefono} onChange={(e) => setTelefono(e.target.value)} />
-              </div>
-              <div className="flex items-center gap-2">
-                <Label htmlFor="dpi" className="text-xs w-20">DPI</Label>
-                <Input id="dpi" name="dpi" value={dpi} onChange={(e) => setDpi(e.target.value)} />
-              </div>
-              <div className="flex items-center gap-2">
-                <Label htmlFor="nit" className="text-xs w-20">NIT</Label>
-                <Input id="nit" name="nit" value={nit} onChange={(e) => setNit(e.target.value)} />
-              </div>
-              <div className="flex items-center gap-2">
-                <Label htmlFor="igss" className="text-xs w-20">IGSS</Label>
-                <Input id="igss" name="igss" value={igss} onChange={(e) => setIgss(e.target.value)} />
-              </div>
-              <div className="flex items-center gap-2">
-                <Label htmlFor="cuenta_no" className="text-xs w-20">No. de Cuenta</Label>
-                <Input id="cuenta_no" name="cuenta_no" value={cuentaNo} onChange={(e) => setCuentaNo(e.target.value)} />
-              </div>
-            </div>
-          </motion.div>
-        </AnimatePresence>
-      )}
-
-      {vistaActiva === 'password' && (
-        <AnimatePresence mode="wait">
-          <motion.div
-            key="password"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
-            className="mt-4"
-          >
-            <PasswordForm
-              password={password}
-              confirmar={confirmar}
-              onPasswordChange={(value) => {
-                setPassword(value);
-                validateForm();
-              }}
-              onConfirmarChange={(value) => {
-                setConfirmar(value);
-                validateForm();
-              }}
-            />
-          </motion.div>
-        </AnimatePresence>
-      )}
+      <PasswordForm
+        password={password}
+        confirmar={confirmar}
+        onPasswordChange={(value) => {
+          setPassword(value);
+          validateForm();
+        }}
+        onConfirmarChange={(value) => {
+          setConfirmar(value);
+          validateForm();
+        }}
+      />
 
       <Button
         onClick={guardarCambios}
