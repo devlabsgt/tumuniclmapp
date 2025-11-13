@@ -8,7 +8,7 @@ import { comisionSchema, ComisionFormData } from '@/lib/comisiones/esquemas';
 import { Usuario } from '@/lib/usuarios/esquemas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import Calendario from '@/components/ui/Calendario';
+import CalendarioComisiones from '../CalendarioComisiones';
 import { ComisionConFechaYHoraSeparada, Asistente } from '@/hooks/comisiones/useObtenerComisiones';
 import { motion, AnimatePresence } from 'framer-motion';
 import Comentarios from './Comentarios';
@@ -42,7 +42,7 @@ interface ComisionFormProps {
 }
 
 export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisionAEditar }: ComisionFormProps) {
-  const [fechaSeleccionada, setFechaSeleccionada] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [fechasSeleccionadas, setFechasSeleccionadas] = useState<Date[]>([new Date()]);
   const { rol, esjefe } = useUserData();
 
   const methods = useForm<ComisionFormData>({
@@ -74,10 +74,10 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
           encargadoId: encargado?.id || '',
           userIds: asistentes.map(a => a.id),
         });
-        setFechaSeleccionada(format(date, 'yyyy-MM-dd'));
+        setFechasSeleccionadas([date]);
       } else {
         reset({ titulo: '', comentarios: [], hora: '08', minuto: '00', periodo: 'AM', encargadoId: '', userIds: [] });
-        setFechaSeleccionada(format(new Date(), 'yyyy-MM-dd'));
+        setFechasSeleccionadas([new Date()]);
       }
     }
   }, [comisionAEditar, isOpen, reset]);
@@ -89,68 +89,123 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
       return;
     }
 
+    if (!fechasSeleccionadas || fechasSeleccionadas.length === 0) {
+      customToast('#f97316').fire({ icon: 'warning', title: 'Debe seleccionar al menos una fecha.' });
+      return;
+    }
+
     let hour24 = parseInt(formData.hora, 10);
     if (formData.periodo === 'PM' && hour24 < 12) {
       hour24 += 12;
     } else if (formData.periodo === 'AM' && hour24 === 12) { 
       hour24 = 0;
     }
-
-    const [year, month, day] = fechaSeleccionada.split('-').map(Number);
-    const fechaHora = new Date(year, month - 1, day, hour24, parseInt(formData.minuto, 10));
+    const minute = parseInt(formData.minuto, 10);
 
     const esAdminSuperior = rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO';
 
-    let aprobado = false;
-    if (esAdminSuperior) {
-      aprobado = true;
-    }
-    
-    if (comisionAEditar && esjefe) {
-      aprobado = false;
-    }
-
-    const datosComision = {
-      titulo: formData.titulo,
-      comentarios: formData.comentarios,
-      fecha_hora: fechaHora.toISOString(),
-      encargadoId: formData.encargadoId,
-      userIds: formData.userIds,
-      aprobado: aprobado,
-      ...(comisionAEditar && { id: comisionAEditar.id }),
-    };
-
     try {
-      const response = await fetch('/api/users/comision', {
-        method: comisionAEditar ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(datosComision),
-      });
+      if (comisionAEditar) {
+        const fecha = fechasSeleccionadas[0];
+        const fechaHora = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), hour24, minute);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Error al guardar la comisión.');
-      }
-      
-      if (esjefe) {
-        const titulo = comisionAEditar ? 'Comisión Editada con Éxito' : 'Comisión Creada con Éxito';
-        await Swal.fire({
-          icon: 'success',
-          title: titulo,
-          text: 'Debe de ser aprobada por Recursos Humanos antes de estar disponible.'
+        let aprobado = esAdminSuperior;
+        if (esjefe) {
+          aprobado = false;
+        }
+
+        const datosComision = {
+          titulo: formData.titulo,
+          comentarios: formData.comentarios,
+          fecha_hora: fechaHora.toISOString(),
+          encargadoId: formData.encargadoId,
+          userIds: formData.userIds,
+          aprobado: aprobado,
+          id: comisionAEditar.id,
+        };
+
+        const response = await fetch('/api/users/comision', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(datosComision),
         });
-      } else if (esAdminSuperior) {
-        const titulo = comisionAEditar ? 'Comisión Actualizada y Aprobada' : 'Comisión Creada y Aprobada';
-        await Swal.fire({
-          icon: 'success',
-          title: titulo,
-          text: 'La comisión ha sido guardada y aprobada exitosamente.'
-        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Error al guardar la comisión.');
+        }
+        
+        if (esjefe) {
+          const titulo = 'Comisión Editada con Éxito';
+          await Swal.fire({
+            icon: 'success',
+            title: titulo,
+            text: 'Debe de ser aprobada por Recursos Humanos antes de estar disponible.'
+          });
+        } else if (esAdminSuperior) {
+          const titulo = 'Comisión Actualizada y Aprobada';
+          await Swal.fire({
+            icon: 'success',
+            title: titulo,
+            text: 'La comisión ha sido guardada y aprobada exitosamente.'
+          });
+        } else {
+          customToast('#3b82f6').fire({
+            icon: 'success',
+            title: 'Comisión actualizada!'
+          });
+        }
+        
       } else {
-        customToast(comisionAEditar ? '#3b82f6' : '#22c55e').fire({
-          icon: 'success',
-          title: comisionAEditar ? 'Comisión actualizada!' : 'Comisión creada!'
+        
+        const promesasDeCreacion = fechasSeleccionadas.map(fecha => {
+          const fechaHora = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), hour24, minute);
+
+          const datosComision = {
+            titulo: formData.titulo,
+            comentarios: formData.comentarios,
+            fecha_hora: fechaHora.toISOString(),
+            encargadoId: formData.encargadoId,
+            userIds: formData.userIds,
+            aprobado: esAdminSuperior,
+          };
+
+          return fetch('/api/users/comision', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datosComision),
+          });
         });
+
+        const responses = await Promise.all(promesasDeCreacion);
+
+        const fallidas = responses.filter(res => !res.ok);
+        if (fallidas.length > 0) {
+          const errorData = await fallidas[0].json().catch(() => ({}));
+          throw new Error(errorData.error || `Error al crear ${fallidas.length} de ${responses.length} comisiones.`);
+        }
+        
+        const numComisiones = fechasSeleccionadas.length;
+        const plural = numComisiones > 1;
+
+        if (esjefe) {
+          await Swal.fire({
+            icon: 'success',
+            title: `¡${numComisiones} Comisi${plural ? 'ones Creadas' : 'ón Creada'}!`,
+            text: `Debe${plural ? 'n' : ''} ser aprobad${plural ? 'as' : 'a'} por Recursos Humanos.`
+          });
+        } else if (esAdminSuperior) {
+          await Swal.fire({
+            icon: 'success',
+            title: `¡${numComisiones} Comisi${plural ? 'ones Guardadas' : 'ón Guardada'}!`,
+            text: `La${plural ? 's' : ''} comisi${plural ? 'ones' : 'ón'} ha${plural ? 'n' : ''} sido guardad${plural ? 'as' : 'a'} y aprobad${plural ? 'as' : 'a'} exitosamente.`
+          });
+        } else {
+          customToast('#22c55e').fire({
+            icon: 'success',
+            title: `¡${numComisiones} Comisi${plural ? 'ones Creadas' : 'ón Creada'}!`
+          });
+        }
       }
       
       onSave();
@@ -189,14 +244,23 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
               <FormProvider {...methods}>
                 <form onSubmit={handleSubmit(onSubmit)} className="flex-grow flex flex-col gap-6 pb-4">
                   <div className="flex flex-col md:flex-row gap-6">
-                    <div className="flex flex-col gap-6 md:w-1/2">
+                    <div className="flex flex-col gap-6 md:w-1D/2">
                       <div>
                         <Input {...register("titulo")} placeholder="Título de la Comisión" className={errors.titulo ? 'border-red-500' : ''} />
                         {errors.titulo && <p className="text-sm text-red-500 mt-1">{errors.titulo.message}</p>}
                       </div>
                       <div className='flex justify-center'>
-                        <Calendario fechaSeleccionada={fechaSeleccionada} onSelectDate={setFechaSeleccionada} />
+                        <CalendarioComisiones
+                          fechasSeleccionadas={fechasSeleccionadas}
+                          onSelectFechas={setFechasSeleccionadas}
+                          disabled={!!comisionAEditar}
+                        />
                       </div>
+                      {!!comisionAEditar && (
+                        <p className="text-xs text-center text-gray-500 -mt-4">
+                          No se pueden seleccionar múltiples fechas al editar.
+                        </p>
+                      )}
                       <div>
                         <div className="flex items-center gap-2">
                           <select {...register("hora")} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">

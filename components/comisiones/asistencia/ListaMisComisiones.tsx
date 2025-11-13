@@ -14,8 +14,8 @@ import { ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComi
 import { Usuario } from '@/lib/usuarios/esquemas';
 
 interface Props {
-  vista: 'proximas' | 'terminadas';
-  setVista: (vista: 'proximas' | 'terminadas') => void;
+  vista: 'hoy' | 'proximas' | 'terminadas';
+  setVista: (vista: 'hoy' | 'proximas' | 'terminadas') => void;
   mesSeleccionado: number;
   setMesSeleccionado: (mes: number) => void;
   anioSeleccionado: number;
@@ -27,6 +27,7 @@ interface Props {
   onAsistenciaMarcada: () => void;
   userId: string;
   nombreUsuario: string;
+  countHoy: number;
   countProximas: number;
   countTerminadas: number;
 }
@@ -64,6 +65,7 @@ export default function ListaMisComisiones({
   onAsistenciaMarcada,
   userId,
   nombreUsuario,
+  countHoy = 0,
   countProximas = 0,
   countTerminadas = 0,
 }: Props) {
@@ -86,11 +88,16 @@ export default function ListaMisComisiones({
     const fechasOrdenadas = Object.keys(grupos).sort((a, b) => {
       const fechaA = parseISO(grupos[a][0].fecha_hora.replace(' ', 'T'));
       const fechaB = parseISO(grupos[b][0].fecha_hora.replace(' ', 'T'));
-      return fechaB.getTime() - fechaA.getTime();
+      return fechaA.getTime() - fechaB.getTime();
     });
 
     const gruposOrdenados: { [key: string]: ComisionConFechaYHoraSeparada[] } = {};
     fechasOrdenadas.forEach(fecha => {
+      grupos[fecha].sort((a, b) => {
+        const fechaA = parseISO(a.fecha_hora.replace(' ', 'T'));
+        const fechaB = parseISO(b.fecha_hora.replace(' ', 'T'));
+        return fechaA.getTime() - fechaB.getTime();
+      });
       gruposOrdenados[fecha] = grupos[fecha];
     });
     
@@ -102,6 +109,12 @@ export default function ListaMisComisiones({
       <div className="flex flex-col gap-4 border-b pb-5 mb-5">
         
         <div className="border-b flex mb-4 flex-wrap justify-center">
+          <button
+            onClick={() => setVista('hoy')}
+            className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm ${vista === 'hoy' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-gray-500'}`}
+          >
+            <CalendarClock className="h-4 w-4" /> Para hoy ({countHoy})
+          </button>
           {countProximas > 0 && (
             <button
               onClick={() => setVista('proximas')}
@@ -132,7 +145,9 @@ export default function ListaMisComisiones({
 
       <div className="space-y-8">
         {Object.keys(comisionesAgrupadasPorFecha).length === 0 ? (
-          <p className="text-center text-gray-500 py-10">No tiene comisiones asignadas para este mes.</p>
+          <p className="text-center text-gray-500 py-10">
+            {vista === 'hoy' ? 'No tiene comisiones para hoy.' : 'No tiene comisiones asignadas para este mes.'}
+          </p>
         ) : (
           Object.entries(comisionesAgrupadasPorFecha).map(([fecha, comisionesDelDia]) => (
             <div key={fecha}>
@@ -155,7 +170,7 @@ export default function ListaMisComisiones({
 
                   if (esHoy) {
                     textoDias = 'Hoy';
-                    colorDias = 'text-blue-600 font-semibold';
+                    colorDias = 'text-indigo-600 font-semibold';
                   } else if (diasRestantes === 1) {
                     textoDias = 'Mañana';
                     colorDias = 'text-green-600';
@@ -236,7 +251,6 @@ export default function ListaMisComisiones({
                                 <VerComision
                                   comision={comision}
                                   usuarios={usuariosDeLaComision}
-                                  rol={null}
                                   onClose={() => {}}
                                   onAbrirMapa={onAbrirMapa}
                                   onAprobar={() => {}}

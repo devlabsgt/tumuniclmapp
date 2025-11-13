@@ -22,7 +22,7 @@ export default function MisComisiones() {
   const [modalMapaAbierto, setModalMapaAbierto] = useState(false);
   const [registrosParaMapa, setRegistrosParaMapa] = useState<any>(null);
   const [nombreUsuarioParaMapa, setNombreUsuarioParaMapa] = useState('');
-  const [vista, setVista] = useState<'proximas' | 'terminadas'>('proximas');
+  const [vista, setVista] = useState<'hoy' | 'proximas' | 'terminadas'>('hoy');
   const [isMobile, setIsMobile] = useState(false);
 
   const { userId, nombre, cargando: cargandoUsuario } = useUserData();
@@ -57,7 +57,7 @@ export default function MisComisiones() {
 
   const comisionesData = useMemo(() => {
     if (cargandoUsuario || !comisiones) {
-      return { lista: [], countProximas: 0, countTerminadas: 0 };
+      return { lista: [], countProximas: 0, countTerminadas: 0, countHoy: 0 };
     }
 
     const hoy = new Date();
@@ -65,25 +65,40 @@ export default function MisComisiones() {
 
     let countProximas = 0;
     let countTerminadas = 0;
+    let countHoy = 0;
 
     const aprobadasYSorteadas = comisiones
       .filter(c => c.aprobado === true)
       .sort((a, b) =>
-        parseISO(b.fecha_hora.replace(' ', 'T')).getTime() -
-        parseISO(a.fecha_hora.replace(' ', 'T')).getTime()
+        parseISO(a.fecha_hora.replace(' ', 'T')).getTime() -
+        parseISO(b.fecha_hora.replace(' ', 'T')).getTime()
       );
 
     aprobadasYSorteadas.forEach(c => {
       const fechaComision = parseISO(c.fecha_hora.split(' ')[0]);
-      if (fechaComision >= hoy) {
+      if (fechaComision.getTime() === hoy.getTime()) {
+        countHoy++;
+      } else if (fechaComision > hoy) {
         countProximas++;
       } else {
         countTerminadas++;
       }
     });
 
-    return { lista: aprobadasYSorteadas, countProximas, countTerminadas };
+    return { lista: aprobadasYSorteadas, countProximas, countTerminadas, countHoy };
   }, [comisiones, cargandoUsuario]);
+  
+  useEffect(() => {
+    if (comisionesData.countHoy > 0) {
+      setVista('hoy');
+    } else if (comisionesData.countProximas > 0) {
+      setVista('proximas');
+    } else if (comisionesData.countTerminadas > 0) {
+      setVista('terminadas');
+    } else {
+      setVista('hoy');
+    }
+  }, [comisionesData]);
 
   const comisionesParaMostrar = useMemo(() => {
     const hoy = new Date();
@@ -91,9 +106,13 @@ export default function MisComisiones() {
 
     let comisionesFiltradas = [];
 
-    if (vista === 'proximas') {
+    if (vista === 'hoy') {
       comisionesFiltradas = comisionesData.lista.filter(c =>
-        parseISO(c.fecha_hora.split(' ')[0]) >= hoy
+        parseISO(c.fecha_hora.split(' ')[0]).getTime() === hoy.getTime()
+      );
+    } else if (vista === 'proximas') {
+      comisionesFiltradas = comisionesData.lista.filter(c =>
+        parseISO(c.fecha_hora.split(' ')[0]) > hoy
       );
     } else {
       comisionesFiltradas = comisionesData.lista.filter(c =>
@@ -160,6 +179,7 @@ export default function MisComisiones() {
         onAsistenciaMarcada={handleAsistenciaMarcada}
         userId={userId!}
         nombreUsuario={nombre!}
+        countHoy={comisionesData.countHoy}
         countProximas={comisionesData.countProximas}
         countTerminadas={comisionesData.countTerminadas}
       />

@@ -40,7 +40,7 @@ export default function Ver() {
 
   const [mesSeleccionado, setMesSeleccionado] = useState(getMonth(new Date()));
   const [anioSeleccionado, setAnioSeleccionado] = useState(getYear(new Date()));
-  const [vista, setVista] = useState<'proximas' | 'terminadas' | 'pendientes'>('proximas');
+  const [vista, setVista] = useState<'hoy' | 'proximas' | 'terminadas' | 'pendientes'>('hoy');
 
   const { rol, cargando, userId, esjefe } = useUserData();
   const { comisiones, loading, error, refetch } = useObtenerComisiones(mesSeleccionado, anioSeleccionado);
@@ -67,11 +67,19 @@ export default function Ver() {
 
   const comisionesVisibles = useMemo(() => {
     if (!comisiones) return [];
+
+    const esAdmin = rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO';
+
+    if (esAdmin) {
+      return comisiones;
+    }
+
     if (esjefe && userId) {
       return comisiones.filter(c => 
         c.creado_por === userId
       );
     }
+    
     return comisiones;
   }, [comisiones, rol, userId, esjefe]);
 
@@ -89,7 +97,7 @@ export default function Ver() {
   }, [mesSeleccionado, anioSeleccionado, vista]);
 
   const counts = useMemo(() => {
-    if (!comisionesVisibles) return { pendientes: 0, proximas: 0, terminadas: 0 };
+    if (!comisionesVisibles) return { pendientes: 0, proximas: 0, terminadas: 0, hoy: 0 };
 
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
@@ -97,20 +105,25 @@ export default function Ver() {
     let pendientes = 0;
     let proximas = 0;
     let terminadas = 0;
+    let hoyCount = 0;
     
     comisionesVisibles.forEach(c => {
       const fechaComision = parseISO(c.fecha_hora.split(' ')[0]);
 
       if (c.aprobado === false) {
         pendientes++;
-      } else if (c.aprobado === true && fechaComision >= hoy) {
-        proximas++;
-      } else if (c.aprobado === true && fechaComision < hoy) {
-        terminadas++;
+      } else if (c.aprobado === true) {
+        if (fechaComision.getTime() === hoy.getTime()) {
+          hoyCount++;
+        } else if (fechaComision > hoy) {
+          proximas++;
+        } else if (fechaComision < hoy) {
+          terminadas++;
+        }
       }
     });
 
-    return { pendientes, proximas, terminadas };
+    return { pendientes, proximas, terminadas, hoy: hoyCount };
   }, [comisionesVisibles]);
 
   useEffect(() => {
@@ -119,13 +132,16 @@ export default function Ver() {
     }
 
     const vistaActualEstaVacia = 
+      (vista === 'hoy' && counts.hoy === 0) ||
       (vista === 'pendientes' && counts.pendientes === 0) ||
       (vista === 'proximas' && counts.proximas === 0) ||
       (vista === 'terminadas' && counts.terminadas === 0);
       
     if (!haCargadoVistaInicial || vistaActualEstaVacia) {
       
-      if (esjefe) {
+      if (counts.hoy > 0) {
+        setVista('hoy');
+      } else if (esjefe && !(rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO')) {
         if (counts.proximas > 0) {
           setVista('proximas');
         } else if (counts.terminadas > 0) {
@@ -133,7 +149,7 @@ export default function Ver() {
         } else if (counts.pendientes > 0) {
           setVista('pendientes');
         } else {
-          setVista('proximas'); 
+          setVista('hoy'); 
         }
       } 
       else {
@@ -144,7 +160,7 @@ export default function Ver() {
         } else if (counts.terminadas > 0) {
           setVista('terminadas');
         } else {
-          setVista('pendientes'); 
+          setVista('hoy'); 
         }
       }
       
@@ -153,7 +169,7 @@ export default function Ver() {
       }
     }
     
-  }, [counts, vista, haCargadoVistaInicial, loading, cargandoUsuarios, esjefe, comisiones]);
+  }, [counts, vista, haCargadoVistaInicial, loading, cargandoUsuarios, esjefe, comisiones, rol]);
 
 
   const handleCrearComision = () => {
@@ -212,7 +228,7 @@ export default function Ver() {
 
   const handleEliminarComision = async (comisionId: string) => {
     const result = await Swal.fire({
-      title: '¿Está seguro?', text: "Esta acción no se puede deshacer.", icon: 'warning',
+      title: '¿Está seguro?', text: "Esta acción no se puede deshacer y se perderá toda la información.", icon: 'warning',
       showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6',
       confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar'
     });
@@ -231,6 +247,53 @@ export default function Ver() {
           const { error } = await res.json();
           Swal.fire('Error', error || 'No se pudo eliminar la comisión.', 'error');
         }
+      } catch (error) {
+        Swal.fire('Error', 'Hubo un problema de conexión.', 'error');
+      }
+    }
+  };
+
+  const handleEliminarComisionesSeleccionadas = async () => {
+    const num = comisionesSeleccionadas.length;
+    const result = await Swal.fire({
+      title: `¿Eliminar ${num} comisi${num > 1 ? 'ones' : 'ón'}?`,
+      text: "Esta acción no se puede deshacer y se perderá toda la información.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
+      const ids = comisionesSeleccionadas.map(c => c.id);
+      
+      const promesas = ids.map(id =>
+        fetch(`/api/users/comision`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        })
+      );
+
+      try {
+        const resultados = await Promise.allSettled(promesas);
+        
+        const fallidas = resultados.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok));
+        const exitosas = resultados.length - fallidas.length;
+
+        if (exitosas > 0) {
+          Swal.fire('¡Completado!', `Se elimi${num > 1 ? 'naron' : 'ó'} ${exitosas} comisi${num > 1 ? 'ones' : 'ón'}.`, 'success');
+        }
+        
+        if (fallidas.length > 0) {
+          Swal.fire('Error', `No se pudieron eliminar ${fallidas.length} comisi${num > 1 ? 'ones' : 'ón'}.`, 'error');
+        }
+
+        refetch();
+        setComisionesSeleccionadas([]);
+
       } catch (error) {
         Swal.fire('Error', 'Hubo un problema de conexión.', 'error');
       }
@@ -283,13 +346,18 @@ export default function Ver() {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
-    if (vista === 'pendientes') {
+    if (vista === 'hoy') {
+      comisionesDeVista = comisionesVisibles.filter(c => {
+        const fechaComision = parseISO(c.fecha_hora.split(' ')[0]);
+        return c.aprobado === true && fechaComision.getTime() === hoy.getTime();
+      });
+    } else if (vista === 'pendientes') {
       comisionesDeVista = comisionesVisibles.filter(c => c.aprobado === false);
     
     } else if (vista === 'proximas') {
       comisionesDeVista = comisionesVisibles.filter(c => {
         const fechaComision = parseISO(c.fecha_hora.split(' ')[0]);
-        return c.aprobado === true && fechaComision >= hoy;
+        return c.aprobado === true && fechaComision > hoy;
       });
     
     } else { 
@@ -324,15 +392,20 @@ export default function Ver() {
     const fechasOrdenadas = Object.keys(grupos).sort((a, b) => {
       const fechaA = parseISO(grupos[a][0].fecha_hora.replace(' ', 'T'));
       const fechaB = parseISO(grupos[b][0].fecha_hora.replace(' ', 'T'));
-      return fechaB.getTime() - fechaA.getTime();
+      return fechaA.getTime() - fechaB.getTime();
     });
 
     const gruposOrdenados: { [key: string]: ComisionConFechaYHoraSeparada[] } = {};
     fechasOrdenadas.forEach(fecha => {
+      grupos[fecha].sort((a, b) => {
+        const fechaA = parseISO(a.fecha_hora.replace(' ', 'T'));
+        const fechaB = parseISO(b.fecha_hora.replace(' ', 'T'));
+        return fechaA.getTime() - fechaB.getTime();
+      });
       gruposOrdenados[fecha] = grupos[fecha];
     });
     return gruposOrdenados;
-  }, [comisionesFiltradas]);
+  }, [comisionesFiltradas, timeZone]);
 
   if (loading || cargando || cargandoUsuarios || !haCargadoVistaInicial) return <Cargando texto='Cargando comisiones...' />;
   if (error) return <p className="text-center text-red-500 py-8">Error al cargar datos: {error}</p>;
@@ -357,9 +430,11 @@ export default function Ver() {
         onSeleccionarTodas={handleSeleccionarTodas}
         onVerMultiplesComisiones={handleVerMultiplesComisiones}
         countPendientes={counts.pendientes}
+        countHoy={counts.hoy}
         countProximas={counts.proximas}
         countTerminadas={counts.terminadas}
         onAprobarComision={handleAprobarComision}
+        onEliminarComisiones={handleEliminarComisionesSeleccionadas}
       />
     </motion.div>
   );

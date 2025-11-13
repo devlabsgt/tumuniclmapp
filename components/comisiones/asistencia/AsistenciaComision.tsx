@@ -49,7 +49,6 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario, on
   const { registros, loading: cargandoRegistros, fetchRegistros } = useAsistenciaComisionUsuario(userId);
 
   const [cargandoMarcaje, setCargandoMarcaje] = useState(false);
-  const [notas, setNotas] = useState('');
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
 
   const registrosDeLaComision = useMemo(() => {
@@ -72,8 +71,7 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario, on
   }, [ubicacion, pendingAction]);
 
   const handleIniciarMarcado = async (tipo: 'Entrada' | 'Salida', comisionId: string) => {
-    let notaParaEnviar = notas;
-    let confirmacionSwal;
+    let notaParaEnviar = '';
 
     if (tipo === 'Entrada') {
       const fechaComision = parseISO(comision.fecha_hora.replace(' ', 'T') + 'Z');
@@ -91,7 +89,7 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario, on
         justificacionHtml = `Está marcando <b>${tiempoFormateado} temprano</b>.<br/>Por favor, ingrese una justificación:`;
       }
 
-      if (requiereNotas && !notas.trim()) {
+      if (requiereNotas) {
         const { value: justificacion, isConfirmed } = await Swal.fire({
           title: 'Justificación Requerida',
           html: justificacionHtml,
@@ -111,29 +109,43 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario, on
 
         if (!isConfirmed) return;
         notaParaEnviar = justificacion;
-        setNotas(justificacion);
       
       } else {
-        confirmacionSwal = await Swal.fire({
-          title: '¿Está seguro?',
-          text: `¿Quiere marcar su ${tipo.toLowerCase()} ahora?`,
+        const { value: notaOpcional, isConfirmed } = await Swal.fire({
+          title:`Marcar ${tipo.toLowerCase()}`,
+          text: `¿Confirme si desea marcar su ${tipo.toLowerCase()} ahora?`,
           icon: 'question',
           showCancelButton: true,
           confirmButtonText: `Sí, marcar ${tipo}`,
           cancelButtonText: 'Cancelar',
+          input: 'textarea',
+          inputPlaceholder: 'Agrege una justificación o nota (opcional)',
+          inputValue: '',
+          inputAttributes: {
+            'aria-label': 'Notas (opcional)'
+          },
         });
-        if (!confirmacionSwal.isConfirmed) return;
+
+        if (!isConfirmed) return;
+        notaParaEnviar = notaOpcional || '';
       }
     } else {
-      confirmacionSwal = await Swal.fire({
+      const { value: notaOpcional, isConfirmed } = await Swal.fire({
         title: '¿Está seguro?',
         text: `¿Quiere marcar su ${tipo.toLowerCase()} ahora?`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonText: `Sí, marcar ${tipo}`,
         cancelButtonText: 'Cancelar',
+        input: 'textarea',
+        inputPlaceholder: 'Notas (opcional)...',
+        inputValue: '',
+        inputAttributes: {
+          'aria-label': 'Notas (opcional)'
+        },
       });
-      if (!confirmacionSwal.isConfirmed) return;
+      if (!isConfirmed) return;
+      notaParaEnviar = notaOpcional || '';
     }
 
     setPendingAction({ tipo, comisionId, notaParaEnviar });
@@ -151,7 +163,6 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario, on
     if (registro) {
       Swal.fire('¡Éxito!', `Se ha registrado su ${tipo.toLowerCase()} correctamente.`, 'success');
       fetchRegistros();
-      setNotas('');
       onAsistenciaMarcada();
     } else {
       Swal.fire('Error', 'No se pudo realizar el marcaje.', 'error');
@@ -185,15 +196,13 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario, on
                 </div>
                 {!entradaMarcada ? (
                   <div className="flex gap-4 items-stretch">
-                    <textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Notas (opcional, o para justificación)..." rows={2} className="w-3/5 p-2 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs md:text-sm"/>
-                    <Button onClick={() => handleIniciarMarcado('Entrada', comision.id)} disabled={cargandoMarcaje || cargandoGeo} className="w-2/5 bg-green-600 hover:bg-green-700 text-xs py-4 h-auto">
+                    <Button onClick={() => handleIniciarMarcado('Entrada', comision.id)} disabled={cargandoMarcaje || cargandoGeo} className="w-full bg-green-600 hover:bg-green-700 text-xs py-4 h-auto">
                       {cargandoGeo ? 'Obteniendo ubicación...' : (cargandoMarcaje ? 'Marcando...' : 'Entrada')}
                     </Button>
                   </div>
                 ) : (
                   <div className="flex gap-4 items-stretch">
-                    <textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Notas (opcional)..." rows={2} className="w-3/5 p-2 border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs md:text-sm"/>
-                    <Button onClick={() => handleIniciarMarcado('Salida', comision.id)} disabled={cargandoMarcaje || salidaMarcada || cargandoGeo} className="w-2/5 bg-orange-600 hover:bg-orange-700 text-xs py-4 h-auto">
+                    <Button onClick={() => handleIniciarMarcado('Salida', comision.id)} disabled={cargandoMarcaje || salidaMarcada || cargandoGeo} className="w-full bg-orange-600 hover:bg-orange-700 text-xs py-4 h-auto">
                       {cargandoGeo ? 'Obteniendo ubicación...' : (salidaMarcada ? 'Salida ya marcada' : (cargandoMarcaje ? 'Marcando...' : 'Salida'))}
                     </Button>
                   </div>

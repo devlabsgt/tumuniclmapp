@@ -6,14 +6,14 @@ import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, CalendarClock, CheckSquare, Square, CalendarCheck, ClipboardCheck } from 'lucide-react';
+import { Users, CalendarClock, CheckSquare, Square, CalendarCheck, ClipboardCheck, Trash2 } from 'lucide-react';
 import useUserData from '@/hooks/sesion/useUserData';
 
 import { ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
 
 interface Props {
-  vista: 'proximas' | 'terminadas' | 'pendientes';
-  setVista: (vista: 'proximas' | 'terminadas' | 'pendientes') => void;
+  vista: 'hoy' | 'proximas' | 'terminadas' | 'pendientes';
+  setVista: (vista: 'hoy' | 'proximas' | 'terminadas' | 'pendientes') => void;
   terminoBusqueda: string;
   setTerminoBusqueda: (termino: string) => void;
   mesSeleccionado: number;
@@ -29,7 +29,9 @@ interface Props {
   onSeleccionarTodas: () => void;
   onVerMultiplesComisiones: () => void;
   onAprobarComision: (comisionId: string) => void;
+  onEliminarComisiones: () => void;
   countPendientes: number;
+  countHoy: number;
   countProximas: number;
   countTerminadas: number;
 }
@@ -67,7 +69,9 @@ export default function ListaComisiones({
   onSeleccionarTodas,
   onVerMultiplesComisiones,
   onAprobarComision,
+  onEliminarComisiones,
   countPendientes = 0,
+  countHoy = 0,
   countProximas = 0,
   countTerminadas = 0,
 }: Props) {
@@ -81,6 +85,13 @@ export default function ListaComisiones({
     <>
       <div className="border-b flex mb-4 flex-wrap justify-center">
         
+        <button
+          onClick={() => setVista('hoy')}
+          className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm ${vista === 'hoy' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-gray-500'}`}
+        >
+          <CalendarClock className="h-4 w-4" /> Para hoy ({countHoy})
+        </button>
+
         {countProximas > 0 && (
           <button
             onClick={() => setVista('proximas')}
@@ -170,7 +181,7 @@ export default function ListaComisiones({
                     let colorDias = 'text-gray-500';
                     if (isToday(fechaComision)) {
                       textoDias = 'Hoy';
-                      colorDias = 'text-blue-600 font-semibold';
+                      colorDias = 'text-indigo-600 font-semibold';
                     } else if (diasRestantes === 1) {
                       textoDias = 'Mañana';
                       colorDias = 'text-green-600';
@@ -324,7 +335,11 @@ export default function ListaComisiones({
           </div>
         ) : (
           <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border-2 border-dashed">
-            <p className="text-gray-500">No se encontraron comisiones para este período.</p>
+            {vista === 'hoy' ? (
+              <p className="text-gray-500">Ninguna comisión para hoy.</p>
+            ) : (
+              <p className="text-gray-500">No se encontraron comisiones para este período.</p>
+            )}
           </div>
         )}
       </div>
@@ -335,11 +350,18 @@ export default function ListaComisiones({
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 0 }}
-            className="fixed bottom-8 right-8 z-50"
+            className="fixed bottom-8 right-8 z-50 flex flex-col gap-2 items-end"
           >
             <Button onClick={onVerMultiplesComisiones} className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg">
               Ver {comisionesSeleccionadas.length} comision{comisionesSeleccionadas.length > 1 ? 'es' : ''}
             </Button>
+            
+            {canApprove && (
+              <Button onClick={onEliminarComisiones} className="bg-red-600 hover:bg-red-700 text-white shadow-lg flex items-center gap-2">
+                <Trash2 size={16} />
+                Eliminar {comisionesSeleccionadas.length}
+              </Button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
