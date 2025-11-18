@@ -10,8 +10,8 @@ import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 
 export const metadata: Metadata = {
-  title: "Gestión Municipal",
-  description: "Sistema de Gestión Municipal",
+  title: "SIGEM -CLM-",
+  description: "Sistema Integral de Gestión Municiplal - Concepción Las Minas",
   manifest: "/manifest.json",
   icons: {
     icon: "/icon-192x192.png",

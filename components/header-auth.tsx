@@ -42,13 +42,12 @@ export default function AuthButton() {
   }
 
   return userId ? (
-    <div className="flex flex-col items-end gap-8 mr-10">
+    <div className="flex flex-col items-end gap-8 mr-2 md:mr-10">
       <div className="text-right">
         <span className="text-xs font-bold">
           <Typewriter
             words={[
               '¡Hoy! Concepción Avanza',
-              'Bienvenido al sistema apptumuniclm',
               nombre || ''
             ]}
             loop={1}
