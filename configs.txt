@@ -1,0 +1,127 @@
+COFIGURACION DE CLOUDFLARE, HOSTINGER, RAILWAY
+
+---
+
+### 1. Conectar Dominio a Cloudflare
+
+El objetivo es decirle a Cloudflare que vas a usar tu dominio.
+
+* **Instrucción:** Inicia sesión en Cloudflare, haz clic en **"+ Add a site"** (o "Connect a domain").
+* **Instrucción:** Escribe tu dominio raíz (ej: `mi-dominio.com`).
+* **Selección:** Elige el **Plan "Free" (Gratuito)**.
+* **Resultado:** Cloudflare te dará dos (2) nuevas direcciones de **Nameservers**.
+    * (Ej: `nombre1.ns.cloudflare.com` y `nombre2.ns.cloudflare.com`)
+
+---
+
+### 2. Cambiar Nameservers en tu Registrador (ej: Hostinger)
+
+El objetivo es decirle a tu registrador (donde compraste el dominio) que Cloudflare ahora maneja las direcciones.
+
+* **Instrucción:** Ve al panel de tu dominio en tu registrador.
+* **Instrucción:** Busca la sección **"DNS / Nameservers"**.
+* **Selección:** Elige la opción para **"Cambiar nameservers"** o **"Usar mis propios nameservers"**.
+* **Instrucción:** Borra los que existan e introduce los dos (2) que te dio Cloudflare en el paso anterior.
+* **Instrucción:** Haz clic en **"Guardar"**.
+
+---
+
+### 3. Configurar Registros DNS en Cloudflare
+
+El objetivo es crear el "mapa" que le dice a Cloudflare a dónde enviar el tráfico para cada subdominio.
+
+* **Instrucción:** En Cloudflare, ve al menú **"DNS"** de tu dominio.
+* **Instrucción:** Revisa o crea los siguientes registros. (Lo más importante es que el **Proxy status** esté en **Proxied (Nube Naranja)**).
+
+**Para tu aplicación en Railway (ej: `app.mi-dominio.com`)**
+* **Selección: Tipo:** `CNAME`
+* **Selección: Nombre:** `app` (o el nombre que quieras para tu subdominio)
+* **Selección: Target (Destino):** La URL que te da Railway (ej: `mi-proyecto-prod.up.railway.app`)
+
+**Para tu sitio estático (ej: `www.mi-dominio.com` o `mi-dominio.com`)**
+* **Selección: Tipo:** `A`
+* **Selección: Nombre:** `@` (esto significa el dominio raíz)
+* **Selección: Target (Destino):** La dirección IP de tu hosting estático (ej: `123.45.67.89`)
+* **Selección: Proxy status:** `Proxied (Nube Naranja)`
+
+---
+
+### 4. Configurar Dominio en Railway
+
+El objetivo es decirle a Railway que acepte tráfico de tu nuevo dominio.
+
+* **Instrucción:** En tu proyecto de Railway, ve a **"Settings" > "Domains"**.
+* **Instrucción:** Añade tu dominio personalizado (ej: `app.mi-dominio.com`).
+* **Instrucción:** Espera a que Railway lo verifique (detectará la configuración DNS del paso 3).
+
+---
+
+### 5. Configurar Modo SSL/TLS (Muy Importante)
+
+El objetivo es asegurar la conexión entre Cloudflare y Railway para evitar errores de "bucle de redirección".
+
+* **Instrucción:** En Cloudflare, ve al menú **"SSL/TLS"** > **"Overview"**.
+* **Selección:** Elige el modo **"Full (Strict)"** (Completo (Estricto)).
+
+---
+
+### 6. Crear Regla de Seguridad (El "Selector tipo CAPTCHA")
+
+El objetivo es forzar una verificación de seguridad solo en tu aplicación.
+
+* **Instrucción:** En Cloudflare, ve al menú **"Security" > "Security rules"**.
+* **Instrucción:** Haz clic en **"+ Create rule"** y selecciona **"Custom rules"**.
+* **Instrucción:** Ponle un nombre (ej: "Proteger App").
+
+**Para la sección "When incoming requests match..." (Condición):**
+* **Selección: Field:** `Hostname`
+* **Selección: Operator:** `equals`
+* **Selección: Value:** El subdominio de tu app (ej: `app.mi-dominio.com`)
+
+**Para la sección "Then take action..." (Acción):**
+* **Selección: Choose action:** `Managed Challenge`
+
+* **Selección:** Haz clic en **"Deploy"** (Implementar).
+
+
+###################    ESTAS CONFIGURACIONES DE SEGURIDAD INFORMATICA OCULTAN LA IP REAL DE LA APP, 
+TIENE PROTECCION Anti-DDoS, Encriptacion total de la conexion lo que evita espionaje, tiene filtro activo 24/7 contra bots y hackers
+
+Esta configuración te da una protección robusta en varias capas. No es un solo tipo de protección, sino varias que trabajan juntas.
+
+Aquí te las explico:
+
+---
+
+### 1. 🛡️ Ocultación de Servidores y Anti-DDoS
+
+Esto lo obtienes por el simple hecho de usar la **"nube naranja" (Proxy)** en tus registros DNS.
+
+* **Oculta tu IP real:** Nadie en internet puede saber la dirección IP de tu hosting en Hostinger ni la dirección de tu app en Railway. Los atacantes no pueden ir directo a tu servidor; **tienen que pasar por Cloudflare primero**. Es como tener un P.O. Box; la gente sabe tu P.O. Box (Cloudflare), pero no la dirección de tu casa (tus servidores).
+* **Mitigación de DDoS:** Si alguien intenta "inundar" tu sitio con millones de peticiones falsas (un ataque DDoS), Cloudflare absorbe y filtra la gran mayoría de ese tráfico basura antes de que llegue a tocar tu aplicación en Railway o tu sitio en Hostinger.
+
+**Aplica a:** `www.tumuniclm.com` y `app.tumuniclm.com`.
+
+---
+
+### 2. 🔒 Encripción Total de la Conexión
+
+Esto lo lograste al configurar el modo SSL/TLS en **"Full (Strict)"**.
+
+* **Evita espionaje:** Esta configuración asegura que los datos viajen cifrados en **todo** el trayecto:
+    1.  **Túnel 1:** Desde el navegador del usuario hasta los servidores de Cloudflare (esto es el `https://` que ve el usuario).
+    2.  **Túnel 2:** Desde los servidores de Cloudflare hasta tu servidor en Railway (o Hostinger).
+* **Protege contraseñas y datos:** Si tu app tiene un login, el modo "Full (Strict)" asegura que esas contraseñas no puedan ser interceptadas en el camino.
+
+**Aplica a:** `www.tumuniclm.com` y `app.tumuniclm.com`.
+
+---
+
+### 3. 🤖 Filtro Activo de Bots y Hackers (Tu Regla WAF)
+
+Esta es la protección más visible que acabas de configurar, el **"selector tipo capcha"**.
+
+* **Bloqueo de Bots de inicio de sesión:** Impide que programas automatizados (bots) intenten adivinar contraseñas en tu login (ataques de "fuerza bruta" o "credential stuffing").
+* **Anti-Scraping:** Evita que bots entren a tu aplicación para copiar y robarse toda la información que muestras.
+* **Filtro de seguridad:** Cloudflare usa su inteligencia para decidir si el visitante es un humano o un programa sospechoso. A los humanos los deja pasar rápido (a veces sin ni siquiera hacer clic), pero a los bots los bloquea con ese desafío.
+

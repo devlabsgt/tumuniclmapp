@@ -83,7 +83,6 @@ type Vistas = 'modulos' | 'asistencia' | 'comisiones';
 export default function Dashboard() {
   const router = useRouter();
   
-  // CAMBIO 1: Añadir 'esjefe'
   const { rol, modulos = [], permisos = [], userId, esjefe } = useUserData();
 
   const [mostrarOpciones, setMostrarOpciones] = useState(false);
@@ -131,26 +130,21 @@ export default function Dashboard() {
       .filter(m => {
         if (rol === 'SUPER') return true;
 
-        if (rol === 'INVITADO') return modulos.includes(m.nombre);
+        if (rol === 'INVITADO') return true;
 
         const tieneModuloAsignado = modulos.includes(m.nombre);
-        // CAMBIO 2: Esta línea se elimina
-        // const esJefe = rol && rol.toUpperCase().includes('JEFE');
-
+       
         if (m.nombre === 'COMISIONES') {
-          // CAMBIO 3: Usar 'esjefe' (del hook)
           return esjefe || rol === 'RRHH' || rol === 'SECRETARIO' || tieneModuloAsignado;
         }
 
         if (m.nombre === 'ASISTENCIA') {
-            // CAMBIO 4: Usar 'esjefe' (del hook)
             return esjefe || tieneModuloAsignado;
         }
         
         return tieneModuloAsignado;
       })
       .sort((a, b) => a.titulo.localeCompare(b.titulo))
-    // CAMBIO 5: Añadir 'esjefe' a las dependencias
     , [rol, modulos, esjefe]);
 
   const modulosPoliticas = useMemo(() =>
