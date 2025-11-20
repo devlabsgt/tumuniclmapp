@@ -186,7 +186,7 @@ export default function Ver() {
   const { cargando: cargandoDatosTarjeta } = useInfoUsuario(usuarioIdParaTarjeta);
   const [isTarjetaOpen, setIsTarjetaOpen] = useState(false);
   const [descriptionModalOpen, setDescriptionModalOpen] = useState(false);
-  const [modalContent, setModalContent] = useState({ title: '', description: '' });
+  const [modalContent, setModalContent] = useState({ id: '', title: '', description: '' });
   const hasPermission = rol === 'SUPER' || rol === 'SECRETARIO';
 
   const { 
@@ -305,8 +305,15 @@ export default function Ver() {
   const handleCloseModals = () => { setIsInfoPersonalOpen(false); setIsContratoOpen(false); setSelectedUsuario(null); }; 
   const handleOpenTarjeta = (usuario: Usuario) => { setUsuarioIdParaTarjeta(usuario.id); setIsTarjetaOpen(true); };
   const handleCloseTarjeta = () => { setIsTarjetaOpen(false); setUsuarioIdParaTarjeta(null); };
-  const handleOpenDescriptionModal = (title: string, description: string) => { setModalContent({ title, description }); setDescriptionModalOpen(true); };
-  const handleCloseDescriptionModal = () => { setDescriptionModalOpen(false); setModalContent({ title: '', description: '' }); };
+  
+  const handleOpenDescriptionModal = (id: string, title: string, description: string) => { setModalContent({ id, title, description }); setDescriptionModalOpen(true); };
+  const handleCloseDescriptionModal = () => { setDescriptionModalOpen(false); setModalContent({ id: '', title: '', description: '' }); };
+  const handleSaveDescription = async (content: string) => {
+      if (!modalContent.id) return;
+      const { error } = await supabase.from('dependencias').update({ descripcion: content }).eq('id', modalContent.id);
+      if (error) { toast.error('Error al guardar la descripción.'); } else { toast.success('Descripción actualizada.'); mutateDependencias(); }
+  };
+
   const handleSubmitInfoPersonal = async (data: InfoPersonalFormData) => {
     if (!selectedUsuario) return;
     const { error } = await supabase.from('info_usuario').update({ direccion: data.direccion, telefono: data.telefono, dpi: data.dpi, nit: data.nit, igss: data.igss, cuenta_no: data.cuenta_no }).eq('user_id', selectedUsuario.id);
@@ -354,7 +361,7 @@ export default function Ver() {
         <InfoPersonalForm isOpen={isInfoPersonalOpen} onClose={handleCloseModals} onSubmit={handleSubmitInfoPersonal} usuario={selectedUsuario} initialData={datosCompletosParaForm || undefined} />
         <ContratoForm isOpen={isContratoOpen} onClose={handleCloseModals} onSubmit={handleSubmitContrato} usuario={selectedUsuario} initialData={null} />
         <TarjetaEmpleado isOpen={isTarjetaOpen} onClose={handleCloseTarjeta} userId={usuarioIdParaTarjeta} />
-        <DescriptionModal isOpen={descriptionModalOpen} onClose={handleCloseDescriptionModal} title={modalContent.title} description={modalContent.description} />
+        <DescriptionModal isOpen={descriptionModalOpen} onClose={handleCloseDescriptionModal} onSave={handleSaveDescription} title={modalContent.title} description={modalContent.description} />
       </div>
     </div>
   );

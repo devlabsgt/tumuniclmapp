@@ -17,8 +17,8 @@ interface DependenciaListProps {
   onOpenInfoPersonal: (usuario: Usuario) => void;
   onOpenContrato: (usuario: Usuario) => void;
   onViewCard: (usuario: Usuario) => void;
-  onOpenDescription: (title: string, description: string) => void;
-  onOpenInfoFinanciera: (node: DependenciaNode) => void; // NUEVA PROP
+  onOpenDescription: (id: string, title: string, description: string) => void;
+  onOpenInfoFinanciera: (node: DependenciaNode) => void;
   openNodeIds: string[];
   setOpenNodeIds: React.Dispatch<React.SetStateAction<string[]>>;
 }
@@ -37,7 +37,7 @@ export default function DependenciaList({
   onOpenContrato,
   onViewCard,
   onOpenDescription,
-  onOpenInfoFinanciera, // RECIBIR LA NUEVA PROP
+  onOpenInfoFinanciera,
   openNodeIds,
   setOpenNodeIds
 }: DependenciaListProps) {
@@ -70,7 +70,7 @@ export default function DependenciaList({
               onOpenContrato={onOpenContrato}
               onViewCard={onViewCard}
               onOpenDescription={onOpenDescription}
-              onOpenInfoFinanciera={onOpenInfoFinanciera} // PASARLA
+              onOpenInfoFinanciera={onOpenInfoFinanciera}
               level={0}
               index={index}
               prefix={`${node.no}`}

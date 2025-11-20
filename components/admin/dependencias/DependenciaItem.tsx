@@ -40,7 +40,7 @@ interface DependenciaItemProps {
   onOpenInfoPersonal: (usuario: Usuario) => void;
   onOpenContrato: (usuario: Usuario) => void;
   onViewCard: (usuario: Usuario) => void;
-  onOpenDescription: (title: string, description: string) => void;
+  onOpenDescription: (id: string, title: string, description: string) => void;
   onOpenInfoFinanciera: (node: DependenciaNode) => void;
   level: number;
   index: number;
@@ -212,7 +212,7 @@ const DependenciaItem = ({
                   className="flex-shrink-0 h-6 w-6 text-gray-400 hover:text-blue-600 rounded-md transition-colors cursor-pointer flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700" 
                   onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
-                    onOpenDescription(node.nombre, node.descripcion!);
+                    onOpenDescription(node.id, node.nombre, node.descripcion!);
                   }}
                 >
                   <Info className={`h-4 w-4`} />
