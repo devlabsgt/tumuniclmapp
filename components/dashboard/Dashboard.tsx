@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Users, Settings, FileText, Clock } from 'lucide-react';
+import { ArrowRight, Users, Settings, FileText, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { registrarLog } from '@/utils/registrarLog';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,7 +18,8 @@ import SubscribeButton from '@/components/SubscribeButton';
 
 const TODOS_LOS_MODULOS = [
   {
-    nombre: 'EDUCACION',
+    id: 'EDUCACION',
+    permiso: 'EDUCACION',
     titulo: 'Política de Educación',
     descripcion: 'Administre programas, niveles, maestros y alumnos.',
     ruta: '/protected/educacion',
@@ -27,7 +28,8 @@ const TODOS_LOS_MODULOS = [
     categoria: 'Políticas Públicas',
   },
   {
-    nombre: 'FERTILIZANTE',
+    id: 'FERTILIZANTE',
+    permiso: 'FERTILIZANTE',
     titulo: 'Política de Desarrollo Económico Local',
     descripcion: 'Gestione beneficiarios, entregas y estadísticas.',
     ruta: '/protected/fertilizante/beneficiarios',
@@ -36,50 +38,143 @@ const TODOS_LOS_MODULOS = [
     categoria: 'Políticas Públicas'
   },
   {
-    nombre: 'ORGANOS',
-    titulo: 'Estructura Organizacional',
-    descripcion: 'Gestione Órganos y políticas municipales.',
-    ruta: '/protected/admin/dependencias',
-    iconoKey: 'ilrifayj',
-    colorProps: { primaryFrom: '#ebe6ef', primaryTo: '#b26836' },
-    categoria: 'Gestión Administrativa',
-  },
-  {
-    nombre: 'AGENDA_CONCEJO',
+    id: 'AGENDA_CONCEJO',
+    permiso: 'AGENDA_CONCEJO',
     titulo: 'Agenda de Concejo',
     descripcion: 'Consulte y gestione las próximas reuniones del concejo.',
     ruta: '/protected/concejo/agenda/',
     iconoKey: 'yxsbonud',
     colorProps: { primaryColor: '#ebe6ef', secondaryColor: '#4bb3fd' },
-    categoria: 'Gestión Administrativa'
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Concejo Municipal'
   },
   {
-    nombre: 'RRHH',
+    id: 'ORGANOS_CONCEJO', 
+    permiso: 'ORGANOS',
+    titulo: 'Estructura Organizacional',
+    descripcion: 'Estructura y órganos municipales (Concejo).',
+    ruta: '/protected/admin/dependencias',
+    iconoKey: 'ilrifayj',
+    colorProps: { primaryColor: '#ebe6ef', secondaryColor: '#b26836' },
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Concejo Municipal'
+  },
+  {
+    id: 'RRHH',
+    permiso: 'RRHH',
     titulo: 'Gestión de Personal',
     descripcion: 'Gestione los datos y el historial de los empleados.',
     ruta: '/protected/admin/users',
     iconoKey: 'daeumrty',
-    categoria: 'Gestión Administrativa'
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Recursos Humanos'
   },
   {
-    nombre: 'ASISTENCIA',
-    titulo: 'Control de Asistencia',
-    descripcion: 'Supervise la asistencia de su equipo.',
-    ruta: '/protected/asistencias',
-    iconoKey: 'sgtmgpft',
-    categoria: 'Gestión Administrativa'
+    id: 'ORGANOS_RRHH',
+    permiso: 'ORGANOS',
+    titulo: 'Estructura Organizacional',
+    descripcion: 'Gestione dependencias y jerarquías (RRHH).',
+    ruta: '/protected/admin/dependencias',
+    iconoKey: 'ilrifayj', 
+    colorProps: { primaryColor: '#ebe6ef', secondaryColor: '#b26836' },
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Recursos Humanos'
   },
   {
-    nombre: 'COMISIONES',
+    id: 'COMISIONES_RRHH',
+    permiso: 'COMISIONES',
     titulo: 'Gestión de Comisiones',
     descripcion: 'Cree, apruebe y gestione las comisiones.',
     ruta: '/protected/comisiones',
     iconoKey: 'vqkaxtlm',
-    categoria: 'Gestión Administrativa'
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Recursos Humanos'
+  },
+  {
+    id: 'ASISTENCIA',
+    permiso: 'ASISTENCIA',
+    titulo: 'Control de Asistencia',
+    descripcion: 'Supervise la asistencia de su equipo.',
+    ruta: '/protected/asistencias',
+    iconoKey: 'sgtmgpft',
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Control Jefe de Área'
+  },
+  {
+    id: 'COMISIONES_JEFE',
+    permiso: 'COMISIONES',
+    titulo: 'Gestión de Comisiones',
+    descripcion: 'Gestione las comisiones de su área.',
+    ruta: '/protected/comisiones',
+    iconoKey: 'vqkaxtlm',
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Control Jefe de Área'
   },
 ];
 
 type Vistas = 'modulos' | 'asistencia' | 'comisiones';
+
+const ModuleAccordion = ({ 
+  titulo, 
+  descripcion,
+  iconKey,
+  children 
+}: { 
+  titulo: string, 
+  descripcion: string,
+  iconKey: string,
+  children: React.ReactNode 
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [hover, setHover] = useState(false);
+
+  if (!children || (Array.isArray(children) && children.length === 0)) return null;
+
+  return (
+    <div className="border rounded-xl bg-gray-50 dark:bg-gray-900 overflow-hidden mb-4 shadow-sm">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        className="w-full flex items-center justify-between px-4 py-8 md:py-5 bg-white dark:bg-gray-800 hover:bg-gray-50 transition-colors border-b border-gray-100 dark:border-gray-700"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 flex items-center justify-center bg-blue-50 dark:bg-gray-700 rounded-full flex-shrink-0">
+             <AnimatedIcon 
+                iconKey={iconKey} 
+                className="w-8 h-8" 
+                trigger={hover ? 'loop' : undefined}
+             />
+          </div>
+          <div className="text-left">
+            <h3 className="font-bold text-gray-800 dark:text-gray-200 text-base">{titulo}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{descripcion}</p>
+          </div>
+        </div>
+        
+        {isOpen ? <ChevronUp className="h-5 w-5 text-gray-400" /> : <ChevronDown className="h-5 w-5 text-gray-400" />}
+      </button>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial="collapsed"
+            animate="open"
+            exit="collapsed"
+            variants={{
+              open: { opacity: 1, height: "auto" },
+              collapsed: { opacity: 0, height: 0 }
+            }}
+            transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
+          >
+            <div className="p-3 flex flex-col gap-3 bg-gray-50 dark:bg-gray-900/50">
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 export default function Dashboard() {
   const router = useRouter();
@@ -131,21 +226,24 @@ export default function Dashboard() {
       .filter(m => {
         if (rol === 'SUPER') return true;
 
-        if (rol === 'INVITADO') return true;
-
-        const tieneModuloAsignado = modulos.includes(m.nombre);
-       
-        if (m.nombre === 'COMISIONES') {
-          return esjefe || rol === 'RRHH' || rol === 'SECRETARIO' || tieneModuloAsignado;
+        if (m.id === 'ASISTENCIA') {
+            return esjefe;
+        }
+        
+        if (m.id === 'COMISIONES_JEFE') {
+            return esjefe;
         }
 
-        if (m.nombre === 'ASISTENCIA') {
-            return esjefe || tieneModuloAsignado;
+        if (rol === 'INVITADO') return true;
+
+        const tieneModuloAsignado = modulos.includes(m.permiso);
+       
+        if (m.id === 'COMISIONES_RRHH') {
+          return rol === 'RRHH' || rol === 'SECRETARIO' || tieneModuloAsignado;
         }
         
         return tieneModuloAsignado;
       })
-      .sort((a, b) => a.titulo.localeCompare(b.titulo))
     , [rol, modulos, esjefe]);
 
   const modulosPoliticas = useMemo(() =>
@@ -179,18 +277,18 @@ export default function Dashboard() {
   };
 
   const renderModuleCard = (modulo: typeof TODOS_LOS_MODULOS[0]) => {
-    const isLoadingThisModule = loadingModule === modulo.nombre;
+    const isLoadingThisModule = loadingModule === modulo.id;
     const isDummy = modulo.ruta === '#';
     return (
       <motion.div
-        key={modulo.nombre}
+        key={modulo.id}
         className={`group relative bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl py-4 px-2 flex flex-row items-center text-left transition-opacity duration-300 w-full ${loadingModule && !isLoadingThisModule ? 'opacity-25 pointer-events-none' : ''} ${isDummy ? 'cursor-default' : 'cursor-pointer'}`}
         variants={cardVariants}
         animate={isLoadingThisModule ? 'loading' : 'idle'}
         whileHover={!loadingModule && !isDummy ? hoverEffect : {}}
         transition={isLoadingThisModule ? { duration: 1.5, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
-        onClick={loadingModule ? undefined : () => irA(modulo.nombre, modulo.ruta)}
-        onMouseEnter={() => setHoveredModule(modulo.nombre)}
+        onClick={loadingModule ? undefined : () => irA(modulo.id, modulo.ruta)}
+        onMouseEnter={() => setHoveredModule(modulo.id)}
         onMouseLeave={() => setHoveredModule(null)}
       >
         {!isDummy && (
@@ -201,7 +299,7 @@ export default function Dashboard() {
                        transition-all duration-300 ease-in-out overflow-hidden"
             onClick={(e) => {
               e.stopPropagation();
-              if (!loadingModule) irA(modulo.nombre, modulo.ruta);
+              if (!loadingModule) irA(modulo.id, modulo.ruta);
             }}
             aria-label={`Entrar al módulo ${modulo.titulo}`}
           >
@@ -218,8 +316,8 @@ export default function Dashboard() {
             <AnimatedIcon
               iconKey={modulo.iconoKey}
               className="w-14 h-14"
-              trigger={hoveredModule === modulo.nombre ? 'loop' : undefined}
-              {...modulo.colorProps}
+              trigger={hoveredModule === modulo.id ? 'loop' : undefined}
+              {...modulo.colorProps} 
             />
         </div>
         <div className="w-4/5 pl-4">
@@ -233,7 +331,7 @@ export default function Dashboard() {
   return (
     <section className="w-full mx-auto px-4 md:px-8 pt-2">
 
-<div className="w-full max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-8 gap-4 mb-6">
+      <div className="w-full max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-8 gap-4 mb-6">
 
         {(permisos.includes('CONFIGURACION') && rol === 'SUPER') && (
           <div
@@ -243,7 +341,7 @@ export default function Dashboard() {
             onMouseLeave={() => setHoveredButton(null)}
           >
             <Button onClick={() => { setMostrarOpciones(p => !p); }} className="w-full gap-2 text-base md:text-xl h-14">
-              <AnimatedIcon iconKey="cgolfevh" primaryColor="#fff" className="w-7 h-7" trigger={hoveredButton === 'profile' ? 'loop' : undefined} />
+              <AnimatedIcon iconKey="cgolfevh" primaryColor="#fff" className="w-7 h-7" trigger={hoveredButton === 'config' ? 'loop' : undefined} />
               Configuraciones
             </Button>
             {mostrarOpciones && (
@@ -292,25 +390,49 @@ export default function Dashboard() {
             <motion.div key="modulos" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
             
             <div className="w-full lg:max-w-[100%] xl:max-w-[90%] mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 items-start">
                 
-                {modulosPoliticas.length > 0 && (
-                  <div className="space-y-4 mb-4">
-                    <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4">Políticas Públicas</h2>
-                    <div className="space-y-4">
-                      {modulosPoliticas.map((modulo) => renderModuleCard(modulo))}
-                    </div>
+                <div className="space-y-4 mb-4">
+                  {modulosPoliticas.length > 0 && <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4">Políticas Públicas</h2>}
+                  <div className="space-y-4">
+                    {modulosPoliticas.map((modulo) => renderModuleCard(modulo))}
                   </div>
-                )}
+                </div>
 
-                {modulosGestion.length > 0 && (
-                  <div className="space-y-4 ">
-                    <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4">Gestión Administrativa</h2>
-                    <div className="space-y-4">
-                      {modulosGestion.map((modulo) => renderModuleCard(modulo))}
-                    </div>
-                  </div>
-                )}
+                <div className="space-y-4">
+                   <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4">Gestión Administrativa</h2>
+                   
+                   {esjefe && (
+                      <ModuleAccordion 
+                        titulo="Control Jefe de Área" 
+                        descripcion="Gestión y supervisión de equipos."
+                        iconKey="tobsqthh"
+                      >
+                        {modulosGestion.filter(m => m.subgrupo === 'Control Jefe de Área').map(modulo => renderModuleCard(modulo))}
+                      </ModuleAccordion>
+                   )}
+
+                   <ModuleAccordion 
+                      titulo="Concejo Municipal" 
+                      descripcion="Gestión de actas, sesiones y estructura municipal."
+                      iconKey="qaeqyqcc"
+                   >
+                      {modulosGestion.filter(m => m.subgrupo === 'Concejo Municipal').map(modulo => renderModuleCard(modulo))}
+                   </ModuleAccordion>
+
+                   <ModuleAccordion 
+                      titulo="Recursos Humanos" 
+                      descripcion="Administración de personal."
+                      iconKey="zyuyqigo"
+                   >
+                      {modulosGestion.filter(m => m.subgrupo === 'Recursos Humanos').map(modulo => renderModuleCard(modulo))}
+                   </ModuleAccordion>
+
+                   <div className="space-y-4">
+                      {modulosGestion.filter(m => !m.subgrupo).map(modulo => renderModuleCard(modulo))}
+                   </div>
+
+                </div>
               </div>
             </div>
 
