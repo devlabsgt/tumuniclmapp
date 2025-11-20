@@ -1,4 +1,3 @@
-// app/layout.tsx
 import "./globals.css";
 import { Geist } from "next/font/google";
 import HeaderAuth from "@/components/header-auth";
@@ -33,17 +32,18 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const pathname = (await headers()).get("x-pathname") || "";
-  const isAuthPage = pathname === "/";
+  const headersList = await headers();
+  const pathname = headersList.get("x-pathname") || "";
+  const isLoginPage = pathname === "/";
 
   return (
     <html lang="es" className={geistSans.className} suppressHydrationWarning>
       <body className="bg-background text-foreground">
         <div className="flex flex-col min-h-screen">
-          {isAuthPage ? (
-            <>
+          {isLoginPage ? (
+            <main className="flex-grow w-full">
               {children}
-            </>
+            </main>
           ) : (
             <>
               <nav className="w-full flex border-b border-b-foreground/10 h-40">
@@ -60,28 +60,29 @@ export default async function RootLayout({
               <main className="flex flex-col gap-5 pt-2 flex-grow w-full mx-auto">
                 {children}
               </main>
-          <footer className="mt-5 pt-5 pb-5 border-t border-foreground/10 bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-gray-300 shrink-0">
-            <div className="w-full flex flex-row justify-between gap-0 px-6">
-              <div className="w-1/2 text-left">
-                <FechaHoraActual />
-                <p className="mt-5 text-xs md:text-base">
-                  Powered by{" "}<br/>
-                  <a
-                    href="https://www.oscar27jimenez.com"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-semibold hover:underline text-blue-600"
-                  >
-                    Ing. Oscar Jiménez
-                  </a>
-                </p>
-              </div>
-              <div className="w-1/2 text-end text-xs md:text-sm leading-tight ">
-                <p>© {new Date().getFullYear()} - Todos los derechos reservados.</p>
-                <p className="mt-10 text-[10px] md:text-xs text-blue-600 font-bold">Versión 1.4.7</p>
-              </div>
-            </div>
-          </footer>
+
+              <footer className="mt-5 pt-5 pb-5 border-t border-foreground/10 bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-gray-300 shrink-0">
+                <div className="w-full flex flex-row justify-between gap-0 px-6">
+                  <div className="w-1/2 text-left">
+                    <FechaHoraActual />
+                    <p className="mt-5 text-xs md:text-base">
+                      Powered by{" "}<br/>
+                      <a
+                        href="https://www.oscar27jimenez.com"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-semibold hover:underline text-blue-600"
+                      >
+                        Ing. Oscar Jiménez
+                      </a>
+                    </p>
+                  </div>
+                  <div className="w-1/2 text-end text-xs md:text-sm leading-tight ">
+                    <p>© {new Date().getFullYear()} - Todos los derechos reservados.</p>
+                    <p className="mt-10 text-[10px] md:text-xs text-blue-600 font-bold">Versión 1.4.7</p>
+                  </div>
+                </div>
+              </footer>
             </>
           )}
 

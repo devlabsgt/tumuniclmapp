@@ -10,6 +10,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Typewriter } from 'react-simple-typewriter';
 import AnimatedIcon from '@/components/ui/AnimatedIcon';
+import Image from 'next/image';
 
 const initialState = {
   type: null,
@@ -29,7 +30,18 @@ export function LoginForm() {
   };
 
   return (
-    <div className="w-full flex justify-center items-start bg-white px-4 py-12">
+    <div className="w-full flex flex-col justify-center items-center bg-white px-4 pt-5 gap-6">
+      <div className="w-full max-w-lg">
+        <Image
+          src="/images/logo-muni.png"
+          alt="Logo Municipalidad"
+          width={600}
+          height={200}
+          className="w-full h-auto object-contain"
+          priority
+        />
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -41,7 +53,7 @@ export function LoginForm() {
             <AnimatedIcon
               iconKey="yaxbmvvh"
               className="w-[100px] h-[100px]"
-                trigger="loop"
+              trigger="loop"
             />
           </div>
           <div className="flex flex-col text-left">

@@ -1,5 +1,3 @@
-// middleware.ts (en la raíz del proyecto)
-
 export const runtime = 'nodejs';
 
 import { NextResponse, type NextRequest } from 'next/server'
@@ -63,6 +61,8 @@ export async function middleware(request: NextRequest) {
           : "/protected/user";
       return NextResponse.redirect(new URL(destino, request.url));
   }
+
+  response.headers.set('x-pathname', request.nextUrl.pathname);
 
   return response;
 }
