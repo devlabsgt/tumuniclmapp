@@ -68,14 +68,13 @@ const MenuBar = ({ editor }: { editor: any }) => {
 export default function DescriptionModal({ isOpen, onClose, onSave, title, description }: DescriptionModalProps) {
   const [width, setWidth] = useState<number>(1000);
   const isResizing = useRef(false);
-  const sidebarRef = useRef<HTMLDivElement>(null);
-
+  
   const editor = useEditor({
     extensions: [StarterKit],
     content: description,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-xl focus:outline-none w-full h-full p-6 min-h-[300px] prose-li:marker:text-gray-500 prose-ol:list-decimal prose-ul:list-disc',
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-xl !max-w-full w-full h-full p-6 min-h-[300px] prose-li:marker:text-gray-500 prose-ol:list-decimal prose-ul:list-disc focus:outline-none bg-white',
       },
     },
     immediatelyRender: false,
@@ -113,7 +112,7 @@ export default function DescriptionModal({ isOpen, onClose, onSave, title, descr
       let newWidth = distanceFromCenter * 2;
       
       const maxW = window.innerWidth * 0.98;
-      const minW = 320;
+      const minW = 400;
 
       if (newWidth > maxW) newWidth = maxW;
       if (newWidth < minW) newWidth = minW;
@@ -164,7 +163,7 @@ export default function DescriptionModal({ isOpen, onClose, onSave, title, descr
           `}</style>
 
           <motion.div
-            className="bg-white rounded-2xl shadow-xl border border-gray-200 relative flex flex-col h-[90vh]"
+            className="bg-white rounded-2xl shadow-xl border border-gray-200 relative flex flex-row h-[90vh] overflow-hidden"
             style={{ width: width }}
             initial={{ scale: 0.95, y: 20 }}
             animate={{ scale: 1, y: 0 }}
@@ -172,52 +171,53 @@ export default function DescriptionModal({ isOpen, onClose, onSave, title, descr
             transition={{ type: 'spring', stiffness: 200, damping: 20 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div
-              ref={sidebarRef}
-              className="absolute right-0 top-0 bottom-0 w-5 cursor-col-resize flex items-center justify-center hover:bg-gray-100 transition-colors z-50 rounded-r-2xl group"
-              onMouseDown={startResizing}
-            >
-              <GripVertical className="w-4 h-8 text-gray-300 group-hover:text-blue-500 transition-colors" />
-            </div>
+            <div className="flex flex-col flex-grow min-w-0">
+              <div className="px-6 pt-4 flex-shrink-0">
+                <div className="flex items-center justify-between border-b pb-3 border-gray-200">
+                  <h2 className="text-xl lg:text-2xl font-semibold text-blue-600 pr-4 truncate">
+                    {title}
+                  </h2>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="text-gray-500 hover:bg-gray-100 hover:text-gray-800 rounded-full" 
+                    onClick={onClose}
+                  >
+                    <X className="w-6 h-6" />
+                  </Button>
+                </div>
+              </div>
 
-            <div className="px-6 pt-4 flex-shrink-0 mr-5">
-              <div className="flex items-center justify-between border-b pb-3 border-gray-200">
-                <h2 className="text-xl lg:text-2xl font-semibold text-blue-600 pr-4 truncate">
-                  {title}
-                </h2>
+              <div className="flex flex-col flex-grow overflow-hidden">
+                <MenuBar editor={editor} />
+                <div className="flex-grow overflow-auto custom-scrollbar bg-white w-full relative">
+                  <EditorContent editor={editor} className="w-full h-full" />
+                </div>
+              </div>
+
+              <div className="p-4 border-t border-gray-200 flex justify-end gap-3 bg-gray-50 flex-shrink-0">
                 <Button 
-                  variant="ghost" 
-                  size="icon"
-                  className="text-gray-500 hover:bg-gray-100 hover:text-gray-800 rounded-full" 
+                  variant="outline" 
                   onClick={onClose}
+                  className="px-6"
                 >
-                  <X className="w-6 h-6" />
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={handleSave}
+                  className="px-6 bg-blue-600 hover:bg-blue-700 text-white gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  Guardar Cambios
                 </Button>
               </div>
             </div>
 
-            <div className="flex flex-col flex-grow overflow-hidden mr-1">
-              <MenuBar editor={editor} />
-              <div className="flex-grow overflow-y-auto custom-scrollbar bg-white w-full">
-                <EditorContent editor={editor} className="w-full h-full" />
-              </div>
-            </div>
-
-            <div className="p-4 border-t border-gray-200 flex justify-end gap-3 bg-gray-50 rounded-b-2xl flex-shrink-0 mr-1">
-              <Button 
-                variant="outline" 
-                onClick={onClose}
-                className="px-6"
-              >
-                Cancelar
-              </Button>
-              <Button 
-                onClick={handleSave}
-                className="px-6 bg-blue-600 hover:bg-blue-700 text-white gap-2"
-              >
-                <Save className="w-4 h-4" />
-                Guardar Cambios
-              </Button>
+            <div
+              className="w-5 cursor-col-resize flex items-center justify-center hover:bg-gray-100 bg-gray-50 border-l border-gray-200 transition-colors z-50 flex-shrink-0 group"
+              onMouseDown={startResizing}
+            >
+              <GripVertical className="w-4 h-8 text-gray-300 group-hover:text-blue-500 transition-colors" />
             </div>
           </motion.div>
         </motion.div>
