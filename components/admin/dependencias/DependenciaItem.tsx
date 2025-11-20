@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
-import { Pencil, Trash2, GitBranchPlus, ArrowUp, ArrowDown, UserPlus, ChevronsUp, ChevronsDown, Info, Banknote } from 'lucide-react';
+import { Pencil, Trash2, GitBranchPlus, ArrowUp, ArrowDown, UserPlus, ChevronsUp, ChevronsDown, Info, Banknote, FileText } from 'lucide-react';
 import { EmpleadoItem } from './EmpleadoItem';
 import { Usuario } from '@/lib/usuarios/esquemas';
 
@@ -83,6 +83,8 @@ const DependenciaItem = ({
   const isRRHH = rol === 'RRHH';
   const canShowMenu = isAdmin || (isRRHH && node.es_puesto);
   const isPuestoDisponible = node.es_puesto && !empleadoAsignado;
+
+  const hasDescription = node.descripcion && node.descripcion.replace(/<[^>]*>?/gm, '').trim().length > 0;
 
   const handleToggle = () => {
     if (hasChildren) {
@@ -187,11 +189,25 @@ const DependenciaItem = ({
                   {node.es_puesto && (isAdmin || isRRHH) && (
                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onOpenInfoFinanciera(node); }} className="cursor-pointer">
                       <Banknote className={`mr-2 h-4 w-4 ${icon}`} />
-                      <span>{tienePresupuesto ? 'Editar Info. Financiera' : 'Asignar Info. Financiera'}</span>
+                      <span>Info. Financiera</span>
                     </DropdownMenuItem>
                   )}
 
-                  {isAdmin && (<DropdownMenuItem onSelect={() => onEdit(node)} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><Pencil className="mr-2 h-4 w-4" /><span>Editar Nombre</span></DropdownMenuItem>)}
+                  {isAdmin && (<DropdownMenuItem onSelect={() => onEdit(node)} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><Pencil className="mr-2 h-4 w-4" /><span>Nombre</span></DropdownMenuItem>)}
+                  
+                  {isAdmin && (
+                    <DropdownMenuItem 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        onOpenDescription(node.id, node.nombre, node.descripcion || ''); 
+                      }} 
+                      className="cursor-pointer"
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      <span>Descripción</span>
+                    </DropdownMenuItem>
+                  )}
+
                   {isAdmin && (<DropdownMenuItem onSelect={() => onDelete(node.id)} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><Trash2 className="mr-2 h-4 w-4 text-red-600" /><span>Eliminar</span></DropdownMenuItem>)}
                   {isAdmin && (canMoveUp || canMoveDown) && (<DropdownMenuSub><DropdownMenuSubTrigger onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"><span>Mover</span></DropdownMenuSubTrigger><DropdownMenuSubContent>{canMoveUp && ( <DropdownMenuItem onSelect={() => onMove(node.id, 'up')} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"> <ArrowUp className="mr-2 h-4 w-4" /> <span>Mover Arriba</span> </DropdownMenuItem> )}{canMoveDown && ( <DropdownMenuItem onSelect={() => onMove(node.id, 'down')} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"> <ArrowDown className="mr-2 h-4 w-4" /> <span>Mover Abajo</span> </DropdownMenuItem> )}{canMoveUp && ( <DropdownMenuItem onSelect={() => onMoveExtreme(node.id, 'inicio')} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"> <ChevronsUp className="mr-2 h-4 w-4" /> <span>Mover al inicio</span> </DropdownMenuItem> )}{canMoveDown && ( <DropdownMenuItem onSelect={() => onMoveExtreme(node.id, 'final')} onClick={(e: React.MouseEvent) => e.stopPropagation()} className="cursor-pointer"> <ChevronsDown className="mr-2 h-4 w-4" /> <span>Mover al final</span> </DropdownMenuItem> )}</DropdownMenuSubContent></DropdownMenuSub>)}
                 </DropdownMenuContent>
@@ -205,7 +221,7 @@ const DependenciaItem = ({
                 {node.nombre}
               </span>
 
-              {node.descripcion && (
+              {hasDescription && (
                 <div
                   role="button" 
                   tabIndex={0}

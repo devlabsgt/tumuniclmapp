@@ -151,21 +151,6 @@ export default function Dependencia({ isOpen, onClose, onSubmit, initialData, pr
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="descripcion"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center gap-4">
-                          <FormLabel className="text-xs w-28 sr-only text-right">Descripción</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Descripción (Opcional)" {...field} value={field.value || ''} className="text-xs" />
-                          </FormControl>
-                        </div>
-                        <FormMessage className="ml-[128px]" />
-                      </FormItem>
-                    )}
-                  />
                   
                   {mode === 'EDIT' && ( 
                     <FormField
