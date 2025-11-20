@@ -31,7 +31,12 @@ export function LoginForm() {
 
   return (
     <div className="w-full flex flex-col justify-center items-center bg-white px-4 pt-5 gap-6">
-      <div className="w-full max-w-lg">
+      <motion.div 
+        initial={{ opacity: 0, y: -30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+        className="w-full max-w-lg"
+      >
         <Image
           src="/images/logo-muni.png"
           alt="Logo Municipalidad"
@@ -40,7 +45,7 @@ export function LoginForm() {
           className="w-full h-auto object-contain"
           priority
         />
-      </div>
+      </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: -20 }}
