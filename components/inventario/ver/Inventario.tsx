@@ -62,4 +62,4 @@ export default function Inventario() {
       </table>
     </div>
   );
-}
+} 
