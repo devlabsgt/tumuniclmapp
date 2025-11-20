@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/utils/supabase/client';
 import { Database } from '@/lib/database.types';
 
 type Bien = Database['public']['Tables']['bienes']['Row'] & {
@@ -11,7 +11,7 @@ type Bien = Database['public']['Tables']['bienes']['Row'] & {
 export default function Inventario() {
   const [bienes, setBienes] = useState<Bien[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClientComponentClient<Database>();
+  const supabase = createClient();
 
   useEffect(() => {
     const fetchBienes = async () => {
@@ -24,7 +24,7 @@ export default function Inventario() {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error al obtener los bienes:', error);
+        console.error(error);
       } else {
         setBienes(data as Bien[]);
       }
