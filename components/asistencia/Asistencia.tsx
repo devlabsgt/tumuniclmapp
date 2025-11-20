@@ -14,7 +14,7 @@ import {
   isAfter,
   parseISO
 } from 'date-fns';
-import { Clock, CalendarCheck, CalendarDays, List } from 'lucide-react';
+import { Clock, CalendarCheck, CalendarDays, List, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Calendario from './Calendario';
 import Mapa from '../ui/modals/Mapa';
@@ -26,7 +26,8 @@ import {
 } from '@/lib/asistencia/acciones';
 import useFechaHora from '@/hooks/utility/useFechaHora';
 import { useAsistenciaUsuario } from '@/hooks/asistencia/useAsistenciaUsuario';
-import useGeolocalizacion from '@/hooks/utility/useGeolocalizacion';
+// --- CAMBIO: Importar el nuevo hook ---
+import { useObtenerUbicacion } from '@/hooks/ubicacion/useObtenerUbicacion';
 
 const formatScheduleTime = (timeString: string | null | undefined) => {
   if (!timeString) return '--';
@@ -67,7 +68,9 @@ export default function Asistencia() {
 
   const { asistencias: todosLosRegistros, loading: cargandoRegistros, fetchAsistencias } = useAsistenciaUsuario(userId, null, null);
   const fechaHoraGt = useFechaHora();
-  const { ubicacion, cargando: cargandoGeo, obtenerUbicacion } = useGeolocalizacion();
+  
+  // --- CAMBIO: Usar el nuevo hook ---
+  const { ubicacion, cargando: cargandoGeo, obtenerUbicacion, error: errorGeo } = useObtenerUbicacion();
 
   const [cargando, setCargando] = useState(false);
   const [modalMapaAbierto, setModalMapaAbierto] = useState(false);
@@ -142,13 +145,18 @@ export default function Asistencia() {
     };
   }, [modalMapaAbierto]);
 
+  // --- CAMBIO: Manejar el registro cuando llega la ubicación ---
   useEffect(() => {
     if (ubicacion && tipoRegistroPendiente) {
       handleMarcarAsistencia(tipoRegistroPendiente, ubicacion, notasPendientes);
       setTipoRegistroPendiente(null);
       setNotasPendientes('');
+    } else if (errorGeo && tipoRegistroPendiente) {
+      Swal.fire('Error de Ubicación', errorGeo, 'error');
+      setTipoRegistroPendiente(null);
+      setNotasPendientes('');
     }
-  }, [ubicacion, tipoRegistroPendiente]);
+  }, [ubicacion, errorGeo, tipoRegistroPendiente]);
 
   const handleIniciarMarcado = async (tipo: 'Entrada' | 'Salida' | 'Marca') => {
     let swalConfig: SweetAlertOptions = {
@@ -218,7 +226,9 @@ export default function Asistencia() {
       }
       setNotasPendientes(notasFinales);
       setTipoRegistroPendiente(tipo);
-      obtenerUbicacion();
+      
+      // --- CAMBIO: Llamar a obtenerUbicacion ---
+      obtenerUbicacion(); 
     }
   };
 
@@ -269,21 +279,24 @@ export default function Asistencia() {
         <Button
           onClick={() => handleIniciarMarcado('Marca')}
           disabled={cargando || cargandoGeo}
-          className="w-full py-6 text-base bg-blue-600 hover:bg-blue-700"
+          className="w-full py-6 text-base bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2"
         >
+          {cargandoGeo && <MapPin className="animate-bounce h-4 w-4" />}
           {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Registrando...' : 'Marcar')}
         </Button>
       );
     }
     if (!entradaMarcada) {
       return (
-        <Button onClick={() => handleIniciarMarcado('Entrada')} disabled={cargando || cargandoGeo} className="w-full py-6 text-base bg-green-600 hover:bg-green-700">
+        <Button onClick={() => handleIniciarMarcado('Entrada')} disabled={cargando || cargandoGeo} className="w-full py-6 text-base bg-green-600 hover:bg-green-700 flex items-center justify-center gap-2">
+           {cargandoGeo && <MapPin className="animate-bounce h-4 w-4" />}
           {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Marcando...' : 'Marcar Entrada')}
         </Button>
       );
     } else if (!salidaMarcada) {
       return (
-        <Button onClick={() => handleIniciarMarcado('Salida')} disabled={cargando || cargandoGeo} className="w-full py-6 text-base bg-red-600 hover:bg-red-700">
+        <Button onClick={() => handleIniciarMarcado('Salida')} disabled={cargando || cargandoGeo} className="w-full py-6 text-base bg-red-600 hover:bg-red-700 flex items-center justify-center gap-2">
+           {cargandoGeo && <MapPin className="animate-bounce h-4 w-4" />}
           {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Marcando...' : 'Marcar Salida')}
         </Button>
       );

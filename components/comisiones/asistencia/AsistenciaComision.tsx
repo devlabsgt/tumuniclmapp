@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { format, parseISO, differenceInMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -8,7 +8,7 @@ import Swal from 'sweetalert2';
 
 import { useAsistenciaComisionUsuario } from '@/hooks/comisiones/useAsistenciaComision';
 import { marcarAsistenciaComision } from '@/lib/comisiones/acciones';
-import useGeolocalizacion from '@/hooks/utility/useGeolocalizacion';
+import { useObtenerUbicacion } from '@/hooks/ubicacion/useObtenerUbicacion';
 import useFechaHora from '@/hooks/utility/useFechaHora';
 import { ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
 
@@ -18,12 +18,6 @@ interface AsistenciaComisionProps {
   nombreUsuario: string;
   onAsistenciaMarcada: () => void;
 }
-
-type PendingAction = {
-  tipo: 'Entrada' | 'Salida';
-  comisionId: string;
-  notaParaEnviar: string;
-};
 
 const formatarMinutos = (minutos: number) => {
   const absMinutos = Math.abs(minutos);
@@ -44,12 +38,11 @@ const formatarMinutos = (minutos: number) => {
 };
 
 export default function AsistenciaComision({ comision, userId, nombreUsuario, onAsistenciaMarcada }: AsistenciaComisionProps) {
-  const { ubicacion, cargando: cargandoGeo, obtenerUbicacion } = useGeolocalizacion();
+  const { cargando: cargandoGeo, obtenerUbicacion, error: errorGeo } = useObtenerUbicacion();
   const fechaHoraGt = useFechaHora();
   const { registros, loading: cargandoRegistros, fetchRegistros } = useAsistenciaComisionUsuario(userId);
 
   const [cargandoMarcaje, setCargandoMarcaje] = useState(false);
-  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
 
   const registrosDeLaComision = useMemo(() => {
     const registrosFiltrados = registros.filter(r => r.comision_id === comision.id);
@@ -57,18 +50,6 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario, on
     const registroSalida = registrosFiltrados.find(r => r.tipo_registro === 'Salida') || null;
     return { registroEntrada, registroSalida };
   }, [registros, comision.id]);
-
-  useEffect(() => {
-    if (ubicacion && pendingAction) {
-      handleMarcarAsistencia(
-        pendingAction.tipo, 
-        pendingAction.comisionId, 
-        ubicacion, 
-        pendingAction.notaParaEnviar
-      );
-      setPendingAction(null);
-    }
-  }, [ubicacion, pendingAction]);
 
   const handleIniciarMarcado = async (tipo: 'Entrada' | 'Salida', comisionId: string) => {
     let notaParaEnviar = '';
@@ -148,8 +129,13 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario, on
       notaParaEnviar = notaOpcional || '';
     }
 
-    setPendingAction({ tipo, comisionId, notaParaEnviar });
-    obtenerUbicacion();
+    const coords = await obtenerUbicacion();
+
+    if (coords) {
+      handleMarcarAsistencia(tipo, comisionId, coords, notaParaEnviar);
+    } else {
+      Swal.fire('Error de Ubicación', 'No se pudo obtener una ubicación precisa. Verifique su GPS e intente nuevamente.', 'error');
+    }
   };
   
   const handleMarcarAsistencia = async (

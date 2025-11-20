@@ -182,7 +182,6 @@ export default function Mapa({ isOpen, onClose, registros, nombreUsuario }: Mapa
               </div>
             </div>
 
-            {/* --- MAPA PRINCIPAL --- */}
             <div className={`
               flex-grow flex flex-col relative
               ${mapaVisible ? 'h-1/2' : 'hidden'}
