@@ -75,7 +75,7 @@ export default function DescriptionModal({ isOpen, onClose, onSave, title, descr
     content: description,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none focus:outline-none w-full h-full p-6 min-h-[300px] prose-li:marker:text-gray-500 prose-ol:list-decimal prose-ul:list-disc',
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-xl focus:outline-none w-full h-full p-6 min-h-[300px] prose-li:marker:text-gray-500 prose-ol:list-decimal prose-ul:list-disc',
       },
     },
     immediatelyRender: false,
@@ -152,6 +152,17 @@ export default function DescriptionModal({ isOpen, onClose, onSave, title, descr
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
         >
+          <style jsx global>{`
+            .ProseMirror {
+              min-width: 100% !important;
+              max-width: none !important;
+              width: 100% !important;
+            }
+            .ProseMirror p {
+              max-width: none !important;
+            }
+          `}</style>
+
           <motion.div
             className="bg-white rounded-2xl shadow-xl border border-gray-200 relative flex flex-col h-[90vh]"
             style={{ width: width }}
@@ -174,13 +185,21 @@ export default function DescriptionModal({ isOpen, onClose, onSave, title, descr
                 <h2 className="text-xl lg:text-2xl font-semibold text-blue-600 pr-4 truncate">
                   {title}
                 </h2>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="text-gray-500 hover:bg-gray-100 hover:text-gray-800 rounded-full" 
+                  onClick={onClose}
+                >
+                  <X className="w-6 h-6" />
+                </Button>
               </div>
             </div>
 
             <div className="flex flex-col flex-grow overflow-hidden mr-1">
               <MenuBar editor={editor} />
-              <div className="flex-grow overflow-y-auto custom-scrollbar bg-white">
-                <EditorContent editor={editor} />
+              <div className="flex-grow overflow-y-auto custom-scrollbar bg-white w-full">
+                <EditorContent editor={editor} className="w-full h-full" />
               </div>
             </div>
 
