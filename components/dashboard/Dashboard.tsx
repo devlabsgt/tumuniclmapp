@@ -14,6 +14,7 @@ import AnimatedIcon from '@/components/ui/AnimatedIcon';
 import MisComisiones from '@/components/comisiones/asistencia/MisComisiones';
 import HorarioSistema from '@/components/admin/sistema/HorarioSistema';
 import TarjetaEmpleado from '@/components/admin/dependencias/TarjetaEmpleado';
+import SubscribeButton from '@/components/SubscribeButton';
 
 const TODOS_LOS_MODULOS = [
   {
@@ -232,30 +233,11 @@ export default function Dashboard() {
   return (
     <section className="w-full mx-auto px-4 md:px-8 pt-2">
 
-      <div className="w-full max-w-2xl mx-auto grid grid-cols-1 sm:grid-cols-7 gap-4 mb-6">
-
-        <div className="flex rounded-lg border p-1 bg-gray-100 dark:bg-gray-800 h-14 sm:col-span-3 order-1 sm:order-2">
-          <button type="button" onClick={() => setVistaActiva('modulos')} className={`flex-1 rounded-md transition-all duration-200 ${vistaActiva === 'modulos' ? 'bg-blue-100 text-blue-600 shadow text-sm font-bold' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}>
-            Módulos
-          </button>
-          <button type="button" onClick={() => setVistaActiva('asistencia')} className={`flex-1 rounded-md transition-all duration-200 ${vistaActiva === 'asistencia' ? 'bg-green-100 text-green-800 shadow text-sm font-bold' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}>
-            Asistencia
-          </button>
-          <button type="button" onClick={() => setVistaActiva('comisiones')} className={`flex-1 rounded-md transition-all duration-200 ${vistaActiva === 'comisiones' ? 'bg-purple-100 text-purple-600 font-bold shadow text-sm' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}>
-            Comisiones
-          </button>
-        </div>
-
-        <div className="relative sm:col-span-2 order-2 sm:order-1" onMouseEnter={() => setHoveredButton('profile')} onMouseLeave={() => setHoveredButton(null)}>
-          <Button onClick={() => setMostrarTarjetaModal(p => !p)} className="w-full gap-2 text-base md:text-xl h-14 bg-blue-100 text-blue-800 hover:bg-blue-200">
-            <AnimatedIcon iconKey="hroklero" className="w-8 h-8" trigger={hoveredButton === 'profile' ? 'loop' : undefined} />
-            Mi información
-          </Button>
-        </div>
+<div className="w-full max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-8 gap-4 mb-6">
 
         {(permisos.includes('CONFIGURACION') && rol === 'SUPER') && (
           <div
-            className="relative sm:col-span-2 order-3 sm:order-none"
+            className="relative sm:col-span-2 order-3 sm:order-1"
             ref={configRef}
             onMouseEnter={() => setHoveredButton('config')}
             onMouseLeave={() => setHoveredButton(null)}
@@ -274,6 +256,29 @@ export default function Dashboard() {
             )}
           </div>
         )}
+
+        <div className="flex rounded-lg border p-1 bg-gray-100 dark:bg-gray-800 h-14 sm:col-span-3 order-1 sm:order-2">
+          <button type="button" onClick={() => setVistaActiva('modulos')} className={`flex-1 rounded-md transition-all duration-200 ${vistaActiva === 'modulos' ? 'bg-blue-100 text-blue-600 shadow text-sm font-bold' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}>
+            Módulos
+          </button>
+          <button type="button" onClick={() => setVistaActiva('asistencia')} className={`flex-1 rounded-md transition-all duration-200 ${vistaActiva === 'asistencia' ? 'bg-green-100 text-green-800 shadow text-sm font-bold' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}>
+            Asistencia
+          </button>
+          <button type="button" onClick={() => setVistaActiva('comisiones')} className={`flex-1 rounded-md transition-all duration-200 ${vistaActiva === 'comisiones' ? 'bg-purple-100 text-purple-600 font-bold shadow text-sm' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}>
+            Comisiones
+          </button>
+        </div>
+
+        <div className="relative sm:col-span-3 order-2 sm:order-3 flex gap-2" onMouseEnter={() => setHoveredButton('profile')} onMouseLeave={() => setHoveredButton(null)}>
+          <Button onClick={() => setMostrarTarjetaModal(p => !p)} className="w-[80%] gap-2 text-base md:text-xl h-14 bg-blue-100 text-blue-800 hover:bg-blue-200">
+            <AnimatedIcon iconKey="hroklero" className="w-8 h-8" trigger={hoveredButton === 'profile' ? 'loop' : undefined} />
+            Mi Información
+          </Button>
+          <div className="w-[20%] min-w-[3.5rem]">
+            {userId && <SubscribeButton userId={userId} />}
+          </div>
+        </div>
+
       </div>
 
       <TarjetaEmpleado
