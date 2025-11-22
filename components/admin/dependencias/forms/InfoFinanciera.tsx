@@ -13,12 +13,19 @@ import { DependenciaNode } from '../DependenciaItem';
 
 const formSchema = z.object({
   renglon: z.string().min(1, { message: "Debe seleccionar un renglón." }),
-  salario: z.number().min(0, { message: "El valor no puede ser negativo." }).optional(),
-  bonificacion: z.number().min(0, { message: "El valor no puede ser negativo." }).optional(),
+  salario: z.string().optional(),
+  bonificacion: z.string().optional(),
   prima: z.boolean().optional(),
 });
 
-export type InfoFinancieraFormData = z.infer<typeof formSchema>;
+type FormValues = z.infer<typeof formSchema>;
+
+export type InfoFinancieraFormData = {
+  renglon: string;
+  salario?: number;
+  bonificacion?: number;
+  prima?: boolean;
+};
 
 interface Props {
   isOpen: boolean;
@@ -53,31 +60,32 @@ const renglonConfig: Record<string, RenglonConfig> = {
 };
 
 export default function InfoFinancieraForm({ isOpen, onClose, onSubmit, dependencia }: Props) {
-  const form = useForm<InfoFinancieraFormData>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      renglon: dependencia?.renglon || "",
-      salario: dependencia?.salario || undefined,
-      bonificacion: dependencia?.bonificacion || undefined,
-      prima: dependencia?.prima || false,
+      renglon: "",
+      salario: "",
+      bonificacion: "",
+      prima: false,
     },
   });
 
   const { reset, setValue } = form;
 
   useEffect(() => {
-    if (isOpen && dependencia) { 
+    if (isOpen && dependencia) {
       reset({
         renglon: dependencia.renglon || "",
-        salario: dependencia.salario || undefined,
-        bonificacion: dependencia.bonificacion || undefined,
+        // CORRECCIÓN AQUÍ: Verificamos != null para evitar que escriba "null" en el input
+        salario: (dependencia.salario !== null && dependencia.salario !== undefined) ? String(dependencia.salario) : "",
+        bonificacion: (dependencia.bonificacion !== null && dependencia.bonificacion !== undefined) ? String(dependencia.bonificacion) : "",
         prima: dependencia.prima || false,
       });
     } else if (!isOpen) {
       reset({
         renglon: "",
-        salario: undefined,
-        bonificacion: undefined,
+        salario: "",
+        bonificacion: "",
         prima: false,
       });
     }
@@ -91,36 +99,25 @@ export default function InfoFinancieraForm({ isOpen, onClose, onSubmit, dependen
   useEffect(() => {
     if (configActual) {
       if (!configActual.tieneBono) {
-        setValue('bonificacion', undefined);
+        setValue('bonificacion', "");
       }
     }
   }, [renglonSeleccionado, configActual, setValue]);
 
-  const handleFormSubmit: SubmitHandler<InfoFinancieraFormData> = (data) => {
-    onSubmit({
-      renglon: data.renglon,
-      salario: data.salario || 0,
-      bonificacion: (configActual?.tieneBono && data.bonificacion) ? data.bonificacion : 0,
-      prima: data.prima || false,
-    });
-  };
-
   const handleNumericChange = (e: React.ChangeEvent<HTMLInputElement>, field: any) => {
     const val = e.target.value;
-    
-    if (val === '') {
-      field.onChange(undefined);
-      return;
+    if (val === '' || /^\d*\.?\d*$/.test(val)) {
+      field.onChange(val);
     }
+  };
 
-    const cleanVal = val.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
-    const numVal = parseFloat(cleanVal);
-
-    if (!isNaN(numVal)) {
-      field.onChange(numVal);
-    } else if (cleanVal === '') {
-      field.onChange(undefined);
-    }
+  const handleFormSubmit: SubmitHandler<FormValues> = (data) => {
+    onSubmit({
+      renglon: data.renglon,
+      salario: data.salario ? parseFloat(data.salario) : 0,
+      bonificacion: (configActual?.tieneBono && data.bonificacion) ? parseFloat(data.bonificacion) : 0,
+      prima: data.prima || false,
+    });
   };
 
   if (!isOpen) return null;
@@ -233,18 +230,13 @@ export default function InfoFinancieraForm({ isOpen, onClose, onSubmit, dependen
                               <div className="relative">
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">Q</span>
                                 <Input
+                                  {...field}
                                   type="text"
                                   inputMode="decimal"
                                   className="pl-7"
                                   placeholder={configActual.placeholder}
-                                  {...field}
-                                  value={field.value === undefined ? '' : String(field.value)}
-                                  onChange={e => handleNumericChange(e, field)}
-                                  onBlur={() => {
-                                      const val = form.getValues('salario');
-                                      const numVal = parseFloat(val as any);
-                                      form.setValue('salario', isNaN(numVal) ? undefined : numVal);
-                                  }}
+                                  onChange={(e) => handleNumericChange(e, field)}
+                                  value={field.value}
                                 />
                               </div>
                             </FormControl>
@@ -264,18 +256,13 @@ export default function InfoFinancieraForm({ isOpen, onClose, onSubmit, dependen
                                 <div className="relative">
                                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">Q</span>
                                   <Input
+                                    {...field}
                                     type="text"
                                     inputMode="decimal"
                                     className="pl-7"
                                     placeholder="Bonificación"
-                                    {...field}
-                                    value={field.value === undefined ? '' : String(field.value)}
-                                    onChange={e => handleNumericChange(e, field)}
-                                    onBlur={() => {
-                                      const val = form.getValues('bonificacion');
-                                      const numVal = parseFloat(val as any);
-                                      form.setValue('bonificacion', isNaN(numVal) ? undefined : numVal);
-                                    }}
+                                    onChange={(e) => handleNumericChange(e, field)}
+                                    value={field.value}
                                   />
                                 </div>
                               </FormControl>
