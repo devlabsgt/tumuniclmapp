@@ -16,7 +16,7 @@ export const cargarAgendas = async (): Promise<AgendaConcejo[]> => {
     .order('fecha_reunion', { ascending: false });
 
   if (error) {
-    console.error('Error al cargar agendas:', error.message);
+    console.error(error.message);
     return [];
   }
   return data as AgendaConcejo[];
@@ -30,7 +30,7 @@ export const fetchAgendaConcejoPorId = async (id: string): Promise<AgendaConcejo
     .single();
 
   if (error) {
-    console.error('Error al cargar la agenda:', error.message);
+    console.error(error.message);
     return null;
   }
   return data as AgendaConcejo;
@@ -49,7 +49,7 @@ export const crearAgenda = async (formData: AgendaFormData): Promise<AgendaConce
     .single();
 
   if (error) {
-    console.error('Error al crear la agenda:', error.message);
+    console.error(error.message);
     toast.error('Error al crear la agenda.');
     return null;
   }
@@ -71,7 +71,7 @@ export const editarAgenda = async (id: string, formData: AgendaFormData): Promis
     .single();
   
   if (error) {
-    console.error('Error al actualizar la agenda:', error.message);
+    console.error(error.message);
     toast.error('Error al actualizar la agenda.');
     return null;
   }
@@ -86,10 +86,10 @@ export const actualizarEstadoAgenda = async (id: string, estado: string): Promis
     .eq('id', id);
 
   if (error) {
-    console.error('Error al actualizar el estado de la agenda:', error.message);
-    toast.error('Error al actualizar el estado de la agenda.');
+    console.error(error.message);
+    toast.error('Error al actualizar el estado.');
   } else {
-    toast.success('Estado de la agenda actualizado con éxito.');
+    toast.success('Estado actualizado con éxito.');
   }
 };
 
@@ -100,7 +100,7 @@ export const eliminarAgenda = async (id: string): Promise<boolean> => {
     .eq('id', id);
 
   if (error) {
-    console.error('Error al eliminar la agenda:', error.message);
+    console.error(error.message);
     toast.error('Error al eliminar la agenda.');
     return false;
   }
@@ -115,7 +115,7 @@ export const fetchCategorias = async (): Promise<CategoriaItem[]> => {
     .select('*');
 
   if (error) {
-    console.error('Error al cargar categorías:', error.message);
+    console.error(error.message);
     return [];
   }
   return data as CategoriaItem[];
@@ -127,7 +127,7 @@ export const crearCategoria = async (nombre: string): Promise<void> => {
     .insert({ nombre });
 
   if (error) {
-    console.error('Error al crear la categoría:', error.message);
+    console.error(error.message);
     toast.error('Error al crear la categoría.');
   } else {
     toast.success('Categoría creada con éxito.');
@@ -141,7 +141,7 @@ export const editarCategoria = async (id: string, nombre: string): Promise<void>
     .eq('id', id);
 
   if (error) {
-    console.error('Error al editar la categoría:', error.message);
+    console.error(error.message);
     toast.error('Error al editar la categoría.');
   } else {
     toast.success('Categoría actualizada con éxito.');
@@ -164,7 +164,7 @@ export const crearTarea = async (formData: TareaFormData, agendaId: string): Pro
     .single();
 
   if (error) {
-    console.error('Error al crear la tarea:', error.message);
+    console.error(error.message);
     toast.error('Error al crear la tarea.');
     return null;
   }
@@ -188,7 +188,7 @@ export const editarTarea = async (id: string, formData: TareaFormData): Promise<
     .single();
 
   if (error) {
-    console.error('Error al editar la tarea:', error.message);
+    console.error(error.message);
     toast.error('Error al editar la tarea.');
     return null;
   }
@@ -203,7 +203,7 @@ export const eliminarTarea = async (id: string): Promise<void> => {
     .eq('id', id);
 
   if (error) {
-    console.error('Error al eliminar la tarea:', error.message);
+    console.error(error.message);
     throw new Error('Error al eliminar la tarea.');
   }
 };
@@ -216,7 +216,7 @@ export const fetchTareasDeAgenda = async (agendaId: string): Promise<Tarea[]> =>
     .order('created_at', { ascending: true });
 
   if (error) {
-    console.error('Error al cargar las tareas de la agenda:', error.message);
+    console.error(error.message);
     return [];
   }
   return data as Tarea[];
@@ -244,7 +244,7 @@ export const actualizarNotas = async (tareaId: string, notas: string[]): Promise
     .eq('id', tareaId);
 
   if (error) {
-    console.error('Error al actualizar notas:', error.message);
+    console.error(error.message);
     toast.error('Error al actualizar notas.');
   } else {
     toast.success('Notas actualizadas con éxito.');
@@ -258,9 +258,77 @@ export const actualizarSeguimiento = async (tareaId: string, seguimiento: string
     .eq('id', tareaId);
 
   if (error) {
-    console.error('Error al actualizar seguimiento:', error.message);
+    console.error(error.message);
     toast.error('Error al actualizar seguimiento.');
   } else {
     toast.success('Seguimiento actualizado con éxito.');
   }
+};
+
+export const obtenerRegistrosAgendaUsuario = async (userId: string, agendaId: string): Promise<any[]> => {
+  const { data, error } = await supabase
+    .from('registros_agenda')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('agenda_id', agendaId);
+
+  if (error) {
+    console.error(error.message);
+    return [];
+  }
+  return data || [];
+};
+
+export const marcarAsistenciaAgenda = async (
+  userId: string,
+  agendaId: string,
+  tipo: string,
+  ubicacion: { lat: number; lng: number },
+  notas: string
+): Promise<any | null> => {
+  const datosUbicacion = {
+    latitude: ubicacion.lat,
+    longitude: ubicacion.lng,
+    timestamp: new Date().toISOString(),
+  };
+
+  const { data, error } = await supabase
+    .from('registros_agenda')
+    .insert({
+      user_id: userId,
+      agenda_id: agendaId,
+      tipo_registro: tipo,
+      ubicacion: datosUbicacion,
+      notas: notas,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error(error.message);
+    return null;
+  }
+  return data;
+};
+
+export const obtenerPuestoUsuario = async (userId: string): Promise<string> => {
+  const { data, error } = await supabase
+    .from('info_usuario')
+    .select(`
+      dependencias (
+        nombre
+      )
+    `)
+    .eq('user_id', userId)
+    .single();
+
+  if (error) {
+    if (error.code !== 'PGRST116') {
+      console.error(error.message);
+    }
+    return '';
+  }
+
+  const dependencia = data?.dependencias as any;
+  return dependencia?.nombre || '';
 };

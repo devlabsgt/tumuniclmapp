@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-// Define una interfaz para los datos de la agenda.
 export interface AgendaConcejo {
   id: string;
   created_at: string;
@@ -8,11 +7,11 @@ export interface AgendaConcejo {
   titulo: string;
   descripcion: string;
   estado: string;
-  acta: string;
-  libro: string;
+  acta?: string;
+  libro?: string;
+  user_id?: string;
 }
 
-// Interfaz para los datos del formulario de creación y edición de agendas.
 export interface AgendaFormData {
   titulo: string;
   descripcion: string;
@@ -23,24 +22,25 @@ export interface AgendaFormData {
   estado: string;
 }
 
-// Interfaz para los datos de las categorías de las tareas.
 export interface CategoriaItem {
   id: string;
   nombre: string;
 }
 
-// Interfaz para los datos de las tareas del concejo.
 export interface Tarea {
   id: string;
+  agenda_concejo_id?: string;
   titulo_item: string;
-  categoria: CategoriaItem;
+  descripcion?: string;
   estado: string;
+  votacion: string | null;
   notas: string[] | null;
   seguimiento: string[] | null;
-  votacion: string | null;
+  fecha_vencimiento?: string;
+  categoria_id?: string;
+  categoria?: CategoriaItem;
 }
 
-// Esquema de validación para el formulario de la Sesión del Concejo.
 export const sesionSchema = z.object({
   titulo: z.string().min(3, 'El título debe tener al menos 3 caracteres.'),
   acta: z.string().min(1, 'El número de acta es requerido.'),
@@ -52,7 +52,6 @@ export const sesionSchema = z.object({
 
 export type SesionFormData = z.infer<typeof sesionSchema>;
 
-// Esquema de validación para el formulario de la Tarea del Concejo.
 export const tareaSchema = z.object({
   titulo_item: z.string().min(3, { message: 'El título de la tarea es obligatorio y debe tener al menos 3 caracteres.' }),
   categoria_id: z.string().uuid({ message: 'Debe seleccionar una categoría válida.' }),

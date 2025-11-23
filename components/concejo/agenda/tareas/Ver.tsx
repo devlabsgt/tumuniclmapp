@@ -3,10 +3,11 @@
 import { useParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import useUserData from '@/hooks/sesion/useUserData';
-import { fetchTareasDeAgenda, fetchAgendaConcejoPorId, actualizarEstadoAgenda } from '../lib/acciones';
-import { Tarea, AgendaConcejo } from '../lib/esquemas';
+import { fetchTareasDeAgenda, fetchAgendaConcejoPorId, actualizarEstadoAgenda, obtenerPuestoUsuario } from '@/components/concejo/agenda/lib/acciones';
+import { Tarea, AgendaConcejo } from '@/components/concejo/agenda/lib/esquemas';
 import TareaForm from './forms/tareas/Tarea';
 import NotaSeguimiento from './forms/NotaSeguimiento';
+import AsistenciaAgenda from '@/components/concejo/AsistenciaAgenda';
 import { CalendarPlus, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -44,7 +45,7 @@ const calcularResumenDeEstados = (tareas: Tarea[]) => {
 export default function VerTareas() {
   const params = useParams();
   const agendaId = params.id as string;
-  const { rol, cargando: cargandoUsuario } = useUserData();
+  const { rol, userId, nombre, cargando: cargandoUsuario } = useUserData();
 
   const [tareas, setTareas] = useState<Tarea[]>([]);
   const [cargandoTareas, setCargandoTareas] = useState(true);
@@ -56,6 +57,7 @@ export default function VerTareas() {
   const [isNotaSeguimientoModalOpen, setIsNotaSeguimientoModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'notas' | 'seguimiento' | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [nombrePuesto, setNombrePuesto] = useState<string>(''); 
   const printRef = useRef<HTMLDivElement>(null);
 
   const fetchDatos = async () => {
@@ -79,6 +81,15 @@ export default function VerTareas() {
     fetchDatos();
   }, [agendaId]);
 
+  useEffect(() => {
+    const getPuesto = async () => {
+      if (userId) {
+        const nombrePuesto = await obtenerPuestoUsuario(userId);
+        setNombrePuesto(nombrePuesto);
+      }
+    };
+    getPuesto();
+  }, [userId]);
 
   const generatePdf = async () => {
       setIsPrinting(true);
@@ -257,7 +268,7 @@ export default function VerTareas() {
   }
 
   return (
-    <div className="p-4 md:p-8 lg:p-12 text-xs lg:text-base">
+    <div className="px-2 md:p-8 lg:p-12 text-xs lg:text-base">
       <div ref={printRef}>
         <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 mx-auto w-full">
           {!isPrinting && (
@@ -267,51 +278,66 @@ export default function VerTareas() {
           )}
           
           {agenda && (
-            <div className="flex-grow flex items-start text-left">
-              <div className="w-3/5 flex flex-col gap-1">
+            <div className="flex-grow flex items-start text-left w-full">
+              <div className="w-3/5 flex flex-col gap-2 pr-2">
                 <h1 className="text-xs lg:text-lg font-bold text-black">
-                  <span className="text-gray-500">Agenda del Concejo Municipal:</span> {agenda.titulo}
+                  <span className="text-blue-400 block md:inline md:mr-1">
+                    Agenda del Concejo Municipal:
+                  </span> 
+                  {agenda.titulo}
                 </h1>
                 <p className="text-xs lg:text-lg font-bold text-black">
-                  <span className="text-gray-500">Información:</span> {agenda.descripcion}
+                  <span className="text-blue-400 block md:inline md:mr-1">
+                    Información:
+                  </span> 
+                  {agenda.descripcion}
                 </p>
               </div>
-              <div className="w-2/5 flex flex-col items-start gap-1">
+              
+              <div className="w-2/5 flex flex-col items-start gap-2 pl-1">
                 <p className="text-xs lg:text-lg font-bold text-black">
-                  <span className="text-gray-500">Fecha:</span> <span>{format(new Date(agenda.fecha_reunion), 'PPPP', { locale: es })}</span>
+                  <span className="text-blue-400 block md:inline md:mr-1">
+                    Fecha:
+                  </span> 
+                  <span className="md:hidden capitalize">
+                    {format(new Date(agenda.fecha_reunion), "EEE d 'de' MMM, yyyy", { locale: es })}
+                  </span>
+                  <span className="hidden md:inline">
+                    {format(new Date(agenda.fecha_reunion), 'PPPP', { locale: es })}
+                  </span>
                 </p>
                 <p className="text-xs lg:text-lg font-bold text-black">
-                  <span className="text-gray-500">Hora:</span> {format(new Date(agenda.fecha_reunion), 'h:mm a', { locale: es })}
+                  <span className="text-blue-400 block md:inline md:mr-1">
+                    Hora:
+                  </span> 
+                  {format(new Date(agenda.fecha_reunion), 'h:mm a', { locale: es })}
                 </p>
               </div>
             </div>
           )}
           
-          <div className={`flex items-center gap-2 flex-wrap justify-end`}>
+          <div className={`flex items-center gap-2 flex-wrap justify-end w-full md:w-auto mt-2 md:mt-0`}>
             {(rol === 'SUPER' || rol === 'SECRETARIO' || rol === 'SEC-TECNICO') && agenda && (
               <>
 
                {(rol === 'SUPER' || rol === 'SECRETARIO') && agenda && (
 
-                <Button onClick={handleActualizarEstadoAgenda} disabled={isAgendaFinalizada} className={`px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 ${getEstadoAgendaStyle(agenda.estado)}`}>
-                  {/* Aplicamos text-xs y lg:text-base al span interno */}
+                <Button onClick={handleActualizarEstadoAgenda} disabled={isAgendaFinalizada} className={`px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 w-full md:w-auto ${getEstadoAgendaStyle(agenda.estado)}`}>
                   <span className="text-xs lg:text-base">{getEstadoAgendaText(agenda.estado)}</span>
                 </Button>
                 )}
                 {!isPrinting && (
                   <>
                     {isAgendaFinalizada && (
-                      <Button onClick={handleGeneratePdf} disabled={isPrinting} className="px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 bg-red-600 text-white hover:bg-red-700">
+                      <Button onClick={handleGeneratePdf} disabled={isPrinting} className="px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 bg-red-600 text-white hover:bg-red-700 w-full md:w-auto">
                         <FileText size={20} />
-                        {/* Aplicamos text-xs y lg:text-base al span interno */}
                         <span className="text-xs lg:text-base">{isPrinting ? 'Generando...' : 'Generar PDF'}</span>
                       </Button>
                     )}
 
                     {!isAgendaFinalizada && (
-                      <Button onClick={() => { setTareaSeleccionada(null); setIsFormModalOpen(true); }} className="px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 bg-purple-500 text-white hover:bg-purple-600">
+                      <Button onClick={() => { setTareaSeleccionada(null); setIsFormModalOpen(true); }} className="px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 bg-purple-500 text-white hover:bg-purple-600 w-full md:w-auto">
                         <CalendarPlus size={20} />
-                        {/* Aplicamos text-xs y lg:text-base al span interno */}
                         <span className="text-xs lg:text-base">Nuevo Punto <br /> a tratar</span>
                       </Button>
                     )}
@@ -322,23 +348,36 @@ export default function VerTareas() {
           </div>
         </header>
 
-        <div className="mb-4 grid grid-cols-3 gap-2 md:flex md:flex-wrap md:justify-start">
-          {estadoOrden.map(estado => (
-            <motion.button key={estado} onClick={() => toggleFiltro(estado)} className={`px-3 py-2 rounded-md shadow-sm text-center ${getStatusClasses(estado)} text-xs lg:text-xs ${filtrosActivos.includes(estado) ? 'border-t-4 border-blue-500' : ''}`} whileHover={{ y: -5 }} whileTap={{ scale: 0.95 }}>
-              <span className="font-semibold">{estado}:</span>
-              <span className="text-xs lg:text-sm font-bold ml-1">{resumenDeEstados[estado] || 0}</span>
-            </motion.button>
-          ))}
-          <AnimatePresence>
-            {filtrosActivos.length > 0 && (
-              <motion.button initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} onClick={() => setFiltrosActivos([])} className="px-3 py-2 rounded-md shadow-sm text-center bg-gray-400 text-white text-xs lg:text-xs">
-                Quitar filtros
-              </motion.button>
-            )}
-          </AnimatePresence>
+        <div className="flex flex-row items-center justify-between mb-4 gap-4 w-full">
+            <div className="w-full md:w-auto flex-shrink-0">
+              {agenda && userId && (
+                  <AsistenciaAgenda 
+                      agenda={agenda} 
+                      userId={userId} 
+                      nombreUsuario={nombre || 'Usuario'} 
+                      puesto={nombrePuesto}
+                  />
+              )}
+            </div>
+
+            <div className="hidden md:flex flex-wrap gap-2 items-center justify-end flex-grow">
+                {estadoOrden.map(estado => (
+                    <motion.button key={estado} onClick={() => toggleFiltro(estado)} className={`px-3 py-2 rounded-md shadow-sm text-center ${getStatusClasses(estado)} text-xs lg:text-xs ${filtrosActivos.includes(estado) ? 'border-t-4 border-blue-500' : ''}`} whileHover={{ y: -5 }} whileTap={{ scale: 0.95 }}>
+                    <span className="font-semibold">{estado}:</span>
+                    <span className="text-xs lg:text-sm font-bold ml-1">{resumenDeEstados[estado] || 0}</span>
+                    </motion.button>
+                ))}
+                <AnimatePresence>
+                    {filtrosActivos.length > 0 && (
+                    <motion.button initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} onClick={() => setFiltrosActivos([])} className="px-3 py-2 rounded-md shadow-sm text-center bg-gray-400 text-white text-xs lg:text-xs">
+                        Quitar filtros
+                    </motion.button>
+                    )}
+                </AnimatePresence>
+            </div>
         </div>
 
-        <Tabla tareas={tareasFiltradas} handleOpenEditModal={handleOpenEditModal} handleOpenNotasModal={handleOpenNotasModal} handleOpenSeguimientoModal={handleOpenSeguimientoModal} estadoAgenda={agenda?.estado || ''} />
+        <Tabla rol={rol} tareas={tareasFiltradas} handleOpenEditModal={handleOpenEditModal} handleOpenNotasModal={handleOpenNotasModal} handleOpenSeguimientoModal={handleOpenSeguimientoModal} estadoAgenda={agenda?.estado || ''} />
       </div>
 
       <AnimatePresence>

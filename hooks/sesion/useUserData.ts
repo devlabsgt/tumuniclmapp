@@ -26,7 +26,7 @@ export default function useUserData(): UserData {
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [rol, setRol] = useState('');
-  const [esjefe, setEsJefe] = useState(false); // <-- 2. Añadido aquí
+  const [esjefe, setEsJefe] = useState(false); 
   const [permisos, setPermisos] = useState<string[]>([]);
   const [modulos, setModulos] = useState<string[]>([]);
   const [programas, setProgramas] = useState<string[]>([]);

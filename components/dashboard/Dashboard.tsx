@@ -131,7 +131,7 @@ const ModuleAccordion = ({
   if (!children || (Array.isArray(children) && children.length === 0)) return null;
 
   return (
-    <div className="border rounded-xl bg-gray-50 dark:bg-gray-900 overflow-hidden mb-4 shadow-sm">
+    <div className="border rounded-xl bg-gray-50 dark:bg-gray-900 overflow-hidden mb-4 shadow-sm w-full">
       <button
         onClick={() => setIsOpen(!isOpen)}
         onMouseEnter={() => setHover(true)}
@@ -226,6 +226,10 @@ export default function Dashboard() {
       .filter(m => {
         if (rol === 'SUPER') return true;
 
+        if (m.subgrupo === 'Concejo Municipal' && rol === 'CONCEJAL') {
+          return true;
+        }
+
         if (m.id === 'ASISTENCIA') {
             return esjefe;
         }
@@ -255,6 +259,9 @@ export default function Dashboard() {
     modulosDisponibles.filter(m => m.categoria === 'Gestión Administrativa'),
     [modulosDisponibles]
   );
+
+  const tienePoliticas = modulosPoliticas.length > 0;
+  const tieneGestion = modulosGestion.length > 0;
 
   const cardVariants = {
     loading: {
@@ -390,17 +397,20 @@ export default function Dashboard() {
             <motion.div key="modulos" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
             
             <div className="w-full lg:max-w-[100%] xl:max-w-[90%] mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 items-start">
+              <div className={`${(tienePoliticas && tieneGestion) ? 'grid grid-cols-1 md:grid-cols-2 gap-x-8 items-start' : 'max-w-3xl mx-auto flex flex-col justify-center'}`}>
                 
-                <div className="space-y-4 mb-4">
-                  {modulosPoliticas.length > 0 && <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4">Políticas Públicas</h2>}
-                  <div className="space-y-4">
-                    {modulosPoliticas.map((modulo) => renderModuleCard(modulo))}
+                {tienePoliticas && (
+                  <div className={`space-y-4 mb-4 ${(!tieneGestion) ? 'w-full' : ''}`}>
+                    <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4 text-center md:text-left">Políticas Públicas</h2>
+                    <div className="space-y-4">
+                      {modulosPoliticas.map((modulo) => renderModuleCard(modulo))}
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="space-y-4">
-                   <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4">Gestión Administrativa</h2>
+                {tieneGestion && (
+                  <div className={`space-y-4 ${(!tienePoliticas) ? 'w-full' : ''}`}>
+                   <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4 text-center md:text-left">Gestión Administrativa</h2>
                    
                    {esjefe && (
                       <ModuleAccordion 
@@ -432,7 +442,8 @@ export default function Dashboard() {
                       {modulosGestion.filter(m => !m.subgrupo).map(modulo => renderModuleCard(modulo))}
                    </div>
 
-                </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -443,9 +454,7 @@ export default function Dashboard() {
           </motion.div>
         ) : (
           <motion.div key="comisiones" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
-
             <MisComisiones />
-          
           </motion.div>
         )}
       </AnimatePresence>

@@ -30,18 +30,18 @@ const calcularDiasRestantes = (fechaReunion: string): string => {
 const getButtonClasses = (estado: string) => {
   if (estado === 'En preparación') {
     return {
-      default: 'bg-blue-500 hover:bg-blue-600 text-white',
+      default: 'mr-2 mb-2 bg-blue-500 hover:bg-blue-600 text-white',
       ghost: 'text-blue-600 hover:bg-blue-200',
     };
   }
   if (estado === 'En progreso') {
     return {
-      default: 'bg-green-500 hover:bg-green-600 text-white',
+      default: 'mr-2 mb-2 bg-green-500 hover:bg-green-600 text-white',
       ghost: 'text-green-600 hover:bg-green-200',
     };
   }
   return {
-    default: 'bg-gray-400 hover:bg-gray-500 text-white',
+    default: 'mr-2 mb-2 bg-gray-400 hover:bg-gray-500 text-white',
     ghost: 'text-gray-500 hover:bg-gray-200',
   };
 };
@@ -179,7 +179,7 @@ const handleDeleteAgenda = async (id: string) => {
   }
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto">
       <header className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
         <div className="flex w-full sm:w-auto items-center justify-between sm:justify-start gap-4">
           <BotonVolver ruta="/protected/" />
@@ -247,9 +247,9 @@ const handleDeleteAgenda = async (id: string) => {
                   animate={isLoadingThisAgenda ? 'loading' : 'idle'}
                   whileHover={!isLoadingThisAgenda ? hoverEffect : {}}
                   transition={isLoadingThisAgenda ? { duration: 1.5, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
-                  className={`group bg-white p-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-lg dark:border-gray-700 border-l-4 ${borderColorClass} flex flex-col md:flex-row md:items-start md:justify-between gap-4 cursor-default transition-all duration-300 ${loadingAgendaId && !isLoadingThisAgenda ? 'opacity-50 pointer-events-none' : ''}`}
+                  className={`group bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-lg dark:border-gray-700 border-l-4 ${borderColorClass} flex flex-col md:flex-row md:items-start md:justify-between gap-4 cursor-default transition-all duration-300 ${loadingAgendaId && !isLoadingThisAgenda ? 'opacity-50 pointer-events-none' : ''}`}
                 >
-                  <div className="flex-1">
+                  <div className="flex-1 p-4">
                     <div className="flex items-baseline gap-x-3 flex-wrap">
                       <p className="font-semibold text-gray-800 text-sm md:text-2xl">{agenda.titulo}</p>
                       <span className="text-gray-500 font-normal whitespace-nowrap text-sm md:text-2xl">
