@@ -8,7 +8,7 @@ import { Tarea, AgendaConcejo } from '@/components/concejo/agenda/lib/esquemas';
 import TareaForm from './forms/tareas/Tarea';
 import NotaSeguimiento from './forms/NotaSeguimiento';
 import AsistenciaAgenda from '@/components/concejo/AsistenciaAgenda';
-import { CalendarPlus, FileText } from 'lucide-react';
+import { CalendarPlus, FileText, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
@@ -270,7 +270,7 @@ export default function VerTareas() {
   return (
     <div className="px-2 md:p-8 lg:p-12 text-xs lg:text-base">
       <div ref={printRef}>
-        <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 mx-auto w-full">
+        <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-2 mx-auto w-full">
           {!isPrinting && (
             <div>
               <BotonVolver ruta="/protected/concejo/agenda" />
@@ -319,13 +319,6 @@ export default function VerTareas() {
           <div className={`flex items-center gap-2 flex-wrap justify-end w-full md:w-auto mt-2 md:mt-0`}>
             {(rol === 'SUPER' || rol === 'SECRETARIO' || rol === 'SEC-TECNICO') && agenda && (
               <>
-
-               {(rol === 'SUPER' || rol === 'SECRETARIO') && agenda && (
-
-                <Button onClick={handleActualizarEstadoAgenda} disabled={isAgendaFinalizada} className={`px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 w-full md:w-auto ${getEstadoAgendaStyle(agenda.estado)}`}>
-                  <span className="text-xs lg:text-base">{getEstadoAgendaText(agenda.estado)}</span>
-                </Button>
-                )}
                 {!isPrinting && (
                   <>
                     {isAgendaFinalizada && (
@@ -336,9 +329,8 @@ export default function VerTareas() {
                     )}
 
                     {!isAgendaFinalizada && (
-                      <Button onClick={() => { setTareaSeleccionada(null); setIsFormModalOpen(true); }} className="px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 bg-purple-500 text-white hover:bg-purple-600 w-full md:w-auto">
-                        <CalendarPlus size={20} />
-                        <span className="text-xs lg:text-base">Nuevo Punto <br /> a tratar</span>
+                      <Button onClick={() => { setTareaSeleccionada(null); setIsFormModalOpen(true); }} className="px-5 py-6 md:py-8 rounded-lg shadow-sm transition-colors flex items-center space-x-2 bg-purple-500 text-white hover:bg-purple-600 w-full md:w-auto">
+                          <span className="text-lg">Nuevo Punto a tratar </span>                      
                       </Button>
                     )}
                   </>
@@ -348,28 +340,65 @@ export default function VerTareas() {
           </div>
         </header>
 
-        <div className="flex flex-row items-center justify-between mb-4 gap-4 w-full">
-            <div className="w-full md:w-auto flex-shrink-0">
-              {agenda && userId && (
-                  <AsistenciaAgenda 
-                      agenda={agenda} 
-                      userId={userId} 
-                      nombreUsuario={nombre || 'Usuario'} 
-                      puesto={nombrePuesto}
-                  />
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between my-10 gap-4 w-full">
+            <div className="w-full lg:w-auto flex-shrink-0 flex flex-col sm:flex-row items-center gap-4">
+              {agenda && (
+                <>
+                   {(rol === 'SUPER' || rol === 'SECRETARIO') && agenda && (
+                    <Button 
+                        onClick={handleActualizarEstadoAgenda} 
+                        disabled={isAgendaFinalizada} 
+                        className={`h-14 px-5 rounded-lg shadow-sm transition-colors flex items-center justify-center space-x-2 w-full sm:w-auto ${getEstadoAgendaStyle(agenda.estado)}`}
+                    >
+                        <span className="text-lg md:text-base font-bold">{getEstadoAgendaText(agenda.estado)}</span>
+                    </Button>
+                   )}
+                  {agenda.estado === 'En progreso' && userId && (
+                    <AsistenciaAgenda 
+                        agenda={agenda} 
+                        userId={userId} 
+                        nombreUsuario={nombre || 'Usuario'} 
+                        puesto={nombrePuesto}
+                    />
+                  )}
+                  {agenda.estado === 'En preparación' && (
+                    <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 px-3 rounded shadow-sm flex items-center justify-center md:justify-start w-full md:w-auto h-14">
+                        <Info className="w-5 h-5 mr-2 flex-shrink-0" />
+                        <p className="font-bold text-base">La asistencia se podrá marcar cuando inicie la sesión</p>
+                    </div>
+                  )}
+
+
+                </>
               )}
             </div>
 
-            <div className="hidden md:flex flex-wrap gap-2 items-center justify-end flex-grow">
+            <div className="grid grid-cols-3 gap-2 w-full md:flex md:flex-wrap md:items-center md:justify-end md:flex-grow md:w-auto">
                 {estadoOrden.map(estado => (
-                    <motion.button key={estado} onClick={() => toggleFiltro(estado)} className={`px-3 py-2 rounded-md shadow-sm text-center ${getStatusClasses(estado)} text-xs lg:text-xs ${filtrosActivos.includes(estado) ? 'border-t-4 border-blue-500' : ''}`} whileHover={{ y: -5 }} whileTap={{ scale: 0.95 }}>
-                    <span className="font-semibold">{estado}:</span>
-                    <span className="text-xs lg:text-sm font-bold ml-1">{resumenDeEstados[estado] || 0}</span>
+                    <motion.button 
+                        key={estado} 
+                        onClick={() => toggleFiltro(estado)} 
+                        className={`
+                            px-1 md:px-3 py-2 rounded-md shadow-sm text-center flex items-center justify-center 
+                            ${getStatusClasses(estado)} 
+                            ${filtrosActivos.includes(estado) ? 'border-t-4 border-blue-500' : ''}
+                        `} 
+                        whileHover={{ y: -5 }} 
+                        whileTap={{ scale: 0.95 }}
+                    >
+                        <span className="font-semibold text-[10px] sm:text-xs">{estado}:</span>
+                        <span className="text-[10px] sm:text-sm font-bold ml-1">{resumenDeEstados[estado] || 0}</span>
                     </motion.button>
                 ))}
                 <AnimatePresence>
                     {filtrosActivos.length > 0 && (
-                    <motion.button initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} onClick={() => setFiltrosActivos([])} className="px-3 py-2 rounded-md shadow-sm text-center bg-gray-400 text-white text-xs lg:text-xs">
+                    <motion.button 
+                        initial={{ opacity: 0, x: 20 }} 
+                        animate={{ opacity: 1, x: 0 }} 
+                        exit={{ opacity: 0, x: 20 }} 
+                        onClick={() => setFiltrosActivos([])} 
+                        className="col-span-3 md:col-span-auto px-3 py-2 rounded-md shadow-sm text-center bg-gray-400 text-white text-xs lg:text-xs w-full md:w-auto"
+                    >
                         Quitar filtros
                     </motion.button>
                     )}
