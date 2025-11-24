@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { fetchAsistenciaGlobalAgenda } from '@/components/concejo/agenda/lib/acciones';
 import { format, differenceInMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Clock, User, RefreshCw, MapPin } from 'lucide-react';
+import { User, RefreshCw, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
 import { AnimatePresence } from 'framer-motion';
@@ -145,11 +145,8 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
       <div className="space-y-4">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-            <User className="h-5 w-5 text-blue-600" />
             Listado de Asistencia
-            <span className="text-xs font-normal bg-gray-100 px-2 py-1 rounded-full text-gray-600">
-              {asistenciaProcesada.length} marcajes
-            </span>
+
           </h3>
           <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={cargarDatos}>
@@ -158,46 +155,38 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:hidden">
+        <div className="grid grid-cols-1 gap-3 md:hidden">
           {asistenciaProcesada.map((usuario) => (
             <div 
               key={usuario.userId} 
               onClick={() => handleRowClick(usuario)}
-              className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
+              className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
             >
-              <div className="bg-slate-50 p-3 border-b border-gray-100 flex items-center justify-center flex-col text-center">
-                  <span className="font-bold text-gray-800 text-sm">{usuario.nombre}</span>
-                  <span className="text-xs text-gray-500 uppercase font-medium tracking-wide">{usuario.puesto}</span>
+              <div className="px-4 pt-3 pb-2">
+                  <p className="font-bold text-gray-800 text-sm">{usuario.nombre}</p>
+                  <p className="text-xs text-gray-500 uppercase font-medium tracking-wide">{usuario.puesto}</p>
               </div>
 
-<div className="p-3">
-                  <div className="grid grid-cols-3 gap-2">
-                      <div className={`flex flex-col items-center justify-center p-2 rounded-md border ${usuario.entrada ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
-                          <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Entrada</p>
-                          <p className={`font-mono text-xs font-bold whitespace-nowrap ${usuario.entrada ? 'text-green-700' : 'text-gray-400'}`}>
-                              {usuario.entrada ? format(new Date(usuario.entrada), 'h:mm a', { locale: es }) : '-'}
-                          </p>
-                      </div>
+              <div className="px-4 pb-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs bg-slate-50 px-3 py-2 rounded border border-slate-200">
+                      
+                      <span className="whitespace-nowrap text-green-600">
+                          <b>Entrada:</b> {usuario.entrada ? format(new Date(usuario.entrada), 'h:mm a', { locale: es }) : '-'}
+                      </span>
 
-                      <div className={`flex flex-col items-center justify-center p-2 rounded-md border ${usuario.salida ? 'bg-orange-50 border-orange-200' : 'bg-gray-50 border-gray-200'}`}>
-                          <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Salida</p>
-                          <p className={`font-mono text-xs font-bold whitespace-nowrap ${usuario.salida ? 'text-orange-700' : 'text-gray-400'}`}>
-                              {usuario.salida ? format(new Date(usuario.salida), 'h:mm a', { locale: es }) : '-'}
-                          </p>
-                      </div>
+                      <span className="whitespace-nowrap text-red-500">
+                          <b>Salida:</b> {usuario.salida ? format(new Date(usuario.salida), 'h:mm a', { locale: es }) : '-'}
+                      </span>
 
-                      <div className="flex flex-col items-center justify-center p-2 rounded-md border bg-blue-50 border-blue-200">
-                          <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Duración</p>
-                          <p className="font-mono text-xs font-bold text-slate-700 whitespace-nowrap">
-                              {usuario.duracion}
-                          </p>
-                      </div>
+                      <span className="whitespace-nowrap bg-blue-100 text-blue-700 px-2 py-1 rounded font-bold">
+                          Duración: {usuario.duracion}
+                      </span>
                   </div>
               </div>
               
-              <div className="bg-gray-50 py-2 text-center border-t border-gray-100">
+              <div className="bg-gray-50 py-1.5 text-center border-t border-gray-100">
                   <p className="text-[10px] text-gray-400 flex items-center justify-center gap-1">
-                      <MapPin className="h-3 w-3" /> Toca para ver detalle
+                      <MapPin className="h-3 w-3" /> Ver detalles
                   </p>
               </div>
             </div>
@@ -209,11 +198,10 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
             <table className="w-full text-sm text-left">
               <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3">Nombre</th>
+                  <th className="px-4 py-3">Funcionario</th>
                   <th className="px-4 py-3 text-center">Entrada</th>
                   <th className="px-4 py-3 text-center">Salida</th>
                   <th className="px-4 py-3 text-center">Duración</th>
-                  <th className="px-4 py-3 text-center">Estado</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -234,7 +222,6 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
                     <td className="px-4 py-3 text-center whitespace-nowrap">
                       {usuario.entrada ? (
                         <div className="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2 py-1 rounded text-xs font-medium border border-green-100">
-                          <Clock className="h-3 w-3" />
                           {format(new Date(usuario.entrada), 'h:mm a', { locale: es })}
                         </div>
                       ) : (
@@ -245,7 +232,6 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
                     <td className="px-4 py-3 text-center whitespace-nowrap">
                       {usuario.salida ? (
                         <div className="inline-flex items-center gap-1 text-orange-700 bg-orange-50 px-2 py-1 rounded text-xs font-medium border border-orange-100">
-                          <Clock className="h-3 w-3" />
                           {format(new Date(usuario.salida), 'h:mm a', { locale: es })}
                         </div>
                       ) : (
@@ -253,17 +239,9 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
                       )}
                     </td>
 
-                    <td className="px-4 py-3 text-center font-mono text-xs text-gray-600">
-                      {usuario.duracion}
-                    </td>
-
                     <td className="px-4 py-3 text-center">
-                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                        usuario.estado === 'Finalizado' 
-                          ? 'bg-blue-100 text-blue-800' 
-                          : 'bg-green-100 text-green-800 animate-pulse'
-                      }`}>
-                        {usuario.estado}
+                      <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-md font-semibold text-xs">
+                        {usuario.duracion}
                       </span>
                     </td>
                   </tr>
@@ -284,7 +262,7 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
               salida: usuarioSeleccionado.registroSalidaCompleto || null
             }}
             nombreUsuario={usuarioSeleccionado.nombre}
-            titulo="Detalle de Asistencia"
+            titulo="Sesión de Concejo"
           />
         )}
       </AnimatePresence>

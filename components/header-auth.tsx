@@ -72,7 +72,7 @@ export default function AuthButton() {
 
       <div className="flex flex-row items-center gap-4 mt-auto">
         
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex flex-col items-end gap-4"> 
           <button
             type="button"
             onClick={handleSignOut}

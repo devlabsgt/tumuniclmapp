@@ -6,6 +6,7 @@ import { format, parseISO, differenceInMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Swal from 'sweetalert2';
 import { AnimatePresence } from 'framer-motion';
+import { MapPin } from 'lucide-react';
 
 import { useAsistenciaAgendaUsuario } from '@/hooks/agenda/useAsistenciaAgenda';
 import { marcarAsistenciaAgenda } from '@/components/concejo/agenda/lib/acciones';
@@ -63,10 +64,8 @@ export default function AsistenciaUsuario({ agenda, userId, nombreUsuario, puest
     return null;
   }, [registroEntrada, registroSalida]);
 
-  // Función vital para corregir coordenadas (latitude -> lat)
   const normalizarRegistro = (registro: any) => {
     if (!registro) return null;
-    // Si la ubicación viene como JSON con latitude/longitude, la convertimos a lat/lng
     let ubicacionCorregida = registro.ubicacion;
     if (ubicacionCorregida && ubicacionCorregida.latitude !== undefined) {
         ubicacionCorregida = {
@@ -143,20 +142,32 @@ export default function AsistenciaUsuario({ agenda, userId, nombreUsuario, puest
         className="w-full flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-gray-300 rounded-lg px-4 py-3 bg-white shadow-sm mb-4 md:mb-0 cursor-pointer hover:bg-gray-50 transition-colors"
       >
           
-          <div className="font-bold text-sm text-gray-800 flex items-center gap-2">
-              <span className=" uppercase text-gray-900">{puesto}:</span>
-              <span className="  text-blue-600">{nombreUsuario}</span>
+          <div className="flex flex-col text-center md:text-left">
+              <span className="font-bold text-gray-800 text-sm">{nombreUsuario}</span>
+              <span className="text-xs text-gray-500 uppercase font-medium tracking-wide">{puesto}</span>
           </div>
 
-          <div className="w-full md:w-auto">
+          <div className="w-full md:w-auto flex justify-center md:justify-end">
               {asistenciaCompleta ? (
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-gray-700 bg-green-50 px-3 py-2 rounded border border-green-100">
-                      <span className="whitespace-nowrap"><b>Entrada:</b> {formatTime(registroEntrada?.created_at)}</span>
-                      <span className="whitespace-nowrap border-l border-green-200 pl-4"><b>Salida:</b> {formatTime(registroSalida?.created_at)}</span>
-                      <span className="whitespace-nowrap border-l border-green-200 pl-4 text-blue-700 font-bold">Duración: {duracion}</span>
+                  <div className="flex flex-row items-center justify-center gap-3 text-xs bg-slate-50 px-4 py-3 rounded-md border border-slate-200 w-full md:w-auto">
+                      <span className="whitespace-nowrap text-green-600">
+                          <span className='font-bold'>Entrada:</span> {formatTime(registroEntrada?.created_at)}
+                      </span>
+                      <span className="whitespace-nowrap  border-slate-300 pl-3 text-red-500">
+                          <span className='font-bold'>Salida:</span> {formatTime(registroSalida?.created_at)}
+                      </span>
+                      <span className="whitespace-nowrap  border-slate-300 pl-3 text-blue-500">
+                          <span className='font-bold'>Duración:</span> {duracion}
+                      </span>
                   </div>
               ) : (
-                  <>
+                  <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+                      {entradaMarcada && (
+                          <span className="text-xs font-mono text-green-800 whitespace-nowrap bg-green-50 px-3 py-2 rounded border border-green-200 w-full md:w-auto text-center shadow-sm">
+                              Entrada: <b>{formatTime(registroEntrada?.created_at)}</b>
+                          </span>
+                      )}
+                      
                       {!entradaMarcada ? (
                           <Button 
                               onClick={(e) => {
@@ -165,33 +176,30 @@ export default function AsistenciaUsuario({ agenda, userId, nombreUsuario, puest
                               }} 
                               disabled={cargandoMarcaje || cargandoGeo} 
                               size="sm"
-                              className={`w-full md:w-auto uppercase font-bold text-sm h-10 px-6 ${
+                              className={`w-full md:w-auto uppercase font-bold text-sm h-10 px-6 flex items-center justify-center gap-2 ${
                                   esTarde 
                                   ? 'bg-gray-400 hover:bg-gray-500 text-white cursor-not-allowed' 
                                   : 'bg-green-600 hover:bg-green-700 text-white'
                               }`}
                           >
+                              {cargandoGeo && <MapPin className="animate-bounce h-4 w-4" />}
                               {cargandoGeo ? 'GPS...' : (esTarde ? 'TIEMPO AGOTADO' : 'MARCAR ENTRADA')}
                           </Button>
                       ) : (
-                          <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-                              <span className="text-xs font-mono text-green-800 whitespace-nowrap bg-green-50 px-3 py-2 rounded border border-green-200 w-full md:w-auto text-center shadow-sm">
-                                  Entrada: <b>{formatTime(registroEntrada?.created_at)}</b>
-                              </span>
-                              <Button 
-                                  onClick={(e) => {
-                                    e.stopPropagation(); 
-                                    handleIniciarMarcado('Salida');
-                                  }} 
-                                  disabled={cargandoMarcaje || salidaMarcada || cargandoGeo} 
-                                  size="sm"
-                                  className="w-full md:w-auto uppercase font-bold text-sm bg-orange-600 hover:bg-orange-700 text-white h-10 px-6"
-                              >
-                                  {cargandoGeo ? 'GPS...' : 'MARCAR SALIDA'}
-                              </Button>
-                          </div>
+                          <Button 
+                              onClick={(e) => {
+                                e.stopPropagation(); 
+                                handleIniciarMarcado('Salida');
+                              }} 
+                              disabled={cargandoMarcaje || salidaMarcada || cargandoGeo} 
+                              size="sm"
+                              className="w-full md:w-auto uppercase font-bold text-sm bg-orange-600 hover:bg-orange-700 text-white h-10 px-6 flex items-center justify-center gap-2"
+                          >
+                              {cargandoGeo && <MapPin className="animate-bounce h-4 w-4" />}
+                              {cargandoGeo ? 'GPS...' : 'MARCAR SALIDA'}
+                          </Button>
                       )}
-                  </>
+                  </div>
               )}
           </div>
       </div>
