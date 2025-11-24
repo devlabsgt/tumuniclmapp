@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { fetchAsistenciaGlobalAgenda } from '@/components/concejo/agenda/lib/acciones';
 import { format, differenceInMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Clock, User, RefreshCw } from 'lucide-react';
+import { Clock, User, RefreshCw, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
 import { AnimatePresence } from 'framer-motion';
@@ -158,12 +158,58 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+        <div className="grid grid-cols-1 gap-4 md:hidden">
+          {asistenciaProcesada.map((usuario) => (
+            <div 
+              key={usuario.userId} 
+              onClick={() => handleRowClick(usuario)}
+              className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
+            >
+              <div className="bg-slate-50 p-3 border-b border-gray-100 flex items-center justify-center flex-col text-center">
+                  <span className="font-bold text-gray-800 text-sm">{usuario.nombre}</span>
+                  <span className="text-xs text-gray-500 uppercase font-medium tracking-wide">{usuario.puesto}</span>
+              </div>
+
+<div className="p-3">
+                  <div className="grid grid-cols-3 gap-2">
+                      <div className={`flex flex-col items-center justify-center p-2 rounded-md border ${usuario.entrada ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                          <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Entrada</p>
+                          <p className={`font-mono text-xs font-bold whitespace-nowrap ${usuario.entrada ? 'text-green-700' : 'text-gray-400'}`}>
+                              {usuario.entrada ? format(new Date(usuario.entrada), 'h:mm a', { locale: es }) : '-'}
+                          </p>
+                      </div>
+
+                      <div className={`flex flex-col items-center justify-center p-2 rounded-md border ${usuario.salida ? 'bg-orange-50 border-orange-200' : 'bg-gray-50 border-gray-200'}`}>
+                          <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Salida</p>
+                          <p className={`font-mono text-xs font-bold whitespace-nowrap ${usuario.salida ? 'text-orange-700' : 'text-gray-400'}`}>
+                              {usuario.salida ? format(new Date(usuario.salida), 'h:mm a', { locale: es }) : '-'}
+                          </p>
+                      </div>
+
+                      <div className="flex flex-col items-center justify-center p-2 rounded-md border bg-blue-50 border-blue-200">
+                          <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">Duración</p>
+                          <p className="font-mono text-xs font-bold text-slate-700 whitespace-nowrap">
+                              {usuario.duracion}
+                          </p>
+                      </div>
+                  </div>
+              </div>
+              
+              <div className="bg-gray-50 py-2 text-center border-t border-gray-100">
+                  <p className="text-[10px] text-gray-400 flex items-center justify-center gap-1">
+                      <MapPin className="h-3 w-3" /> Toca para ver detalle
+                  </p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="hidden md:block overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3">Funcionario</th>
+                  <th className="px-4 py-3">Nombre</th>
                   <th className="px-4 py-3 text-center">Entrada</th>
                   <th className="px-4 py-3 text-center">Salida</th>
                   <th className="px-4 py-3 text-center">Duración</th>
@@ -238,7 +284,7 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
               salida: usuarioSeleccionado.registroSalidaCompleto || null
             }}
             nombreUsuario={usuarioSeleccionado.nombre}
-            titulo="Sesión Concejo Municipal"
+            titulo="Detalle de Asistencia"
           />
         )}
       </AnimatePresence>
