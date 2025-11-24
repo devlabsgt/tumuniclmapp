@@ -268,8 +268,19 @@ export default function VerTareas() {
   }
 
   return (
-    <div className="px-2 md:p-8 lg:p-12 text-xs lg:text-base">
+    <div className="px-2 mt-2 md:px-8 text-xs lg:text-base">
       <div ref={printRef}>
+        {agenda && agenda.estado === 'En progreso' && userId && (
+            <div className="mb-6">
+                <AsistenciaAgenda 
+                    agenda={agenda} 
+                    userId={userId} 
+                    nombreUsuario={nombre || 'Usuario'} 
+                    puesto={nombrePuesto}
+                />
+            </div>
+        )}
+
         <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-2 mx-auto w-full">
           {!isPrinting && (
             <div>
@@ -319,21 +330,11 @@ export default function VerTareas() {
           <div className={`flex items-center gap-2 flex-wrap justify-end w-full md:w-auto mt-2 md:mt-0`}>
             {(rol === 'SUPER' || rol === 'SECRETARIO' || rol === 'SEC-TECNICO') && agenda && (
               <>
-                {!isPrinting && (
-                  <>
-                    {isAgendaFinalizada && (
-                      <Button onClick={handleGeneratePdf} disabled={isPrinting} className="px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 bg-red-600 text-white hover:bg-red-700 w-full md:w-auto">
-                        <FileText size={20} />
-                        <span className="text-xs lg:text-base">{isPrinting ? 'Generando...' : 'Generar PDF'}</span>
-                      </Button>
-                    )}
-
-                    {!isAgendaFinalizada && (
-                      <Button onClick={() => { setTareaSeleccionada(null); setIsFormModalOpen(true); }} className="px-5 py-6 md:py-8 rounded-lg shadow-sm transition-colors flex items-center space-x-2 bg-purple-500 text-white hover:bg-purple-600 w-full md:w-auto">
-                          <span className="text-lg">Nuevo Punto a tratar </span>                      
-                      </Button>
-                    )}
-                  </>
+                {!isPrinting && isAgendaFinalizada && (
+                  <Button onClick={handleGeneratePdf} disabled={isPrinting} className="px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 bg-red-600 text-white hover:bg-red-700 w-full md:w-auto">
+                    <FileText size={20} />
+                    <span className="text-xs lg:text-base">{isPrinting ? 'Generando...' : 'Generar PDF'}</span>
+                  </Button>
                 )}
               </>
             )}
@@ -348,27 +349,24 @@ export default function VerTareas() {
                     <Button 
                         onClick={handleActualizarEstadoAgenda} 
                         disabled={isAgendaFinalizada} 
-                        className={`h-14 px-5 rounded-lg shadow-sm transition-colors flex items-center justify-center space-x-2 w-full sm:w-auto ${getEstadoAgendaStyle(agenda.estado)}`}
+                        className={` px-5 rounded-lg shadow-sm transition-colors flex items-center justify-center space-x-2 w-full sm:w-auto ${getEstadoAgendaStyle(agenda.estado)}`}
                     >
-                        <span className="text-lg md:text-base font-bold">{getEstadoAgendaText(agenda.estado)}</span>
+                        <span className="text-lg md:text-base">{getEstadoAgendaText(agenda.estado)}</span>
                     </Button>
                    )}
-                  {agenda.estado === 'En progreso' && userId && (
-                    <AsistenciaAgenda 
-                        agenda={agenda} 
-                        userId={userId} 
-                        nombreUsuario={nombre || 'Usuario'} 
-                        puesto={nombrePuesto}
-                    />
-                  )}
+
+                   {(rol === 'SUPER' || rol === 'SECRETARIO' || rol === 'SEC-TECNICO') && !isPrinting && !isAgendaFinalizada && (
+                      <Button onClick={() => { setTareaSeleccionada(null); setIsFormModalOpen(true); }} className="px-5 rounded-lg shadow-sm transition-colors flex items-center justify-center space-x-2 bg-purple-500 text-white hover:bg-purple-600 w-full sm:w-auto">
+                        <span className="text-lg md:text-base">Nuevo Punto a tratar</span>                      
+                      </Button>
+                    )}
+
                   {agenda.estado === 'En preparación' && (
                     <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 px-3 rounded shadow-sm flex items-center justify-center md:justify-start w-full md:w-auto h-14">
                         <Info className="w-5 h-5 mr-2 flex-shrink-0" />
-                        <p className="font-bold text-base">La asistencia se podrá marcar cuando inicie la sesión</p>
+                        <p className="font-bold text-xs">La asistencia se podrá marcar cuando inicie la sesión</p>
                     </div>
                   )}
-
-
                 </>
               )}
             </div>
