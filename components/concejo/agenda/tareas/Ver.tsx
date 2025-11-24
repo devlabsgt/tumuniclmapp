@@ -7,8 +7,9 @@ import { fetchTareasDeAgenda, fetchAgendaConcejoPorId, actualizarEstadoAgenda, o
 import { Tarea, AgendaConcejo } from '@/components/concejo/agenda/lib/esquemas';
 import TareaForm from './forms/tareas/Tarea';
 import NotaSeguimiento from './forms/NotaSeguimiento';
-import AsistenciaAgenda from '@/components/concejo/AsistenciaAgenda';
-import { CalendarPlus, FileText, Info } from 'lucide-react';
+import AsistenciaUsuario from '@/components/concejo/AsistenciaUsuario';
+import Asistencia from './Asistencia';
+import { FileText, Info, LayoutList, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
@@ -20,6 +21,7 @@ import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
 import jsPDF from 'jspdf';
 import * as htmlToImage from 'html-to-image';
+import { cn } from '@/lib/utils';
 
 const statusStyles: Record<string, string> = {
   'Aprobado': 'bg-green-200 text-green-800',
@@ -57,7 +59,8 @@ export default function VerTareas() {
   const [isNotaSeguimientoModalOpen, setIsNotaSeguimientoModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'notas' | 'seguimiento' | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
-  const [nombrePuesto, setNombrePuesto] = useState<string>(''); 
+  const [nombrePuesto, setNombrePuesto] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'agenda' | 'asistencia'>('agenda');
   const printRef = useRef<HTMLDivElement>(null);
 
   const fetchDatos = async () => {
@@ -270,24 +273,25 @@ export default function VerTareas() {
   return (
     <div className="px-2 mt-2 md:px-8 text-xs lg:text-base">
       <div ref={printRef}>
-        {agenda && agenda.estado === 'En progreso' && userId && (
-            <div className="mb-6">
-                <AsistenciaAgenda 
-                    agenda={agenda} 
-                    userId={userId} 
-                    nombreUsuario={nombre || 'Usuario'} 
-                    puesto={nombrePuesto}
-                />
+        <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-4 w-full">
+            <div className="flex-shrink-0 w-full md:w-auto">
+                {!isPrinting && (
+                  <BotonVolver ruta="/protected/concejo/agenda" />
+                )}
             </div>
-        )}
+            <div className="flex-grow w-full md:w-auto">
+                {agenda && agenda.estado === 'En progreso' && userId && (
+                    <AsistenciaUsuario 
+                        agenda={agenda} 
+                        userId={userId} 
+                        nombreUsuario={nombre || 'Usuario'} 
+                        puesto={nombrePuesto}
+                    />
+                )}
+            </div>
+        </div>
 
         <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-2 mx-auto w-full">
-          {!isPrinting && (
-            <div>
-              <BotonVolver ruta="/protected/concejo/agenda" />
-            </div>
-          )}
-          
           {agenda && (
             <div className="flex-grow flex items-start text-left w-full">
               <div className="w-3/5 flex flex-col gap-2 pr-2">
@@ -341,8 +345,8 @@ export default function VerTareas() {
           </div>
         </header>
 
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between my-10 gap-4 w-full">
-            <div className="w-full lg:w-auto flex-shrink-0 flex flex-col sm:flex-row items-center gap-4">
+        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between my-5 gap-4 w-full border-b border-gray-200 pb-2 xl:pb-0 xl:border-0">
+            <div className="w-full xl:w-auto flex-shrink-0 flex flex-col sm:flex-row items-center gap-4">
               {agenda && (
                 <>
                    {(rol === 'SUPER' || rol === 'SECRETARIO') && agenda && (
@@ -371,8 +375,50 @@ export default function VerTareas() {
               )}
             </div>
 
-            <div className="grid grid-cols-3 gap-2 w-full md:flex md:flex-wrap md:items-center md:justify-end md:flex-grow md:w-auto">
-                {estadoOrden.map(estado => (
+            <div className="flex-1 w-full flex justify-center">
+                <div className="flex space-x-8">
+                    <button
+                        onClick={() => setActiveTab('agenda')}
+                        className={cn(
+                            "relative flex items-center gap-2 pb-3 text-sm font-medium transition-colors whitespace-nowrap",
+                            activeTab === 'agenda' 
+                                ? "text-blue-600" 
+                                : "text-gray-500 hover:text-gray-700"
+                        )}
+                    >
+                        <LayoutList className="h-4 w-4" />
+                        <span>Agenda</span>
+                        {activeTab === 'agenda' && (
+                            <motion.div
+                                layoutId="activeTabTareas"
+                                className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600"
+                            />
+                        )}
+                    </button>
+
+                    <button
+                        onClick={() => setActiveTab('asistencia')}
+                        className={cn(
+                            "relative flex items-center gap-2 pb-3 text-sm font-medium transition-colors whitespace-nowrap",
+                            activeTab === 'asistencia' 
+                                ? "text-blue-600" 
+                                : "text-gray-500 hover:text-gray-700"
+                        )}
+                    >
+                        <Users className="h-4 w-4" />
+                        <span>Asistencia</span>
+                        {activeTab === 'asistencia' && (
+                            <motion.div
+                                layoutId="activeTabTareas"
+                                className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600"
+                            />
+                        )}
+                    </button>
+                </div>
+            </div>
+
+            <div className="hidden md:flex md:flex-wrap md:items-center md:justify-end md:w-auto gap-2 min-w-[200px]">
+                {activeTab === 'agenda' && estadoOrden.map(estado => (
                     <motion.button 
                         key={estado} 
                         onClick={() => toggleFiltro(estado)} 
@@ -388,23 +434,48 @@ export default function VerTareas() {
                         <span className="text-[10px] sm:text-sm font-bold ml-1">{resumenDeEstados[estado] || 0}</span>
                     </motion.button>
                 ))}
-                <AnimatePresence>
-                    {filtrosActivos.length > 0 && (
-                    <motion.button 
-                        initial={{ opacity: 0, x: 20 }} 
-                        animate={{ opacity: 1, x: 0 }} 
-                        exit={{ opacity: 0, x: 20 }} 
-                        onClick={() => setFiltrosActivos([])} 
-                        className="col-span-3 md:col-span-auto px-3 py-2 rounded-md shadow-sm text-center bg-gray-400 text-white text-xs lg:text-xs w-full md:w-auto"
-                    >
-                        Quitar filtros
-                    </motion.button>
-                    )}
-                </AnimatePresence>
+                
+                {activeTab === 'agenda' && (
+                    <AnimatePresence>
+                        {filtrosActivos.length > 0 && (
+                        <motion.button 
+                            initial={{ opacity: 0, x: 20 }} 
+                            animate={{ opacity: 1, x: 0 }} 
+                            exit={{ opacity: 0, x: 20 }} 
+                            onClick={() => setFiltrosActivos([])} 
+                            className="col-span-3 md:col-span-auto px-3 py-2 rounded-md shadow-sm text-center bg-gray-400 text-white text-xs lg:text-xs w-full md:w-auto"
+                        >
+                            Quitar filtros
+                        </motion.button>
+                        )}
+                    </AnimatePresence>
+                )}
             </div>
         </div>
 
-        <Tabla rol={rol} tareas={tareasFiltradas} handleOpenEditModal={handleOpenEditModal} handleOpenNotasModal={handleOpenNotasModal} handleOpenSeguimientoModal={handleOpenSeguimientoModal} estadoAgenda={agenda?.estado || ''} />
+        <AnimatePresence mode="wait">
+            {activeTab === 'agenda' ? (
+                <motion.div 
+                    key="agenda"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                >
+                    <Tabla rol={rol} tareas={tareasFiltradas} handleOpenEditModal={handleOpenEditModal} handleOpenNotasModal={handleOpenNotasModal} handleOpenSeguimientoModal={handleOpenSeguimientoModal} estadoAgenda={agenda?.estado || ''} />
+                </motion.div>
+            ) : (
+                <motion.div 
+                    key="asistencia"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                >
+                    <Asistencia agendaId={agendaId} />
+                </motion.div>
+            )}
+        </AnimatePresence>
       </div>
 
       <AnimatePresence>

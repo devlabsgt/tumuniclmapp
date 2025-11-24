@@ -232,6 +232,7 @@ export default function MisComisiones() {
             exit={{ opacity: 0 }}
           >
             <Mapa
+              titulo="Comision"
               isOpen={modalMapaAbierto}
               onClose={handleCerrarMapa}
               registros={registrosParaMapa}

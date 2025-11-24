@@ -26,7 +26,6 @@ import {
 } from '@/lib/asistencia/acciones';
 import useFechaHora from '@/hooks/utility/useFechaHora';
 import { useAsistenciaUsuario } from '@/hooks/asistencia/useAsistenciaUsuario';
-// --- CAMBIO: Importar el nuevo hook ---
 import { useObtenerUbicacion } from '@/hooks/ubicacion/useObtenerUbicacion';
 
 const formatScheduleTime = (timeString: string | null | undefined) => {
@@ -384,7 +383,9 @@ export default function Asistencia() {
 
       <AnimatePresence>
         {modalMapaAbierto && (
-          <Mapa isOpen={modalMapaAbierto} onClose={() => setModalMapaAbierto(false)} registros={registrosSeleccionadosParaMapa} nombreUsuario={nombre} />
+          <Mapa isOpen={modalMapaAbierto} onClose={() => setModalMapaAbierto(false)} 
+          registros={registrosSeleccionadosParaMapa} nombreUsuario={nombre} titulo="Asistencia"
+/>
         )}
       </AnimatePresence>
     </>

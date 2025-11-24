@@ -5,7 +5,7 @@ import useUserData from '@/hooks/sesion/useUserData';
 import { cargarAgendas, eliminarAgenda } from './lib/acciones';
 import { type AgendaConcejo } from './lib/esquemas';
 import AgendaForm from './forms/Sesion';
-import { CalendarPlus, Pencil, ArrowRight, Trash2 } from 'lucide-react';
+import { CalendarPlus, Pencil, ArrowRight, Trash2, CalendarClock, CalendarDays, CalendarCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
@@ -14,6 +14,7 @@ import { getYear, setMonth, format, differenceInDays, isToday, isFuture, isPast 
 import { es } from 'date-fns/locale';
 import BotonVolver from '@/components/ui/botones/BotonVolver';
 import Swal from 'sweetalert2';
+import { cn } from '@/lib/utils';
 
 const calcularDiasRestantes = (fechaReunion: string): string => {
   const fecha = new Date(fechaReunion);
@@ -46,11 +47,12 @@ const getButtonClasses = (estado: string) => {
   };
 };
 
-type TabType = 'HOY' | 'PROXIMAS' | 'TERMINADAS';
+type VistaType = 'hoy' | 'proximas' | 'terminadas';
 
 export default function Ver() {
   const router = useRouter();
-  const { permisos, cargando: cargandoUsuario } = useUserData();
+  // Se agrega 'rol' al destructuring para usarlo en la validación
+  const { permisos, rol, cargando: cargandoUsuario } = useUserData();
   const [agendas, setAgendas] = useState<AgendaConcejo[]>([]);
   const [cargandoAgendas, setCargandoAgendas] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +61,9 @@ export default function Ver() {
   const [filtroAnio, setFiltroAnio] = useState<string>(getYear(new Date()).toString());
   const [filtroMes, setFiltroMes] = useState<string | null>(null);
   const [loadingAgendaId, setLoadingAgendaId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType | null>(null);
+  
+  const [vista, setVista] = useState<VistaType>('hoy');
+  const [haCargadoVistaInicial, setHaCargadoVistaInicial] = useState(false);
 
   const anios = Array.from({ length: 10 }, (_, i) => getYear(new Date()) - 5 + i);
   const meses = Array.from({ length: 12 }, (_, i) => ({
@@ -73,7 +77,6 @@ export default function Ver() {
       const data = await cargarAgendas();
       setAgendas(data);
     } catch (e: any) {
-      console.error("Error al cargar las agendas:", e);
       setError("Ocurrió un error al cargar las agendas.");
     } finally {
       setCargandoAgendas(false);
@@ -97,27 +100,65 @@ export default function Ver() {
     });
   }, [agendas, filtroAnio, filtroMes]);
 
-  const { agendasHoy, agendasProximas, agendasTerminadas } = useMemo(() => {
-    return {
-      agendasHoy: agendasFiltradasBase.filter(a => isToday(new Date(a.fecha_reunion))),
-      agendasProximas: agendasFiltradasBase.filter(a => isFuture(new Date(a.fecha_reunion)) && !isToday(new Date(a.fecha_reunion))),
-      agendasTerminadas: agendasFiltradasBase.filter(a => isPast(new Date(a.fecha_reunion)) && !isToday(new Date(a.fecha_reunion)))
-    };
+  const counts = useMemo(() => {
+    let hoy = 0;
+    let proximas = 0;
+    let terminadas = 0;
+
+    agendasFiltradasBase.forEach(a => {
+      const fecha = new Date(a.fecha_reunion);
+      if (isToday(fecha)) {
+        hoy++;
+      } else if (isFuture(fecha) && !isToday(fecha)) {
+        proximas++;
+      } else if (isPast(fecha) && !isToday(fecha)) {
+        terminadas++;
+      }
+    });
+
+    return { hoy, proximas, terminadas };
   }, [agendasFiltradasBase]);
 
   useEffect(() => {
-    if (activeTab === null) {
-      if (agendasHoy.length > 0) setActiveTab('HOY');
-      else if (agendasProximas.length > 0) setActiveTab('PROXIMAS');
-      else if (agendasTerminadas.length > 0) setActiveTab('TERMINADAS');
-    } else {
-      if (activeTab === 'HOY' && agendasHoy.length === 0) {
-        if (agendasProximas.length > 0) setActiveTab('PROXIMAS');
-        else if (agendasTerminadas.length > 0) setActiveTab('TERMINADAS');
-        else setActiveTab(null);
+    if (cargandoAgendas) return;
+
+    const vistaActualEstaVacia = 
+      (vista === 'hoy' && counts.hoy === 0) ||
+      (vista === 'proximas' && counts.proximas === 0) ||
+      (vista === 'terminadas' && counts.terminadas === 0);
+
+    if (!haCargadoVistaInicial || vistaActualEstaVacia) {
+      if (counts.hoy > 0) {
+        setVista('hoy');
+      } else if (counts.proximas > 0) {
+        setVista('proximas');
+      } else if (counts.terminadas > 0) {
+        setVista('terminadas');
+      } else {
+        setVista('hoy');
+      }
+      
+      if (!haCargadoVistaInicial) {
+        setHaCargadoVistaInicial(true);
       }
     }
-  }, [agendasHoy, agendasProximas, agendasTerminadas, activeTab]);
+  }, [counts, vista, haCargadoVistaInicial, cargandoAgendas]);
+
+  const agendasVisibles = useMemo(() => {
+    let lista: AgendaConcejo[] = [];
+
+    if (vista === 'hoy') {
+      lista = agendasFiltradasBase.filter(a => isToday(new Date(a.fecha_reunion)));
+    } else if (vista === 'proximas') {
+      lista = agendasFiltradasBase.filter(a => isFuture(new Date(a.fecha_reunion)) && !isToday(new Date(a.fecha_reunion)));
+      lista.sort((a, b) => new Date(a.fecha_reunion).getTime() - new Date(b.fecha_reunion).getTime());
+    } else {
+      lista = agendasFiltradasBase.filter(a => isPast(new Date(a.fecha_reunion)) && !isToday(new Date(a.fecha_reunion)));
+      lista.sort((a, b) => new Date(b.fecha_reunion).getTime() - new Date(a.fecha_reunion).getTime());
+    }
+
+    return lista;
+  }, [vista, agendasFiltradasBase]);
 
   useEffect(() => {
     if (isModalOpen) {
@@ -189,12 +230,9 @@ export default function Ver() {
 
   const renderAgendaCard = (agenda: AgendaConcejo) => {
     let borderColorClass = 'border-l-blue-500';
-    let textColorClass = 'text-gray-500';
+    let textColorClass = 'text-blue-600';
 
-    if (agenda.estado === 'En preparación') {
-      borderColorClass = 'border-l-blue-500';
-      textColorClass = 'text-blue-600';
-    } else if (agenda.estado === 'En progreso') {
+    if (agenda.estado === 'En progreso') {
       borderColorClass = 'border-l-green-500';
       textColorClass = 'text-green-600';
     } else if (agenda.estado === 'Finalizada') {
@@ -204,6 +242,15 @@ export default function Ver() {
 
     const buttonClasses = getButtonClasses(agenda.estado);
     const isLoadingThisAgenda = loadingAgendaId === agenda.id;
+    
+    // Validar permisos
+    const tienePermisoEditar = permisos.includes('EDITAR') || permisos.includes('TODO');
+    
+    // Si es SUPER, puede editar aunque esté finalizada. Si no, solo si NO está finalizada.
+    const puedeEditar = tienePermisoEditar && (rol === 'SUPER' || agenda.estado !== 'Finalizada');
+    
+    // Si es SUPER, puede eliminar siempre. Si no, solo si está en preparación.
+    const puedeEliminar = tienePermisoEditar && (rol === 'SUPER' || agenda.estado === 'En preparación');
 
     return (
       <motion.div
@@ -240,7 +287,7 @@ export default function Ver() {
         </div>
 
         <div className="absolute bottom-4 right-4 flex flex-row gap-2 items-center">
-          {(permisos.includes('EDITAR') || permisos.includes('TODO')) && agenda.estado !== 'Finalizada' && (
+          {puedeEditar && (
             <Button
               onClick={(e) => {
                 e.stopPropagation();
@@ -253,7 +300,7 @@ export default function Ver() {
             </Button>
           )}
 
-          {(permisos.includes('EDITAR') || permisos.includes('TODO')) && agenda.estado === 'En preparación' && (
+          {puedeEliminar && (
             <Button
               onClick={(e) => {
                 e.stopPropagation();
@@ -278,7 +325,6 @@ export default function Ver() {
               w-10 group-hover:w-24 
               transition-all duration-300 ease-in-out overflow-hidden cursor-pointer
             `}
-            aria-label={`Entrar a la agenda ${agenda.titulo}`}
           >
             <span className="flex items-center px-2">
               <ArrowRight className="h-4 w-4 flex-shrink-0 transition-all duration-300 group-hover:text-white" />
@@ -290,15 +336,6 @@ export default function Ver() {
         </div>
       </motion.div>
     );
-  };
-
-  const getActiveList = () => {
-    switch (activeTab) {
-      case 'HOY': return agendasHoy;
-      case 'PROXIMAS': return agendasProximas;
-      case 'TERMINADAS': return agendasTerminadas;
-      default: return [];
-    }
   };
 
   if (cargandoUsuario || cargandoAgendas) {
@@ -314,29 +351,97 @@ export default function Ver() {
   }
 
   return (
-    <div className="container mx-auto">
-      <header className="flex flex-col gap-6 mb-6">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex w-full sm:w-auto items-center justify-between sm:justify-start gap-4">
-            <BotonVolver ruta="/protected/" />
-            <div className="flex gap-2">
-              <select
-                value={filtroAnio}
-                onChange={(e) => setFiltroAnio(e.target.value)}
-                className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              >
-                {anios.map(anio => <option key={anio} value={anio}>{anio}</option>)}
-              </select>
-              <select
-                value={filtroMes !== null ? filtroMes : ''}
-                onChange={(e) => setFiltroMes(e.target.value === '' ? null : e.target.value)}
-                className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              >
-                <option value="">Todos los meses</option>
-                {meses.map(mes => <option key={mes.numero} value={mes.numero}>{mes.nombre.charAt(0).toUpperCase() + mes.nombre.slice(1)}</option>)}
-              </select>
-            </div>
+    <div className="container mx-auto ">
+      <header className="flex flex-col xl:flex-row items-center justify-between gap-4 my-2 w-full">
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto justify-between xl:justify-start shrink-0">
+          <BotonVolver ruta="/protected/" />
+          <div className="flex gap-2 w-full sm:w-auto">
+            <select
+              value={filtroAnio}
+              onChange={(e) => setFiltroAnio(e.target.value)}
+              className="h-10 w-full sm:w-auto rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              {anios.map(anio => <option key={anio} value={anio}>{anio}</option>)}
+            </select>
+            <select
+              value={filtroMes !== null ? filtroMes : ''}
+              onChange={(e) => setFiltroMes(e.target.value === '' ? null : e.target.value)}
+              className="h-10 w-full sm:w-auto rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              <option value="">Todos los meses</option>
+              {meses.map(mes => <option key={mes.numero} value={mes.numero}>{mes.nombre.charAt(0).toUpperCase() + mes.nombre.slice(1)}</option>)}
+            </select>
           </div>
+        </div>
+
+        <div className="flex items-center justify-center flex-1 w-full order-last xl:order-none overflow-x-auto pb-2 xl:pb-0">
+          <div className="flex space-x-6 px-4">
+            {(counts.hoy > 0 || vista === 'hoy') && (
+                <button
+                    onClick={() => setVista('hoy')}
+                    className={cn(
+                        "relative flex items-center gap-2 pb-1 text-sm font-medium transition-colors whitespace-nowrap",
+                        vista === 'hoy' 
+                            ? "text-blue-600" 
+                            : "text-gray-500 hover:text-gray-700"
+                    )}
+                >
+                    <CalendarClock className="h-4 w-4" />
+                    <span>Para hoy ({counts.hoy})</span>
+                    {vista === 'hoy' && (
+                        <motion.div
+                            layoutId="activeTab"
+                            className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600"
+                        />
+                    )}
+                </button>
+            )}
+
+            {(counts.proximas > 0 || vista === 'proximas') && (
+                <button
+                    onClick={() => setVista('proximas')}
+                    className={cn(
+                        "relative flex items-center gap-2 pb-1 text-sm font-medium transition-colors whitespace-nowrap",
+                        vista === 'proximas' 
+                            ? "text-indigo-600" 
+                            : "text-gray-500 hover:text-gray-700"
+                    )}
+                >
+                    <CalendarDays className="h-4 w-4" />
+                    <span>Próximas ({counts.proximas})</span>
+                    {vista === 'proximas' && (
+                        <motion.div
+                            layoutId="activeTab"
+                            className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-600"
+                        />
+                    )}
+                </button>
+            )}
+
+            {(counts.terminadas > 0 || vista === 'terminadas') && (
+                <button
+                    onClick={() => setVista('terminadas')}
+                    className={cn(
+                        "relative flex items-center gap-2 pb-1 text-sm font-medium transition-colors whitespace-nowrap",
+                        vista === 'terminadas' 
+                            ? "text-red-600" 
+                            : "text-gray-500 hover:text-gray-700"
+                    )}
+                >
+                    <CalendarCheck className="h-4 w-4" />
+                    <span>Terminadas ({counts.terminadas})</span>
+                    {vista === 'terminadas' && (
+                        <motion.div
+                            layoutId="activeTab"
+                            className="absolute bottom-0 left-0 right-0 h-[2px] bg-red-600"
+                        />
+                    )}
+                </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-end w-full xl:w-auto shrink-0">
           {(permisos.includes('EDITAR') || permisos.includes('TODO')) && (
             <Button
               onClick={() => {
@@ -350,56 +455,24 @@ export default function Ver() {
             </Button>
           )}
         </div>
-
-        {(agendasHoy.length > 0 || agendasProximas.length > 0 || agendasTerminadas.length > 0) && (
-          <div className="flex rounded-lg border p-1 bg-gray-100 dark:bg-gray-800 h-14 w-full md:w-3/4 lg:w-1/2 mx-auto">
-            {agendasHoy.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setActiveTab('HOY')}
-                className={`flex-1 rounded-md transition-all duration-200 ${activeTab === 'HOY' ? 'bg-blue-100 text-blue-600 shadow text-sm font-bold' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}
-              >
-                Hoy ({agendasHoy.length})
-              </button>
-            )}
-            {agendasProximas.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setActiveTab('PROXIMAS')}
-                className={`flex-1 rounded-md transition-all duration-200 ${activeTab === 'PROXIMAS' ? 'bg-purple-100 text-purple-600 shadow text-sm font-bold' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}
-              >
-                Próximas ({agendasProximas.length})
-              </button>
-            )}
-            {agendasTerminadas.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setActiveTab('TERMINADAS')}
-                className={`flex-1 rounded-md transition-all duration-200 ${activeTab === 'TERMINADAS' ? 'bg-gray-200 text-gray-700 shadow text-sm font-bold' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}
-              >
-                Terminadas ({agendasTerminadas.length})
-              </button>
-            )}
-          </div>
-        )}
       </header>
 
       <div className="w-full">
-        {agendasFiltradasBase.length === 0 ? (
+        {agendasVisibles.length === 0 ? (
           <div className="text-center py-10 border-2 border-dashed border-gray-300 rounded-lg">
-            <p className="text-gray-500">Aún no hay sesiones para estas fechas.</p>
+            <p className="text-gray-500">Aún no hay sesiones disponibles en esta vista.</p>
           </div>
         ) : (
           <AnimatePresence mode="wait">
             <motion.div
-              key={activeTab || 'empty'}
-              initial={{ opacity: 0, y: 20 }}
+              key={vista}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
               className="grid grid-cols-1 gap-4"
             >
-              {getActiveList().map(agenda => renderAgendaCard(agenda))}
+              {agendasVisibles.map(agenda => renderAgendaCard(agenda))}
             </motion.div>
           </AnimatePresence>
         )}

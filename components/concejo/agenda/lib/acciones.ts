@@ -265,6 +265,68 @@ export const actualizarSeguimiento = async (tareaId: string, seguimiento: string
   }
 };
 
+
+export const fetchAsistenciaGlobalAgenda = async (agendaId: string) => {
+  // 1. Obtener los registros de asistencia
+  const { data: registros, error: errorRegistros } = await supabase
+    .from('registros_agenda')
+    .select('*')
+    .eq('agenda_id', agendaId);
+
+  if (errorRegistros) {
+    console.error('Error al obtener registros:', errorRegistros);
+    return [];
+  }
+
+  if (!registros || registros.length === 0) {
+    return [];
+  }
+
+  const userIds = Array.from(new Set(registros.map((r) => r.user_id)));
+
+
+  const { data: datosUsuarios, error: errorUsuarios } = await supabase
+    .from('info_usuario')
+    .select(`
+      user_id,
+      nombre, 
+      dependencias (
+        nombre
+      )
+    `)
+    .in('user_id', userIds);
+
+  if (errorUsuarios) {
+    console.error('Error al obtener datos de usuarios:', errorUsuarios);
+    // Retornamos los registros aunque no tengamos los nombres, para que no falle todo
+    return registros.map(r => ({
+        ...r, 
+        usuarios: { id: r.user_id, nombre: 'Error carga', puesto: '-' }
+    }));
+  }
+
+  // 4. Combinar los registros con la información del usuario
+  const registrosConUsuario = registros.map((registro) => {
+    // Buscamos la info de este usuario especifico
+    const infoUsuario = datosUsuarios?.find((u) => u.user_id === registro.user_id);
+    
+    // Extraemos el nombre de la dependencia (puesto) de forma segura
+    // 'dependencias' puede venir como objeto o array dependiendo de tu configuración 1:1 o 1:N
+    const dependenciaData = infoUsuario?.dependencias as any;
+    const nombrePuesto = dependenciaData?.nombre || 'Sin dependencia';
+
+    return {
+      ...registro,
+      usuarios: {
+        id: registro.user_id,
+        nombre: infoUsuario?.nombre || 'Desconocido',
+        puesto: nombrePuesto
+      }
+    };
+  });
+
+  return registrosConUsuario;
+};
 export const obtenerRegistrosAgendaUsuario = async (userId: string, agendaId: string): Promise<any[]> => {
   const { data, error } = await supabase
     .from('registros_agenda')

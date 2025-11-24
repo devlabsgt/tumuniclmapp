@@ -19,11 +19,12 @@ interface MapaModalProps {
   onClose: () => void;
   registros: { entrada: Registro | null, salida: Registro | null, multiple?: Registro[] };
   nombreUsuario: string;
+  titulo?: string;
 }
 
 type SortOrder = 'asc' | 'desc';
 
-export default function Mapa({ isOpen, onClose, registros, nombreUsuario }: MapaModalProps) {
+export default function Mapa({ isOpen, onClose, registros, nombreUsuario, titulo }: MapaModalProps) {
   const [rawRegistros, setRawRegistros] = useState<Registro[]>([]);
   const [registroActivo, setRegistroActivo] = useState<Registro | null>(null);
   const [mapaVisible, setMapaVisible] = useState(true);
@@ -97,7 +98,6 @@ export default function Mapa({ isOpen, onClose, registros, nombreUsuario }: Mapa
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
           >
-            {/* --- LISTA LATERAL --- */}
             <div className={`
               w-full md:w-80 bg-slate-50 border-r flex flex-col
               ${mapaVisible ? 'h-1/2' : 'h-full'}
@@ -105,7 +105,12 @@ export default function Mapa({ isOpen, onClose, registros, nombreUsuario }: Mapa
             `}>
               <div className="p-4 border-b flex justify-between items-center bg-white">
                 <div className="overflow-hidden">
-                  <h3 className="font-semibold text-gray-800 truncate" title={nombreUsuario}>{nombreUsuario}</h3>
+                  <span className="block text-xs font-bold text-blue-600 uppercase tracking-wide mb-0.5">
+                    {titulo || 'Asistencia'}
+                  </span>
+                  <h3 className="font-semibold text-gray-800 truncate text-sm md:text-base" title={nombreUsuario}>
+                    {nombreUsuario}
+                  </h3>
                   <p className="text-xs text-gray-500 truncate">{fechaFormateada}</p>
                 </div>
                 <button onClick={onClose} className="md:hidden p-2 rounded-full hover:bg-gray-100 transition-colors flex-shrink-0">
