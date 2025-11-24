@@ -243,13 +243,10 @@ export default function Ver() {
     const buttonClasses = getButtonClasses(agenda.estado);
     const isLoadingThisAgenda = loadingAgendaId === agenda.id;
     
-    // Validar permisos
     const tienePermisoEditar = permisos.includes('EDITAR') || permisos.includes('TODO');
     
-    // Si es SUPER, puede editar aunque esté finalizada. Si no, solo si NO está finalizada.
     const puedeEditar = tienePermisoEditar && (rol === 'SUPER' || agenda.estado !== 'Finalizada');
     
-    // Si es SUPER, puede eliminar siempre. Si no, solo si está en preparación.
     const puedeEliminar = tienePermisoEditar && (rol === 'SUPER' || agenda.estado === 'En preparación');
 
     return (
@@ -328,7 +325,7 @@ export default function Ver() {
           >
             <span className="flex items-center px-2">
               <ArrowRight className="h-4 w-4 flex-shrink-0 transition-all duration-300 group-hover:text-white" />
-              <span className="ml-1 text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all delay-150 duration-200">
+              <span className="ml-3 text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all delay-150 duration-200">
                 Entrar
               </span>
             </span>
@@ -351,10 +348,13 @@ export default function Ver() {
   }
 
   return (
-    <div className="container mx-auto ">
-      <header className="flex flex-col xl:flex-row items-center justify-between gap-4 my-2 w-full">
+    <div className="container px-2 md:mx-auto">
+      <header className="flex flex-col xl:flex-row items-center justify-between gap-4 mt-2 md:mb-6 w-full">
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto justify-between xl:justify-start shrink-0">
           <BotonVolver ruta="/protected/" />
+
+
+          
           <div className="flex gap-2 w-full sm:w-auto">
             <select
               value={filtroAnio}

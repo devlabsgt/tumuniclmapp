@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { format, parseISO, differenceInMinutes } from 'date-fns';
+import { format, parseISO, differenceInMinutes, getHours } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Swal from 'sweetalert2';
 import { AnimatePresence } from 'framer-motion';
@@ -79,32 +79,41 @@ export default function AsistenciaUsuario({ agenda, userId, nombreUsuario, puest
     };
   };
 
-  const handleBloqueoPorTiempo = () => {
-    Swal.fire({
-      title: 'Fuera de Tiempo',
-      text: 'Ha excedido el tiempo límite de 15 minutos para marcar su asistencia.',
-      icon: 'error',
-      confirmButtonText: 'Entendido'
-    });
-  };
+  const fechaReunion = parseISO(agenda.fecha_reunion);
+  const horaReunion = getHours(fechaReunion);
+  const toleranciaMinutos = horaReunion < 9 ? 30 : 15;
+  const diffMinutes = differenceInMinutes(fechaHoraGt, fechaReunion);
+  const esTarde = diffMinutes > toleranciaMinutos;
 
   const handleIniciarMarcado = async (tipo: 'Entrada' | 'Salida') => {
     const fechaActual = format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy - h:mm a", { locale: es });
+    let notaAutomatica = '';
+    let tituloSwal = `Marcar ${tipo}`;
+    let textoSwal = `¿Confirme si desea marcar su ${tipo.toLowerCase()} ahora?`;
+    let iconoSwal: 'question' | 'warning' = 'question';
+    let confirmColor = '#3085d6';
 
-    const { value: notaOpcional, isConfirmed } = await Swal.fire({
-      title: `Marcar ${tipo}`,
+    if (tipo === 'Entrada' && esTarde) {
+      notaAutomatica = 'SIN DERECHO A DIETA';
+      tituloSwal = 'Entrada Tardía - Sin Dieta';
+      textoSwal = `Ha excedido el tiempo de ${toleranciaMinutos} minutos. Por reglamento, su asistencia quedará registrada SIN DERECHO A DIETA.`;
+      iconoSwal = 'warning';
+      confirmColor = '#d33';
+    }
+
+    const { isConfirmed } = await Swal.fire({
+      title: tituloSwal,
       html: `
         <div class="text-sm text-gray-600 mb-4">
           ${fechaActual}
         </div>
-        <p>¿Confirme si desea marcar su ${tipo.toLowerCase()} ahora?</p>
+        <p>${textoSwal}</p>
       `,
-      icon: 'question',
+      icon: iconoSwal,
       showCancelButton: true,
       confirmButtonText: `Sí, marcar`,
+      confirmButtonColor: confirmColor,
       cancelButtonText: 'Cancelar',
-      input: 'textarea',
-      inputPlaceholder: 'Notas (opcional)...',
     });
 
     if (!isConfirmed) return;
@@ -113,7 +122,7 @@ export default function AsistenciaUsuario({ agenda, userId, nombreUsuario, puest
 
     if (coords) {
       setCargandoMarcaje(true);
-      const registro = await marcarAsistenciaAgenda(userId, agenda.id, tipo, coords, notaOpcional || '');
+      const registro = await marcarAsistenciaAgenda(userId, agenda.id, tipo, coords, notaAutomatica);
       if (registro) {
         Swal.fire('¡Éxito!', 'Marcaje registrado.', 'success');
         fetchRegistros();
@@ -130,10 +139,6 @@ export default function AsistenciaUsuario({ agenda, userId, nombreUsuario, puest
   if (cargandoRegistros) {
     return <div className="animate-pulse h-14 bg-gray-200 rounded-lg w-full border border-gray-300"></div>;
   }
-
-  const fechaReunion = parseISO(agenda.fecha_reunion);
-  const diffMinutes = differenceInMinutes(fechaHoraGt, fechaReunion);
-  const esTarde = diffMinutes > 15;
 
   return (
     <>
@@ -172,18 +177,18 @@ export default function AsistenciaUsuario({ agenda, userId, nombreUsuario, puest
                           <Button 
                               onClick={(e) => {
                                 e.stopPropagation(); 
-                                esTarde ? handleBloqueoPorTiempo() : handleIniciarMarcado('Entrada');
+                                handleIniciarMarcado('Entrada');
                               }} 
                               disabled={cargandoMarcaje || cargandoGeo} 
                               size="sm"
                               className={`w-full md:w-auto uppercase font-bold text-sm h-10 px-6 flex items-center justify-center gap-2 ${
                                   esTarde 
-                                  ? 'bg-gray-400 hover:bg-gray-500 text-white cursor-not-allowed' 
+                                  ? 'bg-amber-600 hover:bg-amber-700 text-white' 
                                   : 'bg-green-600 hover:bg-green-700 text-white'
                               }`}
                           >
                               {cargandoGeo && <MapPin className="animate-bounce h-4 w-4" />}
-                              {cargandoGeo ? 'GPS...' : (esTarde ? 'TIEMPO AGOTADO' : 'MARCAR ENTRADA')}
+                              {cargandoGeo ? 'GPS...' : (esTarde ? 'MARCAR ENTRADA TARDE' : 'MARCAR ENTRADA')}
                           </Button>
                       ) : (
                           <Button 
