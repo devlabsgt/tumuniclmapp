@@ -80,7 +80,7 @@ export default function Ver() {
     };
 
     const programasFiltrados = useMemo(() => {
-        if (rol === 'SUPER' || rol === 'ADMINISTRADOR'|| rol === 'SECRETARIO'|| rol === 'DIGITADOR'|| rol === 'INVITADO' ) {
+        if (rol === 'SUPER' || rol === 'ADMINISTRADOR'|| rol === 'SECRETARIO'|| rol === 'DIGITADOR'|| rol === 'INVITADO' || rol === 'ALCALDE') {
             return programas
                 .filter(p => p.parent_id === null && p.anio?.toString() === filtroAnio && p.nombre.toLowerCase().includes(searchTerm.toLowerCase()))
                 .sort((a, b) => a.nombre.localeCompare(b.nombre));

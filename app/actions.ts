@@ -62,7 +62,7 @@ export const signInAction = async (prevState: FormState, formData: FormData): Pr
   const rolObject = Array.isArray(relacion?.roles) ? relacion.roles[0] : relacion?.roles;
   const rol = rolObject?.nombre || '';
 
-  if (rol !== 'SUPER' && rol !== 'ADMINISTRADOR' && rol !== 'SECRETARIO' && rol !== 'RRHH' && rol !== 'INVITADO') {
+  if (rol !== 'SUPER' && rol !== 'ADMINISTRADOR' && rol !== 'SECRETARIO' && rol !== 'ALCALDE' && rol !== 'RRHH' && rol !== 'INVITADO') {
     const { data: horario, error: errorHorario } = await supabase
       .from('horarios')
       .select('*')

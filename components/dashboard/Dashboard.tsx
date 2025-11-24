@@ -226,7 +226,7 @@ export default function Dashboard() {
       .filter(m => {
         if (rol === 'SUPER') return true;
 
-        if (m.subgrupo === 'Concejo Municipal' && rol === 'CONCEJAL') {
+        if (m.subgrupo === 'Concejo Municipal' && (rol === 'CONCEJAL' || rol === 'ALCALDE')) {
           return true;
         }
 
@@ -238,7 +238,7 @@ export default function Dashboard() {
             return esjefe;
         }
 
-        if (rol === 'INVITADO') return true;
+        if (rol === 'INVITADO' || rol === 'ALCALDE') return true;
 
         const tieneModuloAsignado = modulos.includes(m.permiso);
        

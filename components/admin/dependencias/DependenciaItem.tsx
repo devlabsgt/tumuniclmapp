@@ -81,6 +81,8 @@ const DependenciaItem = ({
 
   const isAdmin = rol === 'SUPER' || rol === 'SECRETARIO';
   const isRRHH = rol === 'RRHH';
+  const isConcejal = rol === 'CONCEJAL';
+  
   const canShowMenu = isAdmin || (isRRHH && node.es_puesto);
   const isPuestoDisponible = node.es_puesto && !empleadoAsignado;
 
@@ -280,6 +282,7 @@ const DependenciaItem = ({
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
             {node.children.map((child, childIndex) => {
               if ('isEmployee' in child) {
+                if (isConcejal) return null;
                 return ( <EmpleadoItem key={child.usuario.id} empleado={child.usuario} level={level + 1} onDelete={() => onDeleteEmpleado(child.usuario.id)} onOpenInfoPersonal={onOpenInfoPersonal} onViewCard={onViewCard} rol={rol} /> );
               } else {
                 return ( <DependenciaItem key={child.id} node={child} rol={rol} onEdit={onEdit} onDelete={onDelete} onAddSub={onAddSub} onMove={onMove} onMoveExtreme={onMoveExtreme} onAddEmpleado={onAddEmpleado} onDeleteEmpleado={onDeleteEmpleado} onOpenInfoPersonal={onOpenInfoPersonal} onOpenContrato={onOpenContrato} onViewCard={onViewCard} onOpenDescription={onOpenDescription} onOpenInfoFinanciera={onOpenInfoFinanciera} level={level + 1} index={childIndex} prefix={`${prefix}.${child.no}`} isLast={childIndex === (node.children.filter(c => !('isEmployee' in c)).length - 1)} openNodeIds={openNodeIds} setOpenNodeIds={setOpenNodeIds} siblingCount={node.children.filter(c => !('isEmployee' in c)).length} /> );

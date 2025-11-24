@@ -15,7 +15,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
 import BotonVolver from '@/components/ui/botones/BotonVolver';
 import Tabla from './Tabla';
-import { format } from 'date-fns';
+import { format, subMinutes, isAfter } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
@@ -61,6 +61,8 @@ export default function VerTareas() {
   const [isPrinting, setIsPrinting] = useState(false);
   const [nombrePuesto, setNombrePuesto] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'agenda' | 'asistencia'>('agenda');
+  const [puedeMarcarAsistencia, setPuedeMarcarAsistencia] = useState(false);
+  const [mostrarAvisoAsistencia, setMostrarAvisoAsistencia] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   const fetchDatos = async () => {
@@ -93,6 +95,44 @@ export default function VerTareas() {
     };
     getPuesto();
   }, [userId]);
+
+  useEffect(() => {
+    if (!agenda) return;
+
+    const verificarTiempoAsistencia = () => {
+      const ahora = new Date();
+      const fechaReunion = new Date(agenda.fecha_reunion);
+      const tiempoHabilitacion = subMinutes(fechaReunion, 15);
+      
+      const esTiempoValido = isAfter(ahora, tiempoHabilitacion);
+      const estaEnProgreso = agenda.estado === 'En progreso';
+      const estaEnPreparacion = agenda.estado === 'En preparación';
+      const estaFinalizada = agenda.estado === 'Finalizada';
+
+      if (estaFinalizada) {
+        setPuedeMarcarAsistencia(false);
+        setMostrarAvisoAsistencia(false);
+        return;
+      }
+
+      if (estaEnProgreso) {
+        setPuedeMarcarAsistencia(true);
+        setMostrarAvisoAsistencia(false);
+      } else if (estaEnPreparacion) {
+        if (esTiempoValido) {
+          setPuedeMarcarAsistencia(true);
+          setMostrarAvisoAsistencia(false);
+        } else {
+          setPuedeMarcarAsistencia(false);
+          setMostrarAvisoAsistencia(true);
+        }
+      }
+    };
+
+    verificarTiempoAsistencia();
+    const intervalo = setInterval(verificarTiempoAsistencia, 30000);
+    return () => clearInterval(intervalo);
+  }, [agenda]);
 
   const generatePdf = async () => {
       setIsPrinting(true);
@@ -175,9 +215,9 @@ export default function VerTareas() {
   const isAgendaFinalizada = agenda?.estado === 'Finalizada';
 
   const handleOpenEditModal = (tarea: Tarea) => {
-    if (rol === 'INVITADO') {
+    if (rol === 'INVITADO' || rol === 'ALCALDE') {
       toast.info('No tiene permisos para editar.');
-      return;
+      return; 
     }
     if (isAgendaFinalizada) {
       toast.info('No se pueden editar puntos de una agenda finalizada.');
@@ -280,7 +320,7 @@ export default function VerTareas() {
                 )}
             </div>
             <div className="flex-grow w-full md:w-auto">
-                {agenda && agenda.estado === 'En progreso' && userId && (
+                {agenda && puedeMarcarAsistencia && userId && (
                     <AsistenciaUsuario 
                         agenda={agenda} 
                         userId={userId} 
@@ -361,14 +401,16 @@ export default function VerTareas() {
 
                    {(rol === 'SUPER' || rol === 'SECRETARIO' || rol === 'SEC-TECNICO') && !isPrinting && !isAgendaFinalizada && (
                       <Button onClick={() => { setTareaSeleccionada(null); setIsFormModalOpen(true); }} className="px-5 rounded-lg shadow-sm transition-colors flex items-center justify-center space-x-2 bg-purple-500 text-white hover:bg-purple-600 w-full sm:w-auto">
+                     
                         <span className="text-lg md:text-base">Nuevo Punto a tratar</span>                      
+              
                       </Button>
                     )}
 
-                  {agenda.estado === 'En preparación' && (
-                    <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 px-3 rounded shadow-sm flex items-center justify-center md:justify-start w-full md:w-auto h-14">
+                  {mostrarAvisoAsistencia && (
+                    <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 px-3 rounded shadow-sm flex items-center justify-center md:justify-start w-full md:w-auto h-10">
                         <Info className="w-5 h-5 mr-2 flex-shrink-0" />
-                        <p className="font-bold text-xs">La asistencia se podrá marcar cuando inicie la sesión</p>
+                        <p className="font-bold text-xs">La asistencia se podrá marcar 15 mins. antes de iniciar</p>
                     </div>
                   )}
                 </>

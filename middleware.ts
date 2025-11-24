@@ -40,9 +40,13 @@ export async function middleware(request: NextRequest) {
         rolNombre !== "ADMINISTRADOR" &&
         rolNombre !== "SECRETARIO" &&
         rolNombre !== "INVITADO" &&
+        rolNombre !== "ALCALDE" &&
+        rolNombre !== "CONCEJAL" &&
         rolNombre !== "RRHH"
       ) {
+
         return NextResponse.redirect(new URL("/unauthorized", request.url));
+
       }
   }
   
