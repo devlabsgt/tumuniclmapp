@@ -17,12 +17,19 @@ export const metadata: Metadata = {
     shortcut: "/icon-192x192.png",
     apple: "/icon-192x192.png",
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "SIGEM -CLM-",
+  },
 };
 
 export const viewport: Viewport = {
   themeColor: "#FFFFFF",
+  width: "device-width",
+  initialScale: 1,
   maximumScale: 1,
-  userScalable: false
+  userScalable: false, 
 };
 
 const geistSans = Geist({ display: "swap", subsets: ["latin"] });
