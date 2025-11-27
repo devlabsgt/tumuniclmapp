@@ -17,7 +17,23 @@ export default function SubscribeButton({ userId }: { userId: string }) {
           const reg = await navigator.serviceWorker.getRegistration()
           if (reg) {
             const sub = await reg.pushManager.getSubscription()
-            if (sub) setIsSubscribed(true)
+            if (sub) {
+              const subJson = JSON.parse(JSON.stringify(sub))
+              
+              const { data } = await supabase
+                .from('push_subscriptions')
+                .select('id')
+                .match({ user_id: userId })
+                .contains('subscription', subJson)
+                .maybeSingle()
+
+              if (data) {
+                setIsSubscribed(true)
+              } else {
+                await sub.unsubscribe()
+                setIsSubscribed(false)
+              }
+            }
           }
         } catch (e) {}
       }

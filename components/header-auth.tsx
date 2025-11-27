@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Power, LogOut, RefreshCw } from 'lucide-react';
+import { Power, LogOut } from 'lucide-react';
 import useUserData from '@/hooks/sesion/useUserData';
 import Swal from 'sweetalert2';
 import { Typewriter } from 'react-simple-typewriter';
 import { signOutAction } from "@/app/actions";
+import AnimatedIcon from '@/components/ui/AnimatedIcon';
 
 export default function AuthButton() {
   const { userId, nombre, email, rol, cargando } = useUserData();
@@ -41,7 +42,9 @@ export default function AuthButton() {
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    window.location.reload();
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000);
   };
 
   if (cargando) {
@@ -90,15 +93,21 @@ export default function AuthButton() {
           )}
         </div>
 
-        <div className="border-l border-gray-300 pl-2">
+        <div className="border-l border-gray-300 pl-4">
           <button
             type="button"
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="flex flex-col items-center justify-center text-xs lg:text-lg text-gray-500 hover:text-black transition-colors gap-1"
+            className="flex flex-col items-center justify-center text-gray-500 hover:text-black transition-colors gap-0.5"
           >
-            <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>Actualizar</span>
+            <div className="w-10 h-10">
+              <AnimatedIcon 
+                iconKey="qzorewvq" 
+                trigger={isRefreshing ? 'loop' : 'hover'}
+                className="w-full h-full"
+              />
+            </div>
+            <span className="text-[10px] font-medium leading-none">Actualizar</span>
           </button>
         </div>
 
