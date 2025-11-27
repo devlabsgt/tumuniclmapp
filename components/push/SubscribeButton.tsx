@@ -11,31 +11,47 @@ export default function SubscribeButton({ userId }: { userId: string }) {
   const supabase = createClient()
 
   useEffect(() => {
-    const sync = async () => {
+    // Solo chequeo visual inicial, no registramos aquí para evitar conflictos
+    const checkStatus = async () => {
       if ('serviceWorker' in navigator && userId) {
         try {
-          const reg = await navigator.serviceWorker.ready
-          const sub = await reg.pushManager.getSubscription()
-          if (sub) setIsSubscribed(true)
+          const reg = await navigator.serviceWorker.getRegistration()
+          if (reg) {
+            const sub = await reg.pushManager.getSubscription()
+            if (sub) setIsSubscribed(true)
+          }
         } catch (e) {}
       }
     }
-    sync()
+    checkStatus()
   }, [userId])
 
   const handleToggle = async () => {
     setLoading(true)
     try {
-      alert("PASO 1: Iniciando proceso...")
+      alert("PASO 1: Iniciando...")
 
       if (!('serviceWorker' in navigator)) {
-        alert("ERROR: Navegador no soporta SW")
+        alert("ERROR: Tu navegador no soporta Service Workers.")
         return
       }
 
-      alert("PASO 2: Esperando Service Worker Ready...")
+      // --- CAMBIO CLAVE: FORZAR REGISTRO ---
+      alert("PASO 2: Forzando registro de SW...")
+      
+      // Intentamos registrar explícitamente antes de esperar
+      const registroExplicito = await navigator.serviceWorker.register('/sw.js')
+      
+      // Forzamos actualización por si acaso estaba atascado
+      await registroExplicito.update()
+      
+      alert("PASO 2.5: Registro enviado. Esperando activación...")
+      
+      // Ahora sí esperamos a que esté listo
       const registration = await navigator.serviceWorker.ready
-      alert("PASO 3: SW Listo. Verificando estado...")
+      
+      alert("PASO 3: SW Listo y Activo. Verificando estado...")
+      // -------------------------------------
 
       if (isSubscribed) {
         alert("PASO 4A: Iniciando desuscripción...")
@@ -66,7 +82,7 @@ export default function SubscribeButton({ userId }: { userId: string }) {
           applicationServerKey: convertedKey
         })
         
-        alert("PASO 6: Suscripción obtenida del navegador. Guardando en BD...")
+        alert("PASO 6: Suscripción obtenida. Guardando en BD...")
 
         const subscriptionJson = JSON.parse(JSON.stringify(sub))
 
