@@ -1,12 +1,13 @@
 'use client';
 
 import React from 'react';
-import { getMonth, setMonth, parseISO, isToday, differenceInCalendarDays, format } from 'date-fns';
+import { setMonth, parseISO, differenceInCalendarDays, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, CalendarClock, CheckSquare, Square, CalendarCheck, ClipboardCheck, Trash2 } from 'lucide-react';
+import { formatInTimeZone } from 'date-fns-tz'; // Usamos formatInTimeZone para mayor seguridad
 import useUserData from '@/hooks/sesion/useUserData';
 
 import { ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
@@ -35,6 +36,8 @@ interface Props {
   countProximas: number;
   countTerminadas: number;
 }
+
+const timeZone = 'America/Guatemala';
 
 const formatNombreCorto = (nombreCompleto?: string | null): string => {
   if (!nombreCompleto) return 'N/A';
@@ -175,15 +178,32 @@ export default function ListaComisiones({
                 <h3 className="text-sm font-bold text-gray-800 mb-2 capitalize sticky top-0 bg-white/80 backdrop-blur-sm py-2">{fecha}</h3>
                 <div className="space-y-2">
                   {comisionesAgrupadasPorFecha[fecha].map(comision => {
-                    const ahora = new Date();
-                    const fechaUtc = parseISO(comision.fecha_hora.replace(' ', 'T') + 'Z');
-                    const fechaComision = fechaUtc; 
-                    const diasRestantes = differenceInCalendarDays(fechaComision, ahora);
                     const integrantesCount = comision.asistentes?.length || 0;
                     const isSelected = comisionesSeleccionadas?.some(c => c.id === comision.id);
+                    
+                    // --- CORRECCIÓN CRÍTICA DE FECHAS ---
+                    
+                    // 1. Obtener la fecha "limpia" de HOY en Guatemala (sin horas/minutos)
+                    const hoyEnGuateStr = formatInTimeZone(new Date(), timeZone, 'yyyy-MM-dd');
+                    const hoyEnGuateDate = parseISO(hoyEnGuateStr);
+
+                    // 2. Obtener la fecha "limpia" de la COMISIÓN (extraer solo la parte YYYY-MM-DD del string DB)
+                    // Esto asume que lo que está en DB es la hora correcta de Guatemala
+                    const fechaComisionStr = comision.fecha_hora.split(' ')[0]; 
+                    const fechaComisionDate = parseISO(fechaComisionStr);
+
+                    // 3. Objeto Date completo solo para mostrar la hora en el UI (formateo visual)
+                    const fechaHoraVisual = parseISO(comision.fecha_hora.replace(' ', 'T'));
+
+                    // 4. Calcular diferencia de días usando las fechas limpias (medianoche vs medianoche)
+                    const diasRestantes = differenceInCalendarDays(fechaComisionDate, hoyEnGuateDate);
+                    
+                    const esHoy = diasRestantes === 0;
+
                     let textoDias = '';
                     let colorDias = 'text-gray-500';
-                    if (isToday(fechaComision)) {
+                    
+                    if (esHoy) {
                       textoDias = 'Hoy';
                       colorDias = 'text-indigo-600 font-semibold';
                     } else if (diasRestantes === 1) {
@@ -304,7 +324,7 @@ export default function ListaComisiones({
                             className={`w-full md:w-2/3 pr-4`}
                           >
                             <span className="font-semibold text-gray-900 text-xs md:text-lg break-words">{comision.titulo}</span>
-                            <span className="text-xs text-gray-500 block">{format(fechaComision, "h:mm a", { locale: es })}</span>
+                            <span className="text-xs text-gray-500 block">{format(fechaHoraVisual, "h:mm a", { locale: es })}</span>
                           </div>
                           
                           <div className="w-full md:w-1/3 flex flex-col items-start md:items-end text-xs mt-2 md:mt-0 h-full">

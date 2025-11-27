@@ -82,6 +82,25 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
     }
   }, [comisionAEditar, isOpen, reset]);
 
+  const sendPushNotification = async (titulo: string, mensaje: string, userIds: string[]) => {
+    try {
+      if (userIds.length === 0) return;
+
+      await fetch('/api/push/broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: titulo,
+          message: mensaje,
+          url: '/protected/comisiones',
+          targetIds: userIds
+        })
+      });
+    } catch (error) {
+      console.error('Error enviando notificación push:', error);
+    }
+  };
+
   const onSubmit = async (formData: ComisionFormData) => {
     const { encargadoId } = formData;
     if (!encargadoId) {
@@ -103,7 +122,8 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
     const minute = parseInt(formData.minuto, 10);
 
     const esAdminSuperior = rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO';
-
+    
+const destinatariosNotificacion = Array.from(new Set([formData.encargadoId, ...(formData.userIds || [])]));
     try {
       if (comisionAEditar) {
         const fecha = fechasSeleccionadas[0];
@@ -134,6 +154,12 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.error || 'Error al guardar la comisión.');
         }
+
+        sendPushNotification(
+          'Comisión Actualizada', 
+          `Se han realizado cambios en la comisión: "${formData.titulo}". Haz click para ver los detalles.`,
+          destinatariosNotificacion
+        );
         
         if (esjefe) {
           const titulo = 'Comisión Editada con Éxito';
@@ -184,6 +210,12 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
           const errorData = await fallidas[0].json().catch(() => ({}));
           throw new Error(errorData.error || `Error al crear ${fallidas.length} de ${responses.length} comisiones.`);
         }
+
+        sendPushNotification(
+          'Nueva Comisión Asignada', 
+          `Se te ha asignado a la nueva comisión: "${formData.titulo}". Haz click para ver los detalles.`,
+          destinatariosNotificacion
+        );
         
         const numComisiones = fechasSeleccionadas.length;
         const plural = numComisiones > 1;
@@ -244,7 +276,7 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
               <FormProvider {...methods}>
                 <form onSubmit={handleSubmit(onSubmit)} className="flex-grow flex flex-col gap-6 pb-4">
                   <div className="flex flex-col md:flex-row gap-6">
-                    <div className="flex flex-col gap-6 md:w-1D/2">
+                    <div className="flex flex-col gap-6 md:w-1/2">
                       <div>
                         <Input {...register("titulo")} placeholder="Título de la Comisión" className={errors.titulo ? 'border-red-500' : ''} />
                         {errors.titulo && <p className="text-sm text-red-500 mt-1">{errors.titulo.message}</p>}

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Users, Settings, FileText, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
+import AnimatedIcon from '@/components/ui/AnimatedIcon';
 
 interface ConfigProps {
   onShowHorario: () => void;
@@ -13,6 +14,7 @@ interface ConfigProps {
 export default function Config({ onShowHorario }: ConfigProps) {
   const router = useRouter();
   const [mostrarOpciones, setMostrarOpciones] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const configRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,9 +31,16 @@ export default function Config({ onShowHorario }: ConfigProps) {
     <div className="relative md:col-span-2 order-3 md:order-1" ref={configRef}>
       <Button 
         onClick={() => setMostrarOpciones(p => !p)} 
-        className="w-full h-14 text-base md:text-lg font-bold bg-blue-100 text-blue-800 hover:bg-blue-200 shadow-sm border border-blue-200"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className="w-full h-14 text-base md:text-lg font-bold bg-slate-100 text-slate-800 hover:bg-slate-200 shadow-sm border border-slate-200 gap-2"
       >
-        Configuraciones
+        <AnimatedIcon 
+          iconKey="byicyhmi" 
+          trigger={isHovered ? 'loop' : undefined} 
+          className="w-7 h-7"
+        />
+        Configs.
       </Button>
       {mostrarOpciones && (
         <motion.div 

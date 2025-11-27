@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { format, setMonth, parseISO, isToday, differenceInCalendarDays } from 'date-fns';
+import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, CalendarCheck, Users, CalendarClock } from 'lucide-react';
-import { toZonedTime, format as formatInTimeZone } from 'date-fns-tz';
+import { formatInTimeZone } from 'date-fns-tz';
 
 import VerComision from '../VerComision';
 import AsistenciaComision from './AsistenciaComision';
@@ -157,12 +157,18 @@ export default function ListaMisComisiones({
                   const usuariosDeLaComision = (comision.asistentes?.map(a => ({ id: a.id, nombre: a.nombre })) || []) as Usuario[];
                   const isOpen = openComisionId === comision.id;
                   
-                  const fechaHora = parseISO(comision.fecha_hora.replace(' ', 'T'));
-                  const fechaComision = toZonedTime(fechaHora, timeZone);
-                  const esHoy = isToday(fechaComision);
+                  // LÓGICA DE FECHAS LIMPIAS (Ignorar horas)
+                  const hoyEnGuateStr = formatInTimeZone(new Date(), timeZone, 'yyyy-MM-dd');
+                  const hoyEnGuateDate = parseISO(hoyEnGuateStr);
 
-                  const ahora = new Date();
-                  const diasRestantes = differenceInCalendarDays(fechaComision, ahora);
+                  const fechaComisionStr = comision.fecha_hora.split(' ')[0]; 
+                  const fechaComisionDate = parseISO(fechaComisionStr);
+                  
+                  const fechaHoraVisual = parseISO(comision.fecha_hora.replace(' ', 'T'));
+
+                  const diasRestantes = differenceInCalendarDays(fechaComisionDate, hoyEnGuateDate);
+                  const esHoy = diasRestantes === 0;
+
                   const integrantesCount = comision.asistentes?.length || 0;
 
                   let textoDias = '';
@@ -220,7 +226,7 @@ export default function ListaMisComisiones({
                                 </div>
                               </div>
                               <div className="flex items-center justify-between gap-2 pr-2 mt-2">
-                                <p className="text-xs  text-gray-700 whitespace-nowrap capitalize">{format(fechaHora, 'h:mm a', { locale: es })}</p>
+                                <p className="text-xs  text-gray-700 whitespace-nowrap capitalize">{format(fechaHoraVisual, 'h:mm a', { locale: es })}</p>
                                 <div className={`flex items-center gap-1 ${colorDias}`}>
                                   <CalendarClock size={12} />
                                   <span>{textoDias}</span>
