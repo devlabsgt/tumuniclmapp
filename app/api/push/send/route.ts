@@ -1,4 +1,4 @@
-import { createClient } from '@/utils/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import webPush from 'web-push'
 
@@ -16,12 +16,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Faltan parametros' }, { status: 400 })
     }
 
-    const supabase = await createClient()
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
-    const { data: subscriptions } = await supabase
+    const { data: subscriptions, error } = await supabase
       .from('push_subscriptions')
       .select('id, subscription')
       .eq('user_id', userId)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
     if (!subscriptions || subscriptions.length === 0) {
       return NextResponse.json({ message: 'Usuario sin dispositivos' }, { status: 200 })
