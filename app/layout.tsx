@@ -65,9 +65,6 @@ export default async function RootLayout({
               </nav>
 
               <main className="flex flex-col gap-5 pt-2 flex-grow w-full mx-auto">
-                <div style={{ padding: '10px', backgroundColor: 'black', color: 'white', fontSize: '8px' }}>
-                  VAPID Key Check: {process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ? '✔ Loaded' : '❌ Failed'}
-                </div>
                 {children}
               </main>
 

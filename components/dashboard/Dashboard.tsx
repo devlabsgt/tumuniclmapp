@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import useUserData from '@/hooks/sesion/useUserData';
 
+import BroadcastButton from '@/components/push/BroadcastButton';
 import Asistencia from '@/components/asistencia/Asistencia';
 import AnimatedIcon from '@/components/ui/AnimatedIcon';
 import MisComisiones from '@/components/comisiones/asistencia/MisComisiones';
@@ -132,6 +133,7 @@ const ModuleAccordion = ({
 
   return (
     <div className="border rounded-xl bg-gray-50 dark:bg-gray-900 overflow-hidden mb-4 shadow-sm w-full">
+      
       <button
         onClick={() => setIsOpen(!isOpen)}
         onMouseEnter={() => setHover(true)}
@@ -298,6 +300,7 @@ export default function Dashboard() {
         onMouseEnter={() => setHoveredModule(modulo.id)}
         onMouseLeave={() => setHoveredModule(null)}
       >
+        
         {!isDummy && (
           <Button
             variant="ghost"
@@ -337,8 +340,12 @@ export default function Dashboard() {
 
   return (
     <section className="w-full mx-auto px-4 md:px-8 pt-2">
-
-      <div className="w-full max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-8 gap-4 mb-6">
+    {rol === 'SUPER' && (
+              <div className="col-span-1 sm:col-span-8">
+                <BroadcastButton />
+              </div>
+            )}
+          <div className="w-full max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-8 gap-4 mb-6">
 
         {(permisos.includes('CONFIGURACION') && rol === 'SUPER') && (
           <div
