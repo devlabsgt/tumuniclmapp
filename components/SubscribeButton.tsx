@@ -9,7 +9,7 @@ export default function SubscribeButton({ userId }: { userId: string }) {
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  const supabase = createClient()
+  const supabase = createClient() 
 
   useEffect(() => {
     const syncSubscription = async () => {
@@ -26,12 +26,14 @@ export default function SubscribeButton({ userId }: { userId: string }) {
             
             const subscriptionJson = JSON.parse(JSON.stringify(subscription))
             
-            await supabase.from('push_subscriptions').upsert({
-              user_id: userId,
-              subscription: subscriptionJson,
-              device_agent: navigator.userAgent
-            }, { 
-              onConflict: 'user_id, subscription' 
+            await fetch('/api/push/save-subscription', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: userId,
+                subscription: subscriptionJson,
+                userAgent: navigator.userAgent
+              })
             })
           }
         } catch (err) {
@@ -56,10 +58,14 @@ export default function SubscribeButton({ userId }: { userId: string }) {
         if (subscription) {
           const subscriptionJson = JSON.parse(JSON.stringify(subscription))
           
-          await supabase.from('push_subscriptions')
-            .delete()
-            .match({ user_id: userId })
-            .contains('subscription', subscriptionJson)
+          await fetch('/api/push/save-subscription', {
+            method: 'DELETE', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: userId,
+              subscription: subscriptionJson,
+            })
+          })
 
           await subscription.unsubscribe()
           setIsSubscribed(false)
@@ -74,19 +80,27 @@ export default function SubscribeButton({ userId }: { userId: string }) {
 
         const subscriptionJson = JSON.parse(JSON.stringify(sub))
 
-        const { error } = await supabase.from('push_subscriptions').upsert({
-          user_id: userId,
-          subscription: subscriptionJson,
-          device_agent: navigator.userAgent
-        }, { onConflict: 'user_id, subscription' })
+        const response = await fetch('/api/push/save-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: userId,
+            subscription: subscriptionJson,
+            userAgent: navigator.userAgent
+          })
+        })
 
-        if (error) throw error
+        if (!response.ok) {
+          const errorData = await response.json()
+          console.error('Error al guardar via API:', errorData)
+          throw new Error('API Save Failed')
+        }
 
         setIsSubscribed(true)
       }
     } catch (error) {
       console.error(error)
-      alert("Error al cambiar el estado de la suscripción.")
+      alert("Error crítico. Revisa la consola.")
     } finally {
       setLoading(false)
     }
@@ -106,18 +120,14 @@ export default function SubscribeButton({ userId }: { userId: string }) {
       {loading ? (
         <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
       ) : isSubscribed ? (
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Bell className="h-7 w-7 text-yellow-500 fill-yellow-500" />
-            <div className="absolute -top-1 -right-1 bg-green-500 rounded-full p-0.5 border-2 border-white">
-              <Check className="h-2.5 w-2.5 text-white stroke-[4]" />
-            </div>
+        <div className="relative">
+          <Bell className="h-7 w-7 text-yellow-500 fill-yellow-500" />
+          <div className="absolute -top-1 -right-1 bg-green-500 rounded-full p-0.5 border-2 border-white">
+            <Check className="h-2.5 w-2.5 text-white stroke-[4]" />
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-2">
-          <BellOff className="h-7 w-7" />
-        </div>
+        <BellOff className="h-7 w-7 text-gray-400" />
       )}
     </button>
   )
