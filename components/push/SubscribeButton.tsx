@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { urlBase64ToUint8Array } from '@/app/utils/vapid'
-import { Bell, BellOff, Check, Loader2 } from 'lucide-react'
+import { Bell, BellOff, Loader2, Check } from 'lucide-react'
 
 export default function SubscribeButton({ userId }: { userId: string }) {
   const [isSubscribed, setIsSubscribed] = useState(false)
@@ -11,7 +11,7 @@ export default function SubscribeButton({ userId }: { userId: string }) {
   const supabase = createClient()
 
   useEffect(() => {
-    const checkAndSyncSubscription = async () => {
+    const syncSubscription = async () => {
       if ('serviceWorker' in navigator && userId) {
         try {
           const reg = await navigator.serviceWorker.register('/sw.js')
@@ -25,7 +25,7 @@ export default function SubscribeButton({ userId }: { userId: string }) {
             
             const subscriptionJson = JSON.parse(JSON.stringify(subscription))
             
-            // Intenta guardar, RLS ya no debería bloquear
+            // Intenta guardar, si falla, es un error de red o de cliente
             await supabase.from('push_subscriptions').upsert({
               user_id: userId,
               subscription: subscriptionJson,
@@ -40,11 +40,14 @@ export default function SubscribeButton({ userId }: { userId: string }) {
       }
     }
 
-    checkAndSyncSubscription()
+    syncSubscription()
   }, [userId])
 
   const handleToggle = async () => {
-    if (!userId) return
+    if (!userId) {
+        alert("Error: ID de usuario no disponible.")
+        return
+    }
     setLoading(true)
 
     try {
@@ -56,10 +59,12 @@ export default function SubscribeButton({ userId }: { userId: string }) {
         if (subscription) {
           const subscriptionJson = JSON.parse(JSON.stringify(subscription))
           
-          await supabase.from('push_subscriptions')
+          const { error } = await supabase.from('push_subscriptions')
             .delete()
             .match({ user_id: userId })
             .contains('subscription', subscriptionJson)
+            
+          if (error) throw new Error(error.message)
 
           await subscription.unsubscribe()
           setIsSubscribed(false)
@@ -74,19 +79,19 @@ export default function SubscribeButton({ userId }: { userId: string }) {
 
         const subscriptionJson = JSON.parse(JSON.stringify(sub))
 
-        // Guardar con RLS temporalmente abierto
         const { error } = await supabase.from('push_subscriptions').upsert({
           user_id: userId,
           subscription: subscriptionJson,
           device_agent: navigator.userAgent
         }, { onConflict: 'user_id, subscription' })
 
-        if (error) throw error
+        if (error) throw new Error(error.message)
 
         setIsSubscribed(true)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error)
+      alert(`Fallo Crítico de Conexión. Error: ${error.message || error.toString()}. Verifique la URL de Supabase y el estado de la red.`)
     } finally {
       setLoading(false)
     }
