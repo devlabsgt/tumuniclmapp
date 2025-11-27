@@ -11,8 +11,7 @@ export default function SubscribeButton({ userId }: { userId: string }) {
   const supabase = createClient()
 
   useEffect(() => {
-    // Solo chequeo visual inicial, no registramos aquí para evitar conflictos
-    const checkStatus = async () => {
+    const sync = async () => {
       if ('serviceWorker' in navigator && userId) {
         try {
           const reg = await navigator.serviceWorker.getRegistration()
@@ -23,7 +22,7 @@ export default function SubscribeButton({ userId }: { userId: string }) {
         } catch (e) {}
       }
     }
-    checkStatus()
+    sync()
   }, [userId])
 
   const handleToggle = async () => {
@@ -32,29 +31,31 @@ export default function SubscribeButton({ userId }: { userId: string }) {
       alert("PASO 1: Iniciando...")
 
       if (!('serviceWorker' in navigator)) {
-        alert("ERROR: Tu navegador no soporta Service Workers.")
+        alert("ERROR: Navegador no soporta SW")
         return
       }
 
-      // --- CAMBIO CLAVE: FORZAR REGISTRO ---
-      alert("PASO 2: Forzando registro de SW...")
+      alert("PASO 2: Buscando registro existente...")
       
-      // Intentamos registrar explícitamente antes de esperar
-      const registroExplicito = await navigator.serviceWorker.register('/sw.js')
+      let registration = await navigator.serviceWorker.getRegistration()
+
+      if (!registration) {
+        alert("PASO 2.5: No existe. Registrando /sw.js ...")
+        await navigator.serviceWorker.register('/sw.js')
+      }
+
+      alert("PASO 3: Esperando activación (Ready)...")
       
-      // Forzamos actualización por si acaso estaba atascado
-      await registroExplicito.update()
+      registration = await navigator.serviceWorker.ready
       
-      alert("PASO 2.5: Registro enviado. Esperando activación...")
+      if (!registration) {
+        throw new Error("No se pudo obtener el Service Worker activo.")
+      }
       
-      // Ahora sí esperamos a que esté listo
-      const registration = await navigator.serviceWorker.ready
-      
-      alert("PASO 3: SW Listo y Activo. Verificando estado...")
-      // -------------------------------------
+      alert("PASO 4: SW Activo. Verificando estado...")
 
       if (isSubscribed) {
-        alert("PASO 4A: Iniciando desuscripción...")
+        alert("PASO 5A: Desuscribiendo...")
         const subscription = await registration.pushManager.getSubscription()
         if (subscription) {
           const subscriptionJson = JSON.parse(JSON.stringify(subscription))
@@ -69,20 +70,20 @@ export default function SubscribeButton({ userId }: { userId: string }) {
         setIsSubscribed(false)
         alert("EXITO: Desuscrito correctamente")
       } else {
-        alert("PASO 4B: Iniciando suscripción...")
+        alert("PASO 5B: Suscribiendo...")
         
         const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-        if (!vapidKey) throw new Error("Falta la VAPID KEY en variables de entorno")
+        if (!vapidKey) throw new Error("Falta la VAPID KEY")
         
         const convertedKey = urlBase64ToUint8Array(vapidKey)
         
-        alert("PASO 5: Llamando a PushManager.subscribe...")
+        alert("PASO 6: Solicitando permiso PushManager...")
         const sub = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: convertedKey
         })
         
-        alert("PASO 6: Suscripción obtenida. Guardando en BD...")
+        alert("PASO 7: Guardando en Supabase...")
 
         const subscriptionJson = JSON.parse(JSON.stringify(sub))
 
@@ -98,7 +99,7 @@ export default function SubscribeButton({ userId }: { userId: string }) {
         }
 
         setIsSubscribed(true)
-        alert("EXITO FINAL: Guardado en Base de Datos")
+        alert("EXITO FINAL: Guardado")
       }
     } catch (error: any) {
       alert("ERROR FATAL: " + (error.message || error.toString()))
