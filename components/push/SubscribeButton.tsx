@@ -3,16 +3,15 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { urlBase64ToUint8Array } from '@/app/utils/vapid'
-import { Bell, BellOff, Loader2, Check } from 'lucide-react'
+import { Bell, BellOff, Check, Loader2 } from 'lucide-react'
 
 export default function SubscribeButton({ userId }: { userId: string }) {
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [loading, setLoading] = useState(false)
-
-  const supabase = createClient() 
+  const supabase = createClient()
 
   useEffect(() => {
-    const syncSubscription = async () => {
+    const checkAndSyncSubscription = async () => {
       if ('serviceWorker' in navigator && userId) {
         try {
           const reg = await navigator.serviceWorker.register('/sw.js')
@@ -26,14 +25,13 @@ export default function SubscribeButton({ userId }: { userId: string }) {
             
             const subscriptionJson = JSON.parse(JSON.stringify(subscription))
             
-            await fetch('/api/push/save-subscription', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                userId: userId,
-                subscription: subscriptionJson,
-                userAgent: navigator.userAgent
-              })
+            // Intenta guardar, RLS ya no debería bloquear
+            await supabase.from('push_subscriptions').upsert({
+              user_id: userId,
+              subscription: subscriptionJson,
+              device_agent: navigator.userAgent
+            }, { 
+              onConflict: 'user_id, subscription' 
             })
           }
         } catch (err) {
@@ -42,7 +40,7 @@ export default function SubscribeButton({ userId }: { userId: string }) {
       }
     }
 
-    syncSubscription()
+    checkAndSyncSubscription()
   }, [userId])
 
   const handleToggle = async () => {
@@ -58,14 +56,10 @@ export default function SubscribeButton({ userId }: { userId: string }) {
         if (subscription) {
           const subscriptionJson = JSON.parse(JSON.stringify(subscription))
           
-          await fetch('/api/push/save-subscription', {
-            method: 'DELETE', 
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userId: userId,
-              subscription: subscriptionJson,
-            })
-          })
+          await supabase.from('push_subscriptions')
+            .delete()
+            .match({ user_id: userId })
+            .contains('subscription', subscriptionJson)
 
           await subscription.unsubscribe()
           setIsSubscribed(false)
@@ -80,27 +74,19 @@ export default function SubscribeButton({ userId }: { userId: string }) {
 
         const subscriptionJson = JSON.parse(JSON.stringify(sub))
 
-        const response = await fetch('/api/push/save-subscription', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: userId,
-            subscription: subscriptionJson,
-            userAgent: navigator.userAgent
-          })
-        })
+        // Guardar con RLS temporalmente abierto
+        const { error } = await supabase.from('push_subscriptions').upsert({
+          user_id: userId,
+          subscription: subscriptionJson,
+          device_agent: navigator.userAgent
+        }, { onConflict: 'user_id, subscription' })
 
-        if (!response.ok) {
-          const errorData = await response.json()
-          console.error('Error al guardar via API:', errorData)
-          throw new Error('API Save Failed')
-        }
+        if (error) throw error
 
         setIsSubscribed(true)
       }
     } catch (error) {
       console.error(error)
-      alert("Error crítico. Revisa la consola.")
     } finally {
       setLoading(false)
     }

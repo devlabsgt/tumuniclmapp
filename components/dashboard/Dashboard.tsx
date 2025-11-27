@@ -14,7 +14,7 @@ import AnimatedIcon from '@/components/ui/AnimatedIcon';
 import MisComisiones from '@/components/comisiones/asistencia/MisComisiones';
 import HorarioSistema from '@/components/admin/sistema/HorarioSistema';
 import TarjetaEmpleado from '@/components/admin/dependencias/TarjetaEmpleado';
-import SubscribeButton from '@/components/SubscribeButton';
+import SubscribeButton from '@/components/push/SubscribeButton';
 
 const TODOS_LOS_MODULOS = [
   {
