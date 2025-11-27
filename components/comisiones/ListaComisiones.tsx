@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, CalendarClock, CheckSquare, Square, CalendarCheck, ClipboardCheck, Trash2 } from 'lucide-react';
-import { formatInTimeZone } from 'date-fns-tz'; // Usamos formatInTimeZone para mayor seguridad
+import { formatInTimeZone } from 'date-fns-tz';
 import useUserData from '@/hooks/sesion/useUserData';
 
 import { ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
@@ -181,25 +181,24 @@ export default function ListaComisiones({
                     const integrantesCount = comision.asistentes?.length || 0;
                     const isSelected = comisionesSeleccionadas?.some(c => c.id === comision.id);
                     
-                    // --- CORRECCIÓN CRÍTICA DE FECHAS ---
+                    // --- CORRECCIÓN LÓGICA DE FECHAS ---
                     
-                    // 1. Obtener la fecha "limpia" de HOY en Guatemala (sin horas/minutos)
-                    const hoyEnGuateStr = formatInTimeZone(new Date(), timeZone, 'yyyy-MM-dd');
-                    const hoyEnGuateDate = parseISO(hoyEnGuateStr);
+                    // 1. Obtener la fecha HOY en Guate como string "YYYY-MM-DD"
+                    const hoyGuateStr = formatInTimeZone(new Date(), timeZone, 'yyyy-MM-dd');
+                    
+                    // 2. Obtener fecha de la comisión (string limpio)
+                    const fechaComisionStr = comision.fecha_hora.split(' ')[0];
 
-                    // 2. Obtener la fecha "limpia" de la COMISIÓN (extraer solo la parte YYYY-MM-DD del string DB)
-                    // Esto asume que lo que está en DB es la hora correcta de Guatemala
-                    const fechaComisionStr = comision.fecha_hora.split(' ')[0]; 
-                    const fechaComisionDate = parseISO(fechaComisionStr);
+                    // 3. Comparación de strings
+                    const esHoy = fechaComisionStr === hoyGuateStr;
 
-                    // 3. Objeto Date completo solo para mostrar la hora en el UI (formateo visual)
+                    // 4. Calculo de dias restantes con fechas limpias (sin horas)
+                    const dateHoyClean = parseISO(hoyGuateStr);
+                    const dateComisionClean = parseISO(fechaComisionStr);
+                    const diasRestantes = differenceInCalendarDays(dateComisionClean, dateHoyClean);
+
                     const fechaHoraVisual = parseISO(comision.fecha_hora.replace(' ', 'T'));
-
-                    // 4. Calcular diferencia de días usando las fechas limpias (medianoche vs medianoche)
-                    const diasRestantes = differenceInCalendarDays(fechaComisionDate, hoyEnGuateDate);
                     
-                    const esHoy = diasRestantes === 0;
-
                     let textoDias = '';
                     let colorDias = 'text-gray-500';
                     

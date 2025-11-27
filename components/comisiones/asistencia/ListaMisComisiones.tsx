@@ -157,18 +157,25 @@ export default function ListaMisComisiones({
                   const usuariosDeLaComision = (comision.asistentes?.map(a => ({ id: a.id, nombre: a.nombre })) || []) as Usuario[];
                   const isOpen = openComisionId === comision.id;
                   
-                  // LÓGICA DE FECHAS LIMPIAS (Ignorar horas)
-                  const hoyEnGuateStr = formatInTimeZone(new Date(), timeZone, 'yyyy-MM-dd');
-                  const hoyEnGuateDate = parseISO(hoyEnGuateStr);
-
-                  const fechaComisionStr = comision.fecha_hora.split(' ')[0]; 
-                  const fechaComisionDate = parseISO(fechaComisionStr);
+                  // --- SOLUCIÓN: COMPARACIÓN ESTRICTA DE STRINGS ---
                   
+                  // 1. Obtener la fecha HOY en Guate como string "YYYY-MM-DD"
+                  const hoyGuateStr = formatInTimeZone(new Date(), timeZone, 'yyyy-MM-dd');
+                  
+                  // 2. Obtener fecha de la comisión (ignorando la hora por completo)
+                  // Asume formato DB "YYYY-MM-DD HH:mm:ss"
+                  const fechaComisionStr = comision.fecha_hora.split(' ')[0];
+
+                  // 3. Comparación de strings (Infalible)
+                  const esHoy = fechaComisionStr === hoyGuateStr;
+
+                  // 4. Calculo de dias restantes usando fechas parseadas SIN hora (medianoche)
+                  // Esto evita que 11pm ayer se confunda con hoy
+                  const dateHoyClean = parseISO(hoyGuateStr);
+                  const dateComisionClean = parseISO(fechaComisionStr);
+                  const diasRestantes = differenceInCalendarDays(dateComisionClean, dateHoyClean);
+
                   const fechaHoraVisual = parseISO(comision.fecha_hora.replace(' ', 'T'));
-
-                  const diasRestantes = differenceInCalendarDays(fechaComisionDate, hoyEnGuateDate);
-                  const esHoy = diasRestantes === 0;
-
                   const integrantesCount = comision.asistentes?.length || 0;
 
                   let textoDias = '';
