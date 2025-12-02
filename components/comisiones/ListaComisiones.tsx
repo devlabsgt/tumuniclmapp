@@ -1,12 +1,12 @@
 'use client';
 
-import React from 'react';
-import { setMonth, parseISO, differenceInCalendarDays, format } from 'date-fns';
+import React, { useState } from 'react';
+import { setMonth, parseISO, differenceInCalendarDays, format, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, CalendarClock, CheckSquare, Square, CalendarCheck, ClipboardCheck, Trash2 } from 'lucide-react';
+import { Users, CalendarClock, CheckSquare, Square, CalendarCheck, ClipboardCheck, Trash2, ArrowUp } from 'lucide-react';
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import useUserData from '@/hooks/sesion/useUserData';
 
@@ -66,6 +66,9 @@ export default function ListaComisiones({
   
   const { rol: rolActual, esjefe } = useUserData();
   
+  // true = Más nuevas primero (Descendente), false = Más viejas primero (Ascendente)
+  const [ordenDescendente, setOrdenDescendente] = useState(true);
+  
   const hasAdminPermissions = rolActual === 'SUPER' || rolActual === 'RRHH' || rolActual === 'SECRETARIO' || esjefe;
   const canApprove = rolActual === 'SUPER' || rolActual === 'RRHH' || rolActual === 'SECRETARIO';
 
@@ -74,9 +77,49 @@ export default function ListaComisiones({
     (rolActual === 'SUPER' && vista === 'terminadas');
 
   const getFechaGuateStr = (fechaIso?: string | Date) => {
-    const fecha = fechaIso ? new Date(fechaIso) : new Date();
+    if (!fechaIso) return formatInTimeZone(new Date(), TIMEZONE_GUATE, 'yyyy-MM-dd');
+
+    let fecha: Date;
+    if (typeof fechaIso === 'string') {
+        const cleanedDate = fechaIso.replace(' ', 'T');
+        fecha = parseISO(cleanedDate);
+    } else {
+        fecha = fechaIso;
+    }
+
+    if (!isValid(fecha)) {
+      return formatInTimeZone(new Date(), TIMEZONE_GUATE, 'yyyy-MM-dd');
+    }
+    
     return formatInTimeZone(fecha, TIMEZONE_GUATE, 'yyyy-MM-dd');
   };
+
+  // Lógica de ordenamiento corregida y blindada
+  const fechasOrdenadas = Object.keys(comisionesAgrupadasPorFecha).sort((a, b) => {
+    // Obtenemos el array de comisiones para cada fecha
+    const grupoA = comisionesAgrupadasPorFecha[a];
+    const grupoB = comisionesAgrupadasPorFecha[b];
+
+    // Obtenemos el primer elemento de cada grupo para sacar la fecha real
+    const itemA = grupoA && grupoA.length > 0 ? grupoA[0] : null;
+    const itemB = grupoB && grupoB.length > 0 ? grupoB[0] : null;
+
+    if (!itemA || !itemB) return 0;
+
+    // Parseamos usando parseISO para garantizar compatibilidad total
+    const fechaStrA = itemA.fecha_hora.includes('T') ? itemA.fecha_hora : itemA.fecha_hora.replace(' ', 'T');
+    const fechaStrB = itemB.fecha_hora.includes('T') ? itemB.fecha_hora : itemB.fecha_hora.replace(' ', 'T');
+
+    const dateA = parseISO(fechaStrA);
+    const dateB = parseISO(fechaStrB);
+    
+    // Convertimos a timestamp para la resta matemática
+    const timeA = isValid(dateA) ? dateA.getTime() : 0;
+    const timeB = isValid(dateB) ? dateB.getTime() : 0;
+
+    // Si ordenDescendente es true: (Más nuevo - Más viejo) -> Positivo (B va antes)
+    return ordenDescendente ? timeB - timeA : timeA - timeB;
+  });
 
   return (
     <>
@@ -140,16 +183,32 @@ export default function ListaComisiones({
       <div className="border-t pt-4">
         <div className="border-t pt-4">
           <div className="flex items-center justify-between mb-4">
-            {vista !== 'pendientes' && (
+            <div className="flex items-center gap-2">
+              {vista !== 'pendientes' && (
+                <Button
+                  onClick={onSeleccionarTodas}
+                  variant="outline"
+                  className="flex items-center gap-2 text-xs md:text-sm"
+                >
+                  {(comisionesSeleccionadas?.length || 0) === (comisionesFiltradas?.length || 0) ? <CheckSquare size={16} /> : <Square size={16} />}
+                  <span>{(comisionesSeleccionadas?.length || 0) === (comisionesFiltradas?.length || 0) ? 'Deseleccionar todos' : 'Seleccionar todos'}</span>
+                </Button>
+              )}
+              
               <Button
-                onClick={onSeleccionarTodas}
-                variant="outline"
-                className="flex items-center gap-2 text-xs md:text-sm"
+                variant="ghost"
+                size="sm"
+                onClick={() => setOrdenDescendente(!ordenDescendente)}
+                title={ordenDescendente ? "Orden: Más nuevas primero" : "Orden: Más antiguas primero"}
+                className="flex items-center gap-2 hover:bg-gray-100 text-gray-600"
               >
-                {(comisionesSeleccionadas?.length || 0) === (comisionesFiltradas?.length || 0) ? <CheckSquare size={16} /> : <Square size={16} />}
-                <span>{(comisionesSeleccionadas?.length || 0) === (comisionesFiltradas?.length || 0) ? 'Deseleccionar todos' : 'Seleccionar todos'}</span>
+                <span className="font-medium text-sm">Ordenar</span>
+                <ArrowUp 
+                  size={18} 
+                  className={`transition-transform duration-300 ${ordenDescendente ? 'rotate-180' : 'rotate-0'}`} 
+                />
               </Button>
-            )}
+            </div>
             
             <div className={`text-xs ml-5 font-semibold ${vista === 'pendientes' ? 'text-blue-600' : 'text-purple-600'}`}>
               <p>
@@ -163,7 +222,7 @@ export default function ListaComisiones({
 
         {comisionesFiltradas && comisionesFiltradas.length > 0 ? (
           <div className="space-y-4">
-            {Object.keys(comisionesAgrupadasPorFecha).map(fecha => {
+            {fechasOrdenadas.map(fecha => {
               
               if (vista === 'hoy') {
                 const primerItem = comisionesAgrupadasPorFecha[fecha][0];
@@ -186,23 +245,20 @@ export default function ListaComisiones({
                     
                     const rawDate = comision.fecha_hora.includes('T') ? comision.fecha_hora : comision.fecha_hora.replace(' ', 'T');
                     
-                    const fechaComisionStr = getFechaGuateStr(rawDate);
-                    const hoyStr = getFechaGuateStr();
-                    
-                    const esHoy = fechaComisionStr === hoyStr;
-                    
                     const dateComision = parseISO(rawDate);
                     const dateHoy = toZonedTime(new Date(), TIMEZONE_GUATE);
                     const dateComisionZoned = toZonedTime(dateComision, TIMEZONE_GUATE);
                     
                     const diasRestantes = differenceInCalendarDays(dateComisionZoned, dateHoy);
                     
-                    const fechaVisual = formatInTimeZone(dateComision, TIMEZONE_GUATE, 'h:mm a', { locale: es });
+                    const fechaVisual = isValid(dateComision) 
+                        ? formatInTimeZone(dateComision, TIMEZONE_GUATE, 'h:mm a', { locale: es })
+                        : 'Hora inválida';
 
                     let textoDias = '';
                     let colorDias = 'text-gray-500';
                     
-                    if (esHoy) {
+                    if (diasRestantes === 0) {
                       textoDias = 'Hoy';
                       colorDias = 'text-indigo-600 font-semibold';
                     } else if (diasRestantes === 1) {
