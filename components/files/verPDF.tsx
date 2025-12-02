@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Loader2, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Columns, Smartphone, ExternalLink } from 'lucide-react'
 import { Document, Page, pdfjs } from 'react-pdf'
@@ -23,37 +23,41 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
   const [loadingUrl, setLoadingUrl] = useState(true)
   const [numPages, setNumPages] = useState<number>(0)
   const [pageNumber, setPageNumber] = useState<number>(1)
+  
   const [scale, setScale] = useState<number>(1.0)
   const [isDualView, setIsDualView] = useState<boolean>(false)
+  const [canDualView, setCanDualView] = useState<boolean>(false)
   
+  const [containerWidth, setContainerWidth] = useState<number>(0)
+  
+  const containerRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
 
   useEffect(() => {
-    const calculateLayout = () => {
-      const windowWidth = window.innerWidth
-      
-      if (windowWidth < 1024) {
-        setIsDualView(false)
-        return
-      }
+    if (!containerRef.current) return
 
-      const basePageWidth = 600 
-      const gapAndPadding = 64 
-      const requiredWidthForDual = (basePageWidth * scale * 2) + gapAndPadding
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const width = containerRef.current.clientWidth
+        setContainerWidth(width)
 
-      if (windowWidth < requiredWidthForDual) {
-        setIsDualView(false)
-      } else {
-        setIsDualView(true)
+        const isBigScreen = width >= 768
+        setCanDualView(isBigScreen)
+
+        if (!isBigScreen) {
+          setIsDualView(false)
+        } else {
+          if (scale === 1.0 && !isDualView) setIsDualView(true) 
+        }
       }
     }
 
-    if (typeof window !== 'undefined') {
-      calculateLayout()
-      window.addEventListener('resize', calculateLayout)
-    }
-    return () => window.removeEventListener('resize', calculateLayout)
-  }, [scale])
+    updateDimensions()
+    const observer = new ResizeObserver(updateDimensions)
+    observer.observe(containerRef.current)
+
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     if (isOpen && filePath) {
@@ -81,6 +85,30 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
     }
   }, [isOpen, filePath, bucketName])
 
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault()
+        e.stopPropagation()
+
+        const direction = e.deltaY < 0 ? 1 : -1
+        const step = 0.1
+
+        setScale(prev => {
+          let next = prev + (direction * step)
+          next = Math.round(next * 10) / 10
+          return Math.min(Math.max(0.2, next), 5.0)
+        })
+      }
+    }
+
+    container.addEventListener('wheel', handleWheel, { passive: false })
+    return () => container.removeEventListener('wheel', handleWheel)
+  }, [])
+
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages)
     setPageNumber(1)
@@ -90,17 +118,34 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
     setPageNumber(prev => {
       const step = isDualView ? 2 : 1
       const newPage = prev + (offset * step)
-      
       if (newPage < 1) return 1
       if (newPage > numPages) return prev
-      
       return newPage
     })
   }
 
   const toggleViewMode = () => {
-    setIsDualView(!isDualView)
-    setPageNumber(prev => (isDualView && prev % 2 === 0 && prev > 1) ? prev - 1 : prev)
+    if (!canDualView) return
+    
+    setIsDualView(prev => {
+      const nuevoModo = !prev
+      if (nuevoModo && pageNumber % 2 === 0 && pageNumber > 1) {
+        setPageNumber(pageNumber - 1)
+      }
+      return nuevoModo
+    })
+  }
+
+  const getPageWidth = () => {
+    if (!containerWidth) return undefined
+    const gap = 48 
+    const available = containerWidth - gap
+
+    if (isDualView) {
+      return (available / 2) * scale
+    } else {
+      return available * scale
+    }
   }
 
   if (!isOpen) return null
@@ -111,30 +156,40 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
         
         <div className="flex items-center justify-between px-4 py-3 bg-gray-800 border-b border-gray-700 text-white shrink-0 z-10 relative shadow-md">
           <div className="flex items-center gap-4 overflow-hidden">
-             <h3 className="text-sm font-semibold truncate max-w-[120px] md:max-w-md" title={fileName}>
+             <h3 className="text-sm font-semibold truncate max-w-[150px] md:max-w-md" title={fileName}>
               {fileName}
             </h3>
-            <div className="hidden md:flex items-center gap-1 bg-gray-700/50 rounded-lg p-1">
-              <button 
-                onClick={toggleViewMode}
-                className="p-1.5 hover:bg-gray-600 rounded text-gray-300 hover:text-white transition-colors"
-                title={isDualView ? "Cambiar a vista simple" : "Cambiar a vista doble"}
-              >
-                {isDualView ? <Smartphone size={16} /> : <Columns size={16} />}
-              </button>
-            </div>
           </div>
           
           <div className="flex items-center gap-2 md:gap-4">
             <div className="flex items-center gap-1 bg-gray-700 rounded-lg px-1 py-1">
-              <button onClick={() => setScale(s => Math.max(0.3, s - 0.1))} className="p-1.5 hover:text-blue-400 rounded-md hover:bg-gray-600">
+              <button 
+                onClick={() => setScale(s => Math.max(0.2, Number((s - 0.1).toFixed(1))))} 
+                className="p-1.5 hover:text-blue-400 rounded-md hover:bg-gray-600"
+              >
                 <ZoomOut className="w-4 h-4" />
               </button>
-              <span className="text-xs font-mono w-8 text-center hidden sm:block">{Math.round(scale * 100)}%</span>
-              <button onClick={() => setScale(s => Math.min(2.5, s + 0.1))} className="p-1.5 hover:text-blue-400 rounded-md hover:bg-gray-600">
+              <span className="text-xs font-mono w-10 text-center hidden sm:block">
+                {Math.round(scale * 100)}%
+              </span>
+              <button 
+                onClick={() => setScale(s => Math.min(5.0, Number((s + 0.1).toFixed(1))))} 
+                className="p-1.5 hover:text-blue-400 rounded-md hover:bg-gray-600"
+              >
                 <ZoomIn className="w-4 h-4" />
               </button>
             </div>
+
+            {canDualView && (
+              <button 
+                onClick={toggleViewMode}
+                className="flex items-center gap-2 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-xs text-gray-200 transition-colors"
+                title={isDualView ? "Cambiar a vista simple" : "Cambiar a vista libro"}
+              >
+                {isDualView ? <Smartphone size={16} /> : <Columns size={16} />}
+                <span>{isDualView ? 'Libro' : 'Simple'}</span>
+              </button>
+            )}
 
              {url && (
               <a 
@@ -142,71 +197,75 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="p-2 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-full transition-colors hidden sm:flex"
-                title="Abrir PDF nativo en pestaña nueva"
+                title="Abrir nativo"
               >
                 <ExternalLink className="w-5 h-5" />
               </a>
             )}
 
-            <button
-              onClick={onClose}
-              className="p-2 text-gray-400 hover:text-white hover:bg-red-600/20 rounded-full transition-colors"
-            >
+            <button onClick={onClose} className="p-2 text-gray-400 hover:text-white hover:bg-red-600/20 rounded-full transition-colors">
               <X className="w-6 h-6" />
             </button>
           </div>
         </div>
 
-        <div className="flex-1 bg-gray-900/50 overflow-auto relative flex items-start justify-center p-2 md:p-4 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
+        <div 
+          ref={containerRef}
+          className="flex-1 bg-gray-900/50 overflow-auto relative flex items-start justify-center p-4 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent"
+        >
           {loadingUrl ? (
             <div className="self-center flex flex-col items-center gap-2">
                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-               <span className="text-gray-400 text-sm">Preparando documento...</span>
+               <span className="text-gray-400 text-sm">Cargando...</span>
             </div>
           ) : url ? (
             <Document
               file={url}
               onLoadSuccess={onDocumentLoadSuccess}
-              loading={<div className="self-center flex flex-col items-center gap-2"><Loader2 className="w-8 h-8 text-blue-500 animate-spin" /><span className="text-gray-400 text-sm">Cargando páginas...</span></div>}
-              error={<div className="text-red-400 self-center font-medium bg-red-900/20 px-4 py-2 rounded-md">Error al cargar el PDF. Verifica tu conexión.</div>}
-              className="flex justify-center my-auto"
+              loading={<div className="self-center flex flex-col items-center gap-2"><Loader2 className="w-8 h-8 text-blue-500 animate-spin" /><span className="text-gray-400 text-sm">Procesando...</span></div>}
+              error={<div className="text-red-400 self-center font-medium bg-red-900/20 px-4 py-2 rounded-md">Error al cargar PDF</div>}
+              className="flex justify-center"
               externalLinkTarget="_blank"
             >
-              <div className={`grid gap-4 transition-all duration-300 ${isDualView ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                
-                <div className="shadow-2xl relative group transition-transform hover:scale-[1.005]">
+              <div 
+                className="grid gap-6 transition-all duration-300 ease-in-out"
+                style={{
+                  gridTemplateColumns: isDualView ? '1fr 1fr' : '1fr'
+                }}
+              >
+                <div className="relative shadow-2xl bg-white">
                   <Page 
                     pageNumber={pageNumber} 
-                    scale={scale} 
-                    loading={<div className="w-[300px] h-[400px] bg-white/10 animate-pulse rounded" />}
-                    className="bg-white rounded-sm overflow-hidden"
-                    renderAnnotationLayer={true}
-                    renderTextLayer={true}
+                    width={getPageWidth()}
+                    className="bg-white"
+                    renderTextLayer={false}
+                    renderAnnotationLayer={false}
+                    loading={<div style={{ height: 600 }} className="bg-white/10 animate-pulse w-full" />}
                   />
-                  <span className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                    Pág. {pageNumber}
+                  <span className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm pointer-events-none">
+                    {pageNumber}
                   </span>
                 </div>
                 
                 {isDualView && pageNumber + 1 <= numPages && (
-                   <div className="shadow-2xl relative group transition-transform hover:scale-[1.005]">
+                   <div className="relative shadow-2xl bg-white">
                     <Page 
                       pageNumber={pageNumber + 1} 
-                      scale={scale} 
-                      loading={<div className="w-[300px] h-[400px] bg-white/10 animate-pulse rounded" />}
-                      className="bg-white rounded-sm overflow-hidden"
-                      renderAnnotationLayer={true}
-                      renderTextLayer={true}
+                      width={getPageWidth()}
+                      className="bg-white"
+                      renderTextLayer={false}
+                      renderAnnotationLayer={false}
+                      loading={<div style={{ height: 600 }} className="bg-white/10 animate-pulse w-full" />}
                     />
-                    <span className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                      Pág. {pageNumber + 1}
+                    <span className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm pointer-events-none">
+                      {pageNumber + 1}
                     </span>
                    </div>
                 )}
               </div>
             </Document>
           ) : (
-            <span className="text-gray-500 self-center bg-gray-800 px-4 py-2 rounded-md">Documento no disponible</span>
+            <span className="text-gray-500 self-center bg-gray-800 px-4 py-2 rounded-md">No disponible</span>
           )}
         </div>
 
@@ -215,7 +274,7 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
              <button
               onClick={() => changePage(-1)}
               disabled={pageNumber <= 1}
-              className="p-2 rounded-full hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="p-2 rounded-full hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
             >
               <ChevronLeft className="w-6 h-6" />
             </button>
@@ -230,7 +289,7 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
             <button
               onClick={() => changePage(1)}
               disabled={isDualView ? (pageNumber + 1 >= numPages) : (pageNumber >= numPages)}
-              className="p-2 rounded-full hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="p-2 rounded-full hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
             >
               <ChevronRight className="w-6 h-6" />
             </button>
