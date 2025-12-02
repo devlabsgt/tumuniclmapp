@@ -7,7 +7,7 @@ import {
   flexRender,
   ColumnDef,
 } from '@tanstack/react-table';
-import { ChevronDown, ChevronUp, Edit, FileText, Activity } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit, FileText, Activity, Paperclip } from 'lucide-react';
 import { Tarea } from '../lib/esquemas';
 import { Button } from '@/components/ui/button';
 
@@ -55,10 +55,11 @@ interface TablaProps {
   handleOpenEditModal: (tarea: Tarea) => void;
   handleOpenNotasModal: (tarea: Tarea) => void;
   handleOpenSeguimientoModal: (tarea: Tarea) => void;
+  handleOpenDocumentosModal: (tarea: Tarea) => void;
   estadoAgenda: string;
 }
 
-export default function Tabla({ rol, tareas, handleOpenEditModal, handleOpenNotasModal, handleOpenSeguimientoModal, estadoAgenda }: TablaProps) {
+export default function Tabla({ rol, tareas, handleOpenEditModal, handleOpenNotasModal, handleOpenSeguimientoModal, handleOpenDocumentosModal, estadoAgenda }: TablaProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const puedeEditar = ['SUPER', 'SECRETARIO', 'SEC-TECNICO'].includes(rol);
@@ -72,6 +73,26 @@ export default function Tabla({ rol, tareas, handleOpenEditModal, handleOpenNota
         cell: (info) => (
           <div className="flex justify-center items-center h-full">
             {info.row.index + 1}
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'documentos',
+        header: 'Docs',
+        size: 50,
+        cell: info => (
+          <div className="flex justify-center items-center h-full">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenDocumentosModal(info.row.original);
+              }}
+              className="h-8 w-8 p-0 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
           </div>
         ),
       },
@@ -210,11 +231,13 @@ export default function Tabla({ rol, tareas, handleOpenEditModal, handleOpenNota
                     className={`p-2 text-sm text-gray-700 border-r border-gray-100 last:border-r-0 
                       ${cell.column.id === 'estado' ? getStatusClasses(row.original.estado) : ''} 
                       ${cell.column.id === 'votacion' ? getVotacionClasses(row.original.votacion || null) : ''}
-                      ${puedeEditar ? 'cursor-pointer hover:bg-black/5' : 'cursor-default'}
+                      ${puedeEditar && cell.column.id !== 'documentos' ? 'cursor-pointer hover:bg-black/5' : 'cursor-default'}
                     `}
                     style={{ width: `${cell.column.getSize()}px` }}
                     onClick={() => {
-                      if (!puedeEditar) return; 
+                      if (cell.column.id === 'documentos') return; 
+                      
+                      if (!puedeEditar) return;
 
                       if (cell.column.id === 'notas') {
                         handleOpenNotasModal(row.original);
@@ -272,6 +295,17 @@ export default function Tabla({ rol, tareas, handleOpenEditModal, handleOpenNota
               {isExpanded && (
                 <div className="px-4 pb-4 pt-0 border-t border-gray-100 bg-gray-50/50">
                   
+                  <div className="mt-3 flex justify-end">
+                      <Button
+                        onClick={() => handleOpenDocumentosModal(tarea)}
+                        variant="outline"
+                        size="sm"
+                        className="bg-white hover:bg-gray-100 text-xs h-8 text-blue-600 border-blue-200"
+                      >
+                        <Paperclip size={14} className="mr-1.5" /> Ver Documentos
+                      </Button>
+                  </div>
+
                   <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
                     <div>
                         <span className="text-xs text-gray-500 uppercase font-bold">Categoría</span>

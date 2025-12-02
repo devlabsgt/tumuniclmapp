@@ -7,6 +7,7 @@ import { fetchTareasDeAgenda, fetchAgendaConcejoPorId, actualizarEstadoAgenda, o
 import { Tarea, AgendaConcejo } from '@/components/concejo/agenda/lib/esquemas';
 import TareaForm from './forms/tareas/Tarea';
 import NotaSeguimiento from './forms/NotaSeguimiento';
+import DocumentosModal from './modals/DocumentosModal'; 
 import AsistenciaUsuario from '@/components/concejo/AsistenciaUsuario';
 import Asistencia from './Asistencia';
 import { FileText, Info, LayoutList, Users } from 'lucide-react';
@@ -52,8 +53,13 @@ export default function VerTareas() {
   const [tareas, setTareas] = useState<Tarea[]>([]);
   const [cargandoTareas, setCargandoTareas] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [tareaSeleccionada, setTareaSeleccionada] = useState<Tarea | null>(null);
+  
+  const [isDocumentosModalOpen, setIsDocumentosModalOpen] = useState(false);
+  const [tareaParaDocumentos, setTareaParaDocumentos] = useState<Tarea | null>(null);
+
   const [agenda, setAgenda] = useState<AgendaConcejo | null>(null);
   const [filtrosActivos, setFiltrosActivos] = useState<string[]>([]);
   const [isNotaSeguimientoModalOpen, setIsNotaSeguimientoModalOpen] = useState(false);
@@ -201,7 +207,6 @@ export default function VerTareas() {
       }
   };
 
-
   useEffect(() => {
     if (isPrinting) {
       setTimeout(generatePdf, 300);
@@ -230,6 +235,16 @@ export default function VerTareas() {
   const handleCloseFormModal = () => {
     setIsFormModalOpen(false);
     setTareaSeleccionada(null);
+  };
+
+  const handleOpenDocumentosModal = (tarea: Tarea) => {
+    setTareaParaDocumentos(tarea);
+    setIsDocumentosModalOpen(true);
+  };
+
+  const handleCloseDocumentosModal = () => {
+    setIsDocumentosModalOpen(false);
+    setTareaParaDocumentos(null);
   };
 
   const handleOpenNotasModal = (tarea: Tarea) => {
@@ -504,7 +519,15 @@ export default function VerTareas() {
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.2 }}
                 >
-                    <Tabla rol={rol} tareas={tareasFiltradas} handleOpenEditModal={handleOpenEditModal} handleOpenNotasModal={handleOpenNotasModal} handleOpenSeguimientoModal={handleOpenSeguimientoModal} estadoAgenda={agenda?.estado || ''} />
+                    <Tabla 
+                      rol={rol} 
+                      tareas={tareasFiltradas} 
+                      handleOpenEditModal={handleOpenEditModal} 
+                      handleOpenNotasModal={handleOpenNotasModal} 
+                      handleOpenSeguimientoModal={handleOpenSeguimientoModal} 
+                      handleOpenDocumentosModal={handleOpenDocumentosModal}
+                      estadoAgenda={agenda?.estado || ''} 
+                    />
                 </motion.div>
             ) : (
                 <motion.div 
@@ -526,6 +549,15 @@ export default function VerTareas() {
         )}
         {isNotaSeguimientoModalOpen && tareaSeleccionada && modalType && (
           <NotaSeguimiento isOpen={isNotaSeguimientoModalOpen} onClose={handleCloseNotaSeguimientoModal} tarea={tareaSeleccionada} estadoAgenda={agenda?.estado || ''} tipo={modalType} />
+        )}
+        {isDocumentosModalOpen && tareaParaDocumentos && (
+          <DocumentosModal 
+            isOpen={isDocumentosModalOpen}
+            onClose={handleCloseDocumentosModal}
+            tarea={tareaParaDocumentos}
+            rol={rol}
+            estadoAgenda={agenda?.estado || ''}
+          />
         )}
       </AnimatePresence>
     </div>

@@ -51,6 +51,16 @@ const formatNombreCorto = (nombreCompleto?: string | null): string => {
   return nombreCompleto;
 };
 
+// HELPER SIMPLE: Obtener YYYY-MM-DD de Guatemala
+const getHoyGuateStr = () => formatInTimeZone(new Date(), timeZone, 'yyyy-MM-dd');
+
+// HELPER SIMPLE: Obtener YYYY-MM-DD de la comisión (cortando el string)
+const getFechaComisionStr = (fechaHora: string) => {
+    // Si viene "2025-11-26 19:00:00" o "2025-11-26T19:00:00"
+    // Solo nos importan los primeros 10 caracteres
+    return fechaHora.substring(0, 10);
+};
+
 export default function ListaMisComisiones({
   vista,
   setVista,
@@ -74,25 +84,43 @@ export default function ListaMisComisiones({
     const grupos: { [key: string]: ComisionConFechaYHoraSeparada[] } = {};
     if (!comisionesParaMostrar) return grupos;
 
-    const comisionesAprobadas = comisionesParaMostrar.filter(comision => comision.aprobado === true);
+    let comisionesAprobadas = comisionesParaMostrar.filter(comision => comision.aprobado === true);
+    
+    // Obtener HOY en texto fijo "2025-11-27"
+    const hoyStr = getHoyGuateStr();
+
+    // --- FILTRO ESTRICTO PARA LA VISTA 'HOY' ---
+    if (vista === 'hoy') {
+      comisionesAprobadas = comisionesAprobadas.filter(c => {
+         const fechaComisionStr = getFechaComisionStr(c.fecha_hora);
+         return fechaComisionStr === hoyStr;
+      });
+    }
 
     comisionesAprobadas.forEach(comision => {
-      const fecha = parseISO(comision.fecha_hora.replace(' ', 'T'));
-      const fechaClave = format(fecha, 'EEEE d', { locale: es });
+      // Para la agrupación visual, usamos parseISO y format normal 
+      // para que muestre "Miércoles 26", "Jueves 27", etc.
+      const fechaObj = parseISO(comision.fecha_hora.replace(' ', 'T'));
+      // Forzamos el locale español para el título del grupo
+      const fechaClave = format(fechaObj, 'EEEE d', { locale: es });
+      
       if (!grupos[fechaClave]) {
         grupos[fechaClave] = [];
       }
       grupos[fechaClave].push(comision);
     });
 
+    // Ordenar las fechas (claves del objeto)
     const fechasOrdenadas = Object.keys(grupos).sort((a, b) => {
-      const fechaA = parseISO(grupos[a][0].fecha_hora.replace(' ', 'T'));
-      const fechaB = parseISO(grupos[b][0].fecha_hora.replace(' ', 'T'));
-      return fechaA.getTime() - fechaB.getTime();
+       // Truco: Tomamos el primer elemento de cada grupo para comparar fechas reales
+       const fechaA = parseISO(grupos[a][0].fecha_hora.replace(' ', 'T'));
+       const fechaB = parseISO(grupos[b][0].fecha_hora.replace(' ', 'T'));
+       return fechaA.getTime() - fechaB.getTime();
     });
 
     const gruposOrdenados: { [key: string]: ComisionConFechaYHoraSeparada[] } = {};
     fechasOrdenadas.forEach(fecha => {
+      // Ordenar las comisiones DENTRO del día por hora
       grupos[fecha].sort((a, b) => {
         const fechaA = parseISO(a.fecha_hora.replace(' ', 'T'));
         const fechaB = parseISO(b.fecha_hora.replace(' ', 'T'));
@@ -102,7 +130,7 @@ export default function ListaMisComisiones({
     });
     
     return gruposOrdenados;
-  }, [comisionesParaMostrar]);
+  }, [comisionesParaMostrar, vista]);
 
   return (
     <>
@@ -157,25 +185,22 @@ export default function ListaMisComisiones({
                   const usuariosDeLaComision = (comision.asistentes?.map(a => ({ id: a.id, nombre: a.nombre })) || []) as Usuario[];
                   const isOpen = openComisionId === comision.id;
                   
-                  // --- SOLUCIÓN: COMPARACIÓN ESTRICTA DE STRINGS ---
+                  // --- LÓGICA DE ETIQUETAS BASADA EN TEXTO ---
+                  const hoyStr = getHoyGuateStr();
+                  const comisionStr = getFechaComisionStr(comision.fecha_hora);
                   
-                  // 1. Obtener la fecha HOY en Guate como string "YYYY-MM-DD"
-                  const hoyGuateStr = formatInTimeZone(new Date(), timeZone, 'yyyy-MM-dd');
+                  // Comparación directa de strings: "2025-11-26" === "2025-11-27" -> False
+                  const esHoy = hoyStr === comisionStr;
                   
-                  // 2. Obtener fecha de la comisión (ignorando la hora por completo)
-                  // Asume formato DB "YYYY-MM-DD HH:mm:ss"
-                  const fechaComisionStr = comision.fecha_hora.split(' ')[0];
+                  // Para calcular "Ayer", "Mañana", etc, usamos parseISO sobre el string limpio (sin hora)
+                  // Esto fuerza a que sea medianoche vs medianoche
+                  const dateHoy = parseISO(hoyStr);
+                  const dateComision = parseISO(comisionStr);
+                  const diasRestantes = differenceInCalendarDays(dateComision, dateHoy);
 
-                  // 3. Comparación de strings (Infalible)
-                  const esHoy = fechaComisionStr === hoyGuateStr;
-
-                  // 4. Calculo de dias restantes usando fechas parseadas SIN hora (medianoche)
-                  // Esto evita que 11pm ayer se confunda con hoy
-                  const dateHoyClean = parseISO(hoyGuateStr);
-                  const dateComisionClean = parseISO(fechaComisionStr);
-                  const diasRestantes = differenceInCalendarDays(dateComisionClean, dateHoyClean);
-
+                  // Para mostrar la hora visualmente (formato bonito)
                   const fechaHoraVisual = parseISO(comision.fecha_hora.replace(' ', 'T'));
+                  
                   const integrantesCount = comision.asistentes?.length || 0;
 
                   let textoDias = '';

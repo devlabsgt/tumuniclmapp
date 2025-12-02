@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, CalendarClock, CheckSquare, Square, CalendarCheck, ClipboardCheck, Trash2 } from 'lucide-react';
-import { formatInTimeZone } from 'date-fns-tz';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import useUserData from '@/hooks/sesion/useUserData';
 
 import { ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
@@ -37,22 +37,7 @@ interface Props {
   countTerminadas: number;
 }
 
-const timeZone = 'America/Guatemala';
-
-const formatNombreCorto = (nombreCompleto?: string | null): string => {
-  if (!nombreCompleto) return 'N/A';
-  
-  const partes = nombreCompleto.split(' ').filter(Boolean);
-  
-  if (partes.length === 0) return 'N/A';
-  if (partes.length === 1) return partes[0];
-  if (partes.length === 2) return partes.join(' ');
-  if (partes.length >= 3) {
-    return `${partes[0]} ${partes[2]}`;
-  }
-  
-  return nombreCompleto;
-};
+const TIMEZONE_GUATE = 'America/Guatemala';
 
 export default function ListaComisiones({
   vista,
@@ -87,6 +72,11 @@ export default function ListaComisiones({
   const showDeleteButton = 
     (canApprove && (vista === 'hoy' || vista === 'proximas')) ||
     (rolActual === 'SUPER' && vista === 'terminadas');
+
+  const getFechaGuateStr = (fechaIso?: string | Date) => {
+    const fecha = fechaIso ? new Date(fechaIso) : new Date();
+    return formatInTimeZone(fecha, TIMEZONE_GUATE, 'yyyy-MM-dd');
+  };
 
   return (
     <>
@@ -173,7 +163,20 @@ export default function ListaComisiones({
 
         {comisionesFiltradas && comisionesFiltradas.length > 0 ? (
           <div className="space-y-4">
-            {Object.keys(comisionesAgrupadasPorFecha).map(fecha => (
+            {Object.keys(comisionesAgrupadasPorFecha).map(fecha => {
+              
+              if (vista === 'hoy') {
+                const primerItem = comisionesAgrupadasPorFecha[fecha][0];
+                if (primerItem) {
+                   const rawDate = primerItem.fecha_hora.includes('T') ? primerItem.fecha_hora : primerItem.fecha_hora.replace(' ', 'T');
+                   const fechaGrupo = getFechaGuateStr(rawDate);
+                   const fechaHoy = getFechaGuateStr();
+                   
+                   if (fechaGrupo !== fechaHoy) return null;
+                }
+              }
+
+              return (
               <div key={fecha}>
                 <h3 className="text-sm font-bold text-gray-800 mb-2 capitalize sticky top-0 bg-white/80 backdrop-blur-sm py-2">{fecha}</h3>
                 <div className="space-y-2">
@@ -181,24 +184,21 @@ export default function ListaComisiones({
                     const integrantesCount = comision.asistentes?.length || 0;
                     const isSelected = comisionesSeleccionadas?.some(c => c.id === comision.id);
                     
-                    // --- CORRECCIÓN LÓGICA DE FECHAS ---
+                    const rawDate = comision.fecha_hora.includes('T') ? comision.fecha_hora : comision.fecha_hora.replace(' ', 'T');
                     
-                    // 1. Obtener la fecha HOY en Guate como string "YYYY-MM-DD"
-                    const hoyGuateStr = formatInTimeZone(new Date(), timeZone, 'yyyy-MM-dd');
+                    const fechaComisionStr = getFechaGuateStr(rawDate);
+                    const hoyStr = getFechaGuateStr();
                     
-                    // 2. Obtener fecha de la comisión (string limpio)
-                    const fechaComisionStr = comision.fecha_hora.split(' ')[0];
-
-                    // 3. Comparación de strings
-                    const esHoy = fechaComisionStr === hoyGuateStr;
-
-                    // 4. Calculo de dias restantes con fechas limpias (sin horas)
-                    const dateHoyClean = parseISO(hoyGuateStr);
-                    const dateComisionClean = parseISO(fechaComisionStr);
-                    const diasRestantes = differenceInCalendarDays(dateComisionClean, dateHoyClean);
-
-                    const fechaHoraVisual = parseISO(comision.fecha_hora.replace(' ', 'T'));
+                    const esHoy = fechaComisionStr === hoyStr;
                     
+                    const dateComision = parseISO(rawDate);
+                    const dateHoy = toZonedTime(new Date(), TIMEZONE_GUATE);
+                    const dateComisionZoned = toZonedTime(dateComision, TIMEZONE_GUATE);
+                    
+                    const diasRestantes = differenceInCalendarDays(dateComisionZoned, dateHoy);
+                    
+                    const fechaVisual = formatInTimeZone(dateComision, TIMEZONE_GUATE, 'h:mm a', { locale: es });
+
                     let textoDias = '';
                     let colorDias = 'text-gray-500';
                     
@@ -219,6 +219,16 @@ export default function ListaComisiones({
                       colorDias = 'text-red-500';
                     }
                     
+                    const formatNombreCorto = (nombreCompleto?: string | null): string => {
+                        if (!nombreCompleto) return 'N/A';
+                        const partes = nombreCompleto.split(' ').filter(Boolean);
+                        if (partes.length === 0) return 'N/A';
+                        if (partes.length === 1) return partes[0];
+                        if (partes.length === 2) return partes.join(' ');
+                        if (partes.length >= 3) return `${partes[0]} ${partes[2]}`;
+                        return nombreCompleto;
+                    };
+
                     let textoEstado = null;
                     const creador = formatNombreCorto(comision.creador_nombre);
 
@@ -323,7 +333,9 @@ export default function ListaComisiones({
                             className={`w-full md:w-2/3 pr-4`}
                           >
                             <span className="font-semibold text-gray-900 text-xs md:text-lg break-words">{comision.titulo}</span>
-                            <span className="text-xs text-gray-500 block">{format(fechaHoraVisual, "h:mm a", { locale: es })}</span>
+                            <span className="text-xs text-gray-500 block">
+                                {fechaVisual}
+                            </span>
                           </div>
                           
                           <div className="w-full md:w-1/3 flex flex-col items-start md:items-end text-xs mt-2 md:mt-0 h-full">
@@ -354,7 +366,8 @@ export default function ListaComisiones({
                   })}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border-2 border-dashed">
