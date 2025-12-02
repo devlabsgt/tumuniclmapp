@@ -7,6 +7,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
+import NotificationListener from "@/components/notificaciones/Listener";
 
 export const metadata: Metadata = {
   title: "SIGEM -CLM-",
@@ -46,6 +47,7 @@ export default async function RootLayout({
   return (
     <html lang="es" className={geistSans.className} suppressHydrationWarning>
       <body className="bg-background text-foreground">
+        <NotificationListener />
         <div className="flex flex-col min-h-screen">
           {isLoginPage ? (
             <main className="flex-grow w-full">

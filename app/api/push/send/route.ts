@@ -2,8 +2,12 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import webPush from 'web-push'
 
+const subject = process.env.NEXT_PUBLIC_VAPID_SUBJECT?.startsWith('mailto:')
+  ? process.env.NEXT_PUBLIC_VAPID_SUBJECT
+  : `mailto:${process.env.NEXT_PUBLIC_VAPID_SUBJECT}`
+
 webPush.setVapidDetails(
-  `mailto:${process.env.NEXT_PUBLIC_VAPID_SUBJECT}`,
+  subject,
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
   process.env.VAPID_PRIVATE_KEY!
 )
@@ -26,11 +30,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Usuario sin dispositivos' }, { status: 200 })
     }
 
+    const notificationTitle = title || 'Notificación'
+    const notificationBody = body || 'Tienes un nuevo mensaje'
+    const targetUrl = url || '/'
+
     const payload = JSON.stringify({
-      title,
-      body,
-      url: url || '/',
-      icon: '/icon-192x192.png'
+      title: notificationTitle,
+      body: notificationBody,
+      icon: '/icon-192x192.png',
+      data: {
+        url: targetUrl,
+        swal: {
+          title: notificationTitle,
+          text: notificationBody,
+          icon: 'info'
+        }
+      }
     })
 
     const results = await Promise.all(
@@ -41,9 +56,9 @@ export async function POST(request: Request) {
         } catch (err: any) {
           if (err.statusCode === 410 || err.statusCode === 404) {
             await supabase.from('push_subscriptions').delete().eq('id', sub.id)
-            return { status: 'rejected', id: sub.id, error: 'Expired/Deleted' }
+            return { status: 'rejected', id: sub.id, error: 'Eliminado por inactivo' }
           }
-          return { status: 'rejected', id: sub.id, error: err.message || err.body || err }
+          return { status: 'rejected', id: sub.id, error: err.message }
         }
       })
     )

@@ -14,34 +14,41 @@ webPush.setVapidDetails(
 
 export async function POST(request: Request) {
   try {
-    const { title, body, message, url, targetIds } = await request.json()
+    const { title, message, url } = await request.json()
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    let query = supabase.from('push_subscriptions').select('id, subscription, user_id')
-
-    if (targetIds && Array.isArray(targetIds) && targetIds.length > 0) {
-      query = query.in('user_id', targetIds)
-    }
-
-    const { data: subscriptions, error } = await query
+    const { data: subscriptions, error } = await supabase
+      .from('push_subscriptions')
+      .select('id, subscription')
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
     if (!subscriptions || subscriptions.length === 0) {
-      return NextResponse.json({ message: 'No se encontraron dispositivos para el envío' }, { status: 200 })
+      return NextResponse.json({ message: 'No hay suscriptores' }, { status: 200 })
     }
 
+    const notificationTitle = title || 'Aviso General'
+    const notificationBody = message || 'Nuevo comunicado disponible'
+    const targetUrl = url || '/'
+
     const payload = JSON.stringify({
-      title: title || '📢 Comunicado Oficial',
-      body: body || message || 'Nueva notificación del sistema',
-      url: url || '/',
-      icon: '/icon-192x192.png'
+      title: notificationTitle,
+      body: notificationBody,
+      icon: '/icon-192x192.png',
+      data: {
+        url: targetUrl,
+        swal: {
+          title: notificationTitle,
+          text: notificationBody,
+          icon: 'info'
+        }
+      }
     })
 
     const results = await Promise.all(
@@ -59,7 +66,11 @@ export async function POST(request: Request) {
       })
     )
 
-    return NextResponse.json({ success: true, total: subscriptions.length, results }, { status: 200 })
+    return NextResponse.json({ 
+      success: true, 
+      total: subscriptions.length, 
+      results 
+    }, { status: 200 })
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
