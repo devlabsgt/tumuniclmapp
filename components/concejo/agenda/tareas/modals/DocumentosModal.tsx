@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react' // <--- IMPORTANTE
+import { useState } from 'react'
 import { X } from 'lucide-react'
 import { Tarea } from '@/components/concejo/agenda/lib/esquemas'
 import UploadPDF from '@/components/files/uploadPDF'
@@ -19,6 +19,7 @@ export default function DocumentosModal({ isOpen, onClose, tarea, rol, estadoAge
 
   if (!isOpen) return null
 
+  // Lógica para mostrar la sección de subida (Solo roles permitidos y si no está finalizada)
   const puedeSubir = ['SUPER', 'SECRETARIO', 'SEC-TECNICO'].includes(rol) && estadoAgenda !== 'Finalizada'
 
   return (
@@ -59,7 +60,8 @@ export default function DocumentosModal({ isOpen, onClose, tarea, rol, estadoAge
               tableName="archivos_tareas"
               referenceId={tarea.id}
               referenceColumn="tarea_id"
-              refreshTrigger={refreshKey} 
+              refreshTrigger={refreshKey}
+              rol={rol} // <--- Pasamos el rol aquí
             />
           </div>
         </div>

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Loader2, UploadCloud, X } from 'lucide-react'
+import { Loader2, UploadCloud, X, AlertCircle } from 'lucide-react'
 import { toast } from 'react-toastify'
 
 interface UploadPDFProps {
@@ -23,6 +23,8 @@ export default function UploadPDF({
 }: UploadPDFProps) {
   const [file, setFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false) 
+  
   const router = useRouter()
   const supabase = createClient()
 
@@ -41,6 +43,7 @@ export default function UploadPDF({
       }
 
       setFile(selectedFile)
+      setShowConfirm(false) // Resetear confirmación al cambiar archivo
     }
   }
 
@@ -71,6 +74,7 @@ export default function UploadPDF({
 
       toast.success('Documento subido correctamente')
       setFile(null)
+      setShowConfirm(false)
       router.refresh()
       if (onUploadComplete) onUploadComplete()
 
@@ -105,34 +109,58 @@ export default function UploadPDF({
           </label>
         </div>
       ) : (
-        <div className="flex flex-col gap-3 p-4 border rounded-lg bg-white shadow-sm w-full">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium truncate">
-              {file.name}
-            </span>
+        <div className="flex flex-col gap-3 p-4 border rounded-lg bg-white shadow-sm w-full relative overflow-hidden">
+          
+          {/* Vista Normal del Archivo Seleccionado */}
+          <div className={`transition-opacity duration-200 ${showConfirm ? 'opacity-20 blur-sm pointer-events-none' : 'opacity-100'}`}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium truncate text-gray-700">
+                {file.name}
+              </span>
+              <button
+                onClick={() => setFile(null)}
+                disabled={isUploading}
+                className="text-gray-400 hover:text-red-500"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
             <button
-              onClick={() => setFile(null)}
+              onClick={() => setShowConfirm(true)} // Activar modo confirmación
               disabled={isUploading}
-              className="text-gray-400 hover:text-red-500"
+              className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 disabled:opacity-50 transition-colors"
             >
-              <X className="w-4 h-4" />
+              Confirmar Subida
             </button>
           </div>
-          
-          <button
-            onClick={handleUpload}
-            disabled={isUploading}
-            className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 disabled:opacity-50"
-          >
-            {isUploading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Subiendo...
-              </>
-            ) : (
-              'Confirmar Subida'
-            )}
-          </button>
+
+          {showConfirm && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/95 p-4 animate-in fade-in duration-200">
+              <div className="text-center mb-3">
+                <p className="text-sm font-bold text-gray-900 mb-1">¿Estás seguro?</p>
+                <p className="text-xs text-gray-500">Se subirá el archivo seleccionado.</p>
+              </div>
+              <div className="flex gap-2 w-full">
+                 <button
+                  onClick={() => setShowConfirm(false)}
+                  disabled={isUploading}
+                  className="flex-1 px-3 py-2 text-xs font-bold text-white bg-[#d33] hover:bg-red-700 rounded-md transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleUpload}
+                  disabled={isUploading}
+                  className="flex-1 px-3 py-2 text-xs font-bold text-white bg-[#000] hover:bg-gray-800 rounded-md transition-colors flex items-center justify-center gap-2"
+                >
+                  {isUploading && <Loader2 className="w-3 h-3 animate-spin" />}
+                  {isUploading ? 'Subiendo...' : 'Sí, subir'}
+                </button>
+              </div>
+            </div>
+          )}
+
         </div>
       )}
     </div>

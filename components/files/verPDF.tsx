@@ -1,15 +1,13 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Loader2, X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Columns, Smartphone, ExternalLink } from 'lucide-react'
 import { Document, Page, pdfjs } from 'react-pdf'
 
-// Estilos necesarios para react-pdf
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
 
-// Configuración del Worker usando CDN para evitar problemas con Webpack en Next.js 15
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs`
 
 interface VerPDFProps {
@@ -26,25 +24,37 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
   const [numPages, setNumPages] = useState<number>(0)
   const [pageNumber, setPageNumber] = useState<number>(1)
   const [scale, setScale] = useState<number>(1.0)
-  // isDualView determina si mostramos 2 páginas (desktop) o 1 (móvil)
   const [isDualView, setIsDualView] = useState<boolean>(false)
   
   const supabase = createClient()
 
-  // Detectar tamaño de pantalla para activar vista doble en MD (768px) o superior
   useEffect(() => {
-    const checkScreenSize = () => {
-      setIsDualView(window.innerWidth >= 1024)
+    const calculateLayout = () => {
+      const windowWidth = window.innerWidth
+      
+      if (windowWidth < 1024) {
+        setIsDualView(false)
+        return
+      }
+
+      const basePageWidth = 600 
+      const gapAndPadding = 64 
+      const requiredWidthForDual = (basePageWidth * scale * 2) + gapAndPadding
+
+      if (windowWidth < requiredWidthForDual) {
+        setIsDualView(false)
+      } else {
+        setIsDualView(true)
+      }
     }
 
     if (typeof window !== 'undefined') {
-      checkScreenSize()
-      window.addEventListener('resize', checkScreenSize)
+      calculateLayout()
+      window.addEventListener('resize', calculateLayout)
     }
-    return () => window.removeEventListener('resize', checkScreenSize)
-  }, [])
+    return () => window.removeEventListener('resize', calculateLayout)
+  }, [scale])
 
-  // Obtener URL firmada de Supabase
   useEffect(() => {
     if (isOpen && filePath) {
       const fetchUrl = async () => {
@@ -64,7 +74,6 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
       }
       fetchUrl()
     } else {
-      // Resetear estados al cerrar
       setUrl(null)
       setPageNumber(1)
       setScale(1.0)
@@ -77,14 +86,12 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
     setPageNumber(1)
   }
 
-  // Lógica de paginación: avanza 1 página en modo simple, 2 en modo doble
   const changePage = (offset: number) => {
     setPageNumber(prev => {
       const step = isDualView ? 2 : 1
       const newPage = prev + (offset * step)
       
       if (newPage < 1) return 1
-      // Asegurar no pasarse del total de páginas
       if (newPage > numPages) return prev
       
       return newPage
@@ -93,7 +100,6 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
 
   const toggleViewMode = () => {
     setIsDualView(!isDualView)
-    // Si pasamos a vista simple y estábamos en una página par, retroceder una para no perder el hilo
     setPageNumber(prev => (isDualView && prev % 2 === 0 && prev > 1) ? prev - 1 : prev)
   }
 
@@ -103,13 +109,11 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-0 md:p-4 backdrop-blur-sm transition-all">
       <div className="relative w-full h-full md:h-[95vh] md:max-w-[95vw] bg-gray-900 md:rounded-lg shadow-2xl flex flex-col overflow-hidden">
         
-        {/* --- Header --- */}
         <div className="flex items-center justify-between px-4 py-3 bg-gray-800 border-b border-gray-700 text-white shrink-0 z-10 relative shadow-md">
           <div className="flex items-center gap-4 overflow-hidden">
              <h3 className="text-sm font-semibold truncate max-w-[120px] md:max-w-md" title={fileName}>
               {fileName}
             </h3>
-            {/* Botón para alternar vista manualmente */}
             <div className="hidden md:flex items-center gap-1 bg-gray-700/50 rounded-lg p-1">
               <button 
                 onClick={toggleViewMode}
@@ -122,7 +126,6 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
           </div>
           
           <div className="flex items-center gap-2 md:gap-4">
-            {/* Controles de Zoom */}
             <div className="flex items-center gap-1 bg-gray-700 rounded-lg px-1 py-1">
               <button onClick={() => setScale(s => Math.max(0.3, s - 0.1))} className="p-1.5 hover:text-blue-400 rounded-md hover:bg-gray-600">
                 <ZoomOut className="w-4 h-4" />
@@ -154,7 +157,6 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
           </div>
         </div>
 
-        {/* --- Cuerpo del Visor --- */}
         <div className="flex-1 bg-gray-900/50 overflow-auto relative flex items-start justify-center p-2 md:p-4 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
           {loadingUrl ? (
             <div className="self-center flex flex-col items-center gap-2">
@@ -166,14 +168,12 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
               file={url}
               onLoadSuccess={onDocumentLoadSuccess}
               loading={<div className="self-center flex flex-col items-center gap-2"><Loader2 className="w-8 h-8 text-blue-500 animate-spin" /><span className="text-gray-400 text-sm">Cargando páginas...</span></div>}
-              error={<div className="text-red-400 self-center font-medium bg-red-900/20 px-4 py-2 rounded-md">Error al cargar el PDF. Verifica tu conexión o permisos.</div>}
+              error={<div className="text-red-400 self-center font-medium bg-red-900/20 px-4 py-2 rounded-md">Error al cargar el PDF. Verifica tu conexión.</div>}
               className="flex justify-center my-auto"
               externalLinkTarget="_blank"
             >
-              {/* GRID PRINCIPAL: 1 columna en móvil, 2 en desktop si isDualView es true */}
               <div className={`grid gap-4 transition-all duration-300 ${isDualView ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 
-                {/* Página Actual (Izquierda en dual) */}
                 <div className="shadow-2xl relative group transition-transform hover:scale-[1.005]">
                   <Page 
                     pageNumber={pageNumber} 
@@ -188,7 +188,6 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
                   </span>
                 </div>
                 
-                {/* Página Siguiente (Derecha en dual) - Solo se renderiza si existe */}
                 {isDualView && pageNumber + 1 <= numPages && (
                    <div className="shadow-2xl relative group transition-transform hover:scale-[1.005]">
                     <Page 
@@ -211,14 +210,12 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
           )}
         </div>
 
-        {/* --- Footer de Paginación --- */}
         {numPages > 0 && (
           <div className="bg-gray-800 border-t border-gray-700 p-3 md:p-4 flex items-center justify-center gap-6 text-white shrink-0 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
              <button
               onClick={() => changePage(-1)}
               disabled={pageNumber <= 1}
               className="p-2 rounded-full hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-              aria-label="Página anterior"
             >
               <ChevronLeft className="w-6 h-6" />
             </button>
@@ -232,10 +229,8 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
 
             <button
               onClick={() => changePage(1)}
-              // Deshabilitar si la siguiente página (o el par siguiente en dual) supera el total
               disabled={isDualView ? (pageNumber + 1 >= numPages) : (pageNumber >= numPages)}
               className="p-2 rounded-full hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-              aria-label="Página siguiente"
             >
               <ChevronRight className="w-6 h-6" />
             </button>

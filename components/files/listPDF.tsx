@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { FileText, Trash2, Download, Loader2, Eye } from 'lucide-react'
+import { FileText, Trash2, Loader2, Eye } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-toastify'
 import Swal from 'sweetalert2'
@@ -21,6 +21,7 @@ interface ListPDFProps {
   referenceId: string
   referenceColumn: string
   refreshTrigger?: number
+  rol: string // <--- Nueva prop recibida
 }
 
 export default function ListPDF({
@@ -28,7 +29,8 @@ export default function ListPDF({
   tableName,
   referenceId,
   referenceColumn,
-  refreshTrigger = 0
+  refreshTrigger = 0,
+  rol
 }: ListPDFProps) {
   const [files, setFiles] = useState<FileRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -37,6 +39,9 @@ export default function ListPDF({
 
   const supabase = createClient()
   const router = useRouter()
+
+  // Definir quién puede eliminar
+  const puedeEliminar = ['SUPER', 'SECRETARIO', 'SEC-TECNICO'].includes(rol)
 
   useEffect(() => {
     fetchFiles()
@@ -56,20 +61,6 @@ export default function ListPDF({
       console.error('Error cargando archivos:', error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleDownload = async (filePath: string) => {
-    try {
-      const { data, error } = await supabase.storage
-        .from(bucketName)
-        .createSignedUrl(filePath, 3600)
-
-      if (error) throw error
-      if (data?.signedUrl) window.open(data.signedUrl, '_blank')
-    } catch (error) {
-      console.error('Error al descargar:', error)
-      toast.error('No se pudo abrir el archivo')
     }
   }
 
@@ -143,6 +134,7 @@ export default function ListPDF({
               </div>
 
               <div className="flex items-center gap-1">
+                {/* Botón Ver (Para todos) */}
                 <button
                   onClick={() => setViewingFile(file)}
                   className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
@@ -151,26 +143,21 @@ export default function ListPDF({
                   <Eye className="w-4 h-4" />
                 </button>
 
-                <button
-                  onClick={() => handleDownload(file.file_path)}
-                  className="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
-                  title="Descargar"
-                >
-                  <Download className="w-4 h-4" />
-                </button>
-                
-                <button
-                  onClick={() => handleDelete(file.id, file.file_path)}
-                  disabled={deletingId === file.id}
-                  className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
-                  title="Eliminar"
-                >
-                  {deletingId === file.id ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-4 h-4" />
-                  )}
-                </button>
+                {/* Botón Eliminar (Solo roles permitidos) */}
+                {puedeEliminar && (
+                  <button
+                    onClick={() => handleDelete(file.id, file.file_path)}
+                    disabled={deletingId === file.id}
+                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
+                    title="Eliminar"
+                  >
+                    {deletingId === file.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                  </button>
+                )}
               </div>
             </li>
           ))}
