@@ -1,9 +1,10 @@
 {
   "private": true,
-  "scripts": {
+"scripts": {
     "dev": "next dev --webpack",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "cache-clean": "rm -rf .next" 
   },
   "dependencies": {
     "@chakra-ui/icons": "^2.2.4",
