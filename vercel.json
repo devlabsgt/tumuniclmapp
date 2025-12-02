@@ -1,8 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/check-comisiones",
-      "schedule": "*/10 * * * *"
-    }
-  ]
-}
