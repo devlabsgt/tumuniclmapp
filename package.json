@@ -83,5 +83,10 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss": "3.4.17",
     "typescript": "5.9.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "pdfjs-dist": "4.4.168"
+    }
   }
 }
