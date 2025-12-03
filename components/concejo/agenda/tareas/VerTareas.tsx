@@ -8,34 +8,18 @@ import { Tarea, AgendaConcejo } from '@/components/concejo/agenda/lib/esquemas';
 import TareaForm from './forms/tareas/Tarea';
 import NotaSeguimiento from './forms/NotaSeguimiento';
 import DocumentosModal from './modals/DocumentosModal'; 
-import AsistenciaUsuario from '@/components/concejo/AsistenciaUsuario';
 import Asistencia from './Asistencia';
-import { FileText, Info, LayoutList, Users } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
-import BotonVolver from '@/components/ui/botones/BotonVolver';
 import Tabla from './Tabla';
+import HeaderAgenda from './HeaderAgenda';
+import TabsYFiltros from './TabsYFiltros';
 import { format, subMinutes, isAfter } from 'date-fns';
-import { es } from 'date-fns/locale';
 import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
 import jsPDF from 'jspdf';
 import * as htmlToImage from 'html-to-image';
-import { cn } from '@/lib/utils';
 import { createClient } from '@/utils/supabase/client'; 
-
-const statusStyles: Record<string, string> = {
-  'Aprobado': 'bg-green-200 text-green-800',
-  'No aprobado': 'bg-red-200 text-red-800',
-  'En progreso': 'bg-blue-200 text-blue-800',
-  'En comisión': 'bg-gray-300 text-gray-700',
-  'En espera': 'bg-yellow-200 text-yellow-800',
-  'No iniciado': 'bg-gray-200 text-gray-700',
-  'Realizado': 'bg-indigo-200 text-indigo-800',
-};
-
-const getStatusClasses = (status: string) => statusStyles[status] || 'bg-gray-200 text-gray-700';
 
 const calcularResumenDeEstados = (tareas: Tarea[]) => {
   const resumen: Record<string, number> = {};
@@ -45,6 +29,8 @@ const calcularResumenDeEstados = (tareas: Tarea[]) => {
   });
   return resumen;
 };
+
+const estadoOrden = ['En progreso', 'En espera', 'No aprobado', 'Aprobado', 'En comisión', 'No iniciado', 'Realizado'];
 
 export default function VerTareas() {
   const params = useParams();
@@ -89,11 +75,20 @@ export default function VerTareas() {
     }
   };
 
+  const refreshTareasOnly = async () => {
+     try {
+        const dataTareas = await fetchTareasDeAgenda(agendaId);
+        setTareas(dataTareas);
+     } catch (e) {
+        console.error("Error actualizando tareas en tiempo real", e);
+     }
+  };
+
   useEffect(() => {
     fetchDatos();
 
     const channel = supabase
-      .channel(`agenda_realtime_${agendaId}`)
+      .channel(`agenda_completa_${agendaId}`)
       .on(
         'postgres_changes',
         {
@@ -111,13 +106,23 @@ export default function VerTareas() {
              setPuedeMarcarAsistencia(false);
              setMostrarAvisoAsistencia(false);
           } else if (nuevaAgenda.estado === 'En progreso') {
-             toast.info('El estado de la sesión ha cambiado a: En progreso.');
+             toast.info('La sesión está En progreso.');
              setPuedeMarcarAsistencia(true);
-          } else {
-             toast.info(`El estado de la agenda ha cambiado a: ${nuevaAgenda.estado}`);
-          }
+          } 
 
           await fetchDatos();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*', 
+          schema: 'public',
+          table: 'tareas_concejo',
+          filter: `agenda_concejo_id=eq.${agendaId}`,
+        },
+        async () => {
+          await refreshTareasOnly();
         }
       )
       .subscribe();
@@ -371,34 +376,12 @@ export default function VerTareas() {
     }
   };
 
-  const resumenDeEstados = calcularResumenDeEstados(tareas);
-  const estadoOrden = ['En progreso', 'En espera', 'No aprobado', 'Aprobado', 'En comisión', 'No iniciado', 'Realizado'];
-
-  const getEstadoAgendaStyle = (estado: string) => {
-    if (estado === 'En preparación') return 'bg-green-500 text-white hover:bg-green-600';
-    if (estado === 'En progreso') return 'bg-blue-500 text-white hover:bg-blue-600';
-    if (estado === 'Finalizada') {
-      if (rol === 'SUPER') return 'bg-orange-500 text-white hover:bg-orange-600';
-      return 'bg-gray-400 text-gray-800 cursor-not-allowed';
-    }
-    return '';
-  };
-
-  const getEstadoAgendaText = (estado: string) => {
-    if (estado === 'En preparación') return 'Se apertura la sesión';
-    if (estado === 'En progreso') return 'Se cierra la sesión';
-    if (estado === 'Finalizada') {
-       if (rol === 'SUPER') return 'Reaperturar Sesión';
-       return 'Sesión Finalizada';
-    }
-    return estado;
-  };
-
   const toggleFiltro = (estado: string) => {
     setFiltrosActivos(prev => prev.includes(estado) ? prev.filter(f => f !== estado) : [...prev, estado]);
   };
 
   const tareasFiltradas = filtrosActivos.length > 0 ? tareas.filter(tarea => filtrosActivos.includes(tarea.estado)) : tareas;
+  const resumenDeEstados = calcularResumenDeEstados(tareas);
 
   if (cargandoUsuario || cargandoTareas) {
     return <div className="text-xs lg:text-base"><CargandoAnimacion texto="Cargando agenda..." /></div>;
@@ -410,187 +393,32 @@ export default function VerTareas() {
   return (
     <div className="px-2 mt-2 md:px-8 text-xs lg:text-base">
       <div ref={printRef}>
-        <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-4 w-full">
-            <div className="flex-shrink-0 w-full md:w-auto">
-                {!isPrinting && (
-                  <BotonVolver ruta="/protected/concejo/agenda" />
-                )}
-            </div>
-            <div className="flex-grow w-full md:w-auto">
-                {agenda && puedeMarcarAsistencia && userId && (
-                    <AsistenciaUsuario 
-                        agenda={agenda} 
-                        userId={userId} 
-                        nombreUsuario={nombre || 'Usuario'} 
-                        puesto={nombrePuesto}
-                    />
-                )}
-            </div>
-        </div>
+        <HeaderAgenda 
+          agenda={agenda}
+          rol={rol}
+          userId={userId}
+          nombreUsuario={nombre}
+          nombrePuesto={nombrePuesto}
+          puedeMarcarAsistencia={puedeMarcarAsistencia}
+          mostrarAvisoAsistencia={mostrarAvisoAsistencia}
+          isPrinting={isPrinting}
+          isAgendaFinalizada={!!isAgendaFinalizada}
+          handleGeneratePdf={handleGeneratePdf}
+          handleActualizarEstadoAgenda={handleActualizarEstadoAgenda}
+          handleNuevoPunto={() => { setTareaSeleccionada(null); setIsFormModalOpen(true); }}
+        />
 
-        <header className="flex flex-col md:flex-row items-center justify-between gap-4 mb-2 mx-auto w-full">
-          {agenda && (
-            <div className="flex-grow flex items-start text-left w-full">
-              <div className="w-3/5 flex flex-col gap-2 pr-2">
-                <h1 className="text-xs lg:text-lg font-bold text-black">
-                  <span className="text-blue-400 block md:inline md:mr-1">
-                    Agenda del Concejo Municipal:
-                  </span> 
-                  {agenda.titulo}
-                </h1>
-                <p className="text-xs lg:text-lg font-bold text-black">
-                  <span className="text-blue-400 block md:inline md:mr-1">
-                    Información:
-                  </span> 
-                  {agenda.descripcion}
-                </p>
-              </div>
-              
-              <div className="w-2/5 flex flex-col items-start gap-2 pl-1">
-                <p className="text-xs lg:text-lg font-bold text-black">
-                  <span className="text-blue-400 block md:inline md:mr-1">
-                    Fecha:
-                  </span> 
-                  <span className="md:hidden capitalize">
-                    {format(new Date(agenda.fecha_reunion), "EEE d 'de' MMM, yyyy", { locale: es })}
-                  </span>
-                  <span className="hidden md:inline">
-                    {format(new Date(agenda.fecha_reunion), 'PPPP', { locale: es })}
-                  </span>
-                </p>
-                <p className="text-xs lg:text-lg font-bold text-black">
-                  <span className="text-blue-400 block md:inline md:mr-1">
-                    Hora:
-                  </span> 
-                  {format(new Date(agenda.fecha_reunion), 'h:mm a', { locale: es })}
-                </p>
-              </div>
-            </div>
-          )}
-          
-          <div className={`flex items-center gap-2 flex-wrap justify-end w-full md:w-auto mt-2 md:mt-0`}>
-            {(rol === 'SUPER' || rol === 'SECRETARIO' || rol === 'SEC-TECNICO') && agenda && (
-              <>
-                {!isPrinting && isAgendaFinalizada && (
-                  <Button onClick={handleGeneratePdf} disabled={isPrinting} className="px-5 py-6 rounded-lg shadow-sm transition-colors flex items-center space-x-2 bg-red-600 text-white hover:bg-red-700 w-full md:w-auto">
-                    <FileText size={20} />
-                    <span className="text-xs lg:text-base">{isPrinting ? 'Generando...' : 'Generar PDF'}</span>
-                  </Button>
-                )}
-              </>
-            )}
-          </div>
-        </header>
-
-        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between my-5 gap-4 w-full border-b border-gray-200 pb-2 xl:pb-0 xl:border-0">
-            <div className="w-full xl:w-auto flex-shrink-0 flex flex-col sm:flex-row items-center gap-4">
-              {agenda && (
-                <>
-                   {(rol === 'SUPER' || rol === 'SECRETARIO') && agenda && (
-                    <Button 
-                        onClick={handleActualizarEstadoAgenda} 
-                        disabled={isAgendaFinalizada && rol !== 'SUPER'} 
-                        className={` px-5 rounded-lg shadow-sm transition-colors flex items-center justify-center space-x-2 w-full sm:w-auto ${getEstadoAgendaStyle(agenda.estado)}`}
-                    >
-                        <span className="text-lg md:text-base">{getEstadoAgendaText(agenda.estado)}</span>
-                    </Button>
-                   )}
-
-                   {(rol === 'SUPER' || rol === 'SECRETARIO' || rol === 'SEC-TECNICO') && !isPrinting && !isAgendaFinalizada && (
-                      <Button onClick={() => { setTareaSeleccionada(null); setIsFormModalOpen(true); }} className="px-5 rounded-lg shadow-sm transition-colors flex items-center justify-center space-x-2 bg-purple-500 text-white hover:bg-purple-600 w-full sm:w-auto">
-                     
-                        <span className="text-lg md:text-base">Nuevo Punto a tratar</span>                      
-              
-                      </Button>
-                    )}
-
-                  {mostrarAvisoAsistencia && (
-                    <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 px-3 rounded shadow-sm flex items-center justify-center md:justify-start w-full md:w-auto h-10">
-                        <Info className="w-5 h-5 mr-2 flex-shrink-0" />
-                        <p className="font-bold text-xs">La asistencia se podrá marcar 15 mins. antes de iniciar</p>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div className="flex-1 w-full flex justify-center">
-                <div className="flex space-x-8">
-                    <button
-                        onClick={() => setActiveTab('agenda')}
-                        className={cn(
-                            "relative flex items-center gap-2 pb-3 text-sm font-medium transition-colors whitespace-nowrap",
-                            activeTab === 'agenda' 
-                                ? "text-blue-600" 
-                                : "text-gray-500 hover:text-gray-700"
-                        )}
-                    >
-                        <LayoutList className="h-4 w-4" />
-                        <span>Agenda</span>
-                        {activeTab === 'agenda' && (
-                            <motion.div
-                                layoutId="activeTabTareas"
-                                className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600"
-                            />
-                        )}
-                    </button>
-
-                    <button
-                        onClick={() => setActiveTab('asistencia')}
-                        className={cn(
-                            "relative flex items-center gap-2 pb-3 text-sm font-medium transition-colors whitespace-nowrap",
-                            activeTab === 'asistencia' 
-                                ? "text-blue-600" 
-                                : "text-gray-500 hover:text-gray-700"
-                        )}
-                    >
-                        <Users className="h-4 w-4" />
-                        <span>Asistencia</span>
-                        {activeTab === 'asistencia' && (
-                            <motion.div
-                                layoutId="activeTabTareas"
-                                className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600"
-                            />
-                        )}
-                    </button>
-                </div>
-            </div>
-
-            <div className="hidden md:flex md:flex-wrap md:items-center md:justify-end md:w-auto gap-2 min-w-[200px]">
-                {activeTab === 'agenda' && estadoOrden.map(estado => (
-                    <motion.button 
-                        key={estado} 
-                        onClick={() => toggleFiltro(estado)} 
-                        className={`
-                            px-1 md:px-3 py-2 rounded-md shadow-sm text-center flex items-center justify-center 
-                            ${getStatusClasses(estado)} 
-                            ${filtrosActivos.includes(estado) ? 'border-t-4 border-blue-500' : ''}
-                        `} 
-                        whileHover={{ y: -5 }} 
-                        whileTap={{ scale: 0.95 }}
-                    >
-                        <span className="font-semibold text-[10px] sm:text-xs">{estado}:</span>
-                        <span className="text-[10px] sm:text-sm font-bold ml-1">{resumenDeEstados[estado] || 0}</span>
-                    </motion.button>
-                ))}
-                
-                {activeTab === 'agenda' && (
-                    <AnimatePresence>
-                        {filtrosActivos.length > 0 && (
-                        <motion.button 
-                            initial={{ opacity: 0, x: 20 }} 
-                            animate={{ opacity: 1, x: 0 }} 
-                            exit={{ opacity: 0, x: 20 }} 
-                            onClick={() => setFiltrosActivos([])} 
-                            className="col-span-3 md:col-span-auto px-3 py-2 rounded-md shadow-sm text-center bg-gray-400 text-white text-xs lg:text-xs w-full md:w-auto"
-                        >
-                            Quitar filtros
-                        </motion.button>
-                        )}
-                    </AnimatePresence>
-                )}
-            </div>
-        </div>
+        {agenda && (
+          <TabsYFiltros 
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            filtrosActivos={filtrosActivos}
+            toggleFiltro={toggleFiltro}
+            clearFiltros={() => setFiltrosActivos([])}
+            resumenDeEstados={resumenDeEstados}
+            estadoOrden={estadoOrden}
+          />
+        )}
 
         <AnimatePresence mode="wait">
             {activeTab === 'agenda' ? (

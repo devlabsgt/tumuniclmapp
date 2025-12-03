@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import Ver from '@/components/concejo/agenda/tareas/Ver';
+import Ver from '@/components/concejo/agenda/tareas/VerTareas';
 import Cargando from '@/components/ui/animations/Cargando';
 
 export default function ConcejoPage() {
