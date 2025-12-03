@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     const { error } = await supabase
       .from('horarios')
       .update({ dias, entrada, salida })
-      .eq('nombre', 'Sistema'); // <-- Aquí se hizo el cambio
+      .eq('nombre', 'Sistema'); 
 
     if (error) {
       console.error('Error al actualizar el horario:', error);

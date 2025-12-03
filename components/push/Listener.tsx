@@ -9,13 +9,17 @@ export default function NotificationListener() {
 
     const handleMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === 'SHOW_SWAL') {
-        const { title, text, icon } = event.data.payload
+        const { title, text } = event.data.payload
         
         Swal.fire({
           title: title || 'Notificación',
           text: text || '',
-          icon: icon || 'info',
-          confirmButtonText: 'Entendido',
+          imageUrl: '/images/logo-muni.png',
+          imageWidth: 360,
+          imageHeight: 'auto',
+          imageAlt: 'Logo Municipalidad',
+          confirmButtonText: 'Estoy enterado de la información',
+          confirmButtonColor: '#d97706',
           backdrop: true,
           allowOutsideClick: false
         })

@@ -7,7 +7,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
-import NotificationListener from "@/components/notificaciones/Listener";
+import NotificationListener from "@/components/push/Listener";
 
 export const metadata: Metadata = {
   title: "SIGEM -CLM-",

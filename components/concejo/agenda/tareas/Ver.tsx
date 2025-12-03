@@ -23,6 +23,7 @@ import { toast } from 'react-toastify';
 import jsPDF from 'jspdf';
 import * as htmlToImage from 'html-to-image';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/utils/supabase/client'; 
 
 const statusStyles: Record<string, string> = {
   'Aprobado': 'bg-green-200 text-green-800',
@@ -49,6 +50,7 @@ export default function VerTareas() {
   const params = useParams();
   const agendaId = params.id as string;
   const { rol, userId, nombre, cargando: cargandoUsuario } = useUserData();
+  const supabase = createClient();
 
   const [tareas, setTareas] = useState<Tarea[]>([]);
   const [cargandoTareas, setCargandoTareas] = useState(true);
@@ -73,7 +75,6 @@ export default function VerTareas() {
 
   const fetchDatos = async () => {
     if (!agendaId) return;
-    setCargandoTareas(true);
     try {
       const [dataTareas, dataAgenda] = await Promise.all([
         fetchTareasDeAgenda(agendaId),
@@ -90,7 +91,41 @@ export default function VerTareas() {
 
   useEffect(() => {
     fetchDatos();
-  }, [agendaId]);
+
+    const channel = supabase
+      .channel(`agenda_realtime_${agendaId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'agenda_concejo',
+          filter: `id=eq.${agendaId}`,
+        },
+        async (payload) => {
+          const nuevaAgenda = payload.new as AgendaConcejo;
+          setAgenda(nuevaAgenda);
+          
+          if (nuevaAgenda.estado === 'Finalizada') {
+             toast.warning('La sesión ha sido finalizada.');
+             setPuedeMarcarAsistencia(false);
+             setMostrarAvisoAsistencia(false);
+          } else if (nuevaAgenda.estado === 'En progreso') {
+             toast.info('El estado de la sesión ha cambiado a: En progreso.');
+             setPuedeMarcarAsistencia(true);
+          } else {
+             toast.info(`El estado de la agenda ha cambiado a: ${nuevaAgenda.estado}`);
+          }
+
+          await fetchDatos();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [agendaId, supabase]);
 
   useEffect(() => {
     const getPuesto = async () => {
@@ -267,28 +302,69 @@ export default function VerTareas() {
   };
 
   const handleActualizarEstadoAgenda = async () => {
-    if (!agenda || isAgendaFinalizada) return;
+    if (!agenda) return;
+    if (isAgendaFinalizada && rol !== 'SUPER') return;
 
     let nuevoEstado = '';
-    let mensaje = '';
+    let mensajeHtml = '';
 
     if (agenda.estado === 'En preparación') {
       nuevoEstado = 'En progreso';
-      mensaje = '¿Está todo listo para aperturar la sesión?';
+      mensajeHtml = '¿Está todo listo para aperturar la sesión?';
     } else if (agenda.estado === 'En progreso') {
       nuevoEstado = 'Finalizada';
-      mensaje = '¿Está seguro de que deseas cerrar la sesión? ya no podrás agregar o editar puntos de la agenda.';
+      mensajeHtml = `
+        <div style="text-align: left;">
+          <p>¿Está seguro de que deseas cerrar la sesión?</p>
+          <br/>
+          <p style="color: #d33; font-weight: bold; background-color: #fee2e2; padding: 10px; border-radius: 6px; border: 1px solid #fecaca;">
+            ⚠️ ADVERTENCIA: Asegúrese de que todos los miembros del concejo hayan marcado su asistencia antes de continuar.
+          </p>
+          <br/>
+          <p style="font-size: 0.9em; color: #555;">
+            Al finalizar, ya no se podrán registrar asistencias ni editar la agenda.
+          </p>
+        </div>
+      `;
+    } else if (agenda.estado === 'Finalizada' && rol === 'SUPER') {
+      nuevoEstado = 'En progreso';
+      mensajeHtml = `
+        <div style="text-align: left;">
+          <p>¿Deseas <b>REAPERTURAR</b> la sesión?</p>
+          <br/>
+          <p style="font-size: 0.9em; color: #555;">
+             Esto volverá a habilitar el marcado de asistencia y la edición de puntos.
+          </p>
+        </div>
+      `;
     }
 
+    if (!nuevoEstado) return;
+
     const { isConfirmed } = await Swal.fire({
-      title: 'Confirmar', text: mensaje, icon: 'warning', showCancelButton: true,
-      confirmButtonColor: '#3085d6', cancelButtonColor: '#d33', confirmButtonText: 'Continuar', cancelButtonText: 'Cancelar',
+      title: 'Confirmar acción', 
+      html: mensajeHtml, 
+      icon: 'warning', 
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6', 
+      cancelButtonColor: '#d33', 
+      confirmButtonText: 'Continuar', 
+      cancelButtonText: 'Cancelar',
     });
 
     if (isConfirmed) {
       try {
         await actualizarEstadoAgenda(agenda.id, nuevoEstado);
+        
+        setAgenda({ ...agenda, estado: nuevoEstado });
         fetchDatos();
+
+        if (nuevoEstado === 'En progreso') {
+           toast.success(agenda.estado === 'Finalizada' ? 'Sesión reaperturada.' : 'Sesión aperturada correctamente.');
+        } else if (nuevoEstado === 'Finalizada') {
+           toast.success('Sesión finalizada correctamente.');
+        }
+
       } catch (error) {
         toast.error('Error al actualizar el estado de la agenda.');
       }
@@ -301,14 +377,20 @@ export default function VerTareas() {
   const getEstadoAgendaStyle = (estado: string) => {
     if (estado === 'En preparación') return 'bg-green-500 text-white hover:bg-green-600';
     if (estado === 'En progreso') return 'bg-blue-500 text-white hover:bg-blue-600';
-    if (estado === 'Finalizada') return 'bg-gray-400 text-gray-800 cursor-not-allowed';
+    if (estado === 'Finalizada') {
+      if (rol === 'SUPER') return 'bg-orange-500 text-white hover:bg-orange-600';
+      return 'bg-gray-400 text-gray-800 cursor-not-allowed';
+    }
     return '';
   };
 
   const getEstadoAgendaText = (estado: string) => {
     if (estado === 'En preparación') return 'Se apertura la sesión';
     if (estado === 'En progreso') return 'Se cierra la sesión';
-    if (estado === 'Finalizada') return 'Sesión Finalizada';
+    if (estado === 'Finalizada') {
+       if (rol === 'SUPER') return 'Reaperturar Sesión';
+       return 'Sesión Finalizada';
+    }
     return estado;
   };
 
@@ -407,7 +489,7 @@ export default function VerTareas() {
                    {(rol === 'SUPER' || rol === 'SECRETARIO') && agenda && (
                     <Button 
                         onClick={handleActualizarEstadoAgenda} 
-                        disabled={isAgendaFinalizada} 
+                        disabled={isAgendaFinalizada && rol !== 'SUPER'} 
                         className={` px-5 rounded-lg shadow-sm transition-colors flex items-center justify-center space-x-2 w-full sm:w-auto ${getEstadoAgendaStyle(agenda.estado)}`}
                     >
                         <span className="text-lg md:text-base">{getEstadoAgendaText(agenda.estado)}</span>
