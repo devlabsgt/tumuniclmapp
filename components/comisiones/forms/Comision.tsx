@@ -92,7 +92,6 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
         body: JSON.stringify({
           title: titulo,
           message: mensaje,
-          url: '/protected/comisiones',
           targetIds: userIds
         })
       });

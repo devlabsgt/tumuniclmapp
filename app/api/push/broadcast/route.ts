@@ -14,23 +14,29 @@ webPush.setVapidDetails(
 
 export async function POST(request: Request) {
   try {
-    const { title, message, url } = await request.json()
+    const { title, message, url, targetIds } = await request.json()
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    const { data: subscriptions, error } = await supabase
+    let query = supabase
       .from('push_subscriptions')
       .select('id, subscription')
+
+    if (targetIds && Array.isArray(targetIds) && targetIds.length > 0) {
+      query = query.in('user_id', targetIds)
+    }
+
+    const { data: subscriptions, error } = await query
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
     if (!subscriptions || subscriptions.length === 0) {
-      return NextResponse.json({ message: 'No hay suscriptores' }, { status: 200 })
+      return NextResponse.json({ message: 'No hay suscriptores destinatarios' }, { status: 200 })
     }
 
     const notificationTitle = title || 'Aviso General'
