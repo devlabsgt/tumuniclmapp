@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
-import withPWAInit from "next-pwa";
 
-const withPWA = withPWAInit({
+const withPWA = require("@ducanh2912/next-pwa").default({
   dest: "public",
   register: true,
   skipWaiting: true,
@@ -14,7 +13,5 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
 };
-
-
 
 export default withPWA(nextConfig);
