@@ -14,7 +14,7 @@ import {
   isAfter,
   parseISO
 } from 'date-fns';
-import { Clock, CalendarCheck, CalendarDays, List, MapPin } from 'lucide-react';
+import { Clock, CalendarCheck, CalendarDays, List, MapPin, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Calendario from './Calendario';
 import Mapa from '../ui/modals/Mapa';
@@ -68,7 +68,6 @@ export default function Asistencia() {
   const { asistencias: todosLosRegistros, loading: cargandoRegistros, fetchAsistencias } = useAsistenciaUsuario(userId, null, null);
   const fechaHoraGt = useFechaHora();
   
-  // --- CAMBIO: Usar el nuevo hook ---
   const { ubicacion, cargando: cargandoGeo, obtenerUbicacion, error: errorGeo } = useObtenerUbicacion();
 
   const [cargando, setCargando] = useState(false);
@@ -84,7 +83,8 @@ export default function Asistencia() {
     scheduleSalida,
     scheduleSalidaTarde,
     horarioFormateado,
-    esHorarioMultiple
+    esHorarioMultiple,
+    esDiaLaboral
   } = useMemo(() => {
     const horaEntradaStr = horario_entrada || '08:00:00';
     const horaSalidaStr = horario_salida || '16:00:00';
@@ -97,7 +97,7 @@ export default function Asistencia() {
     const scheduleSalida = set(fechaHoraGt, { hours: hS, minutes: mS, seconds: sS || 0, milliseconds: 0 });
     const scheduleSalidaTarde = addMinutes(scheduleSalida, 15);
 
-    const diaDeLaSemana = getDay(fechaHoraGt);
+    const diaDeLaSemana = getDay(fechaHoraGt); // 0 = Domingo, 1 = Lunes...
     const esDiaLaboral = diasLaborales.includes(diaDeLaSemana);
 
     const estaFueraDeHorario = !esDiaLaboral || isBefore(fechaHoraGt, scheduleEntrada) || isAfter(fechaHoraGt, scheduleSalida);
@@ -111,7 +111,15 @@ export default function Asistencia() {
 
     const esHorarioMultiple = horario_nombre?.trim().toLowerCase() === 'multiple';
 
-    return { estaFueraDeHorario, scheduleEntrada, scheduleSalida, scheduleSalidaTarde, horarioFormateado, esHorarioMultiple };
+    return { 
+      estaFueraDeHorario, 
+      scheduleEntrada, 
+      scheduleSalida, 
+      scheduleSalidaTarde, 
+      horarioFormateado, 
+      esHorarioMultiple,
+      esDiaLaboral 
+    };
   }, [fechaHoraGt, horario_entrada, horario_salida, horario_dias, horario_nombre]);
 
   const registroEntradaHoy = useMemo(() => {
@@ -144,7 +152,6 @@ export default function Asistencia() {
     };
   }, [modalMapaAbierto]);
 
-  // --- CAMBIO: Manejar el registro cuando llega la ubicación ---
   useEffect(() => {
     if (ubicacion && tipoRegistroPendiente) {
       handleMarcarAsistencia(tipoRegistroPendiente, ubicacion, notasPendientes);
@@ -226,7 +233,6 @@ export default function Asistencia() {
       setNotasPendientes(notasFinales);
       setTipoRegistroPendiente(tipo);
       
-      // --- CAMBIO: Llamar a obtenerUbicacion ---
       obtenerUbicacion(); 
     }
   };
@@ -273,45 +279,75 @@ export default function Asistencia() {
   if (cargandoUsuario || cargandoRegistros) return <Cargando texto='Asistencia...' />;
 
   const renderBotonMarcado = () => {
+    // Si NO es horario múltiple Y NO es un día laboral según el horario, bloqueamos el botón.
+    if (!esHorarioMultiple && !esDiaLaboral) {
+      return (
+        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900 rounded-md text-center transition-colors">
+          <p className="text-yellow-700 dark:text-yellow-500 font-semibold flex items-center justify-center gap-2">
+            <AlertCircle className="h-5 w-5" />
+            Hoy no es un día laboral asignado.
+          </p>
+          <p className="text-xs text-yellow-600 dark:text-yellow-600 mt-1">
+            Solo puede marcar asistencia los días: {horarioFormateado.dias}
+          </p>
+        </div>
+      );
+    }
+
     if (esHorarioMultiple) {
       return (
         <Button
           onClick={() => handleIniciarMarcado('Marca')}
           disabled={cargando || cargandoGeo}
-          className="w-full py-6 text-base bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2"
+          className="w-full py-6 text-base bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 flex items-center justify-center gap-2 border-0 text-white"
         >
           {cargandoGeo && <MapPin className="animate-bounce h-4 w-4" />}
           {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Registrando...' : 'Marcar')}
         </Button>
       );
     }
+    
     if (!entradaMarcada) {
       return (
-        <Button onClick={() => handleIniciarMarcado('Entrada')} disabled={cargando || cargandoGeo} className="w-full py-6 text-base bg-green-600 hover:bg-green-700 flex items-center justify-center gap-2">
+        <Button onClick={() => handleIniciarMarcado('Entrada')} disabled={cargando || cargandoGeo} className="w-full py-6 text-base bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 flex items-center justify-center gap-2 border-0 text-white">
            {cargandoGeo && <MapPin className="animate-bounce h-4 w-4" />}
           {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Marcando...' : 'Marcar Entrada')}
         </Button>
       );
     } else if (!salidaMarcada) {
       return (
-        <Button onClick={() => handleIniciarMarcado('Salida')} disabled={cargando || cargandoGeo} className="w-full py-6 text-base bg-red-600 hover:bg-red-700 flex items-center justify-center gap-2">
+        <Button onClick={() => handleIniciarMarcado('Salida')} disabled={cargando || cargandoGeo} className="w-full py-6 text-base bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 flex items-center justify-center gap-2 border-0 text-white">
            {cargandoGeo && <MapPin className="animate-bounce h-4 w-4" />}
           {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Marcando...' : 'Marcar Salida')}
         </Button>
       );
     } else {
-      return <p className="text-center text-gray-500 font-semibold p-4 bg-gray-100 rounded-md">Jornada completada por hoy</p>;
+      return <p className="text-center text-gray-500 dark:text-gray-400 font-semibold p-4 bg-gray-100 dark:bg-neutral-800 rounded-md">Jornada completada por hoy</p>;
     }
   };
 
   return (
     <>
       <div className="w-full xl:max-w-3xl mx-auto">
-        <div className="border-b flex mb-4 flex-wrap justify-center">
-          <button onClick={() => setActiveTab('controlResumen')} className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm ${activeTab === 'controlResumen' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}>
+        <div className="border-b dark:border-neutral-800 flex mb-4 flex-wrap justify-center transition-colors">
+          <button 
+            onClick={() => setActiveTab('controlResumen')} 
+            className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm transition-colors ${
+              activeTab === 'controlResumen' 
+                ? 'border-b-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400' 
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            }`}
+          >
             <Clock className="h-4 w-4" /> Asistencia
           </button>
-          <button onClick={() => setActiveTab('semanal')} className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm ${activeTab === 'semanal' ? ' border-blue-600 text-blue-600' : 'text-gray-500'}`}>
+          <button 
+            onClick={() => setActiveTab('semanal')} 
+            className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm transition-colors ${
+              activeTab === 'semanal' 
+                ? 'border-b-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400' 
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            }`}
+          >
             <CalendarCheck className="h-4 w-4" /> Registro Semanal
           </button>
         </div>
@@ -320,24 +356,24 @@ export default function Asistencia() {
           {activeTab === 'controlResumen' ? (
             <motion.div key="controlResumen" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
               <div className="flex flex-col gap-8 w-full">
-                <div className="p-6 bg-white rounded-lg shadow-md space-y-4">
+                <div className="p-6 bg-white dark:bg-neutral-900 rounded-lg shadow-md space-y-4 border border-gray-100 dark:border-neutral-800 transition-colors duration-200">
 
-                  <div className="text-center bg-slate-100 p-3 rounded-md">
-                    <p className="font-semibold text-xs lg:text-sm">{nombre || 'Usuario no identificado'}</p>
+                  <div className="text-center bg-slate-100 dark:bg-neutral-800 p-3 rounded-md transition-colors">
+                    <p className="font-semibold text-xs lg:text-sm text-gray-800 dark:text-gray-100">{nombre || 'Usuario no identificado'}</p>
                   </div>
 
                   {!esHorarioMultiple && (
-                    <div className="text-center text-xs font-semibold text-blue-600 flex flex-col lg:flex-row justify-center lg:gap-4">
+                    <div className="text-center text-xs font-semibold text-blue-600 dark:text-blue-400 flex flex-col lg:flex-row justify-center lg:gap-4 transition-colors">
                       <p className='pb-2'>Horario: {horarioFormateado.nombre}</p>
                       <p className="flex items-center justify-center gap-1 pb-2"><Clock className="h-3 w-3" />{horarioFormateado.entrada} a {horarioFormateado.salida}</p>
                       <p className="flex items-center justify-center gap-1 pb-2"><CalendarDays className="h-3 w-3" />{horarioFormateado.dias}</p>
                     </div>
                   )}
 
-                  <div className="text-center border-y py-4">
-                    <p className="text-xs lg:text-sm text-slate-600">
+                  <div className="text-center border-y dark:border-neutral-800 py-4 transition-colors">
+                    <p className="text-xs lg:text-sm text-slate-600 dark:text-slate-300">
                       <span className="capitalize">{format(fechaHoraGt, "EEEE, dd/MM/yyyy", { locale: es })}</span>
-                      <span className={`font-mono font-bold ml-2 ${estaFueraDeHorario && !esHorarioMultiple ? 'text-red-700' : ''}`}>
+                      <span className={`font-mono font-bold ml-2 ${estaFueraDeHorario && !esHorarioMultiple ? 'text-red-700 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'}`}>
                         {format(fechaHoraGt, 'hh:mm:ss aa', { locale: es })}
                       </span>
                     </p>
@@ -348,21 +384,25 @@ export default function Asistencia() {
                     </div>
                   </div>
 
-                  <div className="mt-6 border-t pt-4">
-                    <h4 className="text-xs lg:text-sm font-semibold mb-2">Registros de hoy:</h4>
+                  <div className="mt-6 border-t dark:border-neutral-800 pt-4 transition-colors">
+                    <h4 className="text-xs lg:text-sm font-semibold mb-2 text-gray-800 dark:text-gray-200">Registros de hoy:</h4>
                     {hayRegistrosHoy ? (
                       <>
-                        <p className="text-xs text-gray-500 mb-2">Haga clic para ver detalles de ubicación.</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Haga clic para ver detalles de ubicación.</p>
                         <div
                           onClick={handleAbrirMapaHoy}
-                          className="p-3 rounded-md bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors flex justify-center items-center gap-2 text-blue-700 font-semibold"
+                          className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors flex justify-center items-center gap-2 text-blue-700 dark:text-blue-300 font-semibold"
                         >
                           <List className="h-4 w-4" />
                           Ver Asistencia de hoy ({registrosHoyMultiple.length})
                         </div>
                       </>
                     ) : (
-                      <p className="text-xs lg:text-sm text-gray-500">No hay registros hoy.</p>
+                      <div className="p-4 bg-gray-50 dark:bg-neutral-800/50 rounded-md border border-gray-100 dark:border-neutral-800 text-center">
+                        <p className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">
+                          No ha marcado asistencia el día de hoy.
+                        </p>
+                      </div>
                     )}
                   </div>
 
@@ -383,9 +423,11 @@ export default function Asistencia() {
 
       <AnimatePresence>
         {modalMapaAbierto && (
-          <Mapa isOpen={modalMapaAbierto} onClose={() => setModalMapaAbierto(false)} 
-          registros={registrosSeleccionadosParaMapa} nombreUsuario={nombre} titulo="Asistencia"
-/>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+             <Mapa isOpen={modalMapaAbierto} onClose={() => setModalMapaAbierto(false)} 
+                registros={registrosSeleccionadosParaMapa} nombreUsuario={nombre} titulo="Asistencia"
+            />
+          </div>
         )}
       </AnimatePresence>
     </>
