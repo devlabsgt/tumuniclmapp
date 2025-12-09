@@ -9,7 +9,7 @@ export default function NotificationListener() {
 
     const handleMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === 'SHOW_SWAL') {
-        const { title, text } = event.data.payload
+        const { title, text, url } = event.data.payload
         
         Swal.fire({
           title: title || 'Notificación',
@@ -18,10 +18,16 @@ export default function NotificationListener() {
           imageWidth: 360,
           imageHeight: 'auto',
           imageAlt: 'Logo Municipalidad',
-          confirmButtonText: 'Estoy enterado de la información',
+          confirmButtonText: url ? 'Ir a ver' : 'Entendido',
           confirmButtonColor: '#d97706',
+          showCancelButton: !!url,
+          cancelButtonText: 'Cerrar',
           backdrop: true,
           allowOutsideClick: false
+        }).then((result) => {
+          if (result.isConfirmed && url) {
+            window.location.href = url
+          }
         })
       }
     }
