@@ -22,7 +22,7 @@ export default function Profile({ userId, isSuper, onShowTarjeta }: ProfileProps
     >
       <Button 
         onClick={onShowTarjeta} 
-        className="flex-grow gap-2 text-base md:text-lg h-14 bg-blue-100 text-blue-800 hover:bg-blue-200 shadow-sm border border-blue-200 font-bold"
+        className="flex-grow gap-2 text-base md:text-lg h-14 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 shadow-sm border border-blue-200 dark:border-blue-800 font-bold transition-colors duration-200"
       >
         <AnimatedIcon iconKey="hroklero" className="w-8 h-8" trigger={hoveredButton === 'profile' ? 'loop' : undefined} />
         <span className="truncate">Mi Información</span>

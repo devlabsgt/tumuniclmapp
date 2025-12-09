@@ -98,22 +98,22 @@ export default function SubscribeButton({ userId }: { userId: string }) {
       disabled={loading}
       className={`h-14 w-full flex items-center justify-center rounded-md border transition-all duration-200 ${
         isSubscribed 
-          ? 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100 text-yellow-700' 
-          : 'bg-gray-100 border-gray-200 hover:bg-gray-200 text-gray-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400'
+          ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/30' 
+          : 'bg-gray-100 dark:bg-neutral-900 border-gray-200 dark:border-neutral-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-neutral-800'
       }`}
       title={isSubscribed ? 'Desactivar notificaciones' : 'Activar notificaciones'}
     >
       {loading ? (
-        <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+        <Loader2 className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-400" />
       ) : isSubscribed ? (
         <div className="relative">
-          <Bell className="h-7 w-7 text-yellow-500 fill-yellow-500" />
-          <div className="absolute -top-1 -right-1 bg-green-500 rounded-full p-0.5 border-2 border-white">
+          <Bell className="h-7 w-7 text-yellow-500 dark:text-yellow-400 fill-yellow-500 dark:fill-yellow-400" />
+          <div className="absolute -top-1 -right-1 bg-green-500 rounded-full p-0.5 border-2 border-white dark:border-neutral-900">
             <Check className="h-2.5 w-2.5 text-white stroke-[4]" />
           </div>
         </div>
       ) : (
-        <BellOff className="h-7 w-7 text-gray-400" />
+        <BellOff className="h-7 w-7 text-gray-400 dark:text-gray-500" />
       )}
     </button>
   )
