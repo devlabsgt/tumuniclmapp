@@ -156,7 +156,7 @@ const destinatariosNotificacion = Array.from(new Set([formData.encargadoId, ...(
 
         sendPushNotification(
           'Comisión Actualizada', 
-          `Se han realizado cambios en la comisión: "${formData.titulo}". Haz click para ver los detalles.`,
+          `Se han realizado cambios en la comisión: "${formData.titulo}".`,
           destinatariosNotificacion
         );
         
@@ -212,7 +212,7 @@ const destinatariosNotificacion = Array.from(new Set([formData.encargadoId, ...(
 
         sendPushNotification(
           'Nueva Comisión Asignada', 
-          `Se te ha asignado a la nueva comisión: "${formData.titulo}". Haz click para ver los detalles.`,
+          `Se te ha asignado a la nueva comisión: "${formData.titulo}".`,
           destinatariosNotificacion
         );
         
