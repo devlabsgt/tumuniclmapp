@@ -21,22 +21,23 @@ const ThemeSwitcher = () => {
     setTheme(theme === "light" ? "dark" : "light");
   };
 
-  const ICON_SIZE = 24; // Tamaño de ícono grande
+  const ICON_SIZE = 24;
 
   return (
-    <div className="flex items-center gap-3 ">
-     
-        <span className="text-xs md:text-lg">Haz click en el icono<br/>para cambiar el tema</span>
-
+    <div className="flex items-center gap-3">
       <Button
         variant="ghost"
         size="lg"
-        className="h-12 w-12 p-0 flex items-center justify-center"
         onClick={toggleTheme}
+        className={`h-12 w-12 p-0 flex items-center justify-center rounded-md transition-colors duration-200 
+          ${theme === "light" 
+            ? "hover:bg-sky-100" 
+            : "hover:bg-gray-800"
+          }
+        `}
       >
-
         {theme === "light" ? (
-        <Sun size={ICON_SIZE} className="text-yellow-500" />
+          <Sun size={ICON_SIZE} className="text-yellow-500" />
         ) : (
           <Moon size={ICON_SIZE} className="text-blue-400" />
         )}

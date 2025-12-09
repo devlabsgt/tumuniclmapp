@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import {
   format,
-  isToday,
   isSameDay,
   startOfMonth,
   endOfMonth,
@@ -14,7 +13,7 @@ import {
   isAfter,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ListPlus, StretchHorizontal } from 'lucide-react';
+import { ListPlus, StretchHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface CalendarioComisionesProps {
   fechasSeleccionadas: Date[];
@@ -123,55 +122,69 @@ export default function CalendarioComisiones({
     let classes = 'w-10 h-10 flex items-center justify-center rounded-md transition-all text-sm cursor-pointer ';
 
     if (diaEstaSeleccionado) {
-      classes += isPastDate ? 'bg-slate-300 text-slate-500' : 'bg-blue-600 text-white font-semibold';
+      if (isPastDate) {
+        // Seleccionado en el pasado (grisaceo)
+        classes += 'bg-slate-300 dark:bg-neutral-700 text-slate-500 dark:text-neutral-400';
+      } else {
+        // Seleccionado futuro/hoy (azul fuerte)
+        classes += 'bg-blue-600 dark:bg-blue-700 text-white font-semibold';
+      }
     } else if (diaEstaEnRango) {
-      classes += isPastDate ? 'bg-slate-200 text-slate-400' : 'bg-blue-100 text-blue-700';
+      if (isPastDate) {
+        // En rango pasado
+        classes += 'bg-slate-200 dark:bg-neutral-800 text-slate-400 dark:text-neutral-500';
+      } else {
+        // En rango futuro
+        classes += 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
+      }
     } else if (isTodayDate) {
-      classes += 'bg-blue-100 text-blue-800 font-bold';
+      // Hoy sin seleccionar
+      classes += 'bg-blue-50 dark:bg-blue-900/10 text-blue-800 dark:text-blue-400 font-bold border border-blue-200 dark:border-blue-800';
     } else if (isPastDate) {
-      classes += 'text-slate-400';
+      // Pasado sin seleccionar
+      classes += 'text-slate-400 dark:text-neutral-600';
     } else {
-      classes += 'hover:bg-slate-100 text-slate-600';
+      // Futuro sin seleccionar (normal)
+      classes += 'hover:bg-slate-100 dark:hover:bg-neutral-800 text-slate-600 dark:text-neutral-300';
     }
 
     if (isDiaRangeStart && !disabled) {
-      classes += ' ring-2 ring-blue-500 ring-offset-1';
+      classes += ' ring-2 ring-blue-500 dark:ring-blue-400 ring-offset-1 dark:ring-offset-neutral-950';
     }
     
     return classes;
   }
 
   return (
-    <div className="p-4 bg-white rounded-lg border space-y-4 w-full max-w-md mx-auto">
+    <div className="p-4 bg-white dark:bg-neutral-950 rounded-lg border border-gray-200 dark:border-neutral-800 space-y-4 w-full max-w-md mx-auto transition-colors duration-200">
+      
+      {/* Header Mes/Año */}
       <div className="flex justify-between items-center p-2 rounded-lg">
         <button
           type="button"
           onClick={irMesAnterior}
-          className="p-2 rounded-full hover:bg-slate-200 disabled:text-slate-300"
+          className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-neutral-800 text-slate-600 dark:text-neutral-400 disabled:text-slate-300 dark:disabled:text-neutral-700 transition-colors"
           aria-label="Mes anterior"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-          </svg>
+          <ChevronLeft className="h-5 w-5" />
         </button>
-        <div className="flex gap-2 text-lg lg:text-xl font-semibold text-slate-800 capitalize">
+        <div className="flex gap-2 text-lg lg:text-xl font-semibold text-slate-800 dark:text-neutral-100 capitalize">
           <span>{format(fechaDeReferencia, 'LLLL', { locale: es })}</span>
           <span>{format(fechaDeReferencia, 'yyyy')}</span>
         </div>
         <button
           type="button"
           onClick={irMesSiguiente}
-          className="p-2 rounded-full hover:bg-slate-200 disabled:text-slate-300"
+          className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-neutral-800 text-slate-600 dark:text-neutral-400 disabled:text-slate-300 dark:disabled:text-neutral-700 transition-colors"
           aria-label="Siguiente mes"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-          </svg>
+          <ChevronRight className="h-5 w-5" />
         </button>
       </div>
 
+      {/* Switcher de Modo de Selección */}
       {!disabled && (
-        <div className="flex items-center justify-center gap-2 p-1 bg-slate-100 rounded-lg">
+        <div className="flex items-center justify-center gap-2 p-1 bg-slate-100 dark:bg-neutral-900 rounded-lg transition-colors">
           <button
             type="button"
             onClick={() => {
@@ -181,8 +194,8 @@ export default function CalendarioComisiones({
             disabled={disabled}
             className={`flex-1 flex items-center justify-center gap-2 text-xs px-3 py-1.5 rounded-md transition-all ${
               selectionMode === 'multiple'
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-slate-600 hover:bg-slate-200'
+                ? 'bg-white dark:bg-neutral-800 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-slate-600 dark:text-neutral-400 hover:bg-slate-200 dark:hover:bg-neutral-800'
             }`}
           >
             <ListPlus size={16} />
@@ -197,8 +210,8 @@ export default function CalendarioComisiones({
             disabled={disabled}
             className={`flex-1 flex items-center justify-center gap-2 text-xs px-3 py-1.5 rounded-md transition-all ${
               selectionMode === 'range'
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-slate-600 hover:bg-slate-200'
+                ? 'bg-white dark:bg-neutral-800 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-slate-600 dark:text-neutral-400 hover:bg-slate-200 dark:hover:bg-neutral-800'
             }`}
           >
             <StretchHorizontal size={16} />
@@ -207,9 +220,10 @@ export default function CalendarioComisiones({
         </div>
       )}
 
+      {/* Grid de Días */}
       <div className="grid grid-cols-7 gap-1 text-center">
         {['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'].map((dia) => (
-          <span key={dia} className="text-xs uppercase font-semibold text-gray-500 w-10 h-10 flex items-center justify-center">
+          <span key={dia} className="text-xs uppercase font-semibold text-gray-500 dark:text-neutral-500 w-10 h-10 flex items-center justify-center">
             {dia}
           </span>
         ))}

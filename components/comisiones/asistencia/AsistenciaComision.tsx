@@ -168,27 +168,27 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario, on
     <>
     {!salidaMarcada && (
       <div>
-        <div className="flex flex-col gap-8 w-full border-t-4 pt-5">
-          <div className="px-4 pb-4 bg-white space-y-4">         
+        <div className="flex flex-col gap-8 w-full border-t-4 border-gray-200 dark:border-neutral-800 pt-5 transition-colors">
+          <div className="px-4 pb-4 bg-white dark:bg-neutral-950 space-y-4 transition-colors">         
             
               <>
                 <div className="text-center flex justify-center items-center gap-4">
-                  <p className="font-mono  text-sm capitalize text-slate-600">
+                  <p className="font-mono text-sm capitalize text-slate-600 dark:text-gray-400">
                     {format(fechaHoraGt, "EEEE, d MMM", { locale: es })}
                   </p>
-                  <p className="font-mono text-lg font-bold">
+                  <p className="font-mono text-lg font-bold text-gray-900 dark:text-gray-100">
                     {fechaHoraGt.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </p>
                 </div>
                 {!entradaMarcada ? (
                   <div className="flex gap-4 items-stretch">
-                    <Button onClick={() => handleIniciarMarcado('Entrada', comision.id)} disabled={cargandoMarcaje || cargandoGeo} className="w-full bg-green-600 hover:bg-green-700 text-xs py-4 h-auto">
+                    <Button onClick={() => handleIniciarMarcado('Entrada', comision.id)} disabled={cargandoMarcaje || cargandoGeo} className="w-full bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-xs py-4 h-auto border-0 text-white">
                       {cargandoGeo ? 'Obteniendo ubicación...' : (cargandoMarcaje ? 'Marcando...' : 'Entrada')}
                     </Button>
                   </div>
                 ) : (
                   <div className="flex gap-4 items-stretch">
-                    <Button onClick={() => handleIniciarMarcado('Salida', comision.id)} disabled={cargandoMarcaje || salidaMarcada || cargandoGeo} className="w-full bg-orange-600 hover:bg-orange-700 text-xs py-4 h-auto">
+                    <Button onClick={() => handleIniciarMarcado('Salida', comision.id)} disabled={cargandoMarcaje || salidaMarcada || cargandoGeo} className="w-full bg-orange-600 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-600 text-xs py-4 h-auto border-0 text-white">
                       {cargandoGeo ? 'Obteniendo ubicación...' : (salidaMarcada ? 'Salida ya marcada' : (cargandoMarcaje ? 'Marcando...' : 'Salida'))}
                     </Button>
                   </div>

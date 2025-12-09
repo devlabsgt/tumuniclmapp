@@ -89,15 +89,15 @@ export default function Asistentes({ usuarios }: AsistentesProps) {
               onChange={(e) => setBusquedaEncargado(e.target.value)}
               onBlur={() => setTimeout(() => setResultadosBusquedaEncargado([]), 150)}
               placeholder="Buscar y añadir encargado..."
-              className={!encargadoSeleccionado && errors.encargadoId ? 'border-red-500' : ''}
+              className={`bg-white dark:bg-neutral-800 border-gray-300 dark:border-neutral-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 ${!encargadoSeleccionado && errors.encargadoId ? 'border-red-500' : ''}`}
             />
             {resultadosBusquedaEncargado.length > 0 && (
-              <div className="absolute w-full bg-white border rounded-md mt-1 z-20 max-h-40 overflow-y-auto shadow-lg">
+              <div className="absolute w-full bg-white dark:bg-neutral-800 border dark:border-neutral-700 rounded-md mt-1 z-20 max-h-40 overflow-y-auto shadow-lg">
                 {resultadosBusquedaEncargado.map((user: Usuario) => (
                   <button
                     type="button"
                     key={user.id}
-                    className="w-full text-left p-3 text-sm hover:bg-blue-500 hover:text-white transition-colors duration-150"
+                    className="w-full text-left p-3 text-sm text-gray-900 dark:text-gray-100 hover:bg-blue-500 hover:text-white transition-colors duration-150"
                     onClick={() => handleSeleccionEncargado(user)}
                   >
                     {user.nombre}
@@ -108,16 +108,22 @@ export default function Asistentes({ usuarios }: AsistentesProps) {
           </div>
         )}
         {encargadoSeleccionado && (
-          <ul className="p-3 bg-white border rounded-md">
-            <li key={encargadoSeleccionado.id} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded-md">
-              <span className="text-sm text-gray-800 font-semibold">
+          <ul className="p-3 bg-white dark:bg-neutral-900 border dark:border-neutral-800 rounded-md">
+            <li key={encargadoSeleccionado.id} className="flex justify-between items-center p-2 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-md transition-colors">
+              <span className="text-sm text-gray-800 dark:text-gray-200 font-semibold">
                 {encargadoSeleccionado.nombre}
               </span>
-              <button type="button" onClick={handleQuitarEncargado} className="p-1 text-red-500 hover:text-red-700 rounded-sm hover:bg-red-100"><X size={14} /></button>
+              <button 
+                type="button" 
+                onClick={handleQuitarEncargado} 
+                className="p-1 text-red-500 hover:text-red-700 dark:hover:text-red-400 rounded-sm hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
+              >
+                <X size={14} />
+              </button>
             </li>
           </ul>
         )}
-        {errors.encargadoId && <p className="text-sm text-red-500 mt-1">{errors.encargadoId.message}</p>}
+        {errors.encargadoId && <p className="text-sm text-red-500 dark:text-red-400 mt-1">{errors.encargadoId.message}</p>}
       </div>
       <div className="flex flex-col gap-2 flex-grow">
         <h4 className="sr-only">Asistentes:</h4>
@@ -128,14 +134,15 @@ export default function Asistentes({ usuarios }: AsistentesProps) {
             onChange={(e) => setBusquedaAsistente(e.target.value)}
             onBlur={() => setTimeout(() => setResultadosBusquedaAsistente([]), 150)}
             placeholder="Buscar y añadir asistentes..."
+            className="bg-white dark:bg-neutral-800 border-gray-300 dark:border-neutral-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
           />
           {resultadosBusquedaAsistente.length > 0 && (
-              <div className="absolute w-full bg-white border rounded-md mt-1 z-20 max-h-40 overflow-y-auto shadow-lg">
+              <div className="absolute w-full bg-white dark:bg-neutral-800 border dark:border-neutral-700 rounded-md mt-1 z-20 max-h-40 overflow-y-auto shadow-lg">
                   {resultadosBusquedaAsistente.map((user: Usuario) => (
                     <button
                       type="button"
                       key={user.id}
-                      className="w-full text-left p-3 text-sm hover:bg-blue-500 hover:text-white transition-colors duration-150"
+                      className="w-full text-left p-3 text-sm text-gray-900 dark:text-gray-100 hover:bg-blue-500 hover:text-white transition-colors duration-150"
                       onClick={() => handleSeleccionAsistente(user)}
                     >
                       {user.nombre}
@@ -145,13 +152,19 @@ export default function Asistentes({ usuarios }: AsistentesProps) {
           )}
         </div>
         {asistentesAsignados.length > 0 && (
-          <ul className="p-3 bg-white border rounded-md flex-grow overflow-y-auto mt-2">
+          <ul className="p-3 bg-white dark:bg-neutral-900 border dark:border-neutral-800 rounded-md flex-grow overflow-y-auto mt-2">
             {asistentesAsignados.map((user: Usuario) => (
-              <li key={user.id} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded-md">
-                <span className="text-sm text-gray-800">
+              <li key={user.id} className="flex justify-between items-center p-2 hover:bg-gray-50 dark:hover:bg-neutral-800 rounded-md transition-colors">
+                <span className="text-sm text-gray-800 dark:text-gray-200">
                   {user.nombre}
                 </span>
-                <button type="button" onClick={() => handleQuitarAsistente(user.id)} className="p-1 text-red-500 hover:text-red-700 rounded-sm hover:bg-red-100"><X size={14} /></button>
+                <button 
+                  type="button" 
+                  onClick={() => handleQuitarAsistente(user.id)} 
+                  className="p-1 text-red-500 hover:text-red-700 dark:hover:text-red-400 rounded-sm hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
+                >
+                  <X size={14} />
+                </button>
               </li>
             ))}
           </ul>

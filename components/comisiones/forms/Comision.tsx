@@ -251,14 +251,14 @@ const destinatariosNotificacion = Array.from(new Set([formData.encargadoId, ...(
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
         >
           <motion.div
-            className="bg-slate-50 rounded-xl border border-gray-300 w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+            className="bg-white dark:bg-neutral-900 rounded-xl border border-gray-300 dark:border-neutral-800 w-full max-w-4xl max-h-[90vh] overflow-y-auto transition-colors duration-200"
             initial={{ scale: 0.9, y: 30 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.9, y: 30 }}
@@ -266,10 +266,16 @@ const destinatariosNotificacion = Array.from(new Set([formData.encargadoId, ...(
           >
             <div className="p-6 md:p-8 flex flex-col h-full">
               <div className="flex justify-between items-start mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
                   {comisionAEditar ? 'Editar Comisión' : 'Nueva Comisión'}
                 </h2>
-                <button type="button" onClick={onClose} className="p-1 text-red-500 hover:text-red-700 rounded-sm hover:bg-red-100"><X size={14} /></button>
+                <button 
+                  type="button" 
+                  onClick={onClose} 
+                  className="p-1 text-red-500 hover:text-red-700 dark:hover:text-red-400 rounded-sm hover:bg-red-100 dark:hover:bg-red-900/20"
+                >
+                  <X size={20} />
+                </button>
               </div>
               
               <FormProvider {...methods}>
@@ -277,8 +283,12 @@ const destinatariosNotificacion = Array.from(new Set([formData.encargadoId, ...(
                   <div className="flex flex-col md:flex-row gap-6">
                     <div className="flex flex-col gap-6 md:w-1/2">
                       <div>
-                        <Input {...register("titulo")} placeholder="Título de la Comisión" className={errors.titulo ? 'border-red-500' : ''} />
-                        {errors.titulo && <p className="text-sm text-red-500 mt-1">{errors.titulo.message}</p>}
+                        <Input 
+                          {...register("titulo")} 
+                          placeholder="Título de la Comisión" 
+                          className={`bg-white dark:bg-neutral-800 border-gray-300 dark:border-neutral-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 ${errors.titulo ? 'border-red-500' : ''}`}
+                        />
+                        {errors.titulo && <p className="text-sm text-red-500 dark:text-red-400 mt-1">{errors.titulo.message}</p>}
                       </div>
                       <div className='flex justify-center'>
                         <CalendarioComisiones
@@ -288,20 +298,29 @@ const destinatariosNotificacion = Array.from(new Set([formData.encargadoId, ...(
                         />
                       </div>
                       {!!comisionAEditar && (
-                        <p className="text-xs text-center text-gray-500 -mt-4">
+                        <p className="text-xs text-center text-gray-500 dark:text-gray-400 -mt-4">
                           No se pueden seleccionar múltiples fechas al editar.
                         </p>
                       )}
                       <div>
                         <div className="flex items-center gap-2">
-                          <select {...register("hora")} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                          <select 
+                            {...register("hora")} 
+                            className="w-full p-2 border border-gray-300 dark:border-neutral-700 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100"
+                          >
                             {Array.from({ length: 12 }, (_, i) => i + 1).map(h => (<option key={h} value={h.toString().padStart(2, '0')}>{h.toString().padStart(2, '0')}</option>))}
                           </select>
-                          <span>:</span>
-                          <select {...register("minuto")} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                          <span className="text-gray-800 dark:text-gray-200">:</span>
+                          <select 
+                            {...register("minuto")} 
+                            className="w-full p-2 border border-gray-300 dark:border-neutral-700 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100"
+                          >
                             {Array.from({ length: 12 }, (_, i) => i * 5).map(m => (<option key={m} value={m.toString().padStart(2, '0')}>{m.toString().padStart(2, '0')}</option>))}
                           </select>
-                          <select {...register("periodo")} className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                          <select 
+                            {...register("periodo")} 
+                            className="w-full p-2 border border-gray-300 dark:border-neutral-700 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-neutral-800 text-gray-900 dark:text-gray-100"
+                          >
                             <option value="AM">AM</option>
                             <option value="PM">PM</option>
                           </select>
@@ -316,7 +335,7 @@ const destinatariosNotificacion = Array.from(new Set([formData.encargadoId, ...(
                   <Comentarios />
                   
                   <div className="flex justify-end pt-4 mt-auto">
-                    <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white">
+                    <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white border-0">
                       {isSubmitting ? 'Guardando...' : comisionAEditar ? 'Guardar Cambios' : 'Crear Comisión'}
                     </Button>
                   </div>

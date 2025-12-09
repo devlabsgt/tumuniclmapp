@@ -156,15 +156,15 @@ export default function MisComisiones() {
   }
 
   if (!userId) {
-    return <p className="text-center text-red-500 py-8">Error: No se pudo cargar su información de usuario.</p>;
+    return <p className="text-center text-red-500 dark:text-red-400 py-8">Error: No se pudo cargar su información de usuario.</p>;
   }
 
   if (error) {
-    return <p className="text-center text-red-500 py-8">Error: {error}</p>;
+    return <p className="text-center text-red-500 dark:text-red-400 py-8">Error: {error}</p>;
   }
 
   const listaComisionesContenido = (
-    <div className="bg-white rounded-lg w-full mx-auto">
+    <div className="bg-white dark:bg-neutral-950 rounded-lg w-full mx-auto transition-colors duration-200">
       <ListaMisComisiones
         vista={vista}
         setVista={setVista}
@@ -190,7 +190,11 @@ export default function MisComisiones() {
     <>
       {!isMobile && (
         <div className="flex justify-center">
-          <Button onClick={handleRefresh} variant="ghost">
+          <Button 
+            onClick={handleRefresh} 
+            variant="ghost"
+            className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
+          >
             <RefreshCw className="mr-2 h-4 w-4" />
             Actualizar
           </Button>
@@ -202,18 +206,18 @@ export default function MisComisiones() {
           onRefresh={handleRefresh}
           pullingContent={
             <div className="flex flex-col justify-center items-center h-16">
-              <p className="text-xs text-gray-500 mb-1 animate-bounce">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 animate-bounce">
                 Suelta para actualizar
               </p>
-              <ArrowDown className="h-4 w-4 text-gray-500" />
+              <ArrowDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
             </div>
           }
           refreshingContent={
             <div className="flex flex-col justify-center items-center h-16">
-              <p className="text-xs text-gray-500 mb-1 animate-bounce">
-                Suelta para actualizar
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 animate-bounce">
+                Actualizando...
               </p>
-              <ArrowDown className="h-4 w-4 text-gray-500" />
+              <RefreshCw className="h-4 w-4 text-gray-500 dark:text-gray-400 animate-spin" />
             </div>
           }
         >
@@ -226,7 +230,7 @@ export default function MisComisiones() {
       <AnimatePresence>
         {modalMapaAbierto && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-white backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 dark:bg-black/60 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

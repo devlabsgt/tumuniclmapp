@@ -408,7 +408,7 @@ export default function Ver() {
   }, [comisionesFiltradas, timeZone]);
 
   if (loading || cargando || cargandoUsuarios || !haCargadoVistaInicial) return <Cargando texto='Cargando comisiones...' />;
-  if (error) return <p className="text-center text-red-500 py-8">Error al cargar datos: {error}</p>;
+  if (error) return <p className="text-center text-red-500 dark:text-red-400 py-8">Error al cargar datos: {error}</p>;
 
   const listaComisionesContenido = (
     <motion.div key="lista-principal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
@@ -441,7 +441,7 @@ export default function Ver() {
 
   return (
     <>
-      <div className="bg-white rounded-lg w-full max-w-7xl mx-auto px-2 lg:px-8">
+      <div className="bg-white dark:bg-neutral-950 transition-colors duration-200 rounded-lg w-full max-w-7xl mx-auto pb-4 px-2 lg:px-8">
         <AnimatePresence mode="wait">
           {comisionAVer ? (
             <motion.div key="verComision" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -463,7 +463,11 @@ export default function Ver() {
             <>
             {!isMobile && (
                 <div className="flex justify-center">
-                  <Button onClick={handleRefresh} variant="ghost">
+                  <Button 
+                    onClick={handleRefresh} 
+                    variant="ghost"
+                    className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-neutral-800"
+                  >
                     <RefreshCw className="mr-2 h-4 w-4" />
                     Actualizar
                   </Button>
@@ -474,18 +478,18 @@ export default function Ver() {
                   onRefresh={handleRefresh}
                   pullingContent={
                     <div className="flex flex-col justify-center items-center h-16">
-                      <p className="text-xs text-gray-500 mb-1 animate-bounce">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 animate-bounce">
                         Suelta para actualizar
                       </p>
-                      <ArrowDown className="h-4 w-4 text-gray-500" />
+                      <ArrowDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                     </div>
                   }
                   refreshingContent={
                     <div className="flex flex-col justify-center items-center h-16">
-                      <p className="text-xs text-gray-500 mb-1 animate-bounce">
-                        Suelta para actualizar
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 animate-bounce">
+                        Actualizando...
                       </p>
-                      <ArrowDown className="h-4 w-4 text-gray-500" />
+                      <RefreshCw className="h-4 w-4 text-gray-500 dark:text-gray-400 animate-spin" />
                     </div>
                   }
                 >

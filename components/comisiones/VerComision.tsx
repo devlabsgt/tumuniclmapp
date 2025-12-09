@@ -43,14 +43,14 @@ const RegistroAsistenciaItem = ({ asistenteId, registros, nombre, onAbrirMapa }:
     <div className="mt-2">
       <div 
         onClick={tieneRegistros ? () => onAbrirMapa(registrosDelAsistente, nombre) : undefined} 
-        className={`px-3 py-2 rounded-md bg-slate-100 flex items-center justify-between flex-wrap gap-x-4 
-          ${tieneRegistros ? 'cursor-pointer hover:bg-slate-200' : 'opacity-70'}`
+        className={`px-3 py-2 rounded-md bg-slate-100 dark:bg-neutral-900 flex items-center justify-between flex-wrap gap-x-4 transition-colors duration-200
+          ${tieneRegistros ? 'cursor-pointer hover:bg-slate-200 dark:hover:bg-neutral-800' : 'opacity-70'}`
         }
       >
-        <p className="text-gray-800 font-semibold flex-grow text-xs md:text-sm pb-2">{nombre}</p>
+        <p className="text-gray-800 dark:text-gray-200 font-semibold flex-grow text-xs md:text-sm pb-2">{nombre}</p>
         
         {tieneRegistros ? (
-          <div className="flex items-center gap-x-4 text-xs md:text-sm ">
+          <div className="flex items-center gap-x-4 text-xs md:text-sm text-gray-700 dark:text-gray-300">
             <p className="font-mono">
               <span className="font-semibold">Entrada:</span> {formatTime(entrada?.created_at)}
             </p>
@@ -58,13 +58,13 @@ const RegistroAsistenciaItem = ({ asistenteId, registros, nombre, onAbrirMapa }:
               <span className="font-semibold">Salida:</span> {formatTime(salida?.created_at)}
             </p>
             {duracionComision && (
-              <p className="font-mono text-blue-800">
+              <p className="font-mono text-blue-800 dark:text-blue-300">
                 <span className="font-semibold">Duración:</span> {duracionComision}
               </p>
             )}
           </div>
         ) : (
-          <p className="text-xs md:text-sm text-gray-500">Sin registros de asistencia</p>
+          <p className="text-xs md:text-sm text-gray-500 dark:text-gray-500">Sin registros de asistencia</p>
         )}
       </div>
     </div>
@@ -138,9 +138,12 @@ export default function VerComision({ comision, usuarios, onClose, onAbrirMapa, 
         return !node.classList?.contains('exclude-from-capture');
       };
 
+      const isDark = document.documentElement.classList.contains('dark');
+      const bgColor = isDark ? '#0a0a0a' : '#ffffff';
+
       const blob = await toBlob(exportRef.current, { 
         cacheBust: true,
-        backgroundColor: '#ffffff',
+        backgroundColor: bgColor,
         filter: filter
       });
 
@@ -159,7 +162,7 @@ export default function VerComision({ comision, usuarios, onClose, onAbrirMapa, 
   };
 
   return (
-    <div ref={exportRef} className="bg-white rounded-xl px-6 pb-6 flex flex-col h-full relative">
+    <div ref={exportRef} className="bg-white dark:bg-neutral-950 rounded-xl px-6 pb-6 flex flex-col h-full relative transition-colors duration-200">
 
       <div className="pt-0 exclude-from-capture">
         <div className="flex flex-wrap justify-center md:justify-between items-center gap-4 mt-2 text-xs md:text-sm">        
@@ -167,9 +170,9 @@ export default function VerComision({ comision, usuarios, onClose, onAbrirMapa, 
             <Button
               variant="link"
               onClick={onClose}
-              className='text-blue-600'
+              className='text-blue-600 dark:text-blue-400'
             >
-                <LogOut className="mr-2 h-4 w-4 text-blue-600 rotate-180" />
+                <LogOut className="mr-2 h-4 w-4 rotate-180" />
                 Volver a todas las comisiones
             </Button>
             
@@ -179,7 +182,7 @@ export default function VerComision({ comision, usuarios, onClose, onAbrirMapa, 
                 <Button
                   variant="link"
                   onClick={() => onAprobar(comision.id)}
-                  className="text-blue-600 gap-2"
+                  className="text-blue-600 dark:text-blue-400 gap-2"
                 >
                   <CheckSquare className="h-4 w-4" />
                   Aprobar
@@ -190,7 +193,7 @@ export default function VerComision({ comision, usuarios, onClose, onAbrirMapa, 
                 <Button
                   variant="link"
                   onClick={() => onEdit(comision)}
-                  className="text-green-600 gap-2"
+                  className="text-green-600 dark:text-green-400 gap-2"
                 >
                   <Pencil className="h-4 w-4" />
                   Editar
@@ -201,7 +204,7 @@ export default function VerComision({ comision, usuarios, onClose, onAbrirMapa, 
                 <Button
                   variant="link"
                   onClick={() => onDelete(comision.id)}
-                  className="text-red-600 gap-2"
+                  className="text-red-600 dark:text-red-400 gap-2"
                 >
                   <Trash2 className="h-4 w-4" />
                   Eliminar
@@ -214,7 +217,7 @@ export default function VerComision({ comision, usuarios, onClose, onAbrirMapa, 
               variant="link"
               onClick={handleExportarComoImagen}
               disabled={isExporting}
-              className="hidden xl:inline-flex text-blue-600 gap-2"
+              className="hidden xl:inline-flex text-blue-600 dark:text-blue-400 gap-2"
             >
               <Camera className="h-4 w-4" />
               {isExporting ? 'Capturando...' : 'Imagen'}
@@ -223,26 +226,26 @@ export default function VerComision({ comision, usuarios, onClose, onAbrirMapa, 
       </div>
       
       <div className="flex justify-between items-start mt-5">
-        <h2 className="text-sm font-bold text-gray-800 pl-5">{comision.titulo}</h2>
+        <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100 pl-5">{comision.titulo}</h2>
       </div>
 
-      <div className="flex-grow text-gray-700">
+      <div className="flex-grow text-gray-700 dark:text-gray-300">
         
         <div className="flex items-center gap-3 my-4">
-          <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2"><Calendar className="h-5 w-5 text-blue-500" /> Fecha y Hora:</h3>
+          <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2"><Calendar className="h-5 w-5 text-blue-500 dark:text-blue-400" /> Fecha y Hora:</h3>
           <span className="text-xs md:text-sm capitalize">{fechaHoraAbreviada}</span>
         </div>
         
-        <div className="border-t">
-          <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2 mt-2"><User className="h-5 w-5 text-blue-500" /> Encargado</h3>
+        <div className="border-t border-gray-200 dark:border-neutral-800">
+          <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2 mt-2"><User className="h-5 w-5 text-blue-500 dark:text-blue-400" /> Encargado</h3>
           {cargandoRegistros ? <Cargando /> : encargado ? (
             <RegistroAsistenciaItem  asistenteId={encargado.id} registros={registros} nombre={getUsuarioNombre(encargado.id, usuarios)} onAbrirMapa={onAbrirMapa} />
-          ) : <p className="pl-8 text-gray-500 my-4">No asignado</p>}
+          ) : <p className="pl-8 text-gray-500 dark:text-gray-400 my-4">No asignado</p>}
         </div>
 
         {asistentes && asistentes.length > 0 && (
-          <div className="border-t mt-4">
-            <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2 mt-2"><Users className="h-5 w-5 text-blue-500" /> Integrantes</h3>
+          <div className="border-t border-gray-200 dark:border-neutral-800 mt-4">
+            <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2 mt-2"><Users className="h-5 w-5 text-blue-500 dark:text-blue-400" /> Integrantes</h3>
             {cargandoRegistros ? <Cargando /> : (
               asistentes.map(asistente => (
                 <RegistroAsistenciaItem key={asistente.id} asistenteId={asistente.id} registros={registros} nombre={getUsuarioNombre(asistente.id, usuarios)} onAbrirMapa={onAbrirMapa} />
@@ -252,10 +255,10 @@ export default function VerComision({ comision, usuarios, onClose, onAbrirMapa, 
         )}
         
         {comision.comentarios && comision.comentarios.length > 0 && (
-          <div className="border-t mt-4">
-            <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2 my-2"><FileText className="h-5 w-5 text-blue-500" /> Notas</h3>
+          <div className="border-t border-gray-200 dark:border-neutral-800 mt-4">
+            <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2 my-2"><FileText className="h-5 w-5 text-blue-500 dark:text-blue-400" /> Notas</h3>
             <ul className="list-disc list-inside my-4">
-              {comision.comentarios.map((comentario, index) => <li key={index} className="text-gray-800 text-xs md:text-sm my-1">{comentario}</li>)}
+              {comision.comentarios.map((comentario, index) => <li key={index} className="text-gray-800 dark:text-gray-200 text-xs md:text-sm my-1">{comentario}</li>)}
             </ul>
           </div>
         )}

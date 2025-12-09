@@ -119,10 +119,15 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
         return !node.classList?.contains('exclude-from-capture');
       };
 
+      // Detectar si estamos en modo oscuro para el fondo de la imagen
+      const isDark = document.documentElement.classList.contains('dark');
+      // #0a0a0a es usualmente neutral-950, ajusta si usas otro fondo
+      const bgColor = isDark ? '#0a0a0a' : '#ffffff';
+
       const blob = await toBlob(exportRef.current, {
         cacheBust: true,
-        backgroundColor: '#ffffff',
-          quality: 0.95,
+        backgroundColor: bgColor,
+        quality: 0.95,
         filter: filter
       });
 
@@ -142,14 +147,14 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
   };
 
   return (
-    <div ref={exportRef} className="bg-white rounded-xl border border-gray-200 px-2 pb-6 flex flex-col h-full relative text-xs">
+    <div ref={exportRef} className="bg-white dark:bg-neutral-950 rounded-xl border border-gray-200 dark:border-neutral-800 px-2 pb-6 flex flex-col h-full relative text-xs transition-colors duration-200">
             
-      <div className="exclude-from-capture border-t pt-4">
+      <div className="exclude-from-capture border-t dark:border-neutral-800 pt-4">
         <div className="flex flex-wrap justify-start items-center gap-4 mt-4 text-xs md:text-sm">
           <Button
             variant="link"
             onClick={onClose}
-            className="absolute top-0 left-2 exclude-from-capture "
+            className="absolute top-0 left-2 exclude-from-capture text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
           >
               <LogOut className="mr-2 h-4 w-4 rotate-180" />
               Mostrar todas las comisiones
@@ -159,7 +164,7 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
                 variant="link"
                 onClick={handleExportarComoImagen}
                 disabled={isExporting}
-                className="text-blue-600 gap-2"
+                className="text-blue-600 dark:text-blue-400 gap-2"
             >
                 <Camera className="h-4 w-4" />
                 {isExporting ? 'Capturando...' : 'Imagen'}
@@ -167,10 +172,12 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
           </div>
         </div>
       </div>
+      
       <div
         id="export-logo-container"
-        className="text-start"
+        className="text-start hidden"
       >
+        {/* Nota: Asegúrate de que tu logo se vea bien en fondo oscuro o tenga un fondo blanco propio si es necesario */}
         <img
         src="/images/logo-muni.png"
         alt="Logo Municipalidad"
@@ -178,7 +185,7 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
         />
       </div>
 
-      <div className="flex-grow space-y-4 overflow-y-auto">
+      <div className="flex-grow space-y-4 overflow-y-auto custom-scrollbar">
         {Object.keys(comisionesAgrupadasPorFecha).sort((a, b) => {
           const comisionA = comisionesAgrupadasPorFecha[a][0];
           const comisionB = comisionesAgrupadasPorFecha[b][0];
@@ -187,8 +194,8 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
           return fechaA.getTime() - fechaB.getTime();
         }).map(fecha => (
           <div key={fecha}>
-            <h4 className="font-semibold text-gray-900 mb-2 capitalize flex items-center gap-2">
-              <CalendarDays className="h-4 w-4" />
+            <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 capitalize flex items-center gap-2 transition-colors">
+              <CalendarDays className="h-4 w-4 text-gray-500 dark:text-gray-400" />
               {fecha}
             </h4>
             <div className="space-y-2">
@@ -201,32 +208,34 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
                     .sort((a, b) => getUsuarioNombre(a.id, usuarios).localeCompare(getUsuarioNombre(b.id, usuarios)));
                   const notasUnicasComision = notasPorComision.get(comision.id) || [];
                   return (
-                    <div key={comision.id} className="bg-gray-50 rounded-md px-3 py-2 border-2 border-gray-400">                      
+                    <div key={comision.id} className="bg-gray-50 dark:bg-neutral-900 rounded-md px-3 py-2 border-2 border-gray-400 dark:border-neutral-700 transition-colors">                      
                       <div>
                         <div className="flex items-center justify-between">
-                          <h5 className="font-bold text-blue-600 flex items-center gap-2">
+                          <h5 className="font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2">
                             {comision.titulo}
                           </h5>
-                          <p className="font-bold text-blue-600 flex items-center gap-2">
+                          <p className="font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2">
                             <Clock className="h-4 w-4" />
                             {format(parseISO(comision.fecha_hora.replace(' ', 'T')), "h:mm a", { locale: es })}
                           </p>
                         </div>
-                        <div className="border-t mt-2 pt-2">
+                        <div className="border-t border-gray-300 dark:border-neutral-700 mt-2 pt-2">
                           <div className="flex items-center gap-1 my-1">
-                            <span className="font-semibold text-blue-600 flex items-center gap-2">
+                            <span className="font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-2">
                               <Users className="h-4 w-4" />
                               Encargado:
                             </span>
-                            <span className="text-gray-600 font-semibold">{encargado ? getUsuarioNombre(encargado.id, usuarios) : 'No asignado'}</span>
+                            <span className="text-gray-600 dark:text-gray-300 font-semibold">
+                              {encargado ? getUsuarioNombre(encargado.id, usuarios) : 'No asignado'}
+                            </span>
                           </div>
                           {asistentes && asistentes.length > 0 && (
-                            <div className="mt-2 pt-2 border-t">
-                              <div className="grid grid-cols-3 gap-y-1 text-gray-600 leading-relaxed font-semibold">
+                            <div className="mt-2 pt-2 border-t border-gray-300 dark:border-neutral-700">
+                              <div className="grid grid-cols-3 gap-y-1 text-gray-600 dark:text-gray-300 leading-relaxed font-semibold">
                                 {asistentes.map((a, index) => (
                                   <span 
                                     key={a.id}
-                                    className={`pl-2 ${index % 3 === 0 ? '' : 'border-l border-gray-300'}`}
+                                    className={`pl-2 ${index % 3 === 0 ? '' : 'border-l border-gray-300 dark:border-neutral-700'}`}
                                   >
                                     {getUsuarioNombre(a.id, usuarios)}
                                   </span>
@@ -238,13 +247,13 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
                       </div>
 
                       {notasUnicasComision && notasUnicasComision.length > 0 && (
-                        <div className="border-t mt-2 pt-2">
+                        <div className="border-t border-gray-300 dark:border-neutral-700 mt-2 pt-2">
                           <div className="flex items-center gap-1 mb-1">
-                            <span className="font-semibold text-blue-600 flex items-center gap-2">
+                            <span className="font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-2">
                               <StickyNote className="h-4 w-4" />
                               Notas:
                             </span>                          </div>
-                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-2 gap-y-1 text-gray-600 leading-relaxed font-semibold">
+                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-2 gap-y-1 text-gray-600 dark:text-gray-300 leading-relaxed font-semibold">
                             {notasUnicasComision.map((comentario, index) => <div key={index}>{comentario}</div>)}
                           </div>
                         </div>
@@ -256,11 +265,11 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
           </div>
         ))}
         {notasGenerales.length > 0 && (
-          <div className="border-t m-4 py-4">
+          <div className="border-t border-gray-200 dark:border-neutral-800 m-4 py-4">
             <div className="flex items-center gap-1 mb-4">
-              <span className="font-semibold text-blue-600">Notas generales:</span>
+              <span className="font-semibold text-blue-600 dark:text-blue-400">Notas generales:</span>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-1 font-semibold text-gray-600 leading-relaxed">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4 gap-y-1 font-semibold text-gray-600 dark:text-gray-300 leading-relaxed">
               {notasGenerales.map((comentario, index) => <div key={index}>{comentario}</div>)}
             </div>
           </div>
