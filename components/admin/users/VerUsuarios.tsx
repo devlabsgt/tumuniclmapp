@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import UsersTable from '@/components/admin/users/UsersTable';
 import { motion, AnimatePresence } from 'framer-motion';
-import AsistenciaTable from '@/components/admin/users/AsistenciaTable';
+import AsistenciaTable from '@/components/asistencia/tabla/AsistenciaTable';
 import useUserData from '@/hooks/sesion/useUserData';
 import { useObtenerAsistencias } from '@/hooks/asistencia/useObtenerAsistencias';
 import { useListaUsuarios } from '@/hooks/usuarios/useListarUsuarios';

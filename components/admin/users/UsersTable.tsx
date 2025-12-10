@@ -17,7 +17,7 @@ import Swal from 'sweetalert2';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useDependencias } from '@/hooks/dependencias/useDependencias';
 import Cargando from '@/components/ui/animations/Cargando';
-import { User, Clock, LogOut, Trash2, Search, ChevronDown, ChevronUp, ChevronsDown, ChevronsUp } from 'lucide-react';
+import { User, Clock, LogOut, Trash2, Search, ChevronDown, ChevronsDown, ChevronsUp } from 'lucide-react';
 
 type UsuarioConJerarquia = Usuario & {
   puesto_nombre: string | null;
@@ -155,6 +155,8 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
       cancelButtonColor: '#3085d6',
       confirmButtonText: 'Sí, eliminar',
       cancelButtonText: 'Cancelar',
+      background: document.documentElement.classList.contains('dark') ? '#171717' : '#fff',
+      color: document.documentElement.classList.contains('dark') ? '#e5e5e5' : '#000',
     });
   
     if (result.isConfirmed) {
@@ -167,17 +169,35 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
   
         if (!res.ok) {
           const json = await res.json();
-          return Swal.fire('Error', json.error || 'No se pudo eliminar el usuario.', 'error');
+          return Swal.fire({
+            title: 'Error',
+            text: json.error || 'No se pudo eliminar el usuario.',
+            icon: 'error',
+            background: document.documentElement.classList.contains('dark') ? '#171717' : '#fff',
+            color: document.documentElement.classList.contains('dark') ? '#e5e5e5' : '#000',
+          });
         }
         
         const idEliminado = usuarioIdSeleccionado;
         setListaUsuarios(prevUsuarios => prevUsuarios.filter(u => u.id !== idEliminado));
         
         handleCerrarModal();
-        Swal.fire('¡Eliminado!', 'El usuario ha sido eliminado correctamente.', 'success');
+        Swal.fire({
+            title: '¡Eliminado!',
+            text: 'El usuario ha sido eliminado correctamente.',
+            icon: 'success',
+            background: document.documentElement.classList.contains('dark') ? '#171717' : '#fff',
+            color: document.documentElement.classList.contains('dark') ? '#e5e5e5' : '#000',
+        });
         
       } catch (error) {
-        Swal.fire('Error', 'Ocurrió un error al intentar eliminar el usuario.', 'error');
+        Swal.fire({
+            title: 'Error',
+            text: 'Ocurrió un error al intentar eliminar el usuario.',
+            icon: 'error',
+            background: document.documentElement.classList.contains('dark') ? '#171717' : '#fff',
+            color: document.documentElement.classList.contains('dark') ? '#e5e5e5' : '#000',
+        });
       } finally {
         setEliminando(false);
       }
@@ -219,35 +239,47 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
   return (
     <>
       <div className="w-full xl:w-4/5 mx-auto md:px-4">
-        <div className="p-2 bg-white rounded-lg shadow-md space-y-4 w-full">
+        <div className="p-2 bg-white dark:bg-neutral-900 rounded-lg shadow-md border border-gray-100 dark:border-neutral-800 space-y-4 w-full transition-colors duration-200">
           
-          <div className="flex flex-col gap-3 p-2 bg-slate-50 rounded-lg">
+          <div className="flex flex-col xl:flex-row gap-2 w-full items-center p-2 bg-slate-50 dark:bg-neutral-900 rounded-lg">
             
-            <div className="flex flex-col md:flex-row gap-2 w-full md:w-1/2">
+            <div className="flex shrink-0">
+               <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleTodos}
+                className="h-9 w-9 bg-white dark:bg-neutral-800 dark:text-gray-200 dark:border-neutral-700 dark:hover:bg-neutral-700"
+                title={todosAbiertos ? 'Cerrar todas las oficinas' : 'Abrir todas las oficinas'}
+              >
+                {todosAbiertos ? <ChevronsUp className="h-4 w-4" /> : <ChevronsDown className="h-4 w-4" />}
+              </Button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2 w-full xl:w-auto shrink-0">
               {cargandoDependencias ? (
-                  <Cargando texto="Cargando filtros..." />
+                  <Cargando texto="Cargando..." />
               ) : (
                 <>
                   <Select onValueChange={handleNivel2Change} value={nivel2Id || 'todos'}>
-                    <SelectTrigger className="bg-white text-xs w-full">
-                      <SelectValue placeholder="Dependencias/Políticas" />
+                    <SelectTrigger className="bg-white dark:bg-neutral-800 dark:text-gray-100 dark:border-neutral-700 text-xs w-full sm:w-[200px] h-9">
+                      <SelectValue placeholder="Dependencia" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todos">Todas las dependencias/políticas</SelectItem>
+                    <SelectContent className="dark:bg-neutral-800 dark:border-neutral-700">
+                      <SelectItem value="todos" className="dark:text-gray-200 dark:focus:bg-neutral-700">Todas</SelectItem>
                       {oficinasNivel2.map(oficina => (
-                        <SelectItem key={oficina.id} value={oficina.id}>{oficina.nombre}</SelectItem>
+                        <SelectItem key={oficina.id} value={oficina.id} className="dark:text-gray-200 dark:focus:bg-neutral-700">{oficina.nombre}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   
                   <Select onValueChange={handleNivel3Change} value={nivel3Id || 'todos'} disabled={!nivel2Id}>
-                    <SelectTrigger className="bg-white text-xs w-full">
+                    <SelectTrigger className="bg-white dark:bg-neutral-800 dark:text-gray-100 dark:border-neutral-700 text-xs w-full sm:w-[200px] h-9">
                       <SelectValue placeholder="Oficina" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todos">Todas las oficinas</SelectItem>
+                    <SelectContent className="dark:bg-neutral-800 dark:border-neutral-700">
+                      <SelectItem value="todos" className="dark:text-gray-200 dark:focus:bg-neutral-700">Todas</SelectItem>
                       {oficinasNivel3.map(oficina => (
-                        <SelectItem key={oficina.id} value={oficina.id}>{oficina.nombre}</SelectItem>
+                        <SelectItem key={oficina.id} value={oficina.id} className="dark:text-gray-200 dark:focus:bg-neutral-700">{oficina.nombre}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -255,70 +287,57 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
               )}
             </div>
 
-            <div className="flex flex-col md:flex-row gap-2 w-full items-center">
-                <div className="relative w-full md:w-3/4  mt-4">
-                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                        type="text"
-                        placeholder="Buscar por Nombre, Dependencia o Puesto..."
-                        value={terminoBusqueda}
-                        onChange={(e) => setTerminoBusqueda(e.target.value)}
-                        className="w-full text-xs pl-8 bg-white h-9"
-                    />
-                </div>
-                <div className="flex w-full md:w-1/4 gap-2 mt-4">
-                    {hasCreatePermission && (
-                        <>
-                        <Button
-                            onClick={() => router.push("/protected/admin/horarios")}
-                            className="flex-1 px-2 py-2 text-white bg-blue-600 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 text-xs flex items-center justify-center gap-1 h-9"
-                            title="Asignación de Horarios"
-                        >
-                            <Clock className="h-4 w-4" />
-                            <span className="text-xs">Horarios</span>
-                        </Button>
-                        <Button
-                            onClick={() => router.push("/protected/admin/sign-up")}
-                            className="flex-1 px-2 py-2 text-white bg-green-600 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 text-xs flex items-center justify-center gap-1 h-9"
-                            title="Nuevo Usuario"
-                        >
-                            <User className="h-4 w-4" />
-                            <span className="text-xs">Crear Usuario</span>
-                        </Button>
-                        </>
-                    )}
-                </div>
+            <div className="relative w-full flex-1">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                <Input
+                    type="text"
+                    placeholder="Buscar por Nombre..."
+                    value={terminoBusqueda}
+                    onChange={(e) => setTerminoBusqueda(e.target.value)}
+                    className="w-full text-xs pl-8 bg-white dark:bg-neutral-800 dark:text-gray-100 dark:border-neutral-700 h-9"
+                />
+            </div>
+
+            <div className="flex gap-2 shrink-0 w-full xl:w-auto">
+                {hasCreatePermission && (
+                    <>
+                    <Button
+                        onClick={() => router.push("/protected/admin/horarios")}
+                        className="flex-1 xl:flex-none px-3 py-2 text-white bg-blue-600 dark:bg-blue-700 rounded-lg font-semibold hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors duration-200 text-xs flex items-center justify-center gap-1 h-9"
+                        title="Horarios"
+                    >
+                        <Clock className="h-3.5 w-3.5" />
+                        <span className="text-xs hidden sm:inline">Horarios</span>
+                    </Button>
+                    <Button
+                        onClick={() => router.push("/protected/admin/sign-up")}
+                        className="flex-1 xl:flex-none px-3 py-2 text-white bg-green-600 dark:bg-green-700 rounded-lg font-semibold hover:bg-green-700 dark:hover:bg-green-600 transition-colors duration-200 text-xs flex items-center justify-center gap-1 h-9"
+                        title="Nuevo Usuario"
+                    >
+                        <User className="h-3.5 w-3.5" />
+                        <span className="text-xs hidden sm:inline">Crear</span>
+                    </Button>
+                    </>
+                )}
             </div>
           </div>
 
-          <div className="border-t pt-4 mt-4">
+          <div className="border-t border-gray-100 dark:border-neutral-800 pt-2 mt-2">
             {cargandoDependencias ? (
               <Cargando texto="Cargando usuarios..." />
             ) : usuariosAgrupados.length === 0 ? (
-              <p className="text-center text-gray-500 text-xs">
+              <p className="text-center text-gray-500 dark:text-gray-400 text-xs py-4">
                 No se encontraron usuarios con los filtros seleccionados.
               </p>
             ) : (
               <div className="w-full">
-                <div className="flex flex-col md:flex-row md:justify-center mb-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={toggleTodos}
-                    className="w-full md:w-auto text-xs flex items-center justify-center gap-2 h-9 px-4 rounded-sm"
-                  >
-                    {todosAbiertos ? <ChevronsUp className="h-3.5 w-3.5" /> : <ChevronsDown className="h-3.5 w-3.5" />}
-                    {todosAbiertos ? 'Cerrar todas las oficinas' : 'Abrir todas las oficinas'}
-                  </Button>
-                </div>
-
                 <div className="w-full overflow-x-auto">
                   <table className="w-full table-fixed text-xs">
-                    <thead className="bg-slate-50 text-left">
+                    <thead className="bg-slate-50 dark:bg-neutral-900 text-left border-b border-gray-100 dark:border-neutral-800">
                       <tr>
-                        <th className="py-3 px-4 text-[10px] xl:text-xs w-[35%] font-semibold text-slate-600">Nombre</th>
-                        <th className="py-3 px-2 text-[10px] xl:text-xs w-[35%] font-semibold text-slate-600 pl-4">Usuario</th>
-                        <th className="py-3 px-2 text-[10px] xl:text-xs w-[30%] font-semibold text-slate-600 pl-4">Puesto</th>
+                        <th className="py-3 px-4 text-[10px] xl:text-xs w-[35%] font-semibold text-slate-600 dark:text-slate-400">Nombre</th>
+                        <th className="py-3 px-2 text-[10px] xl:text-xs w-[35%] font-semibold text-slate-600 dark:text-slate-400 pl-4">Usuario</th>
+                        <th className="py-3 px-2 text-[10px] xl:text-xs w-[30%] font-semibold text-slate-600 dark:text-slate-400 pl-4">Puesto</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -327,11 +346,11 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
 
                          return (
                           <Fragment key={grupo.path_orden}>
-                            <tr className="border-b border-slate-100">
+                            <tr className="border-b border-slate-100 dark:border-neutral-800">
                               <td colSpan={3} className="p-1">
                                 <div 
                                   onClick={() => toggleOficina(grupo.oficina_nombre)}
-                                  className="bg-slate-100 hover:bg-slate-200 cursor-pointer transition-colors py-2.5 px-4 text-sm font-semibold text-blue-600 flex items-center justify-between rounded-sm"
+                                  className="bg-slate-100 dark:bg-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-700 cursor-pointer transition-colors py-2.5 px-4 text-sm font-semibold text-blue-600 dark:text-blue-400 flex items-center justify-between rounded-sm"
                                 >
                                   <span>{grupo.oficina_nombre} ({grupo.usuarios.length})</span>
                                   <motion.div
@@ -339,7 +358,7 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                                     animate={{ rotate: estaAbierta ? 180 : 0 }}
                                     transition={{ duration: 0.3 }}
                                   >
-                                    <ChevronDown className="h-4 w-4 text-gray-600" />
+                                    <ChevronDown className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                                   </motion.div>
                                 </div>
                               </td>
@@ -361,15 +380,15 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                                           <tr
                                             key={usuario.id}
                                             onClick={() => handleVerUsuario(usuario.id)}
-                                            className={`border-b border-slate-100 transition-colors hover:bg-blue-50 group ${canOpenModal ? 'cursor-pointer' : 'cursor-default'}`}
+                                            className={`border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 group ${canOpenModal ? 'cursor-pointer' : 'cursor-default'}`}
                                           >
-                                            <td className="py-3 px-4 text-[11px] xl:text-xs text-slate-700 w-[35%] truncate">
+                                            <td className="py-3 px-4 text-[11px] xl:text-xs text-slate-700 dark:text-slate-300 w-[35%] truncate">
                                               {usuario.nombre || '—'}
                                             </td>
-                                            <td className="py-3 px-2 text-[11px] xl:text-xs text-slate-600 w-[35%] truncate pl-4">
+                                            <td className="py-3 px-2 text-[11px] xl:text-xs text-slate-600 dark:text-slate-400 w-[35%] truncate pl-4">
                                               {usuario.email || '—'}
                                             </td>
-                                            <td className="py-3 px-2 text-[11px] xl:text-xs text-slate-600 w-[30%] truncate pl-4">
+                                            <td className="py-3 px-2 text-[11px] xl:text-xs text-slate-600 dark:text-slate-400 w-[30%] truncate pl-4">
                                               {usuario.puesto_nombre || '—'}
                                             </td>
                                           </tr>
@@ -397,16 +416,16 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
           <TransitionChild as={Fragment}
             enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100"
             leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-            <div className="fixed inset-0 bg-black/30 backdrop-blur-sm" />
+            <div className="fixed inset-0 bg-black/30 dark:bg-black/70 backdrop-blur-sm" />
           </TransitionChild>
           <div className="fixed inset-0 flex items-center justify-center p-4">
-            <DialogPanel className="bg-white rounded-lg w-full max-w-lg min-h-[600px] p-6 shadow-xl">
+            <DialogPanel className="bg-white dark:bg-neutral-900 rounded-lg w-full max-w-lg min-h-[600px] p-6 shadow-xl border dark:border-neutral-800">
               
               <div className="flex justify-between items-center mb-6">
                 <Button 
                   variant="ghost" 
                   onClick={handleCerrarModal} 
-                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex items-center gap-2"
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center gap-2"
                 >
                   <LogOut className="h-4 w-4 rotate-180" />
                   Salir
@@ -417,7 +436,7 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                     variant="ghost"
                     onClick={handleEliminarUsuario}
                     disabled={eliminando}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-2"
+                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
                   >
                     <Trash2 className="h-4 w-4" />
                     {eliminando ? 'Eliminando...' : 'Eliminar'}
