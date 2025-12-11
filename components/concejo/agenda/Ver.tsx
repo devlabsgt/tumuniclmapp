@@ -31,19 +31,19 @@ const calcularDiasRestantes = (fechaReunion: string): string => {
 const getButtonClasses = (estado: string) => {
   if (estado === 'En preparación') {
     return {
-      default: 'bg-blue-500 hover:bg-blue-600 text-white',
-      ghost: 'text-blue-600 hover:bg-blue-200',
+      default: 'bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500 text-white',
+      ghost: 'text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30',
     };
   }
   if (estado === 'En progreso') {
     return {
-      default: 'bg-green-500 hover:bg-green-600 text-white',
-      ghost: 'text-green-600 hover:bg-green-200',
+      default: 'bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-500 text-white',
+      ghost: 'text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30',
     };
   }
   return {
-    default: 'bg-gray-400 hover:bg-gray-500 text-white',
-    ghost: 'text-gray-500 hover:bg-gray-200',
+    default: 'bg-gray-400 hover:bg-gray-500 dark:bg-gray-600 dark:hover:bg-gray-500 text-white',
+    ghost: 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800',
   };
 };
 
@@ -51,7 +51,6 @@ type VistaType = 'hoy' | 'proximas' | 'terminadas';
 
 export default function Ver() {
   const router = useRouter();
-  // Se agrega 'rol' al destructuring para usarlo en la validación
   const { permisos, rol, cargando: cargandoUsuario } = useUserData();
   const [agendas, setAgendas] = useState<AgendaConcejo[]>([]);
   const [cargandoAgendas, setCargandoAgendas] = useState(true);
@@ -229,15 +228,15 @@ export default function Ver() {
   };
 
   const renderAgendaCard = (agenda: AgendaConcejo) => {
-    let borderColorClass = 'border-l-blue-500';
-    let textColorClass = 'text-blue-600';
+    let borderColorClass = 'border-l-blue-500 dark:border-l-blue-500';
+    let textColorClass = 'text-blue-600 dark:text-blue-400';
 
     if (agenda.estado === 'En progreso') {
-      borderColorClass = 'border-l-green-500';
-      textColorClass = 'text-green-600';
+      borderColorClass = 'border-l-green-500 dark:border-l-green-500';
+      textColorClass = 'text-green-600 dark:text-green-400';
     } else if (agenda.estado === 'Finalizada') {
-      borderColorClass = 'border-l-gray-400';
-      textColorClass = 'text-gray-500';
+      borderColorClass = 'border-l-gray-400 dark:border-l-gray-500';
+      textColorClass = 'text-gray-500 dark:text-gray-400';
     }
 
     const buttonClasses = getButtonClasses(agenda.estado);
@@ -258,25 +257,25 @@ export default function Ver() {
         transition={isLoadingThisAgenda ? { duration: 1.5, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
         onClick={loadingAgendaId ? undefined : () => handleGoToAgenda(agenda.id)}
         className={`
-          group relative bg-white rounded-lg border border-gray-200 shadow-sm 
-          dark:border-gray-700 border-l-4 ${borderColorClass} 
+          group relative bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 shadow-sm 
+          border-l-4 ${borderColorClass} 
           flex flex-col md:flex-row md:items-start md:justify-between gap-4 
-          cursor-pointer 
+          cursor-pointer transition-colors
           ${loadingAgendaId && !isLoadingThisAgenda ? 'opacity-25 pointer-events-none' : ''}
         `}
       >
         <div className="flex-1 p-4 pb-16 md:pb-4">
           <div className="flex items-baseline gap-x-3 flex-wrap">
-            <p className="font-semibold text-gray-800 text-sm md:text-2xl">{agenda.titulo}</p>
-            <span className="text-gray-500 font-normal whitespace-nowrap text-sm md:text-2xl">
+            <p className="font-semibold text-gray-800 dark:text-gray-100 text-sm md:text-2xl">{agenda.titulo}</p>
+            <span className="text-gray-500 dark:text-gray-400 font-normal whitespace-nowrap text-sm md:text-2xl">
               {format(new Date(agenda.fecha_reunion), "EEEE, d 'de' MMMM 'de' yyyy, h:mm a", { locale: es })}
             </span>
           </div>
-          <p className="text-sm md:text-xl mt-2 text-gray-600 font-normal">{agenda.descripcion}</p>
+          <p className="text-sm md:text-xl mt-2 text-gray-600 dark:text-gray-300 font-normal">{agenda.descripcion}</p>
           <p className="text-sm md:text-xl mt-2">
             <span className={`font-bold ${textColorClass}`}>{agenda.estado}</span>,
             {' '}
-            <span className="font-semibold text-gray-700">
+            <span className="font-semibold text-gray-700 dark:text-gray-300">
               {calcularDiasRestantes(agenda.fecha_reunion)}
               {calcularDiasRestantes(agenda.fecha_reunion).includes('días') && ' restantes'}
             </span>
@@ -304,7 +303,7 @@ export default function Ver() {
                 handleDeleteAgenda(agenda.id);
               }}
               variant="ghost"
-              className="w-auto px-3 text-red-600 hover:bg-red-200 transition-colors flex items-center justify-center gap-1 z-10"
+              className="w-auto px-3 text-red-600 hover:bg-red-200 dark:text-red-400 dark:hover:bg-red-900/30 transition-colors flex items-center justify-center gap-1 z-10"
             >
               <Trash2 className="h-4 w-4" /> Eliminar
             </Button>
@@ -341,7 +340,7 @@ export default function Ver() {
 
   if (error) {
     return (
-      <div className="text-center py-10 text-red-500">
+      <div className="text-center py-10 text-red-500 dark:text-red-400">
         <p>{error}</p>
       </div>
     );
@@ -352,21 +351,19 @@ export default function Ver() {
       <header className="flex flex-col xl:flex-row items-center justify-between gap-4 mt-2 md:mb-6 w-full">
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto justify-between xl:justify-start shrink-0">
           <BotonVolver ruta="/protected/" />
-
-
           
           <div className="flex gap-2 w-full sm:w-auto">
             <select
               value={filtroAnio}
               onChange={(e) => setFiltroAnio(e.target.value)}
-              className="h-10 w-full sm:w-auto rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              className="h-10 w-full sm:w-auto rounded-md border border-input bg-background dark:bg-neutral-900 dark:border-neutral-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
               {anios.map(anio => <option key={anio} value={anio}>{anio}</option>)}
             </select>
             <select
               value={filtroMes !== null ? filtroMes : ''}
               onChange={(e) => setFiltroMes(e.target.value === '' ? null : e.target.value)}
-              className="h-10 w-full sm:w-auto rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              className="h-10 w-full sm:w-auto rounded-md border border-input bg-background dark:bg-neutral-900 dark:border-neutral-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
               <option value="">Todos los meses</option>
               {meses.map(mes => <option key={mes.numero} value={mes.numero}>{mes.nombre.charAt(0).toUpperCase() + mes.nombre.slice(1)}</option>)}
@@ -382,8 +379,8 @@ export default function Ver() {
                     className={cn(
                         "relative flex items-center gap-2 pb-1 text-sm font-medium transition-colors whitespace-nowrap",
                         vista === 'hoy' 
-                            ? "text-blue-600" 
-                            : "text-gray-500 hover:text-gray-700"
+                            ? "text-blue-600 dark:text-blue-400" 
+                            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                     )}
                 >
                     <CalendarClock className="h-4 w-4" />
@@ -391,7 +388,7 @@ export default function Ver() {
                     {vista === 'hoy' && (
                         <motion.div
                             layoutId="activeTab"
-                            className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600"
+                            className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600 dark:bg-blue-400"
                         />
                     )}
                 </button>
@@ -403,8 +400,8 @@ export default function Ver() {
                     className={cn(
                         "relative flex items-center gap-2 pb-1 text-sm font-medium transition-colors whitespace-nowrap",
                         vista === 'proximas' 
-                            ? "text-indigo-600" 
-                            : "text-gray-500 hover:text-gray-700"
+                            ? "text-indigo-600 dark:text-indigo-400" 
+                            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                     )}
                 >
                     <CalendarDays className="h-4 w-4" />
@@ -412,7 +409,7 @@ export default function Ver() {
                     {vista === 'proximas' && (
                         <motion.div
                             layoutId="activeTab"
-                            className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-600"
+                            className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-600 dark:bg-indigo-400"
                         />
                     )}
                 </button>
@@ -424,8 +421,8 @@ export default function Ver() {
                     className={cn(
                         "relative flex items-center gap-2 pb-1 text-sm font-medium transition-colors whitespace-nowrap",
                         vista === 'terminadas' 
-                            ? "text-red-600" 
-                            : "text-gray-500 hover:text-gray-700"
+                            ? "text-red-600 dark:text-red-400" 
+                            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                     )}
                 >
                     <CalendarCheck className="h-4 w-4" />
@@ -433,7 +430,7 @@ export default function Ver() {
                     {vista === 'terminadas' && (
                         <motion.div
                             layoutId="activeTab"
-                            className="absolute bottom-0 left-0 right-0 h-[2px] bg-red-600"
+                            className="absolute bottom-0 left-0 right-0 h-[2px] bg-red-600 dark:bg-red-400"
                         />
                     )}
                 </button>
@@ -448,7 +445,7 @@ export default function Ver() {
                 setAgendaAEditar(null);
                 setIsModalOpen(true);
               }}
-              className="w-full sm:w-auto px-6 py-2 bg-green-500 text-white rounded-lg shadow-sm hover:bg-green-600 transition-colors flex items-center space-x-2"
+              className="w-full sm:w-auto px-6 py-2 bg-green-500 text-white rounded-lg shadow-sm hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-500 transition-colors flex items-center space-x-2"
             >
               <CalendarPlus size={20} />
               <span>Nueva Sesión</span>
@@ -459,8 +456,8 @@ export default function Ver() {
 
       <div className="w-full">
         {agendasVisibles.length === 0 ? (
-          <div className="text-center py-10 border-2 border-dashed border-gray-300 rounded-lg">
-            <p className="text-gray-500">Aún no hay sesiones disponibles en esta vista.</p>
+          <div className="text-center py-10 border-2 border-dashed border-gray-300 dark:border-neutral-800 rounded-lg">
+            <p className="text-gray-500 dark:text-gray-400">Aún no hay sesiones disponibles en esta vista.</p>
           </div>
         ) : (
           <AnimatePresence mode="wait">

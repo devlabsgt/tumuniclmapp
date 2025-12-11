@@ -387,11 +387,11 @@ export default function VerTareas() {
     return <div className="text-xs lg:text-base"><CargandoAnimacion texto="Cargando agenda..." /></div>;
   }
   if (error) {
-    return <div className="text-center text-red-500 text-xs lg:text-base">{error}</div>;
+    return <div className="text-center text-red-500 dark:text-red-400 text-xs lg:text-base">{error}</div>;
   }
 
   return (
-    <div className="px-2 mt-2 md:px-8 text-xs lg:text-base">
+    <div className="px-2 mt-2 md:px-8 text-xs lg:text-base text-gray-900 dark:text-gray-100 transition-colors">
       <div ref={printRef}>
         <HeaderAgenda 
           agenda={agenda}

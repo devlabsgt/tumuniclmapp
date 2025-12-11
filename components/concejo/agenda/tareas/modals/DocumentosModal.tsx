@@ -19,7 +19,6 @@ export default function DocumentosModal({ isOpen, onClose, tarea, rol, estadoAge
 
   if (!isOpen) return null
 
-  // Lógica para mostrar la sección de subida (Solo roles permitidos y si no está finalizada)
   const puedeSubir = ['SUPER', 'SECRETARIO', 'SEC-TECNICO'].includes(rol) && estadoAgenda !== 'Finalizada'
 
   return (

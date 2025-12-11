@@ -137,38 +137,38 @@ export default function AsistenciaUsuario({ agenda, userId, nombreUsuario, puest
   };
 
   if (cargandoRegistros) {
-    return <div className="animate-pulse h-14 bg-gray-200 rounded-lg w-full border border-gray-300"></div>;
+    return <div className="animate-pulse h-14 bg-gray-200 dark:bg-neutral-800 rounded-lg w-full border border-gray-300 dark:border-neutral-700"></div>;
   }
 
   return (
     <>
       <div 
         onClick={() => setIsMapaOpen(true)}
-        className="w-full flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-gray-300 rounded-lg px-4 py-3 bg-white shadow-sm mb-4 md:mb-0 cursor-pointer hover:bg-gray-50 transition-colors"
+        className="w-full flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-gray-300 dark:border-neutral-800 rounded-lg px-4 py-3 bg-white dark:bg-neutral-900 shadow-sm mb-4 md:mb-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors"
       >
           
           <div className="flex flex-col text-center md:text-left">
-              <span className="font-bold text-gray-800 text-sm">{nombreUsuario}</span>
-              <span className="text-xs text-gray-500 uppercase font-medium tracking-wide">{puesto}</span>
+              <span className="font-bold text-gray-800 dark:text-gray-100 text-sm">{nombreUsuario}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium tracking-wide">{puesto}</span>
           </div>
 
           <div className="w-full md:w-auto flex justify-center md:justify-end">
               {asistenciaCompleta ? (
-                  <div className="flex flex-row items-center justify-center gap-3 text-xs bg-slate-50 px-4 py-3 rounded-md border border-slate-200 w-full md:w-auto">
-                      <span className="whitespace-nowrap text-green-600">
+                  <div className="flex flex-row items-center justify-center gap-3 text-xs bg-slate-50 dark:bg-neutral-950/50 px-4 py-3 rounded-md border border-slate-200 dark:border-neutral-800 w-full md:w-auto">
+                      <span className="whitespace-nowrap text-green-600 dark:text-green-400">
                           <span className='font-bold'>Entrada:</span> {formatTime(registroEntrada?.created_at)}
                       </span>
-                      <span className="whitespace-nowrap  border-slate-300 pl-3 text-red-500">
+                      <span className="whitespace-nowrap border-slate-300 dark:border-neutral-700 pl-3 text-red-500 dark:text-red-400">
                           <span className='font-bold'>Salida:</span> {formatTime(registroSalida?.created_at)}
                       </span>
-                      <span className="whitespace-nowrap  border-slate-300 pl-3 text-blue-500">
+                      <span className="whitespace-nowrap border-slate-300 dark:border-neutral-700 pl-3 text-blue-500 dark:text-blue-400">
                           <span className='font-bold'>Duración:</span> {duracion}
                       </span>
                   </div>
               ) : (
                   <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
                       {entradaMarcada && (
-                          <span className="text-xs font-mono text-green-800 whitespace-nowrap bg-green-50 px-3 py-2 rounded border border-green-200 w-full md:w-auto text-center shadow-sm">
+                          <span className="text-xs font-mono text-green-800 dark:text-green-300 whitespace-nowrap bg-green-50 dark:bg-green-900/30 px-3 py-2 rounded border border-green-200 dark:border-green-800 w-full md:w-auto text-center shadow-sm">
                               Entrada: <b>{formatTime(registroEntrada?.created_at)}</b>
                           </span>
                       )}
@@ -183,8 +183,8 @@ export default function AsistenciaUsuario({ agenda, userId, nombreUsuario, puest
                               size="sm"
                               className={`w-full md:w-auto uppercase font-bold text-sm h-10 px-6 flex items-center justify-center gap-2 ${
                                   esTarde 
-                                  ? 'bg-amber-600 hover:bg-amber-700 text-white' 
-                                  : 'bg-green-600 hover:bg-green-700 text-white'
+                                  ? 'bg-amber-600 hover:bg-amber-700 dark:bg-amber-700 dark:hover:bg-amber-600 text-white' 
+                                  : 'bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white'
                               }`}
                           >
                               {cargandoGeo && <MapPin className="animate-bounce h-4 w-4" />}
@@ -198,7 +198,7 @@ export default function AsistenciaUsuario({ agenda, userId, nombreUsuario, puest
                               }} 
                               disabled={cargandoMarcaje || salidaMarcada || cargandoGeo} 
                               size="sm"
-                              className="w-full md:w-auto uppercase font-bold text-sm bg-orange-600 hover:bg-orange-700 text-white h-10 px-6 flex items-center justify-center gap-2"
+                              className="w-full md:w-auto uppercase font-bold text-sm bg-orange-600 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-600 text-white h-10 px-6 flex items-center justify-center gap-2"
                           >
                               {cargandoGeo && <MapPin className="animate-bounce h-4 w-4" />}
                               {cargandoGeo ? 'GPS...' : 'MARCAR SALIDA'}

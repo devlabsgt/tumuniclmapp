@@ -177,7 +177,7 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
             variant={filtroTipo === 'semanal' ? 'default' : 'ghost'} 
             size="sm" 
             onClick={() => handleFiltroTipoClick('semanal')} 
-            className={`h-7 flex-1 px-1 text-[11px] rounded-r-none ${filtroTipo === 'semanal' ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md' : 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-neutral-900 hover:bg-gray-200 dark:hover:bg-neutral-800'}`}
+            className={`h-7 flex-1 px-1 text-[11px] rounded-r-none ${filtroTipo === 'semanal' ? 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white shadow-md' : 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-neutral-900 hover:bg-gray-200 dark:hover:bg-neutral-800'}`}
           >
             Semanal
           </Button>
@@ -185,7 +185,7 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
             variant={filtroTipo === 'rango' ? 'default' : 'ghost'} 
             size="sm" 
             onClick={() => handleFiltroTipoClick('rango')} 
-            className={`h-7 flex-1 px-1 text-[11px] rounded-l-none ${filtroTipo === 'rango' ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md' : 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-neutral-900 hover:bg-gray-200 dark:hover:bg-neutral-800'}`}
+            className={`h-7 flex-1 px-1 text-[11px] rounded-l-none ${filtroTipo === 'rango' ? 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white shadow-md' : 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-neutral-900 hover:bg-gray-200 dark:hover:bg-neutral-800'}`}
           >
             Rango
           </Button>
@@ -246,7 +246,7 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
                 className={`flex flex-col items-center justify-center w-10 h-10 rounded-md transition-all cursor-pointer 
                   ${isToday(dia) && !esDiaSeleccionado ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : ''} 
                   ${isSameDay(dia, new Date(fechaHoraGt)) ? 'border border-blue-400 dark:border-blue-500' : ''} 
-                  ${esDiaSeleccionado ? 'bg-blue-600 text-white font-bold shadow-lg scale-105' : 'hover:bg-slate-100 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400'}`}
+                  ${esDiaSeleccionado ? 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white font-bold shadow-lg scale-105' : 'hover:bg-slate-100 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400'}`}
               >
                 <span className="text-[10px] uppercase">{format(dia, 'eee', { locale: es })}</span>
                 <span className="text-xs">{format(dia, 'd')}</span>

@@ -130,10 +130,10 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
 
   if (asistenciaProcesada.length === 0) {
     return (
-      <div className="p-8 text-center border border-dashed border-gray-300 rounded-lg bg-gray-50">
-        <User className="mx-auto h-10 w-10 text-gray-400 mb-2" />
-        <p className="text-gray-500 font-medium">Aún no hay registros de asistencia para esta sesión.</p>
-        <Button variant="outline" onClick={cargarDatos} className="mt-4">
+      <div className="p-8 text-center border border-dashed border-gray-300 dark:border-neutral-800 rounded-lg bg-gray-50 dark:bg-neutral-900">
+        <User className="mx-auto h-10 w-10 text-gray-400 dark:text-gray-500 mb-2" />
+        <p className="text-gray-500 dark:text-gray-400 font-medium">Aún no hay registros de asistencia para esta sesión.</p>
+        <Button variant="outline" onClick={cargarDatos} className="mt-4 dark:bg-neutral-800 dark:text-gray-300 dark:border-neutral-700 dark:hover:bg-neutral-700">
             <RefreshCw className="mr-2 h-4 w-4" /> Actualizar
         </Button>
       </div>
@@ -144,48 +144,48 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
     <>
       <div className="space-y-4">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
             Listado de Asistencia
-
           </h3>
           <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={cargarDatos}>
+              <Button variant="outline" size="sm" onClick={cargarDatos} className="dark:bg-neutral-800 dark:text-gray-300 dark:border-neutral-700 dark:hover:bg-neutral-700">
                   <RefreshCw className="h-4 w-4" />
               </Button>
           </div>
         </div>
 
+        {/* VISTA MÓVIL (CARDS) */}
         <div className="grid grid-cols-1 gap-3 md:hidden">
           {asistenciaProcesada.map((usuario) => (
             <div 
               key={usuario.userId} 
               onClick={() => handleRowClick(usuario)}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
+              className="bg-white dark:bg-neutral-900 rounded-lg shadow-sm border border-gray-200 dark:border-neutral-800 overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
             >
               <div className="px-4 pt-3 pb-2">
-                  <p className="font-bold text-gray-800 text-sm">{usuario.nombre}</p>
-                  <p className="text-xs text-gray-500 uppercase font-medium tracking-wide">{usuario.puesto}</p>
+                  <p className="font-bold text-gray-800 dark:text-gray-100 text-sm">{usuario.nombre}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium tracking-wide">{usuario.puesto}</p>
               </div>
 
               <div className="px-4 pb-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs bg-slate-50 px-3 py-2 rounded border border-slate-200">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs bg-slate-50 dark:bg-neutral-950/50 px-3 py-2 rounded border border-slate-200 dark:border-neutral-800">
                       
-                      <span className="whitespace-nowrap text-green-600">
+                      <span className="whitespace-nowrap text-green-600 dark:text-green-400">
                           <b>Entrada:</b> {usuario.entrada ? format(new Date(usuario.entrada), 'h:mm a', { locale: es }) : '-'}
                       </span>
 
-                      <span className="whitespace-nowrap text-red-500">
+                      <span className="whitespace-nowrap text-red-500 dark:text-red-400">
                           <b>Salida:</b> {usuario.salida ? format(new Date(usuario.salida), 'h:mm a', { locale: es }) : '-'}
                       </span>
 
-                      <span className="whitespace-nowrap bg-blue-100 text-blue-700 px-2 py-1 rounded font-bold">
+                      <span className="whitespace-nowrap bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded font-bold">
                           Duración: {usuario.duracion}
                       </span>
                   </div>
               </div>
               
-              <div className="bg-gray-50 py-1.5 text-center border-t border-gray-100">
-                  <p className="text-[10px] text-gray-400 flex items-center justify-center gap-1">
+              <div className="bg-gray-50 dark:bg-neutral-800 py-1.5 text-center border-t border-gray-100 dark:border-neutral-700">
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 flex items-center justify-center gap-1">
                       <MapPin className="h-3 w-3" /> Ver detalles
                   </p>
               </div>
@@ -193,10 +193,11 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
           ))}
         </div>
 
-        <div className="hidden md:block overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+        {/* VISTA ESCRITORIO (TABLA) */}
+        <div className="hidden md:block overflow-hidden rounded-lg border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
+              <thead className="bg-gray-50 dark:bg-neutral-900 text-gray-600 dark:text-gray-400 font-medium border-b border-gray-200 dark:border-neutral-800">
                 <tr>
                   <th className="px-4 py-3">Funcionario</th>
                   <th className="px-4 py-3 text-center">Entrada</th>
@@ -204,43 +205,43 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
                   <th className="px-4 py-3 text-center">Duración</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
                 {asistenciaProcesada.map((usuario) => (
                   <tr 
                     key={usuario.userId} 
-                    className="hover:bg-blue-50/50 transition-colors cursor-pointer group"
+                    className="hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors cursor-pointer group"
                     onClick={() => handleRowClick(usuario)}
                     title="Ver ubicación en mapa"
                   >
                     <td className="px-4 py-3">
                       <div className="flex flex-col">
-                        <span className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">{usuario.nombre}</span>
-                        <span className="text-xs text-gray-500 capitalize">{usuario.puesto}</span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors">{usuario.nombre}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">{usuario.puesto}</span>
                       </div>
                     </td>
                     
                     <td className="px-4 py-3 text-center whitespace-nowrap">
                       {usuario.entrada ? (
-                        <div className="inline-flex items-center gap-1 text-green-700 bg-green-50 px-2 py-1 rounded text-xs font-medium border border-green-100">
+                        <div className="inline-flex items-center gap-1 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded text-xs font-medium border border-green-100 dark:border-green-800">
                           {format(new Date(usuario.entrada), 'h:mm a', { locale: es })}
                         </div>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-gray-400 dark:text-gray-600">-</span>
                       )}
                     </td>
 
                     <td className="px-4 py-3 text-center whitespace-nowrap">
                       {usuario.salida ? (
-                        <div className="inline-flex items-center gap-1 text-orange-700 bg-orange-50 px-2 py-1 rounded text-xs font-medium border border-orange-100">
+                        <div className="inline-flex items-center gap-1 text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/30 px-2 py-1 rounded text-xs font-medium border border-orange-100 dark:border-orange-800">
                           {format(new Date(usuario.salida), 'h:mm a', { locale: es })}
                         </div>
                       ) : (
-                        <span className="text-gray-400 text-xs italic">Pendiente</span>
+                        <span className="text-gray-400 dark:text-gray-600 text-xs italic">Pendiente</span>
                       )}
                     </td>
 
                     <td className="px-4 py-3 text-center">
-                      <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-md font-semibold text-xs">
+                      <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-md font-semibold text-xs">
                         {usuario.duracion}
                       </span>
                     </td>
