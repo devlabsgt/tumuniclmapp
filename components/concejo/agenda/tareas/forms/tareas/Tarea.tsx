@@ -102,7 +102,7 @@ export default function Tarea({ isOpen, onClose, onSave, agendaConcejoId, tareaA
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 title: '📝 Nuevo Punto en Agenda',
-                message: `Se ha agregado el punto: "${data.titulo_item}" a la sesion: "${tituloAgenda}", haz clic para verlo.`,
+                message: `Se ha agregado el punto: "${data.titulo_item}" a la sesion: "${tituloAgenda}", haz clic para ver 🤳.`,
                 url: `/protected/concejo/agenda/${agendaConcejoId}`,
                 targetIds: targetIds
               })
