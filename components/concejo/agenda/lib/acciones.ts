@@ -9,6 +9,12 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// Función auxiliar para obtener solo la hora actual en formato HH:mm:ss
+const getCurrentTimeOnly = () => {
+  const now = new Date();
+  return now.toLocaleTimeString('en-GB', { hour12: false }); // Retorna "14:30:00"
+};
+
 export const cargarAgendas = async (): Promise<AgendaConcejo[]> => {
   const { data, error } = await supabase
     .from('agenda_concejo')
@@ -37,16 +43,13 @@ export const fetchAgendaConcejoPorId = async (id: string): Promise<AgendaConcejo
 };
 
 export const crearAgenda = async (formData: AgendaFormData): Promise<AgendaConcejo | null> => {
-  const fechaCompleta = `${formData.fecha_reunion}T${formData.hora_reunion}:00`;
-
+  // CORRECCIÓN: Usamos directamente fecha_reunion porque ya viene completa desde el Frontend
   const { data, error } = await supabase
     .from('agenda_concejo')
     .insert({
       titulo: formData.titulo,
       descripcion: formData.descripcion,
-      fecha_reunion: fechaCompleta,
-      acta: formData.acta,
-      libro: formData.libro,
+      fecha_reunion: formData.fecha_reunion, 
       estado: 'En preparación',
     })
     .select()
@@ -68,26 +71,26 @@ export const editarAgenda = async (id: string, formData: AgendaFormData): Promis
     .eq('id', id)
     .single();
 
+  // CORRECCIÓN: No concatenamos nada, usamos el valor directo
   const updates: any = {
     titulo: formData.titulo,
     descripcion: formData.descripcion,
-    fecha_reunion: `${formData.fecha_reunion}T${formData.hora_reunion}:00`,
-    acta: formData.acta,
-    libro: formData.libro,
+    fecha_reunion: formData.fecha_reunion,
   };
 
   if (formData.estado) {
     updates.estado = formData.estado;
   }
 
-  const ahora = new Date().toISOString();
+  // CORRECCIÓN: Para inicio y fin usamos solo la HORA
+  const horaActual = getCurrentTimeOnly();
 
   if (agendaActual && formData.estado) {
     if (formData.estado === 'En progreso' && agendaActual.estado !== 'En progreso') {
-      updates.inicio = ahora;
+      updates.inicio = horaActual;
     }
     if (formData.estado === 'Finalizada' && agendaActual.estado !== 'Finalizada') {
-      updates.fin = ahora;
+      updates.fin = horaActual;
     }
     if (formData.estado === 'En preparación' && agendaActual.estado !== 'En preparación') {
         updates.inicio = null;
@@ -119,14 +122,16 @@ export const actualizarEstadoAgenda = async (id: string, estado: string): Promis
     .single();
 
   const updates: any = { estado };
-  const ahora = new Date().toISOString();
+  
+  // CORRECCIÓN: Obtenemos solo la HORA para los campos 'inicio' y 'fin'
+  const horaActual = getCurrentTimeOnly();
 
   if (agendaActual) {
     if (estado === 'En progreso' && agendaActual.estado !== 'En progreso') {
-      updates.inicio = ahora;
+      updates.inicio = horaActual;
     }
     if (estado === 'Finalizada' && agendaActual.estado !== 'Finalizada') {
-      updates.fin = ahora;
+      updates.fin = horaActual;
     }
   }
 

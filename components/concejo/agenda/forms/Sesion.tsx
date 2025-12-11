@@ -56,7 +56,6 @@ export default function Sesion({ isOpen, onClose, onSave, agendaAEditar }: Sesio
       libro: '',
       fecha_reunion: getTodayDate(),
       hora_reunion: '08:00',
-      estado: 'En preparación' // Valor por defecto seguro
     }
   });
 
@@ -78,7 +77,7 @@ export default function Sesion({ isOpen, onClose, onSave, agendaAEditar }: Sesio
   useEffect(() => {
     if (isOpen) {
       if (isEditMode && agendaAEditar) {
-        let { acta, libro } = parseDescripcion(agendaAEditar.descripcion || '');
+        let { acta, libro } = parseDescripcion(agendaAEditar.descripcion);
         
         if (agendaAEditar.acta) acta = agendaAEditar.acta;
         if (agendaAEditar.libro) libro = agendaAEditar.libro;
@@ -96,7 +95,6 @@ export default function Sesion({ isOpen, onClose, onSave, agendaAEditar }: Sesio
           libro: libro,
           fecha_reunion: format(fechaHoraDB, 'yyyy-MM-dd'),
           hora_reunion: `${String(h24).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
-          estado: agendaAEditar.estado // Mantenemos el estado actual al editar
         });
 
         setHora(newHora12);
@@ -110,7 +108,6 @@ export default function Sesion({ isOpen, onClose, onSave, agendaAEditar }: Sesio
           libro: '',
           fecha_reunion: getTodayDate(),
           hora_reunion: '08:00',
-          estado: 'En preparación'
         });
         setHora('08');
         setMinuto('00');
@@ -130,11 +127,8 @@ export default function Sesion({ isOpen, onClose, onSave, agendaAEditar }: Sesio
   };
 
   const onSubmit = async (formData: SesionFormData) => {
-    // Aseguramos que los campos opcionales tengan un valor string para la API si es necesario
     const combinedFormData = {
       ...formData,
-      descripcion: formData.descripcion || '',
-      estado: formData.estado || 'En preparación',
       fecha_reunion: `${formData.fecha_reunion}T${formData.hora_reunion}:00-06:00`,
     };
 

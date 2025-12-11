@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-// Agregamos fetchAgendaConcejoPorId para traer los datos de la sesión (inicio/fin)
 import { fetchAsistenciaGlobalAgenda, fetchAgendaConcejoPorId } from '@/components/concejo/agenda/lib/acciones';
-import { format, differenceInMinutes } from 'date-fns';
+import { format, differenceInMinutes, parse } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { User, RefreshCw, MapPin, Clock, CalendarClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,7 @@ import CargandoAnimacion from '@/components/ui/animations/Cargando';
 import { AnimatePresence } from 'framer-motion';
 import Mapa from '@/components/ui/modals/Mapa';
 
-// Interfaces (Usamos las que enviaste)
+// --- INTERFACES ---
 interface RegistroRaw {
   id: string;
   created_at: string;
@@ -39,13 +38,31 @@ interface UsuarioAsistencia {
   registroSalidaCompleto?: any;
 }
 
-// Interface local para la Agenda (basada en tu esquema)
 interface AgendaConcejoData {
   id: string;
-  inicio: string | null;
-  fin: string | null;
+  inicio: string | null; // Viene como "HH:mm:ss"
+  fin: string | null;    // Viene como "HH:mm:ss"
   estado: string;
+  fecha_reunion: string; // Necesitamos la fecha base
 }
+
+// --- FUNCIÓN HELPER PARA CORREGIR EL ERROR ---
+const parsearHora = (horaStr: string | null, fechaBaseStr: string) => {
+  if (!horaStr) return null;
+  
+  // Si por error viene una fecha ISO completa, la usamos directo
+  if (horaStr.includes('T')) return new Date(horaStr);
+
+  // Si viene solo hora (ej: "14:30:00"), la combinamos con la fecha de reunión
+  try {
+    // Construimos un string ISO válido: "2025-10-20T14:30:00"
+    const fechaISO = `${fechaBaseStr.split('T')[0]}T${horaStr}`;
+    return new Date(fechaISO);
+  } catch (e) {
+    console.error("Error parseando hora:", e);
+    return null;
+  }
+};
 
 export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }) {
   const [registros, setRegistros] = useState<RegistroRaw[]>([]);
@@ -58,7 +75,6 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
   const cargarDatos = async () => {
     setCargando(true);
     try {
-      // Cargamos en paralelo la asistencia y los detalles de la agenda
       const [dataAsistencia, dataAgenda] = await Promise.all([
         fetchAsistenciaGlobalAgenda(agendaId),
         fetchAgendaConcejoPorId(agendaId)
@@ -77,27 +93,38 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
     cargarDatos();
   }, [agendaId]);
 
-  // Cálculo de duración de la SESIÓN (Agenda)
+  // --- CÁLCULO DE DURACIÓN CORREGIDO ---
   const infoSesion = useMemo(() => {
-    if (!agendaData) return { duracion: '-', inicio: '-', fin: '-' };
+    // Valores por defecto si no hay datos
+    if (!agendaData || !agendaData.fecha_reunion) return { duracion: '-', inicio: '-', fin: '-' };
 
-    const inicioFmt = agendaData.inicio 
-      ? format(new Date(agendaData.inicio), 'h:mm a', { locale: es }) 
+    // 1. Convertimos los strings de hora en objetos Date válidos
+    const fechaInicio = parsearHora(agendaData.inicio, agendaData.fecha_reunion);
+    const fechaFin = parsearHora(agendaData.fin, agendaData.fecha_reunion);
+
+    // 2. Formateamos para mostrar en pantalla
+    const inicioFmt = fechaInicio 
+      ? format(fechaInicio, 'h:mm a', { locale: es }) 
       : '--:--';
     
-    const finFmt = agendaData.fin 
-      ? format(new Date(agendaData.fin), 'h:mm a', { locale: es }) 
+    const finFmt = fechaFin 
+      ? format(fechaFin, 'h:mm a', { locale: es }) 
       : (agendaData.estado === 'En progreso' ? 'En curso' : '--:--');
 
+    // 3. Calculamos la duración
     let duracion = '-';
-    if (agendaData.inicio) {
-      const start = new Date(agendaData.inicio);
-      const end = agendaData.fin ? new Date(agendaData.fin) : new Date(); // Si no ha terminado, calcula vs ahora
+    if (fechaInicio) {
+      const start = fechaInicio;
+      // Si ya finalizó usamos fechaFin, si no, usamos la hora actual
+      const end = fechaFin ? fechaFin : new Date(); 
       
       const diff = differenceInMinutes(end, start);
-      const horas = Math.floor(diff / 60);
-      const mins = diff % 60;
-      duracion = `${horas}h ${mins}m`;
+      // Evitamos números negativos si la hora actual es rara o hay desfase
+      if (diff >= 0) {
+        const horas = Math.floor(diff / 60);
+        const mins = diff % 60;
+        duracion = `${horas}h ${mins}m`;
+      }
     }
 
     return { inicio: inicioFmt, fin: finFmt, duracion };
@@ -142,6 +169,7 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
           notas: reg.notas
       };
 
+      // created_at SIEMPRE es ISO completo, así que new Date() funciona bien aquí
       if (reg.tipo_registro === 'Entrada') {
         usuario.entrada = reg.created_at;
         usuario.coordsEntrada = coords;
@@ -222,7 +250,7 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
           </div>
         </div>
 
-        {/* VISTA MÓVIL (CARDS) - DISEÑO ORIGINAL */}
+        {/* VISTA MÓVIL (CARDS) */}
         <div className="grid grid-cols-1 gap-3 md:hidden">
           {asistenciaProcesada.map((usuario) => (
             <div 
@@ -261,7 +289,7 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
           ))}
         </div>
 
-        {/* VISTA ESCRITORIO (TABLA) - DISEÑO ORIGINAL */}
+        {/* VISTA ESCRITORIO (TABLA) */}
         <div className="hidden md:block overflow-hidden rounded-lg border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
