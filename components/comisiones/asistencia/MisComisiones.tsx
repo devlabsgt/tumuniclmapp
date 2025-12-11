@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { getMonth, getYear, parseISO, isToday, isPast } from 'date-fns';
+import { getMonth, getYear, parseISO, differenceInCalendarDays } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -9,11 +9,13 @@ import PullToRefresh from 'react-simple-pull-to-refresh';
 import { ArrowDown, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-import { useObtenerComisiones, ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
+import { useObtenerComisiones } from '@/hooks/comisiones/useObtenerComisiones';
 import useUserData from '@/hooks/sesion/useUserData';
 import Cargando from '@/components/ui/animations/Cargando';
 import Mapa from '@/components/ui/modals/Mapa';
 import ListaMisComisiones from './ListaMisComisiones';
+
+const TIMEZONE_GUATE = 'America/Guatemala';
 
 export default function MisComisiones() {
   const [mesSeleccionado, setMesSeleccionado] = useState(getMonth(new Date()));
@@ -32,7 +34,7 @@ export default function MisComisiones() {
 
   useEffect(() => {
     const checkDevice = () => {
-      setIsMobile(window.innerWidth < 768);
+      setIsMobile(window.innerWidth <768);
     };
     checkDevice();
     window.addEventListener('resize', checkDevice);
@@ -60,9 +62,8 @@ export default function MisComisiones() {
       return { lista: [], countProximas: 0, countTerminadas: 0, countHoy: 0 };
     }
 
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-
+    const nowInGuate = toZonedTime(new Date(), TIMEZONE_GUATE);
+    
     let countProximas = 0;
     let countTerminadas = 0;
     let countHoy = 0;
@@ -75,10 +76,14 @@ export default function MisComisiones() {
       );
 
     aprobadasYSorteadas.forEach(c => {
-      const fechaComision = parseISO(c.fecha_hora.split(' ')[0]);
-      if (fechaComision.getTime() === hoy.getTime()) {
+      const fechaComisionObj = parseISO(c.fecha_hora.replace(' ', 'T'));
+      // Usamos differenceInCalendarDays para consistencia total con la UI
+      // Si la diferencia es 0, es HOY, sin importar la hora exacta.
+      const diffDias = differenceInCalendarDays(toZonedTime(fechaComisionObj, TIMEZONE_GUATE), nowInGuate);
+
+      if (diffDias === 0) {
         countHoy++;
-      } else if (fechaComision > hoy) {
+      } else if (diffDias > 0) {
         countProximas++;
       } else {
         countTerminadas++;
@@ -88,36 +93,47 @@ export default function MisComisiones() {
     return { lista: aprobadasYSorteadas, countProximas, countTerminadas, countHoy };
   }, [comisiones, cargandoUsuario]);
   
+  // Efecto para cambiar de vista automáticamente si la actual está vacía
   useEffect(() => {
-    if (comisionesData.countHoy > 0) {
-      setVista('hoy');
-    } else if (comisionesData.countProximas > 0) {
-      setVista('proximas');
-    } else if (comisionesData.countTerminadas > 0) {
-      setVista('terminadas');
-    } else {
-      setVista('hoy');
+    const vistaActualVacia = 
+      (vista === 'hoy' && comisionesData.countHoy === 0) ||
+      (vista === 'proximas' && comisionesData.countProximas === 0) ||
+      (vista === 'terminadas' && comisionesData.countTerminadas === 0);
+
+    if (vistaActualVacia) {
+      if (comisionesData.countHoy > 0) {
+        setVista('hoy');
+      } else if (comisionesData.countProximas > 0) {
+        setVista('proximas');
+      } else if (comisionesData.countTerminadas > 0) {
+        setVista('terminadas');
+      } else {
+        setVista('hoy');
+      }
     }
-  }, [comisionesData]);
+  }, [comisionesData, vista]);
 
   const comisionesParaMostrar = useMemo(() => {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
+    const nowInGuate = toZonedTime(new Date(), TIMEZONE_GUATE);
 
     let comisionesFiltradas = [];
 
+    // Filtramos usando la misma logica exacta de differenceInCalendarDays
     if (vista === 'hoy') {
-      comisionesFiltradas = comisionesData.lista.filter(c =>
-        parseISO(c.fecha_hora.split(' ')[0]).getTime() === hoy.getTime()
-      );
+      comisionesFiltradas = comisionesData.lista.filter(c => {
+        const fecha = parseISO(c.fecha_hora.replace(' ', 'T'));
+        return differenceInCalendarDays(toZonedTime(fecha, TIMEZONE_GUATE), nowInGuate) === 0;
+      });
     } else if (vista === 'proximas') {
-      comisionesFiltradas = comisionesData.lista.filter(c =>
-        parseISO(c.fecha_hora.split(' ')[0]) > hoy
-      );
+      comisionesFiltradas = comisionesData.lista.filter(c => {
+        const fecha = parseISO(c.fecha_hora.replace(' ', 'T'));
+        return differenceInCalendarDays(toZonedTime(fecha, TIMEZONE_GUATE), nowInGuate) > 0;
+      });
     } else {
-      comisionesFiltradas = comisionesData.lista.filter(c =>
-        parseISO(c.fecha_hora.split(' ')[0]) < hoy
-      );
+      comisionesFiltradas = comisionesData.lista.filter(c => {
+        const fecha = parseISO(c.fecha_hora.replace(' ', 'T'));
+        return differenceInCalendarDays(toZonedTime(fecha, TIMEZONE_GUATE), nowInGuate) < 0;
+      });
     }
 
     if (openComisionId) {

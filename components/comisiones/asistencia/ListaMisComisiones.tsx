@@ -5,7 +5,7 @@ import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, CalendarCheck, Users, CalendarClock, ArrowUp } from 'lucide-react';
-import { formatInTimeZone } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 
 import VerComision from '../VerComision';
 import AsistenciaComision from './AsistenciaComision';
@@ -38,7 +38,7 @@ const meses = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ];
 const anios = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i - 2);
-const timeZone = 'America/Guatemala';
+const TIMEZONE_GUATE = 'America/Guatemala';
 
 const formatNombreCorto = (nombreCompleto?: string | null): string => {
   if (!nombreCompleto) return 'N/A';
@@ -50,12 +50,6 @@ const formatNombreCorto = (nombreCompleto?: string | null): string => {
     return `${partes[0]} ${partes[2]}`;
   }
   return nombreCompleto;
-};
-
-const getHoyGuateStr = () => formatInTimeZone(new Date(), timeZone, 'yyyy-MM-dd');
-
-const getFechaComisionStr = (fechaHora: string) => {
-    return fechaHora.substring(0, 10);
 };
 
 export default function ListaMisComisiones({
@@ -83,20 +77,13 @@ export default function ListaMisComisiones({
     const grupos: { [key: string]: ComisionConFechaYHoraSeparada[] } = {};
     if (!comisionesParaMostrar) return grupos;
 
-    let comisionesAprobadas = comisionesParaMostrar.filter(comision => comision.aprobado === true);
+    const comisionesAprobadas = comisionesParaMostrar.filter(comision => comision.aprobado === true);
     
-    const hoyStr = getHoyGuateStr();
-
-    if (vista === 'hoy') {
-      comisionesAprobadas = comisionesAprobadas.filter(c => {
-         const fechaComisionStr = getFechaComisionStr(c.fecha_hora);
-         return fechaComisionStr === hoyStr;
-      });
-    }
-
     comisionesAprobadas.forEach(comision => {
+      // Usamos fecha normalizada a Guate para la clave del grupo
       const fechaObj = parseISO(comision.fecha_hora.replace(' ', 'T'));
-      const fechaClave = format(fechaObj, 'EEEE d', { locale: es });
+      const fechaGuate = toZonedTime(fechaObj, TIMEZONE_GUATE);
+      const fechaClave = format(fechaGuate, 'EEEE d', { locale: es });
       
       if (!grupos[fechaClave]) {
         grupos[fechaClave] = [];
@@ -105,6 +92,7 @@ export default function ListaMisComisiones({
     });
 
     const fechasOrdenadas = Object.keys(grupos).sort((a, b) => {
+       // Reconstruimos la fecha para ordenar usando la fecha del primer elemento
        const fechaA = parseISO(grupos[a][0].fecha_hora.replace(' ', 'T'));
        const fechaB = parseISO(grupos[b][0].fecha_hora.replace(' ', 'T'));
        
@@ -125,7 +113,7 @@ export default function ListaMisComisiones({
     });
     
     return gruposOrdenados;
-  }, [comisionesParaMostrar, vista, ordenDescendente]);
+  }, [comisionesParaMostrar, ordenDescendente]);
 
   return (
     <>
@@ -204,23 +192,24 @@ export default function ListaMisComisiones({
                   const usuariosDeLaComision = (comision.asistentes?.map(a => ({ id: a.id, nombre: a.nombre })) || []) as Usuario[];
                   const isOpen = openComisionId === comision.id;
                   
-                  const hoyStr = getHoyGuateStr();
-                  const comisionStr = getFechaComisionStr(comision.fecha_hora);
+                  // Estandarización de fechas
+                  const rawDateComision = comision.fecha_hora.replace(' ', 'T');
+                  const fechaComisionDate = parseISO(rawDateComision);
                   
-                  const esHoy = hoyStr === comisionStr;
-                  
-                  const dateHoy = parseISO(hoyStr);
-                  const dateComision = parseISO(comisionStr);
-                  const diasRestantes = differenceInCalendarDays(dateComision, dateHoy);
+                  const nowInGuate = toZonedTime(new Date(), TIMEZONE_GUATE);
+                  const comisionInGuate = toZonedTime(fechaComisionDate, TIMEZONE_GUATE);
 
-                  const fechaHoraVisual = parseISO(comision.fecha_hora.replace(' ', 'T'));
-                  
+                  const diasRestantes = differenceInCalendarDays(comisionInGuate, nowInGuate);
+
+                  // Si diasRestantes es 0, es HOY.
+                  const esHoy = diasRestantes === 0;
+
                   const integrantesCount = comision.asistentes?.length || 0;
 
                   let textoDias = '';
                   let colorDias = 'text-gray-500 dark:text-gray-400';
 
-                  if (esHoy) {
+                  if (diasRestantes === 0) {
                     textoDias = 'Hoy';
                     colorDias = 'text-indigo-600 dark:text-indigo-400 font-semibold';
                   } else if (diasRestantes === 1) {
@@ -279,7 +268,7 @@ export default function ListaMisComisiones({
                                 </div>
                               </div>
                               <div className="flex items-center justify-between gap-2 pr-2 mt-2">
-                                <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-nowrap capitalize">{format(fechaHoraVisual, 'h:mm a', { locale: es })}</p>
+                                <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-nowrap capitalize">{format(fechaComisionDate, 'h:mm a', { locale: es })}</p>
                                 <div className={`flex items-center gap-1 ${colorDias}`}>
                                   <CalendarClock size={12} />
                                   <span>{textoDias}</span>

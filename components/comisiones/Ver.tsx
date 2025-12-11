@@ -99,8 +99,8 @@ export default function Ver() {
   const counts = useMemo(() => {
     if (!comisionesVisibles) return { pendientes: 0, proximas: 0, terminadas: 0, hoy: 0 };
 
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
+    const nowInGuate = toZonedTime(new Date(), timeZone);
+    const todayStr = format(nowInGuate, 'yyyy-MM-dd');
 
     let pendientes = 0;
     let proximas = 0;
@@ -108,16 +108,18 @@ export default function Ver() {
     let hoyCount = 0;
     
     comisionesVisibles.forEach(c => {
-      const fechaComision = parseISO(c.fecha_hora.split(' ')[0]);
+      const fechaLimpia = c.fecha_hora.replace(' ', 'T');
+      const fechaComision = parseISO(fechaLimpia);
+      const comisionDateStr = format(fechaComision, 'yyyy-MM-dd');
 
       if (c.aprobado === false) {
         pendientes++;
       } else if (c.aprobado === true) {
-        if (fechaComision.getTime() === hoy.getTime()) {
+        if (comisionDateStr === todayStr) {
           hoyCount++;
-        } else if (fechaComision > hoy) {
+        } else if (comisionDateStr > todayStr) {
           proximas++;
-        } else if (fechaComision < hoy) {
+        } else if (comisionDateStr < todayStr) {
           terminadas++;
         }
       }
@@ -343,27 +345,31 @@ export default function Ver() {
     if (loading || error || !comisionesVisibles) return [];
 
     let comisionesDeVista: ComisionConFechaYHoraSeparada[] = [];
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
+    
+    const nowInGuate = toZonedTime(new Date(), timeZone);
+    const todayStr = format(nowInGuate, 'yyyy-MM-dd');
 
     if (vista === 'hoy') {
       comisionesDeVista = comisionesVisibles.filter(c => {
-        const fechaComision = parseISO(c.fecha_hora.split(' ')[0]);
-        return c.aprobado === true && fechaComision.getTime() === hoy.getTime();
+        const fechaComision = parseISO(c.fecha_hora.replace(' ', 'T'));
+        const fechaStr = format(fechaComision, 'yyyy-MM-dd');
+        return c.aprobado === true && fechaStr === todayStr;
       });
     } else if (vista === 'pendientes') {
       comisionesDeVista = comisionesVisibles.filter(c => c.aprobado === false);
     
     } else if (vista === 'proximas') {
       comisionesDeVista = comisionesVisibles.filter(c => {
-        const fechaComision = parseISO(c.fecha_hora.split(' ')[0]);
-        return c.aprobado === true && fechaComision > hoy;
+        const fechaComision = parseISO(c.fecha_hora.replace(' ', 'T'));
+        const fechaStr = format(fechaComision, 'yyyy-MM-dd');
+        return c.aprobado === true && fechaStr > todayStr;
       });
     
     } else { 
       comisionesDeVista = comisionesVisibles.filter(c => {
-        const fechaComision = parseISO(c.fecha_hora.split(' ')[0]);
-        return c.aprobado === true && fechaComision < hoy;
+        const fechaComision = parseISO(c.fecha_hora.replace(' ', 'T'));
+        const fechaStr = format(fechaComision, 'yyyy-MM-dd');
+        return c.aprobado === true && fechaStr < todayStr;
       });
     }
 
@@ -382,9 +388,9 @@ export default function Ver() {
   const comisionesAgrupadasPorFecha = useMemo(() => {
     const grupos: { [key: string]: ComisionConFechaYHoraSeparada[] } = {};
     comisionesFiltradas.forEach(comision => {
-      const fechaUtc = parseISO(comision.fecha_hora.replace(' ', 'T') + 'Z');
-      const fechaLocal = toZonedTime(fechaUtc, timeZone);
-      const fechaClave = formatInTimeZone(fechaLocal, 'EEEE, d MMMM yyyy', { locale: es, timeZone });
+      const fechaRaw = parseISO(comision.fecha_hora.replace(' ', 'T'));
+      const fechaClave = format(fechaRaw, 'EEEE, d MMMM yyyy', { locale: es });
+      
       if (!grupos[fechaClave]) grupos[fechaClave] = [];
       grupos[fechaClave].push(comision);
     });
@@ -405,7 +411,7 @@ export default function Ver() {
       gruposOrdenados[fecha] = grupos[fecha];
     });
     return gruposOrdenados;
-  }, [comisionesFiltradas, timeZone]);
+  }, [comisionesFiltradas]);
 
   if (loading || cargando || cargandoUsuarios || !haCargadoVistaInicial) return <Cargando texto='Cargando comisiones...' />;
   if (error) return <p className="text-center text-red-500 dark:text-red-400 py-8">Error al cargar datos: {error}</p>;

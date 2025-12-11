@@ -55,7 +55,7 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario, on
     let notaParaEnviar = '';
 
     if (tipo === 'Entrada') {
-      const fechaComision = parseISO(comision.fecha_hora.replace(' ', 'T') + 'Z');
+      const fechaComision = parseISO(comision.fecha_hora.replace(' ', 'T'));
       const diffMinutes = differenceInMinutes(fechaHoraGt, fechaComision);
       let requiereNotas = false;
       let justificacionHtml = '';

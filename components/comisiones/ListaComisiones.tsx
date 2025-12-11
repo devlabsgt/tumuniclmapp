@@ -66,7 +66,6 @@ export default function ListaComisiones({
   
   const { rol: rolActual, esjefe } = useUserData();
   
-  // true = Más nuevas primero (Descendente), false = Más viejas primero (Ascendente)
   const [ordenDescendente, setOrdenDescendente] = useState(true);
   
   const hasAdminPermissions = rolActual === 'SUPER' || rolActual === 'RRHH' || rolActual === 'SECRETARIO' || esjefe;
@@ -76,37 +75,15 @@ export default function ListaComisiones({
     (canApprove && (vista === 'hoy' || vista === 'proximas')) ||
     (rolActual === 'SUPER' && vista === 'terminadas');
 
-  const getFechaGuateStr = (fechaIso?: string | Date) => {
-    if (!fechaIso) return formatInTimeZone(new Date(), TIMEZONE_GUATE, 'yyyy-MM-dd');
-
-    let fecha: Date;
-    if (typeof fechaIso === 'string') {
-        const cleanedDate = fechaIso.replace(' ', 'T');
-        fecha = parseISO(cleanedDate);
-    } else {
-        fecha = fechaIso;
-    }
-
-    if (!isValid(fecha)) {
-      return formatInTimeZone(new Date(), TIMEZONE_GUATE, 'yyyy-MM-dd');
-    }
-    
-    return formatInTimeZone(fecha, TIMEZONE_GUATE, 'yyyy-MM-dd');
-  };
-
-  // Lógica de ordenamiento corregida y blindada
   const fechasOrdenadas = Object.keys(comisionesAgrupadasPorFecha).sort((a, b) => {
-    // Obtenemos el array de comisiones para cada fecha
     const grupoA = comisionesAgrupadasPorFecha[a];
     const grupoB = comisionesAgrupadasPorFecha[b];
 
-    // Obtenemos el primer elemento de cada grupo para sacar la fecha real
     const itemA = grupoA && grupoA.length > 0 ? grupoA[0] : null;
     const itemB = grupoB && grupoB.length > 0 ? grupoB[0] : null;
 
     if (!itemA || !itemB) return 0;
 
-    // Parseamos usando parseISO para garantizar compatibilidad total
     const fechaStrA = itemA.fecha_hora.includes('T') ? itemA.fecha_hora : itemA.fecha_hora.replace(' ', 'T');
     const fechaStrB = itemB.fecha_hora.includes('T') ? itemB.fecha_hora : itemB.fecha_hora.replace(' ', 'T');
 
@@ -235,17 +212,6 @@ export default function ListaComisiones({
           <div className="space-y-4">
             {fechasOrdenadas.map(fecha => {
               
-              if (vista === 'hoy') {
-                const primerItem = comisionesAgrupadasPorFecha[fecha][0];
-                if (primerItem) {
-                   const rawDate = primerItem.fecha_hora.includes('T') ? primerItem.fecha_hora : primerItem.fecha_hora.replace(' ', 'T');
-                   const fechaGrupo = getFechaGuateStr(rawDate);
-                   const fechaHoy = getFechaGuateStr();
-                   
-                   if (fechaGrupo !== fechaHoy) return null;
-                }
-              }
-
               return (
               <div key={fecha}>
                 <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200 mb-2 capitalize sticky top-0 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-sm py-2 transition-colors z-10">{fecha}</h3>
@@ -257,13 +223,18 @@ export default function ListaComisiones({
                     const rawDate = comision.fecha_hora.includes('T') ? comision.fecha_hora : comision.fecha_hora.replace(' ', 'T');
                     
                     const dateComision = parseISO(rawDate);
-                    const dateHoy = toZonedTime(new Date(), TIMEZONE_GUATE);
-                    const dateComisionZoned = toZonedTime(dateComision, TIMEZONE_GUATE);
+                    const nowInGuate = toZonedTime(new Date(), TIMEZONE_GUATE);
+
+                    const strDateComision = format(dateComision, 'yyyy-MM-dd');
+                    const strDateNow = format(nowInGuate, 'yyyy-MM-dd');
                     
-                    const diasRestantes = differenceInCalendarDays(dateComisionZoned, dateHoy);
+                    const fechaComisionObj = parseISO(strDateComision);
+                    const fechaNowObj = parseISO(strDateNow);
+
+                    const diasRestantes = differenceInCalendarDays(fechaComisionObj, fechaNowObj);
                     
                     const fechaVisual = isValid(dateComision) 
-                        ? formatInTimeZone(dateComision, TIMEZONE_GUATE, 'h:mm a', { locale: es })
+                        ? format(dateComision, 'h:mm a', { locale: es })
                         : 'Hora inválida';
 
                     let textoDias = '';
