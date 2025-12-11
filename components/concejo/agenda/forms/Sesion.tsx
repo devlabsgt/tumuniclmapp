@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { crearAgenda, editarAgenda, getTodayDate } from '../lib/acciones';
 import { type AgendaConcejo } from '../lib/esquemas';
 import { parseISO, getHours, getMinutes, format } from 'date-fns';
-import { es } from 'date-fns/locale'; // IMPORTANTE: Agregado para el formato en español
+import { es } from 'date-fns/locale';
 import { sesionSchema, type SesionFormData } from '../lib/esquemas';
 import Calendario from '@/components/ui/Calendario';
 import { obtenerDestinatariosClave } from '../lib/usuarios/notificaciones'; 
@@ -56,6 +56,7 @@ export default function Sesion({ isOpen, onClose, onSave, agendaAEditar }: Sesio
       libro: '',
       fecha_reunion: getTodayDate(),
       hora_reunion: '08:00',
+      estado: 'En preparación' // Valor por defecto seguro
     }
   });
 
@@ -77,7 +78,11 @@ export default function Sesion({ isOpen, onClose, onSave, agendaAEditar }: Sesio
   useEffect(() => {
     if (isOpen) {
       if (isEditMode && agendaAEditar) {
-        const { acta, libro } = parseDescripcion(agendaAEditar.descripcion);
+        let { acta, libro } = parseDescripcion(agendaAEditar.descripcion || '');
+        
+        if (agendaAEditar.acta) acta = agendaAEditar.acta;
+        if (agendaAEditar.libro) libro = agendaAEditar.libro;
+
         const fechaHoraDB = parseISO(agendaAEditar.fecha_reunion);
         const h24 = getHours(fechaHoraDB);
         const m = getMinutes(fechaHoraDB);
@@ -91,6 +96,7 @@ export default function Sesion({ isOpen, onClose, onSave, agendaAEditar }: Sesio
           libro: libro,
           fecha_reunion: format(fechaHoraDB, 'yyyy-MM-dd'),
           hora_reunion: `${String(h24).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+          estado: agendaAEditar.estado // Mantenemos el estado actual al editar
         });
 
         setHora(newHora12);
@@ -104,6 +110,7 @@ export default function Sesion({ isOpen, onClose, onSave, agendaAEditar }: Sesio
           libro: '',
           fecha_reunion: getTodayDate(),
           hora_reunion: '08:00',
+          estado: 'En preparación'
         });
         setHora('08');
         setMinuto('00');
@@ -123,8 +130,11 @@ export default function Sesion({ isOpen, onClose, onSave, agendaAEditar }: Sesio
   };
 
   const onSubmit = async (formData: SesionFormData) => {
+    // Aseguramos que los campos opcionales tengan un valor string para la API si es necesario
     const combinedFormData = {
       ...formData,
+      descripcion: formData.descripcion || '',
+      estado: formData.estado || 'En preparación',
       fecha_reunion: `${formData.fecha_reunion}T${formData.hora_reunion}:00-06:00`,
     };
 

@@ -1,15 +1,17 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { fetchAsistenciaGlobalAgenda } from '@/components/concejo/agenda/lib/acciones';
+// Agregamos fetchAgendaConcejoPorId para traer los datos de la sesión (inicio/fin)
+import { fetchAsistenciaGlobalAgenda, fetchAgendaConcejoPorId } from '@/components/concejo/agenda/lib/acciones';
 import { format, differenceInMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { User, RefreshCw, MapPin } from 'lucide-react';
+import { User, RefreshCw, MapPin, Clock, CalendarClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
 import { AnimatePresence } from 'framer-motion';
 import Mapa from '@/components/ui/modals/Mapa';
 
+// Interfaces (Usamos las que enviaste)
 interface RegistroRaw {
   id: string;
   created_at: string;
@@ -37,8 +39,17 @@ interface UsuarioAsistencia {
   registroSalidaCompleto?: any;
 }
 
+// Interface local para la Agenda (basada en tu esquema)
+interface AgendaConcejoData {
+  id: string;
+  inicio: string | null;
+  fin: string | null;
+  estado: string;
+}
+
 export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }) {
   const [registros, setRegistros] = useState<RegistroRaw[]>([]);
+  const [agendaData, setAgendaData] = useState<AgendaConcejoData | null>(null);
   const [cargando, setCargando] = useState(true);
   
   const [modalMapaOpen, setModalMapaOpen] = useState(false);
@@ -46,14 +57,51 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
 
   const cargarDatos = async () => {
     setCargando(true);
-    const data = await fetchAsistenciaGlobalAgenda(agendaId);
-    setRegistros(data as any);
-    setCargando(false);
+    try {
+      // Cargamos en paralelo la asistencia y los detalles de la agenda
+      const [dataAsistencia, dataAgenda] = await Promise.all([
+        fetchAsistenciaGlobalAgenda(agendaId),
+        fetchAgendaConcejoPorId(agendaId)
+      ]);
+      
+      setRegistros(dataAsistencia as any);
+      setAgendaData(dataAgenda as any);
+    } catch (error) {
+      console.error("Error cargando datos:", error);
+    } finally {
+      setCargando(false);
+    }
   };
 
   useEffect(() => {
     cargarDatos();
   }, [agendaId]);
+
+  // Cálculo de duración de la SESIÓN (Agenda)
+  const infoSesion = useMemo(() => {
+    if (!agendaData) return { duracion: '-', inicio: '-', fin: '-' };
+
+    const inicioFmt = agendaData.inicio 
+      ? format(new Date(agendaData.inicio), 'h:mm a', { locale: es }) 
+      : '--:--';
+    
+    const finFmt = agendaData.fin 
+      ? format(new Date(agendaData.fin), 'h:mm a', { locale: es }) 
+      : (agendaData.estado === 'En progreso' ? 'En curso' : '--:--');
+
+    let duracion = '-';
+    if (agendaData.inicio) {
+      const start = new Date(agendaData.inicio);
+      const end = agendaData.fin ? new Date(agendaData.fin) : new Date(); // Si no ha terminado, calcula vs ahora
+      
+      const diff = differenceInMinutes(end, start);
+      const horas = Math.floor(diff / 60);
+      const mins = diff % 60;
+      duracion = `${horas}h ${mins}m`;
+    }
+
+    return { inicio: inicioFmt, fin: finFmt, duracion };
+  }, [agendaData]);
 
   const asistenciaProcesada = useMemo(() => {
     const mapa = new Map<string, UsuarioAsistencia>();
@@ -143,18 +191,38 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
   return (
     <>
       <div className="space-y-4">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-            Listado de Asistencia
-          </h3>
-          <div className="flex gap-2">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3 bg-white dark:bg-neutral-900 p-3 rounded-lg border border-gray-100 dark:border-neutral-800 shadow-sm">
+          
+          <div className="flex flex-col">
+             <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                Asistencia y duración de la sesión
+             </h3>
+             <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-1.5 text-green-700 dark:text-green-400">
+                    <Clock size={16} />
+                    <span className="font-bold">{infoSesion.inicio}</span>
+                </div>
+                <span className="text-gray-300">|</span>
+                <div className="flex items-center gap-1.5 text-orange-700 dark:text-orange-400">
+                    <Clock size={16} />
+                    <span className="font-bold">{infoSesion.fin}</span>
+                </div>
+                <span className="text-gray-300">|</span>
+                <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded">
+                    <CalendarClock size={16} />
+                    <span className="font-bold">{infoSesion.duracion}</span>
+                </div>
+             </div>
+          </div>
+
+          <div className="flex gap-2 self-end md:self-auto">
               <Button variant="outline" size="sm" onClick={cargarDatos} className="dark:bg-neutral-800 dark:text-gray-300 dark:border-neutral-700 dark:hover:bg-neutral-700">
                   <RefreshCw className="h-4 w-4" />
               </Button>
           </div>
         </div>
 
-        {/* VISTA MÓVIL (CARDS) */}
+        {/* VISTA MÓVIL (CARDS) - DISEÑO ORIGINAL */}
         <div className="grid grid-cols-1 gap-3 md:hidden">
           {asistenciaProcesada.map((usuario) => (
             <div 
@@ -193,7 +261,7 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
           ))}
         </div>
 
-        {/* VISTA ESCRITORIO (TABLA) */}
+        {/* VISTA ESCRITORIO (TABLA) - DISEÑO ORIGINAL */}
         <div className="hidden md:block overflow-hidden rounded-lg border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">

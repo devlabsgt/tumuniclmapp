@@ -37,12 +37,16 @@ export const fetchAgendaConcejoPorId = async (id: string): Promise<AgendaConcejo
 };
 
 export const crearAgenda = async (formData: AgendaFormData): Promise<AgendaConcejo | null> => {
+  const fechaCompleta = `${formData.fecha_reunion}T${formData.hora_reunion}:00`;
+
   const { data, error } = await supabase
     .from('agenda_concejo')
     .insert({
       titulo: formData.titulo,
       descripcion: formData.descripcion,
-      fecha_reunion: formData.fecha_reunion,
+      fecha_reunion: fechaCompleta,
+      acta: formData.acta,
+      libro: formData.libro,
       estado: 'En preparación',
     })
     .select()
@@ -58,14 +62,42 @@ export const crearAgenda = async (formData: AgendaFormData): Promise<AgendaConce
 };
 
 export const editarAgenda = async (id: string, formData: AgendaFormData): Promise<AgendaConcejo | null> => {
+  const { data: agendaActual } = await supabase
+    .from('agenda_concejo')
+    .select('estado')
+    .eq('id', id)
+    .single();
+
+  const updates: any = {
+    titulo: formData.titulo,
+    descripcion: formData.descripcion,
+    fecha_reunion: `${formData.fecha_reunion}T${formData.hora_reunion}:00`,
+    acta: formData.acta,
+    libro: formData.libro,
+  };
+
+  if (formData.estado) {
+    updates.estado = formData.estado;
+  }
+
+  const ahora = new Date().toISOString();
+
+  if (agendaActual && formData.estado) {
+    if (formData.estado === 'En progreso' && agendaActual.estado !== 'En progreso') {
+      updates.inicio = ahora;
+    }
+    if (formData.estado === 'Finalizada' && agendaActual.estado !== 'Finalizada') {
+      updates.fin = ahora;
+    }
+    if (formData.estado === 'En preparación' && agendaActual.estado !== 'En preparación') {
+        updates.inicio = null;
+        updates.fin = null;
+    }
+  }
+
   const { data, error } = await supabase
     .from('agenda_concejo')
-    .update({
-      titulo: formData.titulo,
-      descripcion: formData.descripcion,
-      fecha_reunion: formData.fecha_reunion,
-      estado: formData.estado,
-    })
+    .update(updates)
     .eq('id', id)
     .select()
     .single();
@@ -80,9 +112,27 @@ export const editarAgenda = async (id: string, formData: AgendaFormData): Promis
 };
 
 export const actualizarEstadoAgenda = async (id: string, estado: string): Promise<void> => {
+  const { data: agendaActual } = await supabase
+    .from('agenda_concejo')
+    .select('estado')
+    .eq('id', id)
+    .single();
+
+  const updates: any = { estado };
+  const ahora = new Date().toISOString();
+
+  if (agendaActual) {
+    if (estado === 'En progreso' && agendaActual.estado !== 'En progreso') {
+      updates.inicio = ahora;
+    }
+    if (estado === 'Finalizada' && agendaActual.estado !== 'Finalizada') {
+      updates.fin = ahora;
+    }
+  }
+
   const { error } = await supabase
     .from('agenda_concejo')
-    .update({ estado })
+    .update(updates)
     .eq('id', id);
 
   if (error) {
@@ -265,9 +315,7 @@ export const actualizarSeguimiento = async (tareaId: string, seguimiento: string
   }
 };
 
-
 export const fetchAsistenciaGlobalAgenda = async (agendaId: string) => {
-  // 1. Obtener los registros de asistencia
   const { data: registros, error: errorRegistros } = await supabase
     .from('registros_agenda')
     .select('*')
@@ -284,7 +332,6 @@ export const fetchAsistenciaGlobalAgenda = async (agendaId: string) => {
 
   const userIds = Array.from(new Set(registros.map((r) => r.user_id)));
 
-
   const { data: datosUsuarios, error: errorUsuarios } = await supabase
     .from('info_usuario')
     .select(`
@@ -298,20 +345,14 @@ export const fetchAsistenciaGlobalAgenda = async (agendaId: string) => {
 
   if (errorUsuarios) {
     console.error('Error al obtener datos de usuarios:', errorUsuarios);
-    // Retornamos los registros aunque no tengamos los nombres, para que no falle todo
     return registros.map(r => ({
         ...r, 
         usuarios: { id: r.user_id, nombre: 'Error carga', puesto: '-' }
     }));
   }
 
-  // 4. Combinar los registros con la información del usuario
   const registrosConUsuario = registros.map((registro) => {
-    // Buscamos la info de este usuario especifico
     const infoUsuario = datosUsuarios?.find((u) => u.user_id === registro.user_id);
-    
-    // Extraemos el nombre de la dependencia (puesto) de forma segura
-    // 'dependencias' puede venir como objeto o array dependiendo de tu configuración 1:1 o 1:N
     const dependenciaData = infoUsuario?.dependencias as any;
     const nombrePuesto = dependenciaData?.nombre || 'Sin dependencia';
 
@@ -327,6 +368,7 @@ export const fetchAsistenciaGlobalAgenda = async (agendaId: string) => {
 
   return registrosConUsuario;
 };
+
 export const obtenerRegistrosAgendaUsuario = async (userId: string, agendaId: string): Promise<any[]> => {
   const { data, error } = await supabase
     .from('registros_agenda')
