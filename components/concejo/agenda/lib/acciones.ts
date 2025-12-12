@@ -11,7 +11,7 @@ const supabase = createBrowserClient(
 
 const getCurrentTimeOnly = () => {
   const now = new Date();
-  return now.toLocaleTimeString('en-GB', { hour12: false }); // Retorna "14:30:00"
+  return now.toLocaleTimeString('en-GB', { hour12: false });
 };
 
 export const cargarAgendas = async (): Promise<AgendaConcejo[]> => {
@@ -69,7 +69,6 @@ export const editarAgenda = async (id: string, formData: AgendaFormData): Promis
     .eq('id', id)
     .single();
 
-  // CORRECCIÓN: No concatenamos nada, usamos el valor directo
   const updates: any = {
     titulo: formData.titulo,
     descripcion: formData.descripcion,
@@ -80,7 +79,6 @@ export const editarAgenda = async (id: string, formData: AgendaFormData): Promis
     updates.estado = formData.estado;
   }
 
-  // CORRECCIÓN: Para inicio y fin usamos solo la HORA
   const horaActual = getCurrentTimeOnly();
 
   if (agendaActual && formData.estado) {
@@ -120,8 +118,6 @@ export const actualizarEstadoAgenda = async (id: string, estado: string): Promis
     .single();
 
   const updates: any = { estado };
-  
-  // CORRECCIÓN: Obtenemos solo la HORA para los campos 'inicio' y 'fin'
   const horaActual = getCurrentTimeOnly();
 
   if (agendaActual) {
@@ -527,4 +523,25 @@ export const obtenerDatosReporte = async (agendas: AgendaConcejo[]): Promise<Rep
   });
 
   return Array.from(reporteMap.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+};
+
+export const obtenerNombreDirectorDAFIM = async (): Promise<string> => {
+  const { data, error } = await supabase
+    .from('info_usuario')
+    .select(`
+      nombre,
+      dependencias!inner (
+        nombre
+      )
+    `)
+    // Usamos ILIKE y comodines para coincidir aunque haya errores de escritura ("Adminsitración")
+    .ilike('dependencias.nombre', 'Directora de la Dirección de Admin%Financiera Integrada Municipal')
+    .eq('activo', true)
+    .maybeSingle();
+
+  if (error || !data) {
+    return '';
+  }
+
+  return data.nombre;
 };

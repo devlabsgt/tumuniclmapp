@@ -5,8 +5,8 @@
   "scope": "/",
   "start_url": "/",
   "name": "Municipalidad de Concepción Las Minas",
-  "short_name": "Gestión Municipal",
-  "description": "Aplicación web de la Municipalidad de Concepción Las Minas",
+  "short_name": "SIGEM -CLM-",
+  "description": "SISTEMA INTEGRAL DE GESTIÓN MUNICIPAL DE CONCEPCIÓN LAS MINAS",
   "icons": [
     {
       "src": "/icon-192x192.png",

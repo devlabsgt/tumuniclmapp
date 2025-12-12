@@ -5,8 +5,9 @@ import useUserData from '@/hooks/sesion/useUserData';
 import { cargarAgendas, eliminarAgenda } from './lib/acciones';
 import { type AgendaConcejo } from './lib/esquemas';
 import AgendaForm from './forms/Sesion';
-import ReporteRemuneraciones from './reportes/Remuneraciones';
-import { CalendarPlus, Pencil, ArrowRight, Trash2, CalendarClock, CalendarDays, CalendarCheck, FileSpreadsheet } from 'lucide-react';
+import ResumenAsistencia from './modals/ResumenAsistencia';
+import InformeDietas from './modals/InformeDietas';
+import { CalendarPlus, Pencil, ArrowRight, Trash2, CalendarClock, CalendarDays, CalendarCheck, FileText, Table } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
@@ -19,13 +20,9 @@ import { cn } from '@/lib/utils';
 
 const calcularDiasRestantes = (fechaReunion: string): string => {
   const fecha = new Date(fechaReunion);
-  if (isToday(fecha)) {
-    return 'Hoy';
-  }
+  if (isToday(fecha)) return 'Hoy';
   const dias = differenceInDays(fecha, new Date());
-  if (dias < 0) {
-    return 'Vencido';
-  }
+  if (dias < 0) return 'Vencido';
   return `${dias + 1} días`;
 };
 
@@ -57,12 +54,12 @@ export default function Ver() {
   const [cargandoAgendas, setCargandoAgendas] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isReporteOpen, setIsReporteOpen] = useState(false);
+  const [isResumenOpen, setIsResumenOpen] = useState(false);
+  const [isInformeOpen, setIsInformeOpen] = useState(false);
   const [agendaAEditar, setAgendaAEditar] = useState<AgendaConcejo | null>(null);
   const [filtroAnio, setFiltroAnio] = useState<string>(getYear(new Date()).toString());
   const [filtroMes, setFiltroMes] = useState<string | null>(null);
   const [loadingAgendaId, setLoadingAgendaId] = useState<string | null>(null);
-  
   const [vista, setVista] = useState<VistaType>('hoy');
   const [haCargadoVistaInicial, setHaCargadoVistaInicial] = useState(false);
 
@@ -93,10 +90,8 @@ export default function Ver() {
       const agendaDate = new Date(agenda.fecha_reunion);
       const agendaYear = agendaDate.getFullYear().toString();
       const agendaMonth = agendaDate.getMonth().toString();
-
       const cumpleAnio = filtroAnio === '' || agendaYear === filtroAnio;
       const cumpleMes = filtroMes === null || agendaMonth === filtroMes;
-
       return cumpleAnio && cumpleMes;
     });
   }, [agendas, filtroAnio, filtroMes]);
@@ -105,49 +100,33 @@ export default function Ver() {
     let hoy = 0;
     let proximas = 0;
     let terminadas = 0;
-
     agendasFiltradasBase.forEach(a => {
       const fecha = new Date(a.fecha_reunion);
-      if (isToday(fecha)) {
-        hoy++;
-      } else if (isFuture(fecha) && !isToday(fecha)) {
-        proximas++;
-      } else if (isPast(fecha) && !isToday(fecha)) {
-        terminadas++;
-      }
+      if (isToday(fecha)) hoy++;
+      else if (isFuture(fecha)) proximas++;
+      else if (isPast(fecha)) terminadas++;
     });
-
     return { hoy, proximas, terminadas };
   }, [agendasFiltradasBase]);
 
   useEffect(() => {
     if (cargandoAgendas) return;
-
     const vistaActualEstaVacia = 
       (vista === 'hoy' && counts.hoy === 0) ||
       (vista === 'proximas' && counts.proximas === 0) ||
       (vista === 'terminadas' && counts.terminadas === 0);
 
     if (!haCargadoVistaInicial || vistaActualEstaVacia) {
-      if (counts.hoy > 0) {
-        setVista('hoy');
-      } else if (counts.proximas > 0) {
-        setVista('proximas');
-      } else if (counts.terminadas > 0) {
-        setVista('terminadas');
-      } else {
-        setVista('hoy');
-      }
-      
-      if (!haCargadoVistaInicial) {
-        setHaCargadoVistaInicial(true);
-      }
+      if (counts.hoy > 0) setVista('hoy');
+      else if (counts.proximas > 0) setVista('proximas');
+      else if (counts.terminadas > 0) setVista('terminadas');
+      else setVista('hoy');
+      if (!haCargadoVistaInicial) setHaCargadoVistaInicial(true);
     }
   }, [counts, vista, haCargadoVistaInicial, cargandoAgendas]);
 
   const agendasVisibles = useMemo(() => {
     let lista: AgendaConcejo[] = [];
-
     if (vista === 'hoy') {
       lista = agendasFiltradasBase.filter(a => isToday(new Date(a.fecha_reunion)));
     } else if (vista === 'proximas') {
@@ -157,19 +136,13 @@ export default function Ver() {
       lista = agendasFiltradasBase.filter(a => isPast(new Date(a.fecha_reunion)) && !isToday(new Date(a.fecha_reunion)));
       lista.sort((a, b) => new Date(b.fecha_reunion).getTime() - new Date(a.fecha_reunion).getTime());
     }
-
     return lista;
   }, [vista, agendasFiltradasBase]);
 
   useEffect(() => {
-    if (isModalOpen) {
-      document.body.classList.add('overflow-hidden');
-    } else {
-      document.body.classList.remove('overflow-hidden');
-    }
-    return () => {
-      document.body.classList.remove('overflow-hidden');
-    };
+    if (isModalOpen) document.body.classList.add('overflow-hidden');
+    else document.body.classList.remove('overflow-hidden');
+    return () => { document.body.classList.remove('overflow-hidden'); };
   }, [isModalOpen]);
 
   const handleOpenEditModal = (agenda: AgendaConcejo) => {
@@ -184,9 +157,7 @@ export default function Ver() {
 
   const handleGoToAgenda = (id: string) => {
     setLoadingAgendaId(id);
-    setTimeout(() => {
-      router.push(`/protected/concejo/agenda/${id}`);
-    }, 1000);
+    setTimeout(() => { router.push(`/protected/concejo/agenda/${id}`); }, 1000);
   };
 
   const handleDeleteAgenda = async (id: string) => {
@@ -200,39 +171,22 @@ export default function Ver() {
       confirmButtonText: 'Sí, eliminar',
       cancelButtonText: 'Cancelar'
     });
-
     if (result.isConfirmed) {
       const exito = await eliminarAgenda(id);
-      if (exito) {
-        fetchAgendas();
-      }
+      if (exito) fetchAgendas();
     }
   };
 
   const cardVariants = {
-    loading: {
-      scale: [1, 1.02, 1],
-      boxShadow: [
-        "0 10px 15px -3px rgba(107, 114, 128, 0.1)",
-        "0 20px 25px -5px rgba(107, 114, 128, 0.25)",
-        "0 10px 15px -3px rgba(107, 114, 128, 0.1)",
-      ],
-    },
-    idle: {
-      scale: 1,
-      boxShadow: "0 0px 0px 0px rgba(0,0,0,0)",
-    }
+    loading: { scale: [1, 1.02, 1], boxShadow: ["0 10px 15px -3px rgba(107, 114, 128, 0.1)", "0 20px 25px -5px rgba(107, 114, 128, 0.25)", "0 10px 15px -3px rgba(107, 114, 128, 0.1)"] },
+    idle: { scale: 1, boxShadow: "0 0px 0px 0px rgba(0,0,0,0)" }
   };
 
-  const hoverEffect = {
-    scale: 1.01,
-    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)"
-  };
+  const hoverEffect = { scale: 1.01, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)" };
 
   const renderAgendaCard = (agenda: AgendaConcejo) => {
     let borderColorClass = 'border-l-blue-500 dark:border-l-blue-500';
     let textColorClass = 'text-blue-600 dark:text-blue-400';
-
     if (agenda.estado === 'En progreso') {
       borderColorClass = 'border-l-green-500 dark:border-l-green-500';
       textColorClass = 'text-green-600 dark:text-green-400';
@@ -240,14 +194,10 @@ export default function Ver() {
       borderColorClass = 'border-l-gray-400 dark:border-l-gray-500';
       textColorClass = 'text-gray-500 dark:text-gray-400';
     }
-
     const buttonClasses = getButtonClasses(agenda.estado);
     const isLoadingThisAgenda = loadingAgendaId === agenda.id;
-    
     const tienePermisoEditar = permisos.includes('EDITAR') || permisos.includes('TODO');
-    
     const puedeEditar = tienePermisoEditar && (rol === 'SUPER' || agenda.estado !== 'Finalizada');
-    
     const puedeEliminar = tienePermisoEditar && (rol === 'SUPER' || agenda.estado === 'En preparación');
 
     return (
@@ -258,13 +208,7 @@ export default function Ver() {
         whileHover={!loadingAgendaId ? hoverEffect : {}}
         transition={isLoadingThisAgenda ? { duration: 1.5, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
         onClick={loadingAgendaId ? undefined : () => handleGoToAgenda(agenda.id)}
-        className={`
-          group relative bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 shadow-sm 
-          border-l-4 ${borderColorClass} 
-          flex flex-col md:flex-row md:items-start md:justify-between gap-4 
-          cursor-pointer transition-colors
-          ${loadingAgendaId && !isLoadingThisAgenda ? 'opacity-25 pointer-events-none' : ''}
-        `}
+        className={`group relative bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 shadow-sm border-l-4 ${borderColorClass} flex flex-col md:flex-row md:items-start md:justify-between gap-4 cursor-pointer transition-colors ${loadingAgendaId && !isLoadingThisAgenda ? 'opacity-25 pointer-events-none' : ''}`}
       >
         <div className="flex-1 p-4 pb-16 md:pb-4">
           <div className="flex items-baseline gap-x-3 flex-wrap">
@@ -275,60 +219,28 @@ export default function Ver() {
           </div>
           <p className="text-sm md:text-xl mt-2 text-gray-600 dark:text-gray-300 font-normal">{agenda.descripcion}</p>
           <p className="text-sm md:text-xl mt-2">
-            <span className={`font-bold ${textColorClass}`}>{agenda.estado}</span>,
-            {' '}
+            <span className={`font-bold ${textColorClass}`}>{agenda.estado}</span>,{' '}
             <span className="font-semibold text-gray-700 dark:text-gray-300">
               {calcularDiasRestantes(agenda.fecha_reunion)}
               {calcularDiasRestantes(agenda.fecha_reunion).includes('días') && ' restantes'}
             </span>
           </p>
         </div>
-
         <div className="absolute bottom-4 right-4 flex flex-row gap-2 items-center">
           {puedeEditar && (
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenEditModal(agenda);
-              }}
-              variant="ghost"
-              className={`w-auto px-3 ${buttonClasses.ghost} transition-colors flex items-center justify-center gap-1 z-10`}
-            >
+            <Button onClick={(e) => { e.stopPropagation(); handleOpenEditModal(agenda); }} variant="ghost" className={`w-auto px-3 ${buttonClasses.ghost} transition-colors flex items-center justify-center gap-1 z-10`}>
               <Pencil className="h-4 w-4" /> Editar
             </Button>
           )}
-
           {puedeEliminar && (
-            <Button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteAgenda(agenda.id);
-              }}
-              variant="ghost"
-              className="w-auto px-3 text-red-600 hover:bg-red-200 dark:text-red-400 dark:hover:bg-red-900/30 transition-colors flex items-center justify-center gap-1 z-10"
-            >
+            <Button onClick={(e) => { e.stopPropagation(); handleDeleteAgenda(agenda.id); }} variant="ghost" className="w-auto px-3 text-red-600 hover:bg-red-200 dark:text-red-400 dark:hover:bg-red-900/30 transition-colors flex items-center justify-center gap-1 z-10">
               <Trash2 className="h-4 w-4" /> Eliminar
             </Button>
           )}
-
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!loadingAgendaId) handleGoToAgenda(agenda.id);
-            }}
-            variant="default"
-            className={`
-              ${buttonClasses.default} 
-              h-10 p-0 flex items-center justify-center rounded-full
-              w-10 group-hover:w-24 
-              transition-all duration-300 ease-in-out overflow-hidden cursor-pointer
-            `}
-          >
+          <Button onClick={(e) => { e.stopPropagation(); if (!loadingAgendaId) handleGoToAgenda(agenda.id); }} variant="default" className={`${buttonClasses.default} h-10 p-0 flex items-center justify-center rounded-full w-10 group-hover:w-24 transition-all duration-300 ease-in-out overflow-hidden cursor-pointer`}>
             <span className="flex items-center px-2">
               <ArrowRight className="h-4 w-4 flex-shrink-0 transition-all duration-300 group-hover:text-white" />
-              <span className="ml-3 text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all delay-150 duration-200">
-                Entrar
-              </span>
+              <span className="ml-3 text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all delay-150 duration-200">Entrar</span>
             </span>
           </Button>
         </div>
@@ -336,130 +248,68 @@ export default function Ver() {
     );
   };
 
-  if (cargandoUsuario || cargandoAgendas) {
-    return <CargandoAnimacion texto="Cargando Agenda..." />;
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-10 text-red-500 dark:text-red-400">
-        <p>{error}</p>
-      </div>
-    );
-  }
+  if (cargandoUsuario || cargandoAgendas) return <CargandoAnimacion texto="Cargando Agenda..." />;
+  if (error) return <div className="text-center py-10 text-red-500 dark:text-red-400"><p>{error}</p></div>;
 
   return (
     <div className="container px-2 md:mx-auto">
-      <header className="flex flex-col xl:flex-row items-center justify-between gap-4 mt-2 md:mb-6 w-full">
-        <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto justify-between xl:justify-start shrink-0">
+      <header className="w-full flex flex-col xl:flex-row items-center justify-between gap-4 mt-2 md:mb-6">
+        
+        <div className="flex flex-1 items-center gap-3 w-full xl:w-auto overflow-x-auto no-scrollbar">
           <BotonVolver ruta="/protected/" />
           
-          <div className="flex gap-2 w-full sm:w-auto">
+          <div className="flex items-center gap-2">
             <select
               value={filtroAnio}
               onChange={(e) => setFiltroAnio(e.target.value)}
-              className="h-10 w-full sm:w-auto rounded-md border border-input bg-background dark:bg-neutral-900 dark:border-neutral-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             >
               {anios.map(anio => <option key={anio} value={anio}>{anio}</option>)}
             </select>
             <select
               value={filtroMes !== null ? filtroMes : ''}
               onChange={(e) => setFiltroMes(e.target.value === '' ? null : e.target.value)}
-              className="h-10 w-full sm:w-auto rounded-md border border-input bg-background dark:bg-neutral-900 dark:border-neutral-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="">Todos los meses</option>
               {meses.map(mes => <option key={mes.numero} value={mes.numero}>{mes.nombre.charAt(0).toUpperCase() + mes.nombre.slice(1)}</option>)}
             </select>
           </div>
-        </div>
 
-        <div className="flex items-center justify-center flex-1 w-full order-last xl:order-none overflow-x-auto pb-2 xl:pb-0">
-          <div className="flex space-x-6 px-4">
+          <div className="h-8 w-px bg-gray-300 dark:bg-gray-700 mx-1 hidden xl:block"></div>
+
+          <div className="flex items-center space-x-1 sm:space-x-4">
             {(counts.hoy > 0 || vista === 'hoy') && (
-                <button
-                    onClick={() => setVista('hoy')}
-                    className={cn(
-                        "relative flex items-center gap-2 pb-1 text-sm font-medium transition-colors whitespace-nowrap",
-                        vista === 'hoy' 
-                            ? "text-blue-600 dark:text-blue-400" 
-                            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                    )}
-                >
-                    <CalendarClock className="h-4 w-4" />
-                    <span>Para hoy ({counts.hoy})</span>
-                    {vista === 'hoy' && (
-                        <motion.div
-                            layoutId="activeTab"
-                            className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600 dark:bg-blue-400"
-                        />
-                    )}
+                <button onClick={() => setVista('hoy')} className={cn("relative flex items-center gap-1.5 px-2 py-1 text-sm font-medium transition-colors whitespace-nowrap", vista === 'hoy' ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")}>
+                    <CalendarClock className="h-4 w-4" /> <span>Hoy ({counts.hoy})</span>
+                    {vista === 'hoy' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600 dark:bg-blue-400" />}
                 </button>
             )}
-
             {(counts.proximas > 0 || vista === 'proximas') && (
-                <button
-                    onClick={() => setVista('proximas')}
-                    className={cn(
-                        "relative flex items-center gap-2 pb-1 text-sm font-medium transition-colors whitespace-nowrap",
-                        vista === 'proximas' 
-                            ? "text-indigo-600 dark:text-indigo-400" 
-                            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                    )}
-                >
-                    <CalendarDays className="h-4 w-4" />
-                    <span>Próximas ({counts.proximas})</span>
-                    {vista === 'proximas' && (
-                        <motion.div
-                            layoutId="activeTab"
-                            className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-600 dark:bg-indigo-400"
-                        />
-                    )}
+                <button onClick={() => setVista('proximas')} className={cn("relative flex items-center gap-1.5 px-2 py-1 text-sm font-medium transition-colors whitespace-nowrap", vista === 'proximas' ? "text-indigo-600 dark:text-indigo-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")}>
+                    <CalendarDays className="h-4 w-4" /> <span>Próximas ({counts.proximas})</span>
+                    {vista === 'proximas' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-600 dark:bg-indigo-400" />}
                 </button>
             )}
-
             {(counts.terminadas > 0 || vista === 'terminadas') && (
-                <button
-                    onClick={() => setVista('terminadas')}
-                    className={cn(
-                        "relative flex items-center gap-2 pb-1 text-sm font-medium transition-colors whitespace-nowrap",
-                        vista === 'terminadas' 
-                            ? "text-red-600 dark:text-red-400" 
-                            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                    )}
-                >
-                    <CalendarCheck className="h-4 w-4" />
-                    <span>Terminadas ({counts.terminadas})</span>
-                    {vista === 'terminadas' && (
-                        <motion.div
-                            layoutId="activeTab"
-                            className="absolute bottom-0 left-0 right-0 h-[2px] bg-red-600 dark:bg-red-400"
-                        />
-                    )}
+                <button onClick={() => setVista('terminadas')} className={cn("relative flex items-center gap-1.5 px-2 py-1 text-sm font-medium transition-colors whitespace-nowrap", vista === 'terminadas' ? "text-red-600 dark:text-red-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")}>
+                    <CalendarCheck className="h-4 w-4" /> <span>Terminadas ({counts.terminadas})</span>
+                    {vista === 'terminadas' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-[2px] bg-red-600 dark:bg-red-400" />}
                 </button>
             )}
           </div>
         </div>
 
-        <div className="flex justify-end w-full xl:w-auto shrink-0 gap-2">
-          <Button
-            onClick={() => setIsReporteOpen(true)}
-            variant="outline"
-            className="w-full sm:w-auto px-4 py-2 border-blue-200 hover:bg-blue-50 text-blue-700 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30 flex items-center space-x-2"
-          >
-            <FileSpreadsheet size={18} />
-            <span>Ver Reportes</span>
+        <div className="flex items-center gap-2 w-full xl:w-auto shrink-0 justify-end">
+          <Button onClick={() => setIsResumenOpen(true)} variant="outline" size="sm" className="h-10 px-3 border-blue-200 text-blue-700 hover:bg-blue-50 gap-2">
+            <Table size={16} /> <span className="hidden sm:inline">Resumen</span>
           </Button>
-
+          <Button onClick={() => setIsInformeOpen(true)} variant="outline" size="sm" className="h-10 px-3 border-green-200 text-green-700 hover:bg-green-50 gap-2">
+            <FileText size={16} /> <span className="hidden sm:inline">Informe Pago</span>
+          </Button>
           {(permisos.includes('EDITAR') || permisos.includes('TODO')) && (
-            <Button
-              onClick={() => {
-                setAgendaAEditar(null);
-                setIsModalOpen(true);
-              }}
-              className="w-full sm:w-auto px-6 py-2 bg-green-500 text-white rounded-lg shadow-sm hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-500 transition-colors flex items-center space-x-2"
-            >
-              <CalendarPlus size={20} />
-              <span>Nueva Sesión</span>
+            <Button onClick={() => { setAgendaAEditar(null); setIsModalOpen(true); }} className="h-10 px-4 bg-green-600 text-white hover:bg-green-700 gap-2 shadow-sm">
+              <CalendarPlus size={18} /> <span>Nueva Sesión</span>
             </Button>
           )}
         </div>
@@ -488,22 +338,12 @@ export default function Ver() {
 
       <AnimatePresence>
         {isModalOpen && (
-          <AgendaForm
-            isOpen={isModalOpen}
-            onClose={handleCloseModal}
-            onSave={() => {
-              fetchAgendas();
-            }}
-            agendaAEditar={agendaAEditar}
-          />
+          <AgendaForm isOpen={isModalOpen} onClose={handleCloseModal} onSave={() => { fetchAgendas(); }} agendaAEditar={agendaAEditar} />
         )}
       </AnimatePresence>
 
-      <ReporteRemuneraciones
-        isOpen={isReporteOpen}
-        onClose={() => setIsReporteOpen(false)}
-        agendas={agendas}
-      />
+      <ResumenAsistencia isOpen={isResumenOpen} onClose={() => setIsResumenOpen(false)} agendas={agendas} />
+      <InformeDietas isOpen={isInformeOpen} onClose={() => setIsInformeOpen(false)} agendas={agendas} />
     </div>
   );
 }
