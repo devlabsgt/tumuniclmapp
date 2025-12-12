@@ -4,8 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { fetchAsistenciaGlobalAgenda, fetchAgendaConcejoPorId } from '@/components/concejo/agenda/lib/acciones';
 import { format, differenceInMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { User, MapPin, Clock, CalendarClock } from 'lucide-react'; // Eliminé RefreshCw
-// import { Button } from '@/components/ui/button'; // Ya no necesitamos el botón si borramos todos los botones de acción manual
+import { User, MapPin, Clock, CalendarClock } from 'lucide-react'; 
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
 import { AnimatePresence } from 'framer-motion';
 import Mapa from '@/components/ui/modals/Mapa';
@@ -47,7 +46,7 @@ interface AgendaConcejoData {
   fecha_reunion: string;
 }
 
-// --- FUNCIÓN HELPER ---
+// --- FUNCIONES HELPER ---
 const parsearHora = (horaStr: string | null, fechaBaseStr: string) => {
   if (!horaStr) return null;
   if (horaStr.includes('T')) return new Date(horaStr);
@@ -58,6 +57,39 @@ const parsearHora = (horaStr: string | null, fechaBaseStr: string) => {
     console.error("Error parseando hora:", e);
     return null;
   }
+};
+
+// Función de peso para ordenar jerárquicamente
+const obtenerPesoCargo = (cargo: string): number => {
+  const c = (cargo || '').toUpperCase().trim();
+  
+  if (c.includes('ALCALDE')) return 1;
+
+  if (/SINDICO\s+(I|1|PRIMERO)\b/.test(c)) return 2;
+  if (/SINDICO\s+(II|2|SEGUNDO)\b/.test(c)) return 3;
+  if (/SINDICO\s+(III|3|TERCERO)\b/.test(c)) return 4;
+  if (c.includes('SINDICO SUPLENTE')) return 5;
+
+  if (/CONCEJAL\s+(I|1|PRIMERO)\b/.test(c)) return 10;
+  if (/CONCEJAL\s+(II|2|SEGUNDO)\b/.test(c)) return 11;
+  if (/CONCEJAL\s+(III|3|TERCERO)\b/.test(c)) return 12;
+  if (/CONCEJAL\s+(IV|4|CUARTO)\b/.test(c)) return 13;
+  if (/CONCEJAL\s+(V|5|QUINTO)\b/.test(c)) return 14;
+  if (/CONCEJAL\s+(VI|6|SEXTO)\b/.test(c)) return 15;
+  if (/CONCEJAL\s+(VII|7|SEPTIMO)\b/.test(c)) return 16;
+  if (/CONCEJAL\s+(VIII|8|OCTAVO)\b/.test(c)) return 17;
+  if (/CONCEJAL\s+(IX|9|NOVENO)\b/.test(c)) return 18;
+  if (/CONCEJAL\s+(X|10|DECIMO)\b/.test(c)) return 19;
+
+  if (/PRIMER\s+CONCEJAL\s+SUPLENTE/.test(c) || /CONCEJAL\s+SUPLENTE\s+(I|1|PRIMERO)/.test(c)) return 30;
+  if (/SEGUNDO\s+CONCEJAL\s+SUPLENTE/.test(c) || /CONCEJAL\s+SUPLENTE\s+(II|2|SEGUNDO)/.test(c)) return 31;
+  if (/TERCER\s+CONCEJAL\s+SUPLENTE/.test(c) || /CONCEJAL\s+SUPLENTE\s+(III|3|TERCERO)/.test(c)) return 32;
+  
+  if (c.includes('CONCEJAL SUPLENTE')) return 39;
+
+  if (c.includes('SECRETARIO')) return 99;
+  
+  return 100;
 };
 
 export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }) {
@@ -213,7 +245,8 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
 
     const lista = Array.from(mapa.values());
 
-    return lista.map(u => {
+    // Procesar estados y duración
+    lista.forEach(u => {
       if (u.entrada && u.salida) {
         const diff = differenceInMinutes(new Date(u.salida), new Date(u.entrada));
         const horas = Math.floor(diff / 60);
@@ -223,8 +256,15 @@ export default function ListaAsistenciaGlobal({ agendaId }: { agendaId: string }
       } else if (u.entrada && !u.salida) {
         u.estado = 'Presente';
       }
-      return u;
     });
+
+    // Ordenar por jerarquía de cargo
+    return lista.sort((a, b) => {
+      const pesoA = obtenerPesoCargo(a.puesto);
+      const pesoB = obtenerPesoCargo(b.puesto);
+      return pesoA - pesoB;
+    });
+
   }, [registros]);
 
   const handleRowClick = (usuario: UsuarioAsistencia) => {

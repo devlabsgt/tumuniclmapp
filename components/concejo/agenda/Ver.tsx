@@ -5,7 +5,8 @@ import useUserData from '@/hooks/sesion/useUserData';
 import { cargarAgendas, eliminarAgenda } from './lib/acciones';
 import { type AgendaConcejo } from './lib/esquemas';
 import AgendaForm from './forms/Sesion';
-import { CalendarPlus, Pencil, ArrowRight, Trash2, CalendarClock, CalendarDays, CalendarCheck } from 'lucide-react';
+import ReporteRemuneraciones from './reportes/Remuneraciones';
+import { CalendarPlus, Pencil, ArrowRight, Trash2, CalendarClock, CalendarDays, CalendarCheck, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
@@ -56,6 +57,7 @@ export default function Ver() {
   const [cargandoAgendas, setCargandoAgendas] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isReporteOpen, setIsReporteOpen] = useState(false);
   const [agendaAEditar, setAgendaAEditar] = useState<AgendaConcejo | null>(null);
   const [filtroAnio, setFiltroAnio] = useState<string>(getYear(new Date()).toString());
   const [filtroMes, setFiltroMes] = useState<string | null>(null);
@@ -438,7 +440,16 @@ export default function Ver() {
           </div>
         </div>
 
-        <div className="flex justify-end w-full xl:w-auto shrink-0">
+        <div className="flex justify-end w-full xl:w-auto shrink-0 gap-2">
+          <Button
+            onClick={() => setIsReporteOpen(true)}
+            variant="outline"
+            className="w-full sm:w-auto px-4 py-2 border-blue-200 hover:bg-blue-50 text-blue-700 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30 flex items-center space-x-2"
+          >
+            <FileSpreadsheet size={18} />
+            <span>Ver Reportes</span>
+          </Button>
+
           {(permisos.includes('EDITAR') || permisos.includes('TODO')) && (
             <Button
               onClick={() => {
@@ -487,6 +498,12 @@ export default function Ver() {
           />
         )}
       </AnimatePresence>
+
+      <ReporteRemuneraciones
+        isOpen={isReporteOpen}
+        onClose={() => setIsReporteOpen(false)}
+        agendas={agendas}
+      />
     </div>
   );
 }

@@ -1,4 +1,3 @@
-// protected/agenda/page.tsx
 import { Suspense } from 'react';
 import VerAgenda from '@/components/concejo/agenda/Ver';
 

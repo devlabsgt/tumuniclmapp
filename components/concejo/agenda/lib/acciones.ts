@@ -9,7 +9,6 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// Función auxiliar para obtener solo la hora actual en formato HH:mm:ss
 const getCurrentTimeOnly = () => {
   const now = new Date();
   return now.toLocaleTimeString('en-GB', { hour12: false }); // Retorna "14:30:00"
@@ -43,7 +42,6 @@ export const fetchAgendaConcejoPorId = async (id: string): Promise<AgendaConcejo
 };
 
 export const crearAgenda = async (formData: AgendaFormData): Promise<AgendaConcejo | null> => {
-  // CORRECCIÓN: Usamos directamente fecha_reunion porque ya viene completa desde el Frontend
   const { data, error } = await supabase
     .from('agenda_concejo')
     .insert({
@@ -440,4 +438,93 @@ export const obtenerPuestoUsuario = async (userId: string): Promise<string> => {
 
   const dependencia = data?.dependencias as any;
   return dependencia?.nombre || '';
+};
+
+export interface ReporteFila {
+  usuario_id: string;
+  nombre: string;
+  cargo: string;
+  asistencias: Record<string, {
+    entrada: string | null;
+    salida: string | null;
+    devengado: number;
+  }>;
+  total_devengado: number;
+}
+
+export const obtenerDatosReporte = async (agendas: AgendaConcejo[]): Promise<ReporteFila[]> => {
+  const agendaIds = agendas.map((a) => a.id);
+
+  if (agendaIds.length === 0) return [];
+
+  const { data: registros, error: errorRegistros } = await supabase
+    .from('registros_agenda')
+    .select('user_id, agenda_id, tipo_registro, created_at')
+    .in('agenda_id', agendaIds)
+    .order('created_at', { ascending: true });
+
+  if (errorRegistros) {
+    console.error(errorRegistros.message);
+    return [];
+  }
+
+  const userIds = Array.from(new Set(registros.map((r) => r.user_id)));
+
+  const { data: infoUsuarios, error: errorInfo } = await supabase
+    .from('info_usuario')
+    .select(`
+      user_id,
+      nombre,
+      dependencias (
+        nombre
+      )
+    `)
+    .in('user_id', userIds);
+
+  if (errorInfo) {
+    console.error(errorInfo.message);
+    return [];
+  }
+
+  const reporteMap = new Map<string, ReporteFila>();
+
+  infoUsuarios.forEach((info: any) => {
+    const dependencia = info.dependencias;
+    const cargo = dependencia?.nombre || 'Sin Cargo';
+    
+    reporteMap.set(info.user_id, {
+      usuario_id: info.user_id,
+      nombre: info.nombre || 'Desconocido',
+      cargo: cargo,
+      asistencias: {},
+      total_devengado: 0,
+    });
+  });
+
+  registros.forEach((reg) => {
+    const fila = reporteMap.get(reg.user_id);
+    if (!fila) return;
+
+    if (!fila.asistencias[reg.agenda_id]) {
+      fila.asistencias[reg.agenda_id] = { entrada: null, salida: null, devengado: 0 };
+    }
+
+    if (reg.tipo_registro === 'Entrada') {
+      fila.asistencias[reg.agenda_id].entrada = reg.created_at;
+    } else if (reg.tipo_registro === 'Salida') {
+      fila.asistencias[reg.agenda_id].salida = reg.created_at;
+    }
+  });
+
+  reporteMap.forEach((fila) => {
+    Object.keys(fila.asistencias).forEach((agendaId) => {
+      const datos = fila.asistencias[agendaId];
+      if (datos.entrada && datos.salida) {
+        datos.devengado = 2000;
+        fila.total_devengado += 2000;
+      }
+    });
+  });
+
+  return Array.from(reporteMap.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
 };
