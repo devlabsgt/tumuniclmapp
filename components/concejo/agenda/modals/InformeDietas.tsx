@@ -361,11 +361,17 @@ export default function InformeDietas({ isOpen, onClose, agendas }: Props) {
                 </tfoot>
               </table>
 
-              <div className="text-xs mb-16">
+              <div className="text-xs mb-28">
                   Se envía el presente informe para efecto de iniciar el trámite de pago de Dietas Municipales.
               </div>
 
-              <div className="text-xs mb-24">
+
+              <div className="text-center  mb-24">
+                  <div className="border-t border-black w-64 mx-auto pt-2 mb-1 font-bold text-xs uppercase">{nombreSecretario}</div>
+                  <div className="font-bold text-[10px] uppercase">Secretario Municipal</div>
+              </div>
+
+              <div className="text-xs">
                   <div className="border-t border-black w-64 pt-1 font-bold mb-1">Nombre y Firma</div>
                   <p>Recibí Conforme Documentos Adjuntos</p>
                   <div className="mt-6 flex items-end gap-2">
@@ -373,12 +379,6 @@ export default function InformeDietas({ isOpen, onClose, agendas }: Props) {
                       <div className="border-b border-black w-48"></div>
                   </div>
               </div>
-
-              <div className="text-center">
-                  <div className="border-t border-black w-64 mx-auto pt-2 mb-1 font-bold text-xs uppercase">{nombreSecretario}</div>
-                  <div className="font-bold text-[10px] uppercase">Secretario Municipal</div>
-              </div>
-
             </div>
           )}
         </div>

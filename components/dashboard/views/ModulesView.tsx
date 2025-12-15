@@ -53,8 +53,8 @@ export default function ModulesView({ rol, modulos = [], esjefe }: ModulesViewPr
            <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4 text-center md:text-left">Gestión Administrativa</h2>
            
            {esjefe && (
-              <ModuleAccordion titulo="Control Jefe de Área" descripcion="Gestión y supervisión de equipos." iconKey="tobsqthh">
-                {modulosGestion.filter(m => m.subgrupo === 'Control Jefe de Área').map(modulo => (
+              <ModuleAccordion titulo="Gestión Jefe de Área" descripcion="Gestión y supervisión de equipos." iconKey="tobsqthh">
+                {modulosGestion.filter(m => m.subgrupo === 'Gestión Jefe de Área').map(modulo => (
                   <ModuleCard key={modulo.id} modulo={modulo} loadingModule={loadingModule} setLoadingModule={setLoadingModule} />
                 ))}
               </ModuleAccordion>

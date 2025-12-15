@@ -43,7 +43,7 @@ interface ComisionFormProps {
 
 export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisionAEditar }: ComisionFormProps) {
   const [fechasSeleccionadas, setFechasSeleccionadas] = useState<Date[]>([new Date()]);
-  const { rol, esjefe } = useUserData();
+  const { rol } = useUserData();
 
   const methods = useForm<ComisionFormData>({
     resolver: zodResolver(comisionSchema),
@@ -120,18 +120,15 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
     }
     const minute = parseInt(formData.minuto, 10);
 
-    const esAdminSuperior = rol === 'SUPER' || rol === 'RRHH' || rol === 'SECRETARIO';
+  
+    const esAprobador = rol === 'SUPER' || rol === 'RRHH';
     
-const destinatariosNotificacion = Array.from(new Set([formData.encargadoId, ...(formData.userIds || [])]));
+    const destinatariosNotificacion = Array.from(new Set([formData.encargadoId, ...(formData.userIds || [])]));
+    
     try {
       if (comisionAEditar) {
         const fecha = fechasSeleccionadas[0];
         const fechaHora = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), hour24, minute);
-
-        let aprobado = esAdminSuperior;
-        if (esjefe) {
-          aprobado = false;
-        }
 
         const datosComision = {
           titulo: formData.titulo,
@@ -139,7 +136,7 @@ const destinatariosNotificacion = Array.from(new Set([formData.encargadoId, ...(
           fecha_hora: fechaHora.toISOString(),
           encargadoId: formData.encargadoId,
           userIds: formData.userIds,
-          aprobado: aprobado,
+          aprobado: esAprobador, // True solo si es RRHH o SUPER
           id: comisionAEditar.id,
         };
 
@@ -160,29 +157,23 @@ const destinatariosNotificacion = Array.from(new Set([formData.encargadoId, ...(
           destinatariosNotificacion
         );
         
-        if (esjefe) {
-          const titulo = 'Comisión Editada con Éxito';
+        // Mensajes basados en si se aprobó automáticamente o no
+        if (esAprobador) {
           await Swal.fire({
             icon: 'success',
-            title: titulo,
-            text: 'Debe de ser aprobada por Recursos Humanos antes de estar disponible.'
-          });
-        } else if (esAdminSuperior) {
-          const titulo = 'Comisión Actualizada y Aprobada';
-          await Swal.fire({
-            icon: 'success',
-            title: titulo,
+            title: 'Comisión Actualizada y Aprobada',
             text: 'La comisión ha sido guardada y aprobada exitosamente.'
           });
         } else {
-          customToast('#3b82f6').fire({
+          await Swal.fire({
             icon: 'success',
-            title: 'Comisión actualizada!'
+            title: 'Cambios Guardados',
+            text: 'La comisión ha sido editada, pero requiere nueva aprobación de Recursos Humanos.'
           });
         }
         
       } else {
-        
+        // CREACIÓN
         const promesasDeCreacion = fechasSeleccionadas.map(fecha => {
           const fechaHora = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate(), hour24, minute);
 
@@ -192,7 +183,7 @@ const destinatariosNotificacion = Array.from(new Set([formData.encargadoId, ...(
             fecha_hora: fechaHora.toISOString(),
             encargadoId: formData.encargadoId,
             userIds: formData.userIds,
-            aprobado: esAdminSuperior,
+            aprobado: esAprobador, // True solo si es RRHH o SUPER
           };
 
           return fetch('/api/users/comision', {
@@ -219,22 +210,17 @@ const destinatariosNotificacion = Array.from(new Set([formData.encargadoId, ...(
         const numComisiones = fechasSeleccionadas.length;
         const plural = numComisiones > 1;
 
-        if (esjefe) {
-          await Swal.fire({
-            icon: 'success',
-            title: `¡${numComisiones} Comisi${plural ? 'ones Creadas' : 'ón Creada'}!`,
-            text: `Debe${plural ? 'n' : ''} ser aprobad${plural ? 'as' : 'a'} por Recursos Humanos.`
-          });
-        } else if (esAdminSuperior) {
+        if (esAprobador) {
           await Swal.fire({
             icon: 'success',
             title: `¡${numComisiones} Comisi${plural ? 'ones Guardadas' : 'ón Guardada'}!`,
-            text: `La${plural ? 's' : ''} comisi${plural ? 'ones' : 'ón'} ha${plural ? 'n' : ''} sido guardad${plural ? 'as' : 'a'} y aprobad${plural ? 'as' : 'a'} exitosamente.`
+            text: `La${plural ? 's' : ''} comisi${plural ? 'ones' : 'ón'} ha${plural ? 'n' : ''} sido guardad${plural ? 'as' : 'a'} y aprobad${plural ? 'as' : 'a'} automáticamente.`
           });
         } else {
-          customToast('#22c55e').fire({
+          await Swal.fire({
             icon: 'success',
-            title: `¡${numComisiones} Comisi${plural ? 'ones Creadas' : 'ón Creada'}!`
+            title: `¡${numComisiones} Comisi${plural ? 'ones Creadas' : 'ón Creada'}!`,
+            text: `Debe${plural ? 'n' : ''} ser aprobad${plural ? 'as' : 'a'} por Recursos Humanos para ser oficial${plural ? 'es' : ''}.`
           });
         }
       }

@@ -64,34 +64,35 @@ export const TODOS_LOS_MODULOS = [
     categoria: 'Gestión Administrativa',
     subgrupo: 'Recursos Humanos'
   },
+
+  {
+    id: 'ASISTENCIA',
+    permiso: 'ASISTENCIA',
+    titulo: 'Gestión de Asistencia',
+    descripcion: 'Supervise la asistencia de su equipo.',
+    ruta: '/protected/asistencias',
+    iconoKey: 'sgtmgpft',
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Gestión Jefe de Área'
+  },
   {
     id: 'COMISIONES_RRHH',
     permiso: 'COMISIONES',
     titulo: 'Gestión de Comisiones',
     descripcion: 'Cree, apruebe y gestione las comisiones.',
-    ruta: '/protected/comisiones',
+    ruta: '/protected/comisiones/RRHH',
     iconoKey: 'vqkaxtlm',
     categoria: 'Gestión Administrativa',
     subgrupo: 'Recursos Humanos'
-  },
-  {
-    id: 'ASISTENCIA',
-    permiso: 'ASISTENCIA',
-    titulo: 'Control de Asistencia',
-    descripcion: 'Supervise la asistencia de su equipo.',
-    ruta: '/protected/asistencias',
-    iconoKey: 'sgtmgpft',
-    categoria: 'Gestión Administrativa',
-    subgrupo: 'Control Jefe de Área'
   },
   {
     id: 'COMISIONES_JEFE',
     permiso: 'COMISIONES',
     titulo: 'Gestión de Comisiones',
     descripcion: 'Gestione las comisiones de su área.',
-    ruta: '/protected/comisiones',
+    ruta: '/protected/comisiones/JEFE',
     iconoKey: 'vqkaxtlm',
     categoria: 'Gestión Administrativa',
-    subgrupo: 'Control Jefe de Área'
+    subgrupo: 'Gestión Jefe de Área'
   },
 ];

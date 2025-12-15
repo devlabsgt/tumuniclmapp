@@ -9,7 +9,6 @@ import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import NotificationListener from "@/components/push/Listener";
 import { ThemeProvider } from "@/components/themes/theme-provider";
-// Asumiendo que guardaste el componente aquí, ajusta si es necesario
 import { ThemeSwitcher } from "@/components/themes/theme-switcher"; 
 
 export const metadata: Metadata = {
