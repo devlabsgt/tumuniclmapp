@@ -321,15 +321,11 @@ export default function Ver() {
 
       <header className="w-full flex flex-col gap-4 mt-2 md:mb-6">
         
-        {/* ZONA SUPERIOR: Controles (Línea 1 y 2 en móvil -> Línea 1 en escritorio) */}
         <div className="w-full flex flex-col gap-3 xl:flex-row xl:items-center">
             
-            {/* IZQUIERDA: Volver + Selectores */}
-            {/* En móvil ocupa todo el ancho, en escritorio solo lo necesario */}
             <div className="flex w-full xl:w-auto items-center gap-3">
                 <BotonVolver ruta="/protected/" />
                 
-                {/* Contenedor de selects */}
                 <div className="flex items-center gap-2 flex-1 justify-end xl:flex-none">
                     <select
                     value={filtroAnio}
@@ -349,8 +345,7 @@ export default function Ver() {
                 </div>
             </div>
 
-            {/* DERECHA: Botones de Acción */}
-            {/* xl:ml-auto es la clave: empuja este bloque al final a la fuerza en escritorio */}
+
             <div className="flex flex-wrap items-center justify-center gap-2 w-full xl:w-auto xl:ml-auto">
                 <Button onClick={() => setIsResumenOpen(true)} variant="ghost" size="sm" className="h-10 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 gap-2 border border-gray-100 dark:border-neutral-800 xl:border-none">
                     <Table size={16} /> <span className="text-xs sm:text-sm">Resumen de asistencia</span>
@@ -370,7 +365,6 @@ export default function Ver() {
             </div>
         </div>
 
-        {/* ZONA INFERIOR: Pestañas (Siempre abajo, Línea 3 en móvil -> Línea 2 en escritorio) */}
         <div className="w-full flex justify-center xl:justify-start border-t border-gray-100 dark:border-neutral-800 pt-2 xl:border-none xl:pt-0">
             <div className="flex items-center space-x-1 sm:space-x-4">
                 {(counts.hoy > 0 || vista === 'hoy') && (
