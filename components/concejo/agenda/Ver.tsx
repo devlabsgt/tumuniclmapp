@@ -7,7 +7,8 @@ import { type AgendaConcejo } from './lib/esquemas';
 import AgendaForm from './forms/Sesion';
 import ResumenAsistencia from './modals/ResumenAsistencia';
 import InformeDietas from './modals/InformeDietas';
-import { CalendarPlus, Pencil, ArrowRight, Trash2, CalendarClock, CalendarDays, CalendarCheck, FileText, Table } from 'lucide-react';
+import GestorActa from '@/components/concejo/agenda/gestorActa';
+import { CalendarPlus, Pencil, ArrowRight, Trash2, CalendarClock, CalendarDays, CalendarCheck, FileText, Table, FileUp, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
@@ -57,6 +58,7 @@ export default function Ver() {
   const [isResumenOpen, setIsResumenOpen] = useState(false);
   const [isInformeOpen, setIsInformeOpen] = useState(false);
   const [agendaAEditar, setAgendaAEditar] = useState<AgendaConcejo | null>(null);
+  const [agendaParaActa, setAgendaParaActa] = useState<AgendaConcejo | null>(null);
   const [filtroAnio, setFiltroAnio] = useState<string>(getYear(new Date()).toString());
   const [filtroMes, setFiltroMes] = useState<string | null>(null);
   const [loadingAgendaId, setLoadingAgendaId] = useState<string | null>(null);
@@ -184,9 +186,10 @@ export default function Ver() {
 
   const hoverEffect = { scale: 1.01, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)" };
 
-  const renderAgendaCard = (agenda: AgendaConcejo) => {
+const renderAgendaCard = (agenda: AgendaConcejo) => {
     let borderColorClass = 'border-l-blue-500 dark:border-l-blue-500';
     let textColorClass = 'text-blue-600 dark:text-blue-400';
+    
     if (agenda.estado === 'En progreso') {
       borderColorClass = 'border-l-green-500 dark:border-l-green-500';
       textColorClass = 'text-green-600 dark:text-green-400';
@@ -194,11 +197,32 @@ export default function Ver() {
       borderColorClass = 'border-l-gray-400 dark:border-l-gray-500';
       textColorClass = 'text-gray-500 dark:text-gray-400';
     }
+
     const buttonClasses = getButtonClasses(agenda.estado);
     const isLoadingThisAgenda = loadingAgendaId === agenda.id;
+
+    // --- LÓGICA DE PERMISOS BLINDADA ---
+    // 1. Definir quién es Admin (Super, Secretario, Sec. Técnico)
+    const esAdmin = ['SUPER', 'SECRETARIO', 'SEC-TECNICO'].includes(rol || '');
+    
+    // 2. Definir permisos generales de edición
     const tienePermisoEditar = permisos.includes('EDITAR') || permisos.includes('TODO');
+    
     const puedeEditar = tienePermisoEditar && (rol === 'SUPER' || agenda.estado !== 'Finalizada');
     const puedeEliminar = tienePermisoEditar && (rol === 'SUPER' || agenda.estado === 'En preparación');
+
+    // --- LÓGICA DEL BOTÓN DE ACTA (CORREGIDA) ---
+    // Verificamos que acta tenga contenido real (no null, no undefined, no string vacío)
+    const hayActa = Boolean(agenda.acta && agenda.acta.trim() !== '');
+    
+    // REGLA DE ORO:
+    // 1. Debe estar FINALIZADA.
+    // 2. Y ADEMÁS: (O ya hay acta para ver) O (Soy admin y puedo subirla).
+    // Si no hay acta y NO soy admin, esto dará false.
+    const mostrarBotonActa = agenda.estado === 'Finalizada' && (hayActa || esAdmin);
+
+    const textoActa = hayActa ? 'Ver Acta' : 'Subir Acta';
+    const IconoActa = hayActa ? FileText : FileUp;
 
     return (
       <motion.div
@@ -226,7 +250,27 @@ export default function Ver() {
             </span>
           </p>
         </div>
+        
         <div className="absolute bottom-4 right-4 flex flex-row gap-2 items-center">
+          
+          {/* BOTÓN DE ACTA (Condicional estricto) */}
+          {mostrarBotonActa && (
+            <Button 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                setAgendaParaActa(agenda); 
+              }} 
+              variant="ghost" 
+              className={`w-auto px-3 transition-colors flex items-center justify-center gap-1 z-10 ${
+                hayActa 
+                  ? 'text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30' // Estilo VER
+                  : 'text-purple-600 hover:bg-purple-100 dark:text-purple-400 dark:hover:bg-purple-900/30' // Estilo SUBIR
+              }`}
+            >
+              <IconoActa className="h-4 w-4" /> {textoActa}
+            </Button>
+          )}
+
           {puedeEditar && (
             <Button onClick={(e) => { e.stopPropagation(); handleOpenEditModal(agenda); }} variant="ghost" className={`w-auto px-3 ${buttonClasses.ghost} transition-colors flex items-center justify-center gap-1 z-10`}>
               <Pencil className="h-4 w-4" /> Editar
@@ -336,7 +380,57 @@ export default function Ver() {
         )}
       </div>
 
-      <AnimatePresence>
+      {agendaParaActa && (
+      
+        //    - Aumentamos el fondo a 'bg-black/90' para mayor inmersión
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-0 backdrop-blur-sm">
+          
+          {/* 2. En el div del modal (contenido):
+                 - 'w-full h-full': Ocupar todo el ancho y alto
+                 - 'max-w-none': Quitar límite de anchura
+                 - 'rounded-none': Quitar bordes redondeados
+          */}
+          <div className="relative w-full h-full max-w-none flex flex-col rounded-none bg-white dark:bg-neutral-900 shadow-xl overflow-hidden">
+            
+            {/* CABECERA */}
+            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shrink-0 z-10">
+              <div className="pr-8">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
+                  {agendaParaActa.titulo}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-1">
+                  {agendaParaActa.descripcion}
+                </p>
+              </div>
+              <button 
+                onClick={() => {
+                  setAgendaParaActa(null);
+                  fetchAgendas();
+                }}
+                className="text-gray-400 hover:text-white hover:bg-red-600 transition-colors bg-gray-100 dark:bg-gray-800 p-2 rounded-full shrink-0"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            {/* CUERPO */}
+            <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-neutral-950 relative">
+              <GestorActa 
+                agendaId={agendaParaActa.id}
+                currentActaPath={agendaParaActa.acta}
+                rol={rol}
+                estadoAgenda={agendaParaActa.estado}
+                onUpdate={(nuevoPath) => {
+                  setAgendaParaActa({ ...agendaParaActa, acta: nuevoPath });
+                  fetchAgendas(); 
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+       <AnimatePresence>
         {isModalOpen && (
           <AgendaForm isOpen={isModalOpen} onClose={handleCloseModal} onSave={() => { fetchAgendas(); }} agendaAEditar={agendaAEditar} />
         )}

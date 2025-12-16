@@ -21,7 +21,7 @@ interface ListPDFProps {
   referenceId: string
   referenceColumn: string
   refreshTrigger?: number
-  rol: string // <--- Nueva prop recibida
+  rol: string 
 }
 
 export default function ListPDF({
@@ -40,7 +40,6 @@ export default function ListPDF({
   const supabase = createClient()
   const router = useRouter()
 
-  // Definir quién puede eliminar
   const puedeEliminar = ['SUPER', 'SECRETARIO', 'SEC-TECNICO'].includes(rol)
 
   useEffect(() => {

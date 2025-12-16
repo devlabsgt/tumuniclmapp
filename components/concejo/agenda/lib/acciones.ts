@@ -47,7 +47,10 @@ export const crearAgenda = async (formData: AgendaFormData): Promise<AgendaConce
     .insert({
       titulo: formData.titulo,
       descripcion: formData.descripcion,
-      fecha_reunion: formData.fecha_reunion, 
+      fecha_reunion: formData.fecha_reunion,
+      hora_reunion: formData.hora_reunion,
+      acta: formData.acta,
+      libro: formData.libro,
       estado: 'En preparación',
     })
     .select()
@@ -73,6 +76,8 @@ export const editarAgenda = async (id: string, formData: AgendaFormData): Promis
     titulo: formData.titulo,
     descripcion: formData.descripcion,
     fecha_reunion: formData.fecha_reunion,
+    acta: formData.acta,
+    libro: formData.libro
   };
 
   if (formData.estado) {
@@ -143,6 +148,17 @@ export const actualizarEstadoAgenda = async (id: string, estado: string): Promis
 };
 
 export const eliminarAgenda = async (id: string): Promise<boolean> => {
+  // Primero obtenemos el path del acta si existe
+  const { data: agenda } = await supabase
+    .from('agenda_concejo')
+    .select('acta')
+    .eq('id', id)
+    .single();
+
+  if (agenda?.acta) {
+    await eliminarArchivoActa(agenda.acta);
+  }
+
   const { error } = await supabase
     .from('agenda_concejo')
     .delete()
@@ -156,6 +172,39 @@ export const eliminarAgenda = async (id: string): Promise<boolean> => {
   
   toast.success('Agenda eliminada con éxito.');
   return true;
+};
+
+export const subirArchivoActa = async (file: File, path: string): Promise<string | null> => {
+  const { data, error } = await supabase.storage
+    .from('actas')
+    .upload(path, file, {
+      upsert: true
+    });
+
+  if (error) {
+    console.error(error.message);
+    toast.error('Error al subir el archivo del acta.');
+    return null;
+  }
+  return data.path;
+};
+
+export const eliminarArchivoActa = async (path: string): Promise<void> => {
+  const { error } = await supabase.storage
+    .from('actas')
+    .remove([path]);
+
+  if (error) {
+    console.error(error.message);
+  }
+};
+
+export const obtenerUrlActa = (path: string): string => {
+  const { data } = supabase.storage
+    .from('actas')
+    .getPublicUrl(path);
+  
+  return data.publicUrl;
 };
 
 export const fetchCategorias = async (): Promise<CategoriaItem[]> => {

@@ -64,7 +64,6 @@ export const TODOS_LOS_MODULOS = [
     categoria: 'Gestión Administrativa',
     subgrupo: 'Recursos Humanos'
   },
-
   {
     id: 'ASISTENCIA',
     permiso: 'ASISTENCIA',

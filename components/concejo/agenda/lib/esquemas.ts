@@ -7,7 +7,7 @@ export interface AgendaConcejo {
   titulo: string;
   descripcion: string;
   estado: string;
-  acta?: string;
+  acta?: string | null;
   libro?: string;
   user_id?: string;
   inicio?: string | null;
@@ -19,7 +19,7 @@ export interface AgendaFormData {
   descripcion: string;
   fecha_reunion: string;
   hora_reunion: string;
-  acta: string;
+  acta?: string | null;
   libro: string;
   estado: string;
 }
@@ -43,10 +43,9 @@ export interface Tarea {
   categoria?: CategoriaItem;
 }
 
-
 export const sesionSchema = z.object({
   titulo: z.string().min(3, 'El título debe tener al menos 3 caracteres.'),
-  acta: z.string().min(1, 'El número de acta es requerido.'),
+  acta: z.string().optional().nullable(),
   libro: z.string().min(1, 'El número de libro es requerido.'),
   descripcion: z.string().optional(),
   fecha_reunion: z.string().min(1, 'La fecha es requerida.'),

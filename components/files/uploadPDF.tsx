@@ -43,7 +43,7 @@ export default function UploadPDF({
       }
 
       setFile(selectedFile)
-      setShowConfirm(false) // Resetear confirmación al cambiar archivo
+      setShowConfirm(false) 
     }
   }
 
@@ -111,7 +111,6 @@ export default function UploadPDF({
       ) : (
         <div className="flex flex-col gap-3 p-4 border rounded-lg bg-white shadow-sm w-full relative overflow-hidden">
           
-          {/* Vista Normal del Archivo Seleccionado */}
           <div className={`transition-opacity duration-200 ${showConfirm ? 'opacity-20 blur-sm pointer-events-none' : 'opacity-100'}`}>
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium truncate text-gray-700">
@@ -127,7 +126,7 @@ export default function UploadPDF({
             </div>
             
             <button
-              onClick={() => setShowConfirm(true)} // Activar modo confirmación
+              onClick={() => setShowConfirm(true)} 
               disabled={isUploading}
               className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 disabled:opacity-50 transition-colors"
             >
