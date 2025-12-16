@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, memo } from 'react';
 import useUserData from '@/hooks/sesion/useUserData';
 import { cargarAgendas, eliminarAgenda } from './lib/acciones';
 import { type AgendaConcejo } from './lib/esquemas';
@@ -8,7 +8,7 @@ import AgendaForm from './forms/Sesion';
 import ResumenAsistencia from './modals/ResumenAsistencia';
 import InformeDietas from './modals/InformeDietas';
 import GestorActa from '@/components/concejo/agenda/gestorActa';
-import { CalendarPlus, Pencil, ArrowRight, Trash2, CalendarClock, CalendarDays, CalendarCheck, FileText, Table, FileUp, X } from 'lucide-react';
+import { CalendarPlus, Pencil, ArrowRight, Trash2, CalendarClock, CalendarDays, CalendarCheck, FileText, Table, FileUp, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
@@ -27,24 +27,146 @@ const calcularDiasRestantes = (fechaReunion: string): string => {
   return `${dias + 1} días`;
 };
 
-const getButtonClasses = (estado: string) => {
-  if (estado === 'En preparación') {
-    return {
-      default: 'bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500 text-white',
-      ghost: 'text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30',
-    };
+const AgendaCard = memo(({ 
+  agenda, 
+  isSelected, 
+  isLoading, 
+  onSelect, 
+  onDelete, 
+  onEdit, 
+  onGoTo, 
+  rol, 
+  permisos, 
+  onSetActa 
+}: {
+  agenda: AgendaConcejo;
+  isSelected: boolean;
+  isLoading: boolean;
+  onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
+  onEdit: (agenda: AgendaConcejo) => void;
+  onGoTo: (id: string) => void;
+  rol: string | null;
+  permisos: string[];
+  onSetActa: (agenda: AgendaConcejo) => void;
+}) => {
+  let borderColorClass = 'border-l-blue-500 dark:border-l-blue-500';
+  let textColorClass = 'text-blue-600 dark:text-blue-400';
+  
+  if (agenda.estado === 'En progreso') {
+    borderColorClass = 'border-l-green-500 dark:border-l-green-500';
+    textColorClass = 'text-green-600 dark:text-green-400';
+  } else if (agenda.estado === 'Finalizada') {
+    borderColorClass = 'border-l-gray-400 dark:border-l-gray-500';
+    textColorClass = 'text-gray-500 dark:text-gray-400';
   }
-  if (estado === 'En progreso') {
-    return {
-      default: 'bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-500 text-white',
-      ghost: 'text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30',
-    };
-  }
-  return {
-    default: 'bg-gray-400 hover:bg-gray-500 dark:bg-gray-600 dark:hover:bg-gray-500 text-white',
-    ghost: 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800',
-  };
-};
+
+  const esAdmin = ['SUPER', 'SECRETARIO', 'SEC-TECNICO'].includes(rol || '');
+  const tienePermisoEditar = permisos.includes('EDITAR') || permisos.includes('TODO');
+  
+  const puedeEditar = tienePermisoEditar && (rol === 'SUPER' || agenda.estado !== 'Finalizada');
+  const puedeEliminar = tienePermisoEditar && (rol === 'SUPER' || agenda.estado === 'En preparación');
+
+  const hayActa = Boolean(agenda.acta && agenda.acta.trim() !== '');
+  const mostrarBotonActa = agenda.estado === 'Finalizada' && (hayActa || esAdmin);
+  const textoActa = hayActa ? 'Ver Acta' : 'Subir Acta';
+  const IconoActa = hayActa ? FileText : FileUp;
+
+  return (
+    <motion.div
+      layout
+      transition={{ layout: { duration: 0.2, type: "tween" } }}
+      onClick={() => onSelect(agenda.id)}
+      className={`group relative bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 shadow-sm border-l-4 ${borderColorClass} flex flex-col overflow-hidden ${isSelected ? 'ring-1 ring-blue-500 dark:ring-blue-400' : ''} cursor-pointer`}
+    >
+      <div className="flex-1 p-4">
+        <div className="flex items-baseline justify-between gap-x-3 flex-wrap">
+          <div className="flex items-baseline gap-2">
+              <p className="font-semibold text-gray-800 dark:text-gray-100 text-sm md:text-2xl">{agenda.titulo}</p>
+              <span className="text-gray-500 dark:text-gray-400 font-normal whitespace-nowrap text-sm md:text-2xl">
+              {format(new Date(agenda.fecha_reunion), "EEEE, d 'de' MMMM 'de' yyyy, h:mm a", { locale: es })}
+              </span>
+          </div>
+          <div className="text-gray-400">
+              {isSelected ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </div>
+        </div>
+        <p className="text-sm md:text-xl mt-2 text-gray-600 dark:text-gray-300 font-normal">{agenda.descripcion}</p>
+        <p className="text-sm md:text-xl mt-2">
+          <span className={`font-bold ${textColorClass}`}>{agenda.estado}</span>,{' '}
+          <span className="font-semibold text-gray-700 dark:text-gray-300">
+            {calcularDiasRestantes(agenda.fecha_reunion)}
+            {calcularDiasRestantes(agenda.fecha_reunion).includes('días') && ' restantes'}
+          </span>
+        </p>
+      </div>
+
+      <AnimatePresence initial={false}>
+        {isSelected && (
+          <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="overflow-hidden"
+          >
+              <div className="border-t border-gray-100 dark:border-neutral-800 bg-gray-50 dark:bg-black/20 px-4 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        {puedeEliminar && (
+                            <Button 
+                                onClick={(e) => { e.stopPropagation(); onDelete(agenda.id); }} 
+                                variant="ghost" 
+                                className="text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 px-3 h-9"
+                            >
+                                <Trash2 className="h-4 w-4 mr-2" /> Eliminar
+                            </Button>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        {puedeEditar && (
+                            <Button 
+                                onClick={(e) => { e.stopPropagation(); onEdit(agenda); }} 
+                                variant="ghost" 
+                                className="text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 px-3 h-9"
+                            >
+                                <Pencil className="h-4 w-4 mr-2" /> Editar
+                            </Button>
+                        )}
+
+                        {mostrarBotonActa && (
+                            <Button 
+                                onClick={(e) => { e.stopPropagation(); onSetActa(agenda); }} 
+                                variant="ghost" 
+                                className={`px-3 h-9 ${
+                                    hayActa 
+                                    ? 'text-indigo-600 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:bg-indigo-900/30' 
+                                    : 'text-purple-600 hover:bg-purple-100 dark:text-purple-400 dark:hover:bg-purple-900/30'
+                                }`}
+                            >
+                                <IconoActa className="h-4 w-4 mr-2" /> {textoActa}
+                            </Button>
+                        )}
+
+                        <Button 
+                            onClick={(e) => { e.stopPropagation(); onGoTo(agenda.id); }} 
+                            variant="ghost"
+                             className="h-10 px-4 text-green-600 hover:text-green-700 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-900/50 gap-2 font-medium"
+                        >
+                            Entrar <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                    </div>
+                </div>
+              </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+});
+
+AgendaCard.displayName = 'AgendaCard';
 
 type VistaType = 'hoy' | 'proximas' | 'terminadas';
 
@@ -61,7 +183,10 @@ export default function Ver() {
   const [agendaParaActa, setAgendaParaActa] = useState<AgendaConcejo | null>(null);
   const [filtroAnio, setFiltroAnio] = useState<string>(getYear(new Date()).toString());
   const [filtroMes, setFiltroMes] = useState<string | null>(null);
+  
   const [loadingAgendaId, setLoadingAgendaId] = useState<string | null>(null);
+  const [selectedAgendaId, setSelectedAgendaId] = useState<string | null>(null);
+  
   const [vista, setVista] = useState<VistaType>('hoy');
   const [haCargadoVistaInicial, setHaCargadoVistaInicial] = useState(false);
 
@@ -179,117 +304,13 @@ export default function Ver() {
     }
   };
 
-  const cardVariants = {
-    loading: { scale: [1, 1.02, 1], boxShadow: ["0 10px 15px -3px rgba(107, 114, 128, 0.1)", "0 20px 25px -5px rgba(107, 114, 128, 0.25)", "0 10px 15px -3px rgba(107, 114, 128, 0.1)"] },
-    idle: { scale: 1, boxShadow: "0 0px 0px 0px rgba(0,0,0,0)" }
-  };
-
-  const hoverEffect = { scale: 1.01, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)" };
-
-const renderAgendaCard = (agenda: AgendaConcejo) => {
-    let borderColorClass = 'border-l-blue-500 dark:border-l-blue-500';
-    let textColorClass = 'text-blue-600 dark:text-blue-400';
-    
-    if (agenda.estado === 'En progreso') {
-      borderColorClass = 'border-l-green-500 dark:border-l-green-500';
-      textColorClass = 'text-green-600 dark:text-green-400';
-    } else if (agenda.estado === 'Finalizada') {
-      borderColorClass = 'border-l-gray-400 dark:border-l-gray-500';
-      textColorClass = 'text-gray-500 dark:text-gray-400';
+  const handleCardClick = (id: string) => {
+    if (loadingAgendaId) return;
+    if (selectedAgendaId === id) {
+      setSelectedAgendaId(null);
+    } else {
+      setSelectedAgendaId(id);
     }
-
-    const buttonClasses = getButtonClasses(agenda.estado);
-    const isLoadingThisAgenda = loadingAgendaId === agenda.id;
-
-    // --- LÓGICA DE PERMISOS BLINDADA ---
-    // 1. Definir quién es Admin (Super, Secretario, Sec. Técnico)
-    const esAdmin = ['SUPER', 'SECRETARIO', 'SEC-TECNICO'].includes(rol || '');
-    
-    // 2. Definir permisos generales de edición
-    const tienePermisoEditar = permisos.includes('EDITAR') || permisos.includes('TODO');
-    
-    const puedeEditar = tienePermisoEditar && (rol === 'SUPER' || agenda.estado !== 'Finalizada');
-    const puedeEliminar = tienePermisoEditar && (rol === 'SUPER' || agenda.estado === 'En preparación');
-
-    // --- LÓGICA DEL BOTÓN DE ACTA (CORREGIDA) ---
-    // Verificamos que acta tenga contenido real (no null, no undefined, no string vacío)
-    const hayActa = Boolean(agenda.acta && agenda.acta.trim() !== '');
-    
-    // REGLA DE ORO:
-    // 1. Debe estar FINALIZADA.
-    // 2. Y ADEMÁS: (O ya hay acta para ver) O (Soy admin y puedo subirla).
-    // Si no hay acta y NO soy admin, esto dará false.
-    const mostrarBotonActa = agenda.estado === 'Finalizada' && (hayActa || esAdmin);
-
-    const textoActa = hayActa ? 'Ver Acta' : 'Subir Acta';
-    const IconoActa = hayActa ? FileText : FileUp;
-
-    return (
-      <motion.div
-        key={agenda.id}
-        variants={cardVariants}
-        animate={isLoadingThisAgenda ? 'loading' : 'idle'}
-        whileHover={!loadingAgendaId ? hoverEffect : {}}
-        transition={isLoadingThisAgenda ? { duration: 1.5, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
-        onClick={loadingAgendaId ? undefined : () => handleGoToAgenda(agenda.id)}
-        className={`group relative bg-white dark:bg-neutral-900 rounded-lg border border-gray-200 dark:border-neutral-800 shadow-sm border-l-4 ${borderColorClass} flex flex-col md:flex-row md:items-start md:justify-between gap-4 cursor-pointer transition-colors ${loadingAgendaId && !isLoadingThisAgenda ? 'opacity-25 pointer-events-none' : ''}`}
-      >
-        <div className="flex-1 p-4 pb-16 md:pb-4">
-          <div className="flex items-baseline gap-x-3 flex-wrap">
-            <p className="font-semibold text-gray-800 dark:text-gray-100 text-sm md:text-2xl">{agenda.titulo}</p>
-            <span className="text-gray-500 dark:text-gray-400 font-normal whitespace-nowrap text-sm md:text-2xl">
-              {format(new Date(agenda.fecha_reunion), "EEEE, d 'de' MMMM 'de' yyyy, h:mm a", { locale: es })}
-            </span>
-          </div>
-          <p className="text-sm md:text-xl mt-2 text-gray-600 dark:text-gray-300 font-normal">{agenda.descripcion}</p>
-          <p className="text-sm md:text-xl mt-2">
-            <span className={`font-bold ${textColorClass}`}>{agenda.estado}</span>,{' '}
-            <span className="font-semibold text-gray-700 dark:text-gray-300">
-              {calcularDiasRestantes(agenda.fecha_reunion)}
-              {calcularDiasRestantes(agenda.fecha_reunion).includes('días') && ' restantes'}
-            </span>
-          </p>
-        </div>
-        
-        <div className="absolute bottom-4 right-4 flex flex-row gap-2 items-center">
-          
-          {/* BOTÓN DE ACTA (Condicional estricto) */}
-          {mostrarBotonActa && (
-            <Button 
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                setAgendaParaActa(agenda); 
-              }} 
-              variant="ghost" 
-              className={`w-auto px-3 transition-colors flex items-center justify-center gap-1 z-10 ${
-                hayActa 
-                  ? 'text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30' // Estilo VER
-                  : 'text-purple-600 hover:bg-purple-100 dark:text-purple-400 dark:hover:bg-purple-900/30' // Estilo SUBIR
-              }`}
-            >
-              <IconoActa className="h-4 w-4" /> {textoActa}
-            </Button>
-          )}
-
-          {puedeEditar && (
-            <Button onClick={(e) => { e.stopPropagation(); handleOpenEditModal(agenda); }} variant="ghost" className={`w-auto px-3 ${buttonClasses.ghost} transition-colors flex items-center justify-center gap-1 z-10`}>
-              <Pencil className="h-4 w-4" /> Editar
-            </Button>
-          )}
-          {puedeEliminar && (
-            <Button onClick={(e) => { e.stopPropagation(); handleDeleteAgenda(agenda.id); }} variant="ghost" className="w-auto px-3 text-red-600 hover:bg-red-200 dark:text-red-400 dark:hover:bg-red-900/30 transition-colors flex items-center justify-center gap-1 z-10">
-              <Trash2 className="h-4 w-4" /> Eliminar
-            </Button>
-          )}
-          <Button onClick={(e) => { e.stopPropagation(); if (!loadingAgendaId) handleGoToAgenda(agenda.id); }} variant="default" className={`${buttonClasses.default} h-10 p-0 flex items-center justify-center rounded-full w-10 group-hover:w-24 transition-all duration-300 ease-in-out overflow-hidden cursor-pointer`}>
-            <span className="flex items-center px-2">
-              <ArrowRight className="h-4 w-4 flex-shrink-0 transition-all duration-300 group-hover:text-white" />
-              <span className="ml-3 text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all delay-150 duration-200">Entrar</span>
-            </span>
-          </Button>
-        </div>
-      </motion.div>
-    );
   };
 
   if (cargandoUsuario || cargandoAgendas) return <CargandoAnimacion texto="Cargando Agenda..." />;
@@ -297,68 +318,83 @@ const renderAgendaCard = (agenda: AgendaConcejo) => {
 
   return (
     <div className="container px-2 md:mx-auto">
-      <header className="w-full flex flex-col xl:flex-row items-center justify-between gap-4 mt-2 md:mb-6">
+
+      <header className="w-full flex flex-col gap-4 mt-2 md:mb-6">
         
-        <div className="flex flex-1 items-center gap-3 w-full xl:w-auto overflow-x-auto no-scrollbar">
-          <BotonVolver ruta="/protected/" />
-          
-          <div className="flex items-center gap-2">
-            <select
-              value={filtroAnio}
-              onChange={(e) => setFiltroAnio(e.target.value)}
-              className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              {anios.map(anio => <option key={anio} value={anio}>{anio}</option>)}
-            </select>
-            <select
-              value={filtroMes !== null ? filtroMes : ''}
-              onChange={(e) => setFiltroMes(e.target.value === '' ? null : e.target.value)}
-              className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="">Todos los meses</option>
-              {meses.map(mes => <option key={mes.numero} value={mes.numero}>{mes.nombre.charAt(0).toUpperCase() + mes.nombre.slice(1)}</option>)}
-            </select>
-          </div>
+        {/* ZONA SUPERIOR: Controles (Línea 1 y 2 en móvil -> Línea 1 en escritorio) */}
+        <div className="w-full flex flex-col gap-3 xl:flex-row xl:items-center">
+            
+            {/* IZQUIERDA: Volver + Selectores */}
+            {/* En móvil ocupa todo el ancho, en escritorio solo lo necesario */}
+            <div className="flex w-full xl:w-auto items-center gap-3">
+                <BotonVolver ruta="/protected/" />
+                
+                {/* Contenedor de selects */}
+                <div className="flex items-center gap-2 flex-1 justify-end xl:flex-none">
+                    <select
+                    value={filtroAnio}
+                    onChange={(e) => setFiltroAnio(e.target.value)}
+                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring w-24"
+                    >
+                    {anios.map(anio => <option key={anio} value={anio}>{anio}</option>)}
+                    </select>
+                    <select
+                    value={filtroMes !== null ? filtroMes : ''}
+                    onChange={(e) => setFiltroMes(e.target.value === '' ? null : e.target.value)}
+                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring flex-1 xl:w-auto"
+                    >
+                    <option value="">Todos los meses</option>
+                    {meses.map(mes => <option key={mes.numero} value={mes.numero}>{mes.nombre.charAt(0).toUpperCase() + mes.nombre.slice(1)}</option>)}
+                    </select>
+                </div>
+            </div>
 
-          <div className="h-8 w-px bg-gray-300 dark:bg-gray-700 mx-1 hidden xl:block"></div>
-
-          <div className="flex items-center space-x-1 sm:space-x-4">
-            {(counts.hoy > 0 || vista === 'hoy') && (
-                <button onClick={() => setVista('hoy')} className={cn("relative flex items-center gap-1.5 px-2 py-1 text-sm font-medium transition-colors whitespace-nowrap", vista === 'hoy' ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")}>
-                    <CalendarClock className="h-4 w-4" /> <span>Hoy ({counts.hoy})</span>
-                    {vista === 'hoy' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600 dark:bg-blue-400" />}
-                </button>
-            )}
-            {(counts.proximas > 0 || vista === 'proximas') && (
-                <button onClick={() => setVista('proximas')} className={cn("relative flex items-center gap-1.5 px-2 py-1 text-sm font-medium transition-colors whitespace-nowrap", vista === 'proximas' ? "text-indigo-600 dark:text-indigo-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")}>
-                    <CalendarDays className="h-4 w-4" /> <span>Próximas ({counts.proximas})</span>
-                    {vista === 'proximas' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-600 dark:bg-indigo-400" />}
-                </button>
-            )}
-            {(counts.terminadas > 0 || vista === 'terminadas') && (
-                <button onClick={() => setVista('terminadas')} className={cn("relative flex items-center gap-1.5 px-2 py-1 text-sm font-medium transition-colors whitespace-nowrap", vista === 'terminadas' ? "text-red-600 dark:text-red-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")}>
-                    <CalendarCheck className="h-4 w-4" /> <span>Terminadas ({counts.terminadas})</span>
-                    {vista === 'terminadas' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-[2px] bg-red-600 dark:bg-red-400" />}
-                </button>
-            )}
-          </div>
+            {/* DERECHA: Botones de Acción */}
+            {/* xl:ml-auto es la clave: empuja este bloque al final a la fuerza en escritorio */}
+            <div className="flex flex-wrap items-center justify-center gap-2 w-full xl:w-auto xl:ml-auto">
+                <Button onClick={() => setIsResumenOpen(true)} variant="ghost" size="sm" className="h-10 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 gap-2 border border-gray-100 dark:border-neutral-800 xl:border-none">
+                    <Table size={16} /> <span className="text-xs sm:text-sm">Resumen de asistencia</span>
+                </Button>
+                <Button onClick={() => setIsInformeOpen(true)} variant="ghost" size="sm" className="h-10 px-2 text-green-600 hover:text-green-700 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-900/50 gap-2 border border-gray-100 dark:border-neutral-800 xl:border-none">
+                    <FileText size={16} /> <span className="text-xs sm:text-sm">Informe Pago DAFIM</span>
+                </Button>
+                {(permisos.includes('EDITAR') || permisos.includes('TODO')) && (
+                    <Button 
+                    onClick={() => { setAgendaAEditar(null); setIsModalOpen(true); }} 
+                    variant="ghost" 
+                    className="h-10 px-2 border-2 border-green-600 dark:border-green-400 text-green-600 hover:text-green-700 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-900/50 gap-2 font-semibold"
+                    >
+                    <CalendarPlus size={18} /> <span className="text-xs sm:text-sm">Nueva Sesión</span>
+                    </Button>
+                )}
+            </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full xl:w-auto shrink-0 justify-end">
-          <Button onClick={() => setIsResumenOpen(true)} variant="outline" size="sm" className="h-10 px-3 border-blue-200 text-blue-700 hover:bg-blue-50 gap-2">
-            <Table size={16} /> <span className="hidden sm:inline">Resumen</span>
-          </Button>
-          <Button onClick={() => setIsInformeOpen(true)} variant="outline" size="sm" className="h-10 px-3 border-green-200 text-green-700 hover:bg-green-50 gap-2">
-            <FileText size={16} /> <span className="hidden sm:inline">Informe Pago</span>
-          </Button>
-          {(permisos.includes('EDITAR') || permisos.includes('TODO')) && (
-            <Button onClick={() => { setAgendaAEditar(null); setIsModalOpen(true); }} className="h-10 px-4 bg-green-600 text-white hover:bg-green-700 gap-2 shadow-sm">
-              <CalendarPlus size={18} /> <span>Nueva Sesión</span>
-            </Button>
-          )}
+        {/* ZONA INFERIOR: Pestañas (Siempre abajo, Línea 3 en móvil -> Línea 2 en escritorio) */}
+        <div className="w-full flex justify-center xl:justify-start border-t border-gray-100 dark:border-neutral-800 pt-2 xl:border-none xl:pt-0">
+            <div className="flex items-center space-x-1 sm:space-x-4">
+                {(counts.hoy > 0 || vista === 'hoy') && (
+                    <button onClick={() => setVista('hoy')} className={cn("relative flex items-center gap-1.5 px-2 py-1 text-sm font-medium transition-colors whitespace-nowrap", vista === 'hoy' ? "text-blue-600 dark:text-blue-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")}>
+                        <CalendarClock className="h-4 w-4" /> <span>Hoy ({counts.hoy})</span>
+                        {vista === 'hoy' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-600 dark:bg-blue-400" />}
+                    </button>
+                )}
+                {(counts.proximas > 0 || vista === 'proximas') && (
+                    <button onClick={() => setVista('proximas')} className={cn("relative flex items-center gap-1.5 px-2 py-1 text-sm font-medium transition-colors whitespace-nowrap", vista === 'proximas' ? "text-indigo-600 dark:text-indigo-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")}>
+                        <CalendarDays className="h-4 w-4" /> <span>Próximas ({counts.proximas})</span>
+                        {vista === 'proximas' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-600 dark:bg-indigo-400" />}
+                    </button>
+                )}
+                {(counts.terminadas > 0 || vista === 'terminadas') && (
+                    <button onClick={() => setVista('terminadas')} className={cn("relative flex items-center gap-1.5 px-2 py-1 text-sm font-medium transition-colors whitespace-nowrap", vista === 'terminadas' ? "text-red-600 dark:text-red-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")}>
+                        <CalendarCheck className="h-4 w-4" /> <span>Terminadas ({counts.terminadas})</span>
+                        {vista === 'terminadas' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-[2px] bg-red-600 dark:bg-red-400" />}
+                    </button>
+                )}
+            </div>
         </div>
+
       </header>
-
       <div className="w-full">
         {agendasVisibles.length === 0 ? (
           <div className="text-center py-10 border-2 border-dashed border-gray-300 dark:border-neutral-800 rounded-lg">
@@ -374,25 +410,29 @@ const renderAgendaCard = (agenda: AgendaConcejo) => {
               transition={{ duration: 0.2 }}
               className="grid grid-cols-1 gap-4"
             >
-              {agendasVisibles.map(agenda => renderAgendaCard(agenda))}
+              {agendasVisibles.map(agenda => (
+                <AgendaCard
+                  key={agenda.id}
+                  agenda={agenda}
+                  isSelected={selectedAgendaId === agenda.id}
+                  isLoading={loadingAgendaId === agenda.id}
+                  onSelect={handleCardClick}
+                  onDelete={handleDeleteAgenda}
+                  onEdit={handleOpenEditModal}
+                  onGoTo={handleGoToAgenda}
+                  rol={rol}
+                  permisos={permisos}
+                  onSetActa={(a) => setAgendaParaActa(a)}
+                />
+              ))}
             </motion.div>
           </AnimatePresence>
         )}
       </div>
 
       {agendaParaActa && (
-      
-        //    - Aumentamos el fondo a 'bg-black/90' para mayor inmersión
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-0 backdrop-blur-sm">
-          
-          {/* 2. En el div del modal (contenido):
-                 - 'w-full h-full': Ocupar todo el ancho y alto
-                 - 'max-w-none': Quitar límite de anchura
-                 - 'rounded-none': Quitar bordes redondeados
-          */}
           <div className="relative w-full h-full max-w-none flex flex-col rounded-none bg-white dark:bg-neutral-900 shadow-xl overflow-hidden">
-            
-            {/* CABECERA */}
             <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shrink-0 z-10">
               <div className="pr-8">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
@@ -413,7 +453,6 @@ const renderAgendaCard = (agenda: AgendaConcejo) => {
               </button>
             </div>
             
-            {/* CUERPO */}
             <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-neutral-950 relative">
               <GestorActa 
                 agendaId={agendaParaActa.id}
