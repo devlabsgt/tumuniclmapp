@@ -21,7 +21,7 @@ interface ListPDFProps {
   referenceId: string
   referenceColumn: string
   refreshTrigger?: number
-  rol: string 
+  rol: string
 }
 
 export default function ListPDF({
@@ -40,6 +40,7 @@ export default function ListPDF({
   const supabase = createClient()
   const router = useRouter()
 
+  // Definir quién puede eliminar
   const puedeEliminar = ['SUPER', 'SECRETARIO', 'SEC-TECNICO'].includes(rol)
 
   useEffect(() => {
@@ -105,28 +106,28 @@ export default function ListPDF({
     }
   }
 
-  if (loading) return <div className="text-sm text-gray-500">Cargando documentos...</div>
+  if (loading) return <div className="text-sm text-gray-500 dark:text-gray-400">Cargando documentos...</div>
 
   if (files.length === 0) {
-    return <div className="text-sm italic text-gray-400">No hay PDFs adjuntos.</div>
+    return <div className="text-sm italic text-gray-400 dark:text-gray-500">No hay PDFs adjuntos.</div>
   }
 
   return (
     <>
       <div className="flex flex-col gap-2 mt-4">
-        <h3 className="text-sm font-semibold text-gray-900">Documentos Adjuntos ({files.length})</h3>
-        <ul className="divide-y divide-gray-100 border rounded-md bg-white">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Documentos Adjuntos ({files.length})</h3>
+        <ul className="divide-y divide-gray-100 dark:divide-neutral-800 border dark:border-neutral-800 rounded-md bg-white dark:bg-neutral-900">
           {files.map((file) => (
-            <li key={file.id} className="flex items-center justify-between p-3 hover:bg-gray-50">
+            <li key={file.id} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors">
               <div className="flex items-center gap-3 overflow-hidden">
-                <div className="flex-shrink-0 p-2 bg-red-50 rounded-lg">
-                  <FileText className="w-5 h-5 text-red-500" />
+                <div className="flex-shrink-0 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                  <FileText className="w-5 h-5 text-red-500 dark:text-red-400" />
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-sm font-medium text-gray-900 truncate max-w-[180px] sm:max-w-xs">
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate max-w-[180px] sm:max-w-xs">
                     {file.nombre}
                   </span>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
                     {new Date(file.created_at).toLocaleDateString()}
                   </span>
                 </div>
@@ -136,7 +137,7 @@ export default function ListPDF({
                 {/* Botón Ver (Para todos) */}
                 <button
                   onClick={() => setViewingFile(file)}
-                  className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
                   title="Visualizar"
                 >
                   <Eye className="w-4 h-4" />
@@ -147,7 +148,7 @@ export default function ListPDF({
                   <button
                     onClick={() => handleDelete(file.id, file.file_path)}
                     disabled={deletingId === file.id}
-                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
+                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors disabled:opacity-50"
                     title="Eliminar"
                   >
                     {deletingId === file.id ? (

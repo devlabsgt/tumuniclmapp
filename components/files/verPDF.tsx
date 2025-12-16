@@ -151,10 +151,11 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 p-0 md:p-4 backdrop-blur-sm transition-all">
-      <div className="relative w-full h-full md:h-[95vh] md:max-w-[95vw] bg-gray-900 md:rounded-lg shadow-2xl flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 dark:bg-black/80 p-0 md:p-4 backdrop-blur-sm transition-all">
+      <div className="relative w-full h-full md:h-[95vh] md:max-w-[95vw] bg-gray-100 dark:bg-gray-900 md:rounded-lg shadow-2xl flex flex-col overflow-hidden transition-colors">
         
-        <div className="flex items-center justify-between px-4 py-3 bg-gray-800 border-b border-gray-700 text-white shrink-0 z-10 relative shadow-md">
+        {/* HEADER */}
+        <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white shrink-0 z-10 relative shadow-md transition-colors">
           <div className="flex items-center gap-4 overflow-hidden">
              <h3 className="text-sm font-semibold truncate max-w-[150px] md:max-w-md" title={fileName}>
               {fileName}
@@ -162,10 +163,10 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
           </div>
           
           <div className="flex items-center gap-2 md:gap-4">
-            <div className="flex items-center gap-1 bg-gray-700 rounded-lg px-1 py-1">
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg px-1 py-1 transition-colors">
               <button 
                 onClick={() => setScale(s => Math.max(0.2, Number((s - 0.1).toFixed(1))))} 
-                className="p-1.5 hover:text-blue-400 rounded-md hover:bg-gray-600"
+                className="p-1.5 hover:text-blue-600 dark:hover:text-blue-400 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600"
               >
                 <ZoomOut className="w-4 h-4" />
               </button>
@@ -174,7 +175,7 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
               </span>
               <button 
                 onClick={() => setScale(s => Math.min(5.0, Number((s + 0.1).toFixed(1))))} 
-                className="p-1.5 hover:text-blue-400 rounded-md hover:bg-gray-600"
+                className="p-1.5 hover:text-blue-600 dark:hover:text-blue-400 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600"
               >
                 <ZoomIn className="w-4 h-4" />
               </button>
@@ -183,7 +184,7 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
             {canDualView && (
               <button 
                 onClick={toggleViewMode}
-                className="flex items-center gap-2 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-xs text-gray-200 transition-colors"
+                className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded text-xs text-gray-700 dark:text-gray-200 transition-colors"
                 title={isDualView ? "Cambiar a vista simple" : "Cambiar a vista libro"}
               >
                 {isDualView ? <Smartphone size={16} /> : <Columns size={16} />}
@@ -196,34 +197,35 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
                 href={url} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="p-2 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-full transition-colors hidden sm:flex"
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-full transition-colors hidden sm:flex"
                 title="Abrir nativo"
               >
                 <ExternalLink className="w-5 h-5" />
               </a>
             )}
 
-            <button onClick={onClose} className="p-2 text-gray-400 hover:text-white hover:bg-red-600/20 rounded-full transition-colors">
+            <button onClick={onClose} className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-red-50 dark:hover:bg-red-600/20 rounded-full transition-colors">
               <X className="w-6 h-6" />
             </button>
           </div>
         </div>
 
+        {/* CONTENIDO */}
         <div 
           ref={containerRef}
-          className="flex-1 bg-gray-900/50 overflow-auto relative flex items-start justify-center p-4 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent"
+          className="flex-1 bg-gray-200/50 dark:bg-gray-900/50 overflow-auto relative flex items-start justify-center p-4 scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-700 scrollbar-track-transparent"
         >
           {loadingUrl ? (
             <div className="self-center flex flex-col items-center gap-2">
                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-               <span className="text-gray-400 text-sm">Cargando...</span>
+               <span className="text-gray-500 dark:text-gray-400 text-sm">Cargando...</span>
             </div>
           ) : url ? (
             <Document
               file={url}
               onLoadSuccess={onDocumentLoadSuccess}
               loading={<div className="self-center flex flex-col items-center gap-2"><Loader2 className="w-8 h-8 text-blue-500 animate-spin" /><span className="text-gray-400 text-sm">Procesando...</span></div>}
-              error={<div className="text-red-400 self-center font-medium bg-red-900/20 px-4 py-2 rounded-md">Error al cargar PDF</div>}
+              error={<div className="text-red-500 dark:text-red-400 self-center font-medium bg-red-100 dark:bg-red-900/20 px-4 py-2 rounded-md">Error al cargar PDF</div>}
               className="flex justify-center"
               externalLinkTarget="_blank"
             >
@@ -233,14 +235,14 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
                   gridTemplateColumns: isDualView ? '1fr 1fr' : '1fr'
                 }}
               >
-                <div className="relative shadow-2xl bg-white">
+                <div className="relative shadow-xl dark:shadow-black/50 bg-white">
                   <Page 
                     pageNumber={pageNumber} 
                     width={getPageWidth()}
                     className="bg-white"
                     renderTextLayer={false}
                     renderAnnotationLayer={false}
-                    loading={<div style={{ height: 600 }} className="bg-white/10 animate-pulse w-full" />}
+                    loading={<div style={{ height: 600 }} className="bg-gray-100 dark:bg-white/10 animate-pulse w-full" />}
                   />
                   <span className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm pointer-events-none">
                     {pageNumber}
@@ -248,14 +250,14 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
                 </div>
                 
                 {isDualView && pageNumber + 1 <= numPages && (
-                   <div className="relative shadow-2xl bg-white">
+                   <div className="relative shadow-xl dark:shadow-black/50 bg-white">
                     <Page 
                       pageNumber={pageNumber + 1} 
                       width={getPageWidth()}
                       className="bg-white"
                       renderTextLayer={false}
                       renderAnnotationLayer={false}
-                      loading={<div style={{ height: 600 }} className="bg-white/10 animate-pulse w-full" />}
+                      loading={<div style={{ height: 600 }} className="bg-gray-100 dark:bg-white/10 animate-pulse w-full" />}
                     />
                     <span className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm pointer-events-none">
                       {pageNumber + 1}
@@ -265,21 +267,22 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
               </div>
             </Document>
           ) : (
-            <span className="text-gray-500 self-center bg-gray-800 px-4 py-2 rounded-md">No disponible</span>
+            <span className="text-gray-500 dark:text-gray-400 self-center bg-gray-200 dark:bg-gray-800 px-4 py-2 rounded-md">No disponible</span>
           )}
         </div>
 
+        {/* FOOTER CONTROLS */}
         {numPages > 0 && (
-          <div className="bg-gray-800 border-t border-gray-700 p-3 md:p-4 flex items-center justify-center gap-6 text-white shrink-0 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+          <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-3 md:p-4 flex items-center justify-center gap-6 text-gray-900 dark:text-white shrink-0 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.2)] transition-colors">
              <button
               onClick={() => changePage(-1)}
               disabled={pageNumber <= 1}
-              className="p-2 rounded-full hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
             >
               <ChevronLeft className="w-6 h-6" />
             </button>
             
-            <span className="text-sm font-medium tabular-nums bg-gray-700 px-3 py-1 rounded-full">
+            <span className="text-sm font-medium tabular-nums bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
               {isDualView && pageNumber + 1 <= numPages
                 ? `${pageNumber} - ${pageNumber + 1} de ${numPages}` 
                 : `${pageNumber} de ${numPages}`
@@ -289,7 +292,7 @@ export default function VerPDF({ filePath, fileName, bucketName, isOpen, onClose
             <button
               onClick={() => changePage(1)}
               disabled={isDualView ? (pageNumber + 1 >= numPages) : (pageNumber >= numPages)}
-              className="p-2 rounded-full hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
             >
               <ChevronRight className="w-6 h-6" />
             </button>
