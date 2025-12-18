@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TextoHoyConcepcionAvanza from '@/components/ui/TextoHoyConcepcionAvanza';
 
-// 1. Se define la prop opcional 'duration'
 interface Props {
   duration?: number;
 }
@@ -13,15 +12,14 @@ export default function LoadingAnimation({ duration }: Props) {
   const [show, setShow] = useState(true);
 
   useEffect(() => {
-    // 2. Se usa la prop 'duration' o el valor por defecto 2500
     const delay = duration ?? 2500;
 
     const timer = setTimeout(() => {
       setShow(false); 
-    }, delay); // Se utiliza la variable 'delay'
+    }, delay); 
 
     return () => clearTimeout(timer);
-  }, [duration]); // Se agrega 'duration' como dependencia
+  }, [duration]); 
 
   return (
     <AnimatePresence>
@@ -30,7 +28,8 @@ export default function LoadingAnimation({ duration }: Props) {
           key="loading-screen"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: 1 } }}
-          className="fixed inset-0 flex items-center justify-center bg-gray-100/70 backdrop-blur-sm z-50 overflow-hidden"
+
+          className="fixed inset-0 flex items-center justify-center bg-gray-100/70 dark:bg-black/70 backdrop-blur-sm z-50 overflow-hidden"
         >
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
@@ -52,7 +51,7 @@ export default function LoadingAnimation({ duration }: Props) {
             
             <img
               src="/icon-512x512.png"
-              alt="Logoß Municipal"
+              alt="Logo Municipal"
               width="512"
               height="512"
               className="w-32 h-32 md:w-48 md:h-48 rounded-2xl"

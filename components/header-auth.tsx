@@ -27,12 +27,19 @@ export default function AuthButton() {
       text: "Se cerrará su sesión actual.",
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
       confirmButtonText: 'Sí, cerrar sesión',
       cancelButtonText: 'Cancelar',
-      background: '#fff',
-      color: '#333'
+      customClass: {
+        popup: 'bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-xl shadow-xl',
+        title: 'text-gray-900 dark:text-white text-xl font-bold',
+        htmlContainer: 'text-gray-600 dark:text-gray-300',
+        confirmButton: 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg',
+        cancelButton: 'bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500 text-white font-medium py-2 px-4 rounded-lg',
+        actions: 'gap-3'
+      },
+      buttonsStyling: false,
+      background: undefined,
+      color: undefined       
     }).then((result) => {
       if (result.isConfirmed) {
         signOutAction();
@@ -54,7 +61,7 @@ export default function AuthButton() {
   return userId ? (
     <div className="flex flex-col items-end gap-6 mr-2 md:mr-10">
       <div className="text-right">
-        <span className="text-xs font-bold block">
+        <span className="text-xs font-bold block text-gray-900 dark:text-gray-100">
           <Typewriter
             words={[
               '¡Hoy! Concepción Avanza',
@@ -68,7 +75,7 @@ export default function AuthButton() {
             delaySpeed={1000}
           />
         </span>
-        <div className="text-[#06c] text-xs font-medium mt-1">
+        <div className="text-[#06c] dark:text-blue-400 text-xs font-medium mt-1">
           {email}
         </div>
       </div>
@@ -79,26 +86,26 @@ export default function AuthButton() {
           <button
             type="button"
             onClick={handleSignOut}
-            className={`${linkStyles} text-red-500 hover:text-red-600`}
+            className={`${linkStyles} text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300`}
           >
             Cerrar Sesión
             <Power className="h-4 w-4 ml-2" />
           </button>
           
           {!esInicio && (
-            <Link href={rutaInicio} className={`${linkStyles} text-blue-600 hover:text-blue-700`}>
+            <Link href={rutaInicio} className={`${linkStyles} text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300`}>
               Volver a Inicio
               <LogOut className="h-4 w-4 ml-2 rotate-180" />
             </Link>
           )}
         </div>
 
-        <div className="border-l border-gray-300 pl-4">
+        <div className="border-l border-gray-300 dark:border-neutral-700 pl-4">
           <button
             type="button"
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="flex flex-col items-center justify-center text-gray-500 hover:text-black transition-colors gap-0.5"
+            className="flex flex-col items-center justify-center text-gray-500 hover:text-black dark:text-gray-400 dark:hover:text-gray-200 transition-colors gap-0.5"
           >
             <div className="w-10 h-10">
               <AnimatedIcon 
