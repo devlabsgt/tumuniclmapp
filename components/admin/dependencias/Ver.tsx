@@ -92,9 +92,13 @@ function buildDependencyTree(dependencias: Dependencia[], infoUsuarios: InfoUsua
 
 function calculateBudgetTotals(node: DependenciaNode): number {
     let total = 0;
+
     if (node.es_puesto) {
-        total += (node.salario || 0) + (node.bonificacion || 0);
+        const multiplicador = (node.unidades_tiempo && node.unidades_tiempo > 0) ? node.unidades_tiempo : 1;
+        
+        total += ((node.salario || 0) + (node.bonificacion || 0)) * multiplicador;
     }
+
     if (node.children) {
         node.children.forEach(child => {
             if (!('isEmployee' in child)) {
@@ -102,6 +106,7 @@ function calculateBudgetTotals(node: DependenciaNode): number {
             }
         });
     }
+
     (node as any).totalPresupuesto = total;
     return total;
 }

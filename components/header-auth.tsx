@@ -14,11 +14,9 @@ export default function AuthButton() {
   const { userId, nombre, email, rol, cargando } = useUserData();
   const pathname = usePathname();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
   const esAdmin = rol === 'SUPER' || rol === 'ADMINISTRADOR';
   const rutaInicio = esAdmin ? '/protected/admin' : '/protected/';
   const esInicio = pathname === '/protected/';
-
   const linkStyles = "inline-flex items-center justify-end text-xs lg:text-lg transition-colors hover:underline focus-visible:outline-none";
 
   const handleSignOut = async () => {
@@ -86,14 +84,14 @@ export default function AuthButton() {
           <button
             type="button"
             onClick={handleSignOut}
-            className={`${linkStyles} text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300`}
+            className={`${linkStyles} text-red-500 hover:text-red-600`}
           >
             Cerrar Sesión
             <Power className="h-4 w-4 ml-2" />
           </button>
           
           {!esInicio && (
-            <Link href={rutaInicio} className={`${linkStyles} text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300`}>
+            <Link href={rutaInicio} className={`${linkStyles} text-blue-600 hover:text-blue-700`}>
               Volver a Inicio
               <LogOut className="h-4 w-4 ml-2 rotate-180" />
             </Link>
@@ -114,7 +112,7 @@ export default function AuthButton() {
                 className="w-full h-full"
               />
             </div>
-            <span className="text-[10px] font-medium leading-none">Actualizar</span>
+            <span className="mt-1 text-[10px] font-medium leading-none">Actualizar</span>
           </button>
         </div>
 

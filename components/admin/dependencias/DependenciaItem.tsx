@@ -22,7 +22,7 @@ export interface DependenciaNode {
   renglon?: string | null;
   salario?: number | null;
   bonificacion?: number | null;
-  unidades_tiempo?: number | null; // <--- CORRECCIÓN 1: Campo agregado
+  unidades_tiempo?: number | null; 
   antiguedad?: number | null;
   totalPresupuesto?: number;
   children: (DependenciaNode | EmpleadoNode)[];
@@ -133,7 +133,6 @@ const DependenciaItem = ({
 
   const tienePresupuesto = node.renglon || (node.salario && node.salario > 0) || (node.bonificacion && node.bonificacion > 0);
   
-  // CORRECCIÓN 2: Lógica mejorada para calcular totales (multiplicando si es 031-dia/hora)
   const multiplicador = (node.unidades_tiempo && node.unidades_tiempo > 0) ? node.unidades_tiempo : 1;
   const totalFinancieroPuesto = ((node.salario || 0) + (node.bonificacion || 0)) * multiplicador;
   
@@ -252,39 +251,49 @@ const DependenciaItem = ({
               </div>
             )}
 
-            {node.es_puesto && (
-              <div className="text-[11px] leading-tight mt-1.5">
-                {tienePresupuesto ? (
-                  <div className="flex flex-wrap items-center gap-x-1.5 pt-1 border-t border-gray-200/70 dark:border-gray-700/50 text-gray-600 dark:text-gray-400">
-                    {node.renglon && (
-                      <span className="font-bold text-gray-700 dark:text-gray-300" title="Renglón">{node.renglon}</span>
-                    )}
-                    
-                    {node.renglon && (node.salario || node.bonificacion) && (
-                      <span className="text-gray-300 dark:text-gray-600">|</span>
-                    )}
-                    
-                    {(node.salario || node.bonificacion) && (
-                      <>
-                        <span className="font-bold text-green-600 dark:text-green-500" title="Total Mensual Estimado">
-                            {formatMoney(totalFinancieroPuesto)}
-                        </span>
-                        {/* Indicador visual de días/horas si aplica */}
-                        {node.unidades_tiempo && node.unidades_tiempo > 1 && (
-                            <span className="text-[9px] text-gray-400 ml-1">
-                                ({node.unidades_tiempo} {node.renglon?.includes('hora') ? 'Hrs' : 'Días'})
-                            </span>
-                        )}
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <span className="text-amber-600/70 dark:text-amber-500/70 font-medium italic text-[10px]">
-                    Sin información financiera
-                  </span>
-                )}
-              </div>
+
+{node.es_puesto && (
+  <div className="text-[11px] leading-tight mt-1.5">
+    {tienePresupuesto ? (
+      <div className="flex flex-wrap items-center gap-x-1.5 pt-1 border-t border-gray-200/70 dark:border-gray-700/50 text-gray-600 dark:text-gray-400">
+        {node.renglon && (
+          <span className="font-bold text-gray-700 dark:text-gray-300" title="Renglón">{node.renglon}</span>
+        )}
+        
+        {node.renglon && (node.salario || node.bonificacion) && (
+          <span className="text-gray-300 dark:text-gray-600">|</span>
+        )}
+        
+        {(node.salario || node.bonificacion) && (
+          <>
+            <span className="font-bold text-green-600 dark:text-green-500" title="Total Mensual Estimado">
+                {formatMoney(totalFinancieroPuesto)}
+            </span>
+            
+            {/* Solo mostramos el desglose si es renglón 031 por día o por hora */}
+            {node.renglon?.includes('031-dia') && (
+                <span className="text-[10px] text-blue-600 dark:text-blue-400 ml-1 font-medium">
+                    ({formatMoney(node.salario || 0)} / Día)
+                </span>
             )}
+            
+            {node.renglon?.includes('031-hora') && (
+                <span className="text-[10px] text-blue-600 dark:text-blue-400 ml-1 font-medium">
+                    ({formatMoney(node.salario || 0)} / Hora)
+                </span>
+            )}
+            
+            {/* Se eliminó el bloque que mostraba el número (0) genérico */}
+          </>
+        )}
+      </div>
+    ) : (
+      <span className="text-amber-600/70 dark:text-amber-500/70 font-medium italic text-[10px]">
+        Sin información financiera
+      </span>
+    )}
+  </div>
+)}
 
           </div>
         </div>
