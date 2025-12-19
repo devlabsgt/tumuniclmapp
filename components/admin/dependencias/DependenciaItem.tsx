@@ -23,6 +23,7 @@ export interface DependenciaNode {
   salario?: number | null;
   bonificacion?: number | null;
   unidades_tiempo?: number | null; // <--- CORRECCIÓN 1: Campo agregado
+  antiguedad?: number | null;
   totalPresupuesto?: number;
   children: (DependenciaNode | EmpleadoNode)[];
   prima?: boolean | null;

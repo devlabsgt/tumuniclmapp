@@ -78,8 +78,8 @@ const renglonConfig: Record<string, RenglonConfig> = {
   '022': { salarioLabel: 'Salario Base (022)', bonoLabel: 'Bonificación (027)', placeholder: 'Salario Mensual', tieneBono: true },
   '029': { salarioLabel: 'Honorarios (029)', placeholder: 'Honorarios', tieneBono: false },
   '031-dia': { 
-    salarioLabel: 'Jornal Diario (Base)', 
-    bonoLabel: 'Bonificación (Por día)', 
+    salarioLabel: 'Jornal Diario (031)', 
+    bonoLabel: 'Bonificación (033)', 
     placeholder: 'Q 116.73', 
     tieneBono: true,
     requiereUnidades: true,
@@ -89,8 +89,8 @@ const renglonConfig: Record<string, RenglonConfig> = {
     defaultUnidades: '26'
   },
   '031-hora': { 
-    salarioLabel: 'Pago por Hora (Base)', 
-    bonoLabel: 'Bonificación (Por hora)', 
+    salarioLabel: 'Pago por Hora (031)', 
+    bonoLabel: 'Bonificación (033)', 
     placeholder: 'Q 19.80', 
     tieneBono: true,
     requiereUnidades: true,
@@ -128,15 +128,18 @@ export default function InfoFinancieraForm({ isOpen, onClose, onSubmit, dependen
 
   useEffect(() => {
     if (isOpen && dependencia) {
-      const montoAntiguedad = (dependencia as any).antiguedad;
+      const dep = dependencia as any;
+      const montoAntiguedad = dep.antiguedad;
       const hasAntiguedad = montoAntiguedad && montoAntiguedad > 0;
+      
+      const unidadesVal = dep.unidades_tiempo ? String(dep.unidades_tiempo) : "";
 
       reset({
-        renglon: dependencia.renglon || "",
-        salario: (dependencia.salario !== null && dependencia.salario !== undefined) ? String(dependencia.salario) : "",
-        bonificacion: (dependencia.bonificacion !== null && dependencia.bonificacion !== undefined) ? String(dependencia.bonificacion) : "",
-        unidades_tiempo: (dependencia.unidades_tiempo !== null && dependencia.unidades_tiempo !== undefined) ? String(dependencia.unidades_tiempo) : "",
-        prima: dependencia.prima || false,
+        renglon: dep.renglon || "",
+        salario: (dep.salario !== null && dep.salario !== undefined) ? String(dep.salario) : "",
+        bonificacion: (dep.bonificacion !== null && dep.bonificacion !== undefined) ? String(dep.bonificacion) : "",
+        unidades_tiempo: unidadesVal,
+        prima: dep.prima || false,
         tiene_antiguedad: !!hasAntiguedad,
         antiguedad: hasAntiguedad ? String(montoAntiguedad) : "",
       });
@@ -162,20 +165,30 @@ export default function InfoFinancieraForm({ isOpen, onClose, onSubmit, dependen
 
     const config = renglonConfig[newValue];
     if (config) {
+        // Limpiar/Setear Bonificación
         if (!config.tieneBono) setValue('bonificacion', "");
+        
+        // Limpiar/Setear Antigüedad
         if (!config.admiteAntiguedad) {
             setValue('tiene_antiguedad', false);
             setValue('antiguedad', "");
         }
 
+        // Setear Salario por defecto
         if (config.defaultSalario) setValue('salario', config.defaultSalario);
-        else setValue('salario', "");
+        else if (!form.getValues('salario')) setValue('salario', "");
 
+        // Setear Bonificación por defecto
         if (config.defaultBono) setValue('bonificacion', config.defaultBono);
-        else if (config.tieneBono) setValue('bonificacion', "");
+        else if (config.tieneBono && !form.getValues('bonificacion')) setValue('bonificacion', "");
 
-        if (config.defaultUnidades) setValue('unidades_tiempo', config.defaultUnidades);
-        else setValue('unidades_tiempo', "");
+        // CORRECCIÓN AQUÍ: Setear Unidades de Tiempo por defecto
+        // Eliminé la condición que verificaba si estaba vacío (!currentUnidades)
+        if (config.defaultUnidades) {
+             setValue('unidades_tiempo', config.defaultUnidades);
+        } else if (!config.requiereUnidades) {
+             setValue('unidades_tiempo', "");
+        }
     }
   };
 

@@ -26,13 +26,15 @@ import 'react-toastify/dist/ReactToastify.css';
 import { DependenciaNode } from './DependenciaItem';
 import { Usuario } from '@/lib/usuarios/esquemas';
 
+
 type BaseDependencia = Database['public']['Tables']['dependencias']['Row'];
 export type Dependencia = BaseDependencia & {
     renglon?: string | null;
     salario?: number | null;
     bonificacion?: number | null;
+    unidades_tiempo?: number | null;
+    antiguedad?: number | null;
 };
-
 type UserWithDependency = Usuario & { dependencia_id: string | null; };
 
 function buildDependencyTree(dependencias: Dependencia[], infoUsuarios: InfoUsuario[], usuarios: Usuario[]): DependenciaNode[] {
@@ -47,7 +49,9 @@ function buildDependencyTree(dependencias: Dependencia[], infoUsuarios: InfoUsua
             children: [],
             renglon: dep.renglon,
             salario: dep.salario,
-            bonificacion: dep.bonificacion
+            bonificacion: dep.bonificacion,
+            unidades_tiempo: dep.unidades_tiempo,
+            antiguedad: (dep as any).antiguedad
         });
     });
 
@@ -242,23 +246,27 @@ export default function Ver() {
   
   const handleOpenInfoFinanciera = (node: DependenciaNode) => { setDependenciaFinanciera(node); setIsInfoFinancieraOpen(true); };
   const handleCloseInfoFinanciera = () => { setIsInfoFinancieraOpen(false); setDependenciaFinanciera(null); };
-  const handleSubmitInfoFinanciera = async (data: InfoFinancieraFormData) => {
-      if (!dependenciaFinanciera) return;
-      const { error } = await supabase.from('dependencias').update({
-          renglon: data.renglon,
-          salario: data.salario,
-          bonificacion: data.bonificacion,
-          prima: data.prima
-      }).eq('id', dependenciaFinanciera.id);
+ 
+ 
+    const handleSubmitInfoFinanciera = async (data: InfoFinancieraFormData) => {
+        if (!dependenciaFinanciera) return;
+        const { error } = await supabase.from('dependencias').update({
+            renglon: data.renglon,
+            salario: data.salario,
+            bonificacion: data.bonificacion,
+            prima: data.prima,
+            unidades_tiempo: data.unidades_tiempo,
+            antiguedad: data.antiguedad
+        }).eq('id', dependenciaFinanciera.id);
 
-      if (error) {
-          toast.error('Error al guardar información financiera.');
-      } else {
-          toast.success('Información financiera actualizada.');
-          handleCloseInfoFinanciera();
-          mutateDependencias();
-      }
-  };
+        if (error) {
+            toast.error('Error al guardar información financiera.');
+        } else {
+            toast.success('Información financiera actualizada.');
+            handleCloseInfoFinanciera();
+            mutateDependencias();
+        }
+    };
 
   const handleSubmit = async (formData: FormData) => {
     const isEditing = !!editingDependencia;
