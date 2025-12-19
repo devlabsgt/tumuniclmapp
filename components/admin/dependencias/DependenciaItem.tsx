@@ -22,6 +22,7 @@ export interface DependenciaNode {
   renglon?: string | null;
   salario?: number | null;
   bonificacion?: number | null;
+  unidades_tiempo?: number | null; // <--- CORRECCIÓN 1: Campo agregado
   totalPresupuesto?: number;
   children: (DependenciaNode | EmpleadoNode)[];
   prima?: boolean | null;
@@ -130,7 +131,11 @@ const DependenciaItem = ({
   };
 
   const tienePresupuesto = node.renglon || (node.salario && node.salario > 0) || (node.bonificacion && node.bonificacion > 0);
-  const totalFinancieroPuesto = (node.salario || 0) + (node.bonificacion || 0);
+  
+  // CORRECCIÓN 2: Lógica mejorada para calcular totales (multiplicando si es 031-dia/hora)
+  const multiplicador = (node.unidades_tiempo && node.unidades_tiempo > 0) ? node.unidades_tiempo : 1;
+  const totalFinancieroPuesto = ((node.salario || 0) + (node.bonificacion || 0)) * multiplicador;
+  
   const totalPresupuestoGeneral = node.totalPresupuesto || 0;
 
   return (
@@ -260,9 +265,15 @@ const DependenciaItem = ({
                     
                     {(node.salario || node.bonificacion) && (
                       <>
-                        <span className="font-bold text-green-600 dark:text-green-500" title="Total Mensual">
+                        <span className="font-bold text-green-600 dark:text-green-500" title="Total Mensual Estimado">
                             {formatMoney(totalFinancieroPuesto)}
                         </span>
+                        {/* Indicador visual de días/horas si aplica */}
+                        {node.unidades_tiempo && node.unidades_tiempo > 1 && (
+                            <span className="text-[9px] text-gray-400 ml-1">
+                                ({node.unidades_tiempo} {node.renglon?.includes('hora') ? 'Hrs' : 'Días'})
+                            </span>
+                        )}
                       </>
                     )}
                   </div>
