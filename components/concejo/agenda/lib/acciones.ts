@@ -42,25 +42,29 @@ export const fetchAgendaConcejoPorId = async (id: string): Promise<AgendaConcejo
 };
 
 export const crearAgenda = async (formData: AgendaFormData): Promise<AgendaConcejo | null> => {
+ 
+  const fechaCompleta = formData.fecha_reunion.includes('T') 
+    ? formData.fecha_reunion 
+    : `${formData.fecha_reunion}T${formData.hora_reunion || '00:00'}:00`;
+
   const { data, error } = await supabase
     .from('agenda_concejo')
     .insert({
       titulo: formData.titulo,
-      descripcion: formData.descripcion,
-      fecha_reunion: formData.fecha_reunion,
-      hora_reunion: formData.hora_reunion,
+      descripcion: formData.descripcion, 
+      fecha_reunion: fechaCompleta,
       acta: formData.acta,
-      libro: formData.libro,
       estado: 'En preparación',
     })
     .select()
     .single();
 
   if (error) {
-    console.error(error.message);
+    console.error("Error de Supabase:", error.message);
     toast.error('Error al crear la agenda.');
     return null;
   }
+  
   toast.success('Agenda creada con éxito.');
   return data as AgendaConcejo;
 };
@@ -72,12 +76,15 @@ export const editarAgenda = async (id: string, formData: AgendaFormData): Promis
     .eq('id', id)
     .single();
 
+  const fechaCompleta = formData.fecha_reunion.includes('T') 
+    ? formData.fecha_reunion 
+    : `${formData.fecha_reunion}T${formData.hora_reunion || '00:00'}:00`;
+
   const updates: any = {
     titulo: formData.titulo,
     descripcion: formData.descripcion,
-    fecha_reunion: formData.fecha_reunion,
+    fecha_reunion: fechaCompleta,
     acta: formData.acta,
-    libro: formData.libro
   };
 
   if (formData.estado) {
@@ -107,10 +114,11 @@ export const editarAgenda = async (id: string, formData: AgendaFormData): Promis
     .single();
   
   if (error) {
-    console.error(error.message);
+    console.error("Error al editar:", error.message);
     toast.error('Error al actualizar la agenda.');
     return null;
   }
+  
   toast.success('Agenda actualizada con éxito.');
   return data as AgendaConcejo;
 };
