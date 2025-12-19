@@ -51,7 +51,7 @@ export default function DependenciaList({
           <React.Fragment key={node.id}>
             {showSubtitle && (
               <div className="px-2 pt-4 pb-1">
-                <h2 className="text-md font-bold uppercase text-blue-600 dark:text-gray-500 tracking-wider">
+                <h2 className="text-md font-bold uppercase text-blue-600 dark:text-blue-400 tracking-wider">
                   {subtitleText}
                 </h2>
               </div>

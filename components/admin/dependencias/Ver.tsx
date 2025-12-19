@@ -353,7 +353,7 @@ export default function Ver() {
     <div className="p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
       <ToastContainer position="top-right" autoClose={3000} />
       <div className="flex flex-col md:flex-row items-center mb-6 gap-2 md:gap-4">
-        <h1 className="text-lg lg:text-2xl font-bold text-blue-600 text-center md:text-left whitespace-nowrap">Organización Municipal 🏛️</h1>
+        <h1 className="text-lg lg:text-2xl font-bold text-blue-600 dark:text-blue-400 text-center md:text-left whitespace-nowrap">Organización Municipal 🏛️</h1>
         <div className="relative w-full flex-grow exclude-from-capture"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" /><Input placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 w-full text-xs"/></div>
         <div className="w-full md:w-auto flex items-center gap-2 exclude-from-capture">
             {hasPermission && (<Button onClick={() => handleOpenForm()} className="w-full text-xs md:w-auto bg-blue-100 text-blue-800 hover:bg-blue-200"><PlusCircle className="mr-2 h-4 w-4" /> Nueva Dependencia</Button>)}

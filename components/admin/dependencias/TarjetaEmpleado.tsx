@@ -83,26 +83,29 @@ const calcularISR = (salarioBase: number): number => {
 
   const rentaGravadaAnual = salarioBase * 12;
 
+  // El IGSS es deducible (Topado a Q6,075 mensuales)
   const igssDeducibleAnual = Math.min(salarioBase, TECHO_COTIZACION_IGSS) * PORCENTAJE_IGSS * 12;
 
+  // Solo restamos Gastos Personales y el IGSS
   const deduccionesISRAnual = 
     GASTOS_PERSONALES_ANUAL_ISR + 
-    igssDeducibleAnual +
-    DEDUCCION_ADICIONAL_ANUAL_MUNI; 
+    igssDeducibleAnual;
+    // SE ELIMINÓ: DEDUCCION_ADICIONAL_ANUAL_MUNI; 
   
   const rentaImponible = rentaGravadaAnual - deduccionesISRAnual;
 
   if (rentaImponible <= 0) return 0;
 
   let isrAnual = 0;
+  // Rango de 5% hasta Q300,000
   if (rentaImponible <= 300000) {
     isrAnual = rentaImponible * 0.05;
   } else {
+    // Rango de 7% sobre el excedente de Q300,000
     isrAnual = 15000 + (rentaImponible - 300000) * 0.07;
   }
 
-  const isrMensual = isrAnual / 12;
-  return isrMensual;
+  return isrAnual / 12;
 };
 
 

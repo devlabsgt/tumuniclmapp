@@ -29,7 +29,6 @@ const MenuBar = ({ editor }: { editor: any }) => {
 
   return (
     <div className="flex flex-wrap gap-1 p-2 border-b border-gray-200 bg-gray-50 items-center">
-      {/* Grupo de Tamaños (Encabezados) */}
       <div className="flex items-center gap-1 mr-2">
         <Button
           variant="ghost"

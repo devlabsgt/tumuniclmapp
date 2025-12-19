@@ -280,7 +280,6 @@ const DependenciaItem = ({
                                 ({formatMoney(node.salario || 0)} / Hora)
                             </span>
                         )}
-                        
                       </>
                     )}
                   </div>
