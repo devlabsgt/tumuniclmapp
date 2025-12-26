@@ -62,7 +62,6 @@ const PORCENTAJE_IGSS = 0.0483;
 const PORCENTAJE_PLAN_PRESTACIONES = 0.07; 
 const GASTOS_PERSONALES_ANUAL_ISR = 48000;
 const TECHO_COTIZACION_IGSS = 6075; 
-const DEDUCCION_ADICIONAL_ANUAL_MUNI = 9093.36; 
 
 const FIANZA_FACTOR_ASEGURADA = 24;
 const FIANZA_PORCENTAJE = 0.0005;
@@ -83,25 +82,20 @@ const calcularISR = (salarioBase: number): number => {
 
   const rentaGravadaAnual = salarioBase * 12;
 
-  // El IGSS es deducible (Topado a Q6,075 mensuales)
   const igssDeducibleAnual = Math.min(salarioBase, TECHO_COTIZACION_IGSS) * PORCENTAJE_IGSS * 12;
 
-  // Solo restamos Gastos Personales y el IGSS
   const deduccionesISRAnual = 
     GASTOS_PERSONALES_ANUAL_ISR + 
     igssDeducibleAnual;
-    // SE ELIMINÓ: DEDUCCION_ADICIONAL_ANUAL_MUNI; 
   
   const rentaImponible = rentaGravadaAnual - deduccionesISRAnual;
 
   if (rentaImponible <= 0) return 0;
 
   let isrAnual = 0;
-  // Rango de 5% hasta Q300,000
   if (rentaImponible <= 300000) {
     isrAnual = rentaImponible * 0.05;
   } else {
-    // Rango de 7% sobre el excedente de Q300,000
     isrAnual = 15000 + (rentaImponible - 300000) * 0.07;
   }
 

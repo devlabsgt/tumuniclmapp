@@ -1,9 +1,7 @@
-export const runtime = 'nodejs';
-
 import { NextResponse, type NextRequest } from 'next/server'
-import { createClient } from '@/utils/supabase/middleware'
+import { createClient } from '@/utils/supabase/proxy'
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { supabase, response } = createClient(request)
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -21,7 +19,6 @@ export async function middleware(request: NextRequest) {
         .maybeSingle();
 
       if (errorRol) {
-        console.error("Error al obtener el rol:", errorRol.message);
         return response;
       }
       
@@ -34,19 +31,13 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL("/unauthorized", request.url));
       }
 
+      const rolesPermitidosAdmin = ["SUPER", "ADMINISTRADOR", "SECRETARIO", "INVITADO", "ALCALDE", "CONCEJAL", "RRHH"];
+
       if (
         request.nextUrl.pathname.startsWith("/protected/admin") &&
-        rolNombre !== "SUPER" &&
-        rolNombre !== "ADMINISTRADOR" &&
-        rolNombre !== "SECRETARIO" &&
-        rolNombre !== "INVITADO" &&
-        rolNombre !== "ALCALDE" &&
-        rolNombre !== "CONCEJAL" &&
-        rolNombre !== "RRHH"
+        !rolesPermitidosAdmin.includes(rolNombre)
       ) {
-
         return NextResponse.redirect(new URL("/unauthorized", request.url));
-
       }
   }
   
@@ -58,11 +49,12 @@ export async function middleware(request: NextRequest) {
         .maybeSingle();
         
       const rolNombre = (relacion?.roles as any)?.nombre ?? null;
+      const rolesAdmin = ["ADMINISTRADOR", "SUPER", "SECRETARIO", "RRHH"];
 
-      const destino =
-        rolNombre === "ADMINISTRADOR" || rolNombre === "SUPER" || rolNombre === "SECRETRARIO" || rolNombre === "RRHH"
+      const destino = rolesAdmin.includes(rolNombre)
           ? "/protected/admin"
           : "/protected/user";
+          
       return NextResponse.redirect(new URL(destino, request.url));
   }
 
