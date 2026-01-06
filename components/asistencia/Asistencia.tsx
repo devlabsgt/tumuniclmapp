@@ -84,7 +84,9 @@ export default function Asistencia() {
     scheduleSalidaTarde,
     horarioFormateado,
     esHorarioMultiple,
-    esDiaLaboral
+    esDiaLaboral,
+    puedeMarcarEntrada,
+    puedeMarcarSalida
   } = useMemo(() => {
     const horaEntradaStr = horario_entrada || '08:00:00';
     const horaSalidaStr = horario_salida || '16:00:00';
@@ -97,7 +99,10 @@ export default function Asistencia() {
     const scheduleSalida = set(fechaHoraGt, { hours: hS, minutes: mS, seconds: sS || 0, milliseconds: 0 });
     const scheduleSalidaTarde = addMinutes(scheduleSalida, 15);
 
-    const diaDeLaSemana = getDay(fechaHoraGt); // 0 = Domingo, 1 = Lunes...
+    const puedeMarcarEntrada = isAfter(fechaHoraGt, addMinutes(scheduleEntrada, -60));
+    const puedeMarcarSalida = isAfter(fechaHoraGt, addMinutes(scheduleSalida, -60));
+
+    const diaDeLaSemana = getDay(fechaHoraGt);
     const esDiaLaboral = diasLaborales.includes(diaDeLaSemana);
 
     const estaFueraDeHorario = !esDiaLaboral || isBefore(fechaHoraGt, scheduleEntrada) || isAfter(fechaHoraGt, scheduleSalida);
@@ -118,7 +123,9 @@ export default function Asistencia() {
       scheduleSalidaTarde, 
       horarioFormateado, 
       esHorarioMultiple,
-      esDiaLaboral 
+      esDiaLaboral,
+      puedeMarcarEntrada,
+      puedeMarcarSalida
     };
   }, [fechaHoraGt, horario_entrada, horario_salida, horario_dias, horario_nombre]);
 
@@ -279,7 +286,6 @@ export default function Asistencia() {
   if (cargandoUsuario || cargandoRegistros) return <Cargando texto='Asistencia...' />;
 
   const renderBotonMarcado = () => {
-    // Si NO es horario múltiple Y NO es un día laboral según el horario, bloqueamos el botón.
     if (!esHorarioMultiple && !esDiaLaboral) {
       return (
         <div className="p-4 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900 rounded-md text-center transition-colors">
@@ -309,17 +315,47 @@ export default function Asistencia() {
     
     if (!entradaMarcada) {
       return (
-        <Button onClick={() => handleIniciarMarcado('Entrada')} disabled={cargando || cargandoGeo} className="w-full py-6 text-base bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 flex items-center justify-center gap-2 border-0 text-white">
-           {cargandoGeo && <MapPin className="animate-bounce h-4 w-4" />}
-          {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Marcando...' : 'Marcar Entrada')}
-        </Button>
+        <div className="flex flex-col items-center gap-2 w-full">
+          <Button 
+            onClick={() => handleIniciarMarcado('Entrada')} 
+            disabled={cargando || cargandoGeo || !puedeMarcarEntrada} 
+            className={`w-full py-6 text-base flex items-center justify-center gap-2 border-0 text-white transition-all ${
+              puedeMarcarEntrada 
+                ? 'bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600' 
+                : 'bg-gray-300 dark:bg-neutral-800 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            {cargandoGeo && <MapPin className="animate-bounce h-4 w-4" />}
+            {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Marcando...' : 'Marcar Entrada')}
+          </Button>
+          {!puedeMarcarEntrada && (
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Podrá marcar a su hora de entrada: {horarioFormateado.entrada}
+            </p>
+          )}
+        </div>
       );
     } else if (!salidaMarcada) {
       return (
-        <Button onClick={() => handleIniciarMarcado('Salida')} disabled={cargando || cargandoGeo} className="w-full py-6 text-base bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 flex items-center justify-center gap-2 border-0 text-white">
-           {cargandoGeo && <MapPin className="animate-bounce h-4 w-4" />}
-          {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Marcando...' : 'Marcar Salida')}
-        </Button>
+        <div className="flex flex-col items-center gap-2 w-full">
+          <Button 
+            onClick={() => handleIniciarMarcado('Salida')} 
+            disabled={cargando || cargandoGeo || !puedeMarcarSalida} 
+            className={`w-full py-6 text-base flex items-center justify-center gap-2 border-0 text-white transition-all ${
+              puedeMarcarSalida 
+                ? 'bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600' 
+                : 'bg-gray-300 dark:bg-neutral-800 text-gray-500 cursor-not-allowed'
+            }`}
+          >
+            {cargandoGeo && <MapPin className="animate-bounce h-4 w-4" />}
+            {cargandoGeo ? 'Obteniendo ubicación...' : (cargando ? 'Marcando...' : 'Marcar Salida')}
+          </Button>
+          {!puedeMarcarSalida && (
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Podrá marcar a su hora de salida: {horarioFormateado.salida}
+            </p>
+          )}
+        </div>
       );
     } else {
       return <p className="text-center text-gray-500 dark:text-gray-400 font-semibold p-4 bg-gray-100 dark:bg-neutral-800 rounded-md">Jornada completada por hoy</p>;
