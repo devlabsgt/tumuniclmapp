@@ -15,8 +15,8 @@ import { toast } from 'react-toastify';
 type AlumnoFormData = z.infer<typeof alumnoSchema>;
 
 interface Lugar {
-    id: number;
-    nombre: string;
+  id: number;
+  nombre: string;
 }
 
 interface Props {
@@ -197,6 +197,10 @@ export default function Alumno({ isOpen, onClose, onSave, alumnoAEditar, nivelId
 
   if (!isOpen) return null;
 
+  // Clases comunes para inputs en dark mode
+  const inputClasses = "dark:bg-neutral-900 dark:border-neutral-700 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:ring-blue-500";
+  const labelClasses = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1";
+
   return (
     <motion.div 
       className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
@@ -205,7 +209,7 @@ export default function Alumno({ isOpen, onClose, onSave, alumnoAEditar, nivelId
       exit={{ opacity: 0 }}
     >
       <motion.div 
-        className="bg-slate-50 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="bg-slate-50 dark:bg-neutral-900 border dark:border-neutral-800 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
         initial={{ scale: 0.9, y: 30 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 30 }}
@@ -213,21 +217,21 @@ export default function Alumno({ isOpen, onClose, onSave, alumnoAEditar, nivelId
         <div className="p-8">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-800">{isEditMode ? 'Editar Datos del Alumno' : 'Inscribir Alumno'}</h2>
-              <p className="text-sm text-gray-500">Complete la información requerida.</p>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">{isEditMode ? 'Editar Datos del Alumno' : 'Inscribir Alumno'}</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Complete la información requerida.</p>
             </div>
-            <Button size="icon" variant="ghost" onClick={onClose} className="rounded-full -mt-2 -mr-2">
+            <Button size="icon" variant="ghost" onClick={onClose} className="rounded-full -mt-2 -mr-2 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-neutral-800">
               <X className="h-5 w-5" />
             </Button>
           </div>
           
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
             {/* --- SECCIÓN DATOS DEL ALUMNO --- */}
-            <div className="space-y-4 p-6 bg-white rounded-lg border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-700">Datos del Alumno</h3>
+            <div className="space-y-4 p-6 bg-white dark:bg-neutral-800 rounded-lg border border-gray-200 dark:border-neutral-700">
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200">Datos del Alumno</h3>
               
               <div>
-                <label htmlFor="nombre_completo" className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
+                <label htmlFor="nombre_completo" className={labelClasses}>Nombre Completo</label>
                 <div className="relative">
                   <Input
                     id="nombre_completo"
@@ -236,16 +240,16 @@ export default function Alumno({ isOpen, onClose, onSave, alumnoAEditar, nivelId
                     onChange={handleNameChange}
                     onBlur={() => setTimeout(() => setSearchResults([]), 150)}
                     placeholder={isEditMode ? "Nombre del alumno" : "Buscar o crear alumno..."}
-                    className={errors.nombre_completo ? 'border-red-500' : ''}
+                    className={`${errors.nombre_completo ? 'border-red-500' : ''} ${inputClasses}`}
                     autoComplete="off"
                   />
                   {searchResults.length > 0 && (
-                    <div className="absolute w-full bg-white border rounded-md mt-1 z-20 max-h-40 overflow-y-auto shadow-lg">
+                    <div className="absolute w-full bg-white dark:bg-neutral-900 border dark:border-neutral-700 rounded-md mt-1 z-20 max-h-40 overflow-y-auto shadow-lg">
                       {searchResults.map((alumno, index) => (
                         <button 
                           type="button" 
                           key={alumno.id} 
-                          className={`w-full text-left p-3 text-sm hover:bg-blue-500 hover:text-white transition-colors duration-150 ${index < searchResults.length - 1 ? 'border-b' : ''}`}
+                          className={`w-full text-left p-3 text-sm hover:bg-blue-500 hover:text-white dark:text-gray-200 transition-colors duration-150 ${index < searchResults.length - 1 ? 'border-b dark:border-neutral-800' : ''}`}
                           onClick={() => handleSelectAlumno(alumno)}
                         >
                           {alumno.nombre_completo}
@@ -258,29 +262,29 @@ export default function Alumno({ isOpen, onClose, onSave, alumnoAEditar, nivelId
               </div>
 
               <div>
-                <label htmlFor="cui_alumno" className="block text-sm font-medium text-gray-700 mb-1">CUI / DPI</label>
-                <Input id="cui_alumno" {...register("cui_alumno")} placeholder="13 dígitos sin espacios" className={errors.cui_alumno ? 'border-red-500' : ''} readOnly={!!selectedAlumno && !isEditMode} />
+                <label htmlFor="cui_alumno" className={labelClasses}>CUI / DPI</label>
+                <Input id="cui_alumno" {...register("cui_alumno")} placeholder="13 dígitos sin espacios" className={`${errors.cui_alumno ? 'border-red-500' : ''} ${inputClasses}`} readOnly={!!selectedAlumno && !isEditMode} />
                 {errors.cui_alumno && <p className="text-sm text-red-500 mt-1">{errors.cui_alumno.message}</p>}
               </div>
               
               <div>
-                <label htmlFor="telefono_alumno" className="block text-sm font-medium text-gray-700 mb-1">Teléfono (Opcional)</label>
-                <Input id="telefono_alumno" {...register("telefono_alumno")} placeholder="8 dígitos sin espacios" className={errors.telefono_alumno ? 'border-red-500' : ''} readOnly={!!selectedAlumno && !isEditMode} />
+                <label htmlFor="telefono_alumno" className={labelClasses}>Teléfono (Opcional)</label>
+                <Input id="telefono_alumno" {...register("telefono_alumno")} placeholder="8 dígitos sin espacios" className={`${errors.telefono_alumno ? 'border-red-500' : ''} ${inputClasses}`} readOnly={!!selectedAlumno && !isEditMode} />
                 {errors.telefono_alumno && <p className="text-sm text-red-500 mt-1">{errors.telefono_alumno.message}</p>}
               </div>
 
               <div>
-                <label htmlFor="fecha_nacimiento" className="block text-sm font-medium text-gray-700 mb-1">Fecha de Nacimiento</label>
-                <Input id="fecha_nacimiento" type="date" {...register("fecha_nacimiento")} className={errors.fecha_nacimiento ? 'border-red-500' : ''} readOnly={!!selectedAlumno && !isEditMode} />
+                <label htmlFor="fecha_nacimiento" className={labelClasses}>Fecha de Nacimiento</label>
+                <Input id="fecha_nacimiento" type="date" {...register("fecha_nacimiento")} className={`${errors.fecha_nacimiento ? 'border-red-500' : ''} ${inputClasses} dark:[color-scheme:dark]`} readOnly={!!selectedAlumno && !isEditMode} />
                 {errors.fecha_nacimiento && <p className="text-sm text-red-500 mt-1">{errors.fecha_nacimiento.message}</p>}
               </div>
 
               <div>
-                <label htmlFor="ubicacion" className="block text-sm font-medium text-gray-700 mb-1">Ubicación</label>
+                <label htmlFor="ubicacion" className={labelClasses}>Ubicación</label>
                 <select 
                   id="ubicacion" 
                   {...register("ubicacion")} 
-                  className={`w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.ubicacion ? 'border-red-500' : ''}`}
+                  className={`w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.ubicacion ? 'border-red-500' : ''} dark:bg-neutral-900 dark:border-neutral-700 dark:text-gray-100`}
                   disabled={!!selectedAlumno && !isEditMode}
                 >
                   <option value="">-- Seleccione una ubicación --</option>
@@ -292,41 +296,41 @@ export default function Alumno({ isOpen, onClose, onSave, alumnoAEditar, nivelId
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Sexo</label>
-                <div className={`flex rounded-md border p-1 bg-gray-50 ${!!selectedAlumno && !isEditMode ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                    <button type="button" onClick={() => setValue('sexo', 'M', { shouldValidate: true })} className={`flex-1 rounded-md py-2 text-sm font-semibold transition-colors duration-200 ${sexoActual === 'M' ? 'bg-blue-600 text-white shadow' : 'text-gray-600 hover:bg-gray-200'}`} disabled={!!selectedAlumno && !isEditMode}>Masculino</button>
-                    <button type="button" onClick={() => setValue('sexo', 'F', { shouldValidate: true })} className={`flex-1 rounded-md py-2 text-sm font-semibold transition-colors duration-200 ${sexoActual === 'F' ? 'bg-pink-500 text-white shadow' : 'text-gray-600 hover:bg-gray-200'}`} disabled={!!selectedAlumno && !isEditMode}>Femenino</button>
+                <label className={labelClasses}>Sexo</label>
+                <div className={`flex rounded-md border p-1 bg-gray-50 dark:bg-neutral-900/50 dark:border-neutral-700 ${!!selectedAlumno && !isEditMode ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    <button type="button" onClick={() => setValue('sexo', 'M', { shouldValidate: true })} className={`flex-1 rounded-md py-2 text-sm font-semibold transition-colors duration-200 ${sexoActual === 'M' ? 'bg-blue-600 text-white shadow' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-neutral-700'}`} disabled={!!selectedAlumno && !isEditMode}>Masculino</button>
+                    <button type="button" onClick={() => setValue('sexo', 'F', { shouldValidate: true })} className={`flex-1 rounded-md py-2 text-sm font-semibold transition-colors duration-200 ${sexoActual === 'F' ? 'bg-pink-500 text-white shadow' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-neutral-700'}`} disabled={!!selectedAlumno && !isEditMode}>Femenino</button>
                 </div>
                 {errors.sexo && <p className="text-sm text-red-500 mt-1">{errors.sexo.message}</p>}
               </div>
             </div>
 
             {/* --- SECCIÓN DATOS DEL ENCARGADO --- */}
-            <div className="space-y-4 p-6 bg-white rounded-lg border border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-700">Datos del Encargado</h3>
+            <div className="space-y-4 p-6 bg-white dark:bg-neutral-800 rounded-lg border border-gray-200 dark:border-neutral-700">
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200">Datos del Encargado</h3>
               
               <div>
-                <label htmlFor="nombre_encargado" className="block text-sm font-medium text-gray-700 mb-1">Nombre del Encargado</label>
-                <Input id="nombre_encargado" {...register("nombre_encargado")} placeholder="Nombre completo del encargado" className={errors.nombre_encargado ? 'border-red-500' : ''} readOnly={!!selectedAlumno && !isEditMode} />
+                <label htmlFor="nombre_encargado" className={labelClasses}>Nombre del Encargado</label>
+                <Input id="nombre_encargado" {...register("nombre_encargado")} placeholder="Nombre completo del encargado" className={`${errors.nombre_encargado ? 'border-red-500' : ''} ${inputClasses}`} readOnly={!!selectedAlumno && !isEditMode} />
                 {errors.nombre_encargado && <p className="text-sm text-red-500 mt-1">{errors.nombre_encargado.message}</p>}
               </div>
 
               <div>
-                <label htmlFor="cui_encargado" className="block text-sm font-medium text-gray-700 mb-1">CUI / DPI</label>
-                <Input id="cui_encargado" {...register("cui_encargado")} placeholder="13 dígitos sin espacios" className={errors.cui_encargado ? 'border-red-500' : ''} readOnly={!!selectedAlumno && !isEditMode} />
+                <label htmlFor="cui_encargado" className={labelClasses}>CUI / DPI</label>
+                <Input id="cui_encargado" {...register("cui_encargado")} placeholder="13 dígitos sin espacios" className={`${errors.cui_encargado ? 'border-red-500' : ''} ${inputClasses}`} readOnly={!!selectedAlumno && !isEditMode} />
                 {errors.cui_encargado && <p className="text-sm text-red-500 mt-1">{errors.cui_encargado.message}</p>}
               </div>
 
               <div>
-                <label htmlFor="telefono_encargado" className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                <Input id="telefono_encargado" {...register("telefono_encargado")} placeholder="8 dígitos sin espacios" className={errors.telefono_encargado ? 'border-red-500' : ''} readOnly={!!selectedAlumno && !isEditMode} />
+                <label htmlFor="telefono_encargado" className={labelClasses}>Teléfono</label>
+                <Input id="telefono_encargado" {...register("telefono_encargado")} placeholder="8 dígitos sin espacios" className={`${errors.telefono_encargado ? 'border-red-500' : ''} ${inputClasses}`} readOnly={!!selectedAlumno && !isEditMode} />
                 {errors.telefono_encargado && <p className="text-sm text-red-500 mt-1">{errors.telefono_encargado.message}</p>}
               </div>
             </div>
             
             <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700">
+              <Button type="button" variant="outline" onClick={onClose} className="dark:bg-transparent dark:text-gray-300 dark:border-neutral-600 dark:hover:bg-neutral-800">Cancelar</Button>
+              <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500">
                 {isSubmitting ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Inscribir')}
               </Button>
             </div>

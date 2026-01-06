@@ -15,8 +15,8 @@ import { toast } from 'react-toastify';
 type ProgramaFormData = z.infer<typeof programaSchema>;
 
 interface Lugar {
-    id: number;
-    nombre: string;
+  id: number;
+  nombre: string;
 }
 
 interface Props {
@@ -113,7 +113,7 @@ export default function Programa({ isOpen, onClose, onSave, programaAEditar, pro
       exit={{ opacity: 0 }}
     >
       <motion.div
-        className="bg-slate-50 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="bg-slate-50 dark:bg-neutral-900 border dark:border-neutral-800 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 30 }}
@@ -121,32 +121,53 @@ export default function Programa({ isOpen, onClose, onSave, programaAEditar, pro
         <div className="p-8">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-800">{isEditMode ? 'Editar' : (isNivel ? 'Nuevo Nivel' : 'Nuevo Programa')}</h2>
-              <p className="text-sm text-gray-500">Proporcione los detalles requeridos.</p>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                {isEditMode ? 'Editar' : (isNivel ? 'Nuevo Nivel' : 'Nuevo Programa')}
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Proporcione los detalles requeridos.</p>
             </div>
-            <Button size="icon" variant="ghost" onClick={onClose} className="rounded-full -mt-2 -mr-2">
+            <Button 
+                size="icon" 
+                variant="ghost" 
+                onClick={onClose} 
+                className="rounded-full -mt-2 -mr-2 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-neutral-800"
+            >
               <X className="h-5 w-5" />
             </Button>
           </div>
           
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div className="space-y-4 p-6 bg-white rounded-lg border border-gray-200">
+            <div className="space-y-4 p-6 bg-white dark:bg-neutral-800 rounded-lg border border-gray-200 dark:border-neutral-700">
               <div>
-                <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-                <Input id="nombre" {...register("nombre")} placeholder="Nombre del programa o nivel" className={errors.nombre ? 'border-red-500' : ''} />
+                <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nombre</label>
+                <Input 
+                    id="nombre" 
+                    {...register("nombre")} 
+                    placeholder="Nombre del programa o nivel" 
+                    className={`dark:bg-neutral-900 dark:border-neutral-700 dark:text-gray-100 dark:placeholder-gray-500 ${errors.nombre ? 'border-red-500' : ''}`} 
+                />
                 {errors.nombre && <p className="text-sm text-red-500 mt-1">{errors.nombre.message}</p>}
               </div>
 
               <div>
-                <label htmlFor="descripcion" className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-                <Input id="descripcion" {...register("descripcion")} placeholder="Descripción breve" className={errors.descripcion ? 'border-red-500' : ''} />
+                <label htmlFor="descripcion" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
+                <Input 
+                    id="descripcion" 
+                    {...register("descripcion")} 
+                    placeholder="Descripción breve" 
+                    className={`dark:bg-neutral-900 dark:border-neutral-700 dark:text-gray-100 dark:placeholder-gray-500 ${errors.descripcion ? 'border-red-500' : ''}`} 
+                />
                 {errors.descripcion && <p className="text-sm text-red-500 mt-1">{errors.descripcion.message}</p>}
               </div>
               
               {isNivel && (
                 <div>
-                  <label htmlFor="lugar" className="block text-sm font-medium text-gray-700 mb-1">Lugar</label>
-                  <select id="lugar" {...register("lugar")} className={`w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.lugar ? 'border-red-500' : ''}`}>
+                  <label htmlFor="lugar" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lugar</label>
+                  <select 
+                    id="lugar" 
+                    {...register("lugar")} 
+                    className={`w-full h-10 rounded-md border border-gray-300 bg-white dark:bg-neutral-900 dark:border-neutral-700 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.lugar ? 'border-red-500' : ''}`}
+                  >
                     <option value="">-- Seleccione un lugar --</option>
                     {lugares.map(lugar => (<option key={lugar.id} value={lugar.nombre}>{lugar.nombre}</option>))}
                   </select>
@@ -155,8 +176,12 @@ export default function Programa({ isOpen, onClose, onSave, programaAEditar, pro
               )}
 
               <div>
-                <label htmlFor="anio" className="block text-sm font-medium text-gray-700 mb-1">Año</label>
-                <select id="anio" {...register("anio", { valueAsNumber: true })} className={`w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.anio ? 'border-red-500' : ''}`}>
+                <label htmlFor="anio" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Año</label>
+                <select 
+                    id="anio" 
+                    {...register("anio", { valueAsNumber: true })} 
+                    className={`w-full h-10 rounded-md border border-gray-300 bg-white dark:bg-neutral-900 dark:border-neutral-700 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.anio ? 'border-red-500' : ''}`}
+                >
                   {yearOptions.map(year => (<option key={year} value={year}>{year}</option>))}
                 </select>
                 {errors.anio && <p className="text-sm text-red-500 mt-1">{errors.anio.message}</p>}
@@ -164,8 +189,19 @@ export default function Programa({ isOpen, onClose, onSave, programaAEditar, pro
             </div>
             
             <div className="flex justify-end gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-              <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose}
+                className="dark:bg-transparent dark:text-gray-300 dark:border-neutral-600 dark:hover:bg-neutral-800"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting} 
+                className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
+              >
                 {isSubmitting ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Crear')}
               </Button>
             </div>

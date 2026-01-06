@@ -93,6 +93,8 @@ export default function Nivel() {
         return;
     }
 
+    // Nota: SweetAlert2 por defecto es claro. Para dark mode nativo en swal se requiere configuración global de CSS, 
+    // pero aquí mantenemos la funcionalidad base.
     Swal.fire({
       title: '¿Está seguro?',
       text: `¿Desea desasignar a "${alumno.nombre_completo}" de este nivel?`,
@@ -127,7 +129,8 @@ export default function Nivel() {
   }, [nivel, maestros]);
   
   if (loading || cargandoUsuario || !nivel) {
-    return <div className="text-center py-10">Cargando Nivel...</div>;
+    // Texto de carga ajustado para dark mode
+    return <div className="text-center py-10 text-gray-600 dark:text-gray-300">Cargando Nivel...</div>;
   }
 
   return (
@@ -137,7 +140,8 @@ export default function Nivel() {
           <div className="flex-shrink-0">
             <Button
               variant="link"
-              className="gap-2 text-blue-600 justify-start p-0"
+              // Botón Volver: azul oscuro en light, azul claro en dark
+              className="gap-2 text-blue-600 dark:text-blue-400 justify-start p-0"
               onClick={() => router.back()}
             >
               <ArrowLeft className="h-4 w-4"/>
@@ -148,31 +152,37 @@ export default function Nivel() {
             <DropdownMenu.Root>
               <DropdownMenu.Trigger asChild>
                 <Button
-                  className="w-full sm:w-auto gap-2 whitespace-nowrap bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100"
+                  // Botón Principal del Dropdown:
+                  // Light: bg-blue-50 text-blue-700
+                  // Dark: bg-blue-900/20 text-blue-300 border-blue-800
+                  className="w-full sm:w-auto gap-2 whitespace-nowrap bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-900/40"
                   variant="link"
                 >
                   <h3 className="text-xl">
                     {nivel.nombre}
                   </h3>
-                  <ChevronDown className="h-4 w-4 text-blue-700" />
+                  <ChevronDown className="h-4 w-4 text-blue-700 dark:text-blue-300" />
                 </Button>
               </DropdownMenu.Trigger>
 
               <DropdownMenu.Portal>
                 <DropdownMenu.Content
-                  className="mt-2 rounded-md bg-white p-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                  // Menú desplegable: Fondo blanco en light, gris oscuro (neutral-800) en dark
+                  className="mt-2 rounded-md bg-white dark:bg-neutral-800 p-1 shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-neutral-700 focus:outline-none z-50 min-w-[200px]"
                   sideOffset={5}
                   align="center"
                 >
-                  <div className="w-full px-2 py-1 text-xs font-semibold text-gray-500 whitespace-normal">
+                  <div className="w-full px-2 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 whitespace-normal">
                     {nivel.descripcion || 'Sin descripción'}
                   </div>
-                  <DropdownMenu.Separator className="h-px bg-gray-200 my-1" />
+                  
+                  <DropdownMenu.Separator className="h-px bg-gray-200 dark:bg-neutral-700 my-1" />
+                  
                   {(permisos.includes('EDITAR') || permisos.includes('TODO')) && (
                     <DropdownMenu.Item asChild>
                       <Button
                         variant="ghost"
-                        className="w-full flex justify-start gap-2 text-blue-600 hover:bg-blue-50"
+                        className="w-full flex justify-start gap-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                         onClick={() => setIsFormNivelOpen(true)}
                       >
                         <Pencil className="h-4 w-4" /> Editar Nivel
@@ -183,7 +193,7 @@ export default function Nivel() {
                     <DropdownMenu.Item asChild>
                       <Button
                         variant="ghost"
-                        className="w-full flex justify-start gap-2 text-blue-600 hover:bg-blue-50"
+                        className="w-full flex justify-start gap-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                         onClick={handleOpenFormAlumno}
                       >
                         <UserPlus className="h-4 w-4" /> Inscribir Alumno
@@ -194,7 +204,7 @@ export default function Nivel() {
                     <DropdownMenu.Item asChild>
                       <Button
                         variant="ghost"
-                        className="w-full flex justify-start gap-2 text-blue-600 hover:bg-blue-50"
+                        className="w-full flex justify-start gap-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                         onClick={() => setIsAsignarMaestroOpen(true)}
                       >
                         <GraduationCap className="h-4 w-4" /> Asignar Maestro
