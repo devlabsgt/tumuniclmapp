@@ -73,13 +73,13 @@ export default function FormularioHorario({ horarioAEditar, onGuardar, onCancela
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md border border-gray-200 max-h-[90vh] overflow-y-auto">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">
+    <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl p-6 w-full max-w-md border border-gray-200 dark:border-neutral-800 max-h-[90vh] overflow-y-auto transition-colors">
+      <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">
         {horarioAEditar ? 'Editar Horario' : 'Crear Nuevo Horario'}
       </h2>
       
       <div className="mb-4">
-        <label className="block text-gray-700 font-bold mb-2" htmlFor="nombre">
+        <label className="block text-gray-700 dark:text-neutral-300 font-bold mb-2" htmlFor="nombre">
           Nombre del Horario
         </label>
         <Input
@@ -88,6 +88,7 @@ export default function FormularioHorario({ horarioAEditar, onGuardar, onCancela
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
           placeholder="Ej: Normal, Medio Turno, Sistema"
+          className="dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-500"
         />
       </div>
 
@@ -95,21 +96,21 @@ export default function FormularioHorario({ horarioAEditar, onGuardar, onCancela
         <button 
           type="button" 
           onClick={() => setSelectedDays([1, 2, 3, 4, 5])} 
-          className="w-1/2 px-3 py-2 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg font-semibold hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+          className="w-1/2 px-3 py-2 bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-neutral-300 border border-gray-200 dark:border-neutral-700 rounded-lg font-semibold hover:bg-gray-200 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
         >
           Semana Laboral
         </button>
         <button 
           type="button" 
           onClick={() => setSelectedDays([0, 1, 2, 3, 4, 5, 6])} 
-          className="w-1/2 px-3 py-2 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg font-semibold hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+          className="w-1/2 px-3 py-2 bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-neutral-300 border border-gray-200 dark:border-neutral-700 rounded-lg font-semibold hover:bg-gray-200 dark:hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
         >
           Toda la Semana
         </button>
       </div>
 
       <div className="mb-6">
-        <label className="block text-gray-700 font-bold mb-3">
+        <label className="block text-gray-700 dark:text-neutral-300 font-bold mb-3">
           Seleccionar Días
         </label>
         <div className="grid grid-cols-7 gap-2 text-center">
@@ -124,8 +125,8 @@ export default function FormularioHorario({ horarioAEditar, onGuardar, onCancela
                   transition-all duration-300 ease-in-out
                   transform hover:scale-105
                   ${isSelected 
-                    ? 'bg-blue-500 text-white border-blue-400 border-2 shadow-lg scale-105' 
-                    : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                    ? 'bg-blue-500 dark:bg-blue-700 text-white border-blue-400 dark:border-blue-500 border-2 shadow-lg scale-105' 
+                    : 'bg-gray-50 dark:bg-neutral-800/50 text-gray-600 dark:text-neutral-400 border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-700'
                   }
                 `}
               >
@@ -141,7 +142,7 @@ export default function FormularioHorario({ horarioAEditar, onGuardar, onCancela
       
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div>
-          <label className="block text-gray-700 font-bold mb-2" htmlFor="entrada">
+          <label className="block text-gray-700 dark:text-neutral-300 font-bold mb-2" htmlFor="entrada">
             Entrada
           </label>
           <input
@@ -149,11 +150,11 @@ export default function FormularioHorario({ horarioAEditar, onGuardar, onCancela
             id="entrada"
             value={entrada}
             onChange={(e) => setEntrada(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
           />
         </div>
         <div>
-          <label className="block text-gray-700 font-bold mb-2" htmlFor="salida">
+          <label className="block text-gray-700 dark:text-neutral-300 font-bold mb-2" htmlFor="salida">
             Salida
           </label>
           <input
@@ -161,23 +162,23 @@ export default function FormularioHorario({ horarioAEditar, onGuardar, onCancela
             id="salida"
             value={salida}
             onChange={(e) => setSalida(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
           />
         </div>
       </div>
       
-      <div className="flex justify-between items-center border-t border-gray-200 pt-4 mt-6">
+      <div className="flex justify-between items-center border-t border-gray-200 dark:border-neutral-800 pt-4 mt-6">
         <Button
           variant="ghost"
           onClick={onCancelar}
-          className="text-gray-600 hover:text-gray-800"
+          className="text-gray-600 dark:text-neutral-400 hover:text-gray-800 dark:hover:text-neutral-100 transition-colors"
         >
           Cancelar
         </Button>
         <Button
           onClick={handleGuardar}
           disabled={isSubmitting}
-          className="px-5 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors font-semibold shadow-md hover:shadow-lg"
+          className="px-5 py-2 text-white bg-blue-600 dark:bg-blue-700 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors font-semibold shadow-md hover:shadow-lg"
         >
           {isSubmitting ? 'Guardando...' : 'Guardar'}
         </Button>

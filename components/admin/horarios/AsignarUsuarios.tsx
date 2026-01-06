@@ -29,8 +29,7 @@ function FilaUsuario({
   const [isSaving, setIsSaving] = useState(false);
   
   const tieneEsteHorario = usuario.horario_id === horarioQueSeAsigna.id;
-  const tieneOtroHorario = usuario.horario_id && usuario.horario_id !== horarioQueSeAsigna.id;
-  const esHorarioNormal = horarioQueSeAsigna.nombre === 'Normal' && usuario.horario_id === null;
+  const tieneOtroHorario = usuario.horario_id !== null && usuario.horario_id !== horarioQueSeAsigna.id;
 
   const handleAsignar = async () => {
     setIsSaving(true);
@@ -63,17 +62,22 @@ function FilaUsuario({
   };
 
   return (
-    <div className="flex items-center justify-between gap-2 p-2 hover:bg-gray-50">
+    <div className="flex items-center justify-between gap-2 p-2 hover:bg-gray-50 dark:hover:bg-neutral-800/50 rounded-lg transition-colors">
       <div className="flex flex-col">
-        <span className="text-xs font-medium text-gray-800">{usuario.nombre}</span>
-        {(tieneEsteHorario || esHorarioNormal) && (
-          <span className="text-xs text-green-600 font-semibold">
+        <span className="text-xs font-medium text-gray-800 dark:text-gray-200">{usuario.nombre}</span>
+        {tieneEsteHorario && (
+          <span className="text-xs text-green-600 dark:text-green-400 font-semibold">
             Asignado: {horarioQueSeAsigna.nombre}
           </span>
         )}
         {tieneOtroHorario && (
-          <span className="text-xs text-amber-600 font-semibold">
+          <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold">
             Asignado a: {usuario.horario_nombre}
+          </span>
+        )}
+        {usuario.horario_id === null && (
+          <span className="text-xs text-gray-400 dark:text-neutral-500 font-semibold italic">
+            Sin asignar
           </span>
         )}
       </div>
@@ -81,16 +85,16 @@ function FilaUsuario({
       <Button
         size="sm"
         onClick={handleAsignar}
-        disabled={isSaving || tieneEsteHorario || esHorarioNormal}
-        className={`text-xs px-2 py-1 h-auto text-white ${
-          (tieneEsteHorario || esHorarioNormal) 
-            ? 'bg-green-600 hover:bg-green-600 cursor-default' 
-            : 'bg-blue-600 hover:bg-blue-700'
+        disabled={isSaving || tieneEsteHorario}
+        className={`text-xs px-3 py-1 h-auto text-white transition-all ${
+          tieneEsteHorario 
+            ? 'bg-green-600 dark:bg-green-700 hover:bg-green-600 cursor-default opacity-90' 
+            : 'bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-600'
         }`}
       >
         {isSaving 
           ? <Loader2 className="h-4 w-4 animate-spin" /> 
-          : (tieneEsteHorario || esHorarioNormal) 
+          : tieneEsteHorario 
             ? 'Asignado' 
             : 'Asignar'}
       </Button>
@@ -123,14 +127,8 @@ export default function AsignarUsuario({ isOpen, onClose, horario }: AsignarUsua
       ? usuarios.filter(u => u.nombre?.toLowerCase().includes(lowerSearchTerm))
       : usuarios;
 
-    const asignados = usuariosPreFiltrados.filter(u => 
-      u.horario_id === horario.id || (horario.nombre === 'Normal' && u.horario_id === null)
-    );
-    
-    const disponibles = usuariosPreFiltrados.filter(u => 
-      u.horario_id !== horario.id &&
-      !(horario.nombre === 'Normal' && u.horario_id === null)
-    );
+    const asignados = usuariosPreFiltrados.filter(u => u.horario_id === horario.id);
+    const disponibles = usuariosPreFiltrados.filter(u => u.horario_id !== horario.id);
     
     return { usuariosAsignadosFiltrados: asignados, usuariosDisponiblesFiltrados: disponibles };
   }, [usuarios, searchTerm, horario]);
@@ -139,7 +137,7 @@ export default function AsignarUsuario({ isOpen, onClose, horario }: AsignarUsua
     setUsuarios(prevUsuarios => 
       prevUsuarios.map(u => 
         u.user_id === userId 
-        ? { ...u, horario_id: newHorarioId, horario_nombre: newHorarioId === null ? 'Normal' : horario.nombre } 
+        ? { ...u, horario_id: newHorarioId, horario_nombre: newHorarioId === null ? 'Sin asignar' : horario.nombre } 
         : u
       )
     );
@@ -149,50 +147,50 @@ export default function AsignarUsuario({ isOpen, onClose, horario }: AsignarUsua
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="bg-white rounded-xl shadow-2xl w-full max-w-lg relative max-h-[80vh] flex flex-col"
-            initial={{ scale: 0.9, opacity: 0 }}
+            className="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-lg relative max-h-[85vh] flex flex-col border dark:border-neutral-800"
+            initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
+            exit={{ scale: 0.95, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center p-4 border-b">
+            <div className="flex justify-between items-center p-4 border-b dark:border-neutral-800">
               <div className="flex flex-col">
-                <h2 className="text-lg font-bold text-gray-800">Asignar Horario</h2>
-                <p className="text-xs font-semibold text-blue-600">{horario.nombre}</p>
+                <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">Asignar Horario</h2>
+                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">{horario.nombre}</p>
               </div>
-              <Button variant="ghost" size="icon" onClick={onClose} className="text-gray-500 hover:text-gray-800">
+              <Button variant="ghost" size="icon" onClick={onClose} className="text-gray-500 hover:text-gray-800 dark:text-neutral-400 dark:hover:text-neutral-100 transition-colors">
                 <X className="h-5 w-5" />
               </Button>
             </div>
             
             <div className="p-4">
               <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-neutral-500" />
                 <Input
                   placeholder="Buscar usuario..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 w-full text-xs"
+                  className="pl-9 w-full text-xs dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-500"
                 />
               </div>
             </div>
 
-            <div className="flex-grow p-4 pt-0 overflow-y-auto space-y-2">
+            <div className="flex-grow p-4 pt-0 overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-neutral-800">
               {loading ? (
                 <Cargando texto="Cargando usuarios..." />
               ) : (
                 <>
                   {searchTerm && (
                     <div className="space-y-2">
-                      <h4 className="text-xs font-semibold text-gray-500 mt-2">Resultados (disponibles):</h4>
+                      <h4 className="text-xs font-semibold text-gray-500 dark:text-neutral-400 mt-2">Resultados (disponibles):</h4>
                       {usuariosDisponiblesFiltrados.length === 0 ? (
-                        <p className="text-center text-xs text-gray-500 py-2">No hay usuarios disponibles con ese nombre.</p>
+                        <p className="text-center text-xs text-gray-500 dark:text-neutral-500 py-2 italic">No hay usuarios disponibles con ese nombre.</p>
                       ) : (
                         usuariosDisponiblesFiltrados.map(usuario => (
                           <FilaUsuario 
@@ -203,15 +201,15 @@ export default function AsignarUsuario({ isOpen, onClose, horario }: AsignarUsua
                           />
                         ))
                       )}
-                      <hr className="my-4" />
+                      <hr className="my-4 dark:border-neutral-800" />
                     </div>
                   )}
 
-                  <h4 className="text-xs font-semibold text-gray-500">
+                  <h4 className="text-xs font-semibold text-gray-500 dark:text-neutral-400">
                     Usuarios ya asignados a este horario ({usuariosAsignadosFiltrados.length}):
                   </h4>
                   {usuariosAsignadosFiltrados.length === 0 ? (
-                    <p className="text-center text-xs text-gray-500 py-4">
+                    <p className="text-center text-xs text-gray-500 dark:text-neutral-500 py-6 italic">
                       {searchTerm 
                         ? 'No hay usuarios asignados que coincidan.' 
                         : 'Aún no hay usuarios asignados a este horario.'
@@ -231,8 +229,8 @@ export default function AsignarUsuario({ isOpen, onClose, horario }: AsignarUsua
               )}
             </div>
             
-            <div className="p-4 border-t flex justify-end">
-              <Button variant="outline" onClick={onClose} className="text-xs">
+            <div className="p-4 border-t dark:border-neutral-800 flex justify-end">
+              <Button variant="outline" onClick={onClose} className="text-xs dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-700">
                 Cerrar
               </Button>
             </div>

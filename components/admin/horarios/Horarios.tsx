@@ -51,13 +51,13 @@ function ListaHorarios({ horarios, onEditar, onEliminar, onAbrirAsignar }: Lista
   return (
     <div className="w-full max-w-4xl space-y-3">
       {horarios.length === 0 && (
-        <p className="text-center text-gray-500 text-xs">No hay horarios creados.</p>
+        <p className="text-center text-gray-500 dark:text-neutral-500 text-xs">No hay horarios creados.</p>
       )}
       {horarios.map(horario => (
-        <div key={horario.id} className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div key={horario.id} className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-colors">
           <div className="flex-grow">
-            <h3 className="text-lg font-bold text-gray-800">{horario.nombre}</h3>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 mt-1">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">{horario.nombre}</h3>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-neutral-400 mt-1">
               <span className="text-xs"><span className="font-semibold">Días:</span> {formatDays(horario.dias)}</span>
               <span className="text-xs"><span className="font-semibold">Entrada:</span> {formatTime(horario.entrada)}</span>
               <span className="text-xs"><span className="font-semibold">Salida:</span> {formatTime(horario.salida)}</span>
@@ -66,7 +66,7 @@ function ListaHorarios({ horarios, onEditar, onEliminar, onAbrirAsignar }: Lista
           <div className="flex gap-2 flex-shrink-0 w-full sm:w-auto">
             <Button 
               size="sm" 
-              className="w-1/3 sm:w-auto text-xs bg-blue-600 hover:bg-blue-700 text-white"
+              className="w-1/3 sm:w-auto text-xs bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white"
               onClick={() => onAbrirAsignar(horario)}
             >
               <Users className="h-4 w-4 mr-2" /> Asignar
@@ -74,7 +74,7 @@ function ListaHorarios({ horarios, onEditar, onEliminar, onAbrirAsignar }: Lista
             <Button 
               variant="outline" 
               size="sm" 
-              className="w-1/3 sm:w-auto text-xs"
+              className="w-1/3 sm:w-auto text-xs dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-700"
               onClick={() => onEditar(horario)}
             >
               <Edit className="h-4 w-4 mr-2" /> Editar
@@ -190,25 +190,25 @@ export default function Horarios() {
         <Button
           variant="ghost"
           onClick={() => router.push('/protected/admin/users')}
-          className="text-blue-600 text-base underline w-full md:w-auto flex-shrink-0 justify-start"
+          className="text-blue-600 dark:text-blue-400 text-base underline w-full md:w-auto flex-shrink-0 justify-start"
         >
           Volver
         </Button>
         
         <div className="relative w-full md:w-auto md:flex-grow md:max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-neutral-500" />
           <Input
             type="text"
             placeholder="Buscar horario por nombre..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 w-full text-xs"
+            className="pl-9 w-full text-xs dark:bg-neutral-800 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-500"
           />
         </div>
 
         <Button
             onClick={handleCrear}
-            className="flex items-center justify-center gap-2 w-full md:w-auto bg-green-600 hover:bg-green-700 text-white"
+            className="flex items-center justify-center gap-2 w-full md:w-auto bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white"
           >
             <Plus className="h-4 w-4" /> Crear Nuevo Horario
         </Button>
@@ -230,16 +230,16 @@ export default function Horarios() {
       <AnimatePresence>
         {isFormModalOpen && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              exit={{ scale: 0.95, opacity: 0 }}
               transition={{ duration: 0.3 }}
               onClick={(e) => e.stopPropagation()}
             >
