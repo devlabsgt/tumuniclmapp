@@ -71,12 +71,12 @@ export default function Programa() {
   };
 
   if (loading || cargandoUsuario) {
-    return <div className="text-center py-10">Cargando Programa...</div>;
+    return <div className="text-center py-10 text-gray-600 dark:text-gray-300">Cargando Programa...</div>;
   }
   
   if (!programa) {
     return (
-      <div className="mx-auto w-full lg:w-4/5 max-w-7xl p-4 lg:p-6 text-center text-red-600 font-bold">
+      <div className="mx-auto w-full lg:w-4/5 max-w-7xl p-4 lg:p-6 text-center text-red-600 dark:text-red-400 font-bold">
         Error: No se encontró el programa con el ID '{programaId}'.
       </div>
     );
@@ -87,18 +87,29 @@ export default function Programa() {
       <div className="mx-auto w-full lg:w-4/5 max-w-7xl p-4 lg:p-6">
         <header className="flex flex-col gap-4 mb-6">
             <div className="flex flex-col md:flex-row lg:justify-between items-start lg:items-center gap-4">
-                <Button onClick={() => router.back()} variant="link" className="w-full md:w-auto gap-2 p-0 text-blue-600 justify-start">
+                <Button 
+                    onClick={() => router.back()} 
+                    variant="link" 
+                    className="w-full md:w-auto gap-2 p-0 text-blue-600 dark:text-blue-400 justify-start"
+                >
                     <ArrowLeft className="h-4 w-4"/>
                     Volver
                 </Button>
                 <div className="flex flex-col sm:flex-row justify-end gap-2 w-full md:w-auto">
                     {(permisos.includes('CREAR') || permisos.includes('TODO')) && (
                       <>
-                        <Button onClick={() => setIsFormMaestroOpen(true)} className="w-full sm:w-auto gap-2 whitespace-nowrap bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100" variant="outline">
+                        <Button 
+                            onClick={() => setIsFormMaestroOpen(true)} 
+                            className="w-full sm:w-auto gap-2 whitespace-nowrap bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300 dark:hover:bg-blue-900/40" 
+                            variant="outline"
+                        >
                             <GraduationCap className="h-4 w-4"/>
                             Nuevo Maestro
                         </Button>
-                        <Button onClick={() => setIsFormNivelOpen(true)} className="w-full sm:w-auto gap-2 whitespace-nowrap">
+                        <Button 
+                            onClick={() => setIsFormNivelOpen(true)} 
+                            className="w-full sm:w-auto gap-2 whitespace-nowrap"
+                        >
                             Nuevo Nivel
                         </Button>
                       </>
@@ -106,8 +117,8 @@ export default function Programa() {
                 </div>
             </div>
             <div>
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-800">{programa.nombre}</h1>
-                <p className="text-sm lg:text-base text-gray-600 mt-1">{programa.descripcion || 'Este programa no tiene una descripción.'}</p>
+                <h1 className="text-2xl lg:text-3xl font-bold text-gray-800 dark:text-gray-100">{programa.nombre}</h1>
+                <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-1">{programa.descripcion || 'Este programa no tiene una descripción.'}</p>
             </div>
         </header>
         
@@ -119,14 +130,12 @@ export default function Programa() {
               onBarClick={handleBarClick}
             />
           ) : (
-            <div className="border rounded-lg bg-white shadow-sm overflow-x-hidden p-4">
-                <div className="text-center py-10 text-gray-500">
+            <div className="border rounded-lg bg-white dark:bg-neutral-800 dark:border-neutral-700 shadow-sm overflow-x-hidden p-4">
+                <div className="text-center py-10 text-gray-500 dark:text-gray-400">
                     No hay datos para mostrar.
                 </div>
             </div>
           )}
-
-
 
           {maestrosDelPrograma && (
             <Maestros
@@ -135,13 +144,13 @@ export default function Programa() {
               rol={rol}
             />
           )}
-                    {alumnosDelPrograma ? (
+            {alumnosDelPrograma ? (
             <EstadisticasLugares
               alumnos={alumnosDelPrograma}
             />
           ) : (
-            <div className="border rounded-lg bg-white shadow-sm overflow-x-hidden p-4">
-                <div className="text-center py-10 text-gray-500">
+            <div className="border rounded-lg bg-white dark:bg-neutral-800 dark:border-neutral-700 shadow-sm overflow-x-hidden p-4">
+                <div className="text-center py-10 text-gray-500 dark:text-gray-400">
                     No hay datos de alumnos para mostrar.
                 </div>
             </div>

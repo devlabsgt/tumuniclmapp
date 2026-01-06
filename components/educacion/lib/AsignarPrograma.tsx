@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { X, Loader2, Search } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -32,14 +32,13 @@ export default function AsignarPrograma({ isOpen, onClose }: Props) {
   
   const [selectedProgram, setSelectedProgram] = useState<string>('');
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [originalUserIds, setOriginalUserIds] = useState<string[]>([]); // Nuevo estado
+  const [originalUserIds, setOriginalUserIds] = useState<string[]>([]);
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [filterAssigned, setFilterAssigned] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Cargar datos iniciales
   const fetchData = async () => {
     setLoading(true);
     const supabase = createClient();
@@ -68,7 +67,6 @@ export default function AsignarPrograma({ isOpen, onClose }: Props) {
     }
   }, [isOpen]);
 
-  // Sincronizar switches al seleccionar un programa
   useEffect(() => {
     if (selectedProgram) {
       const usersWithProgram = allUsers.filter(user => 
@@ -76,10 +74,10 @@ export default function AsignarPrograma({ isOpen, onClose }: Props) {
       );
       const ids = usersWithProgram.map(user => user.user_id);
       setSelectedUserIds(ids);
-      setOriginalUserIds(ids); // <-- Agregado
+      setOriginalUserIds(ids);
     } else {
       setSelectedUserIds([]);
-      setOriginalUserIds([]); // <-- Agregado
+      setOriginalUserIds([]);
     }
   }, [selectedProgram, allUsers]);
 
@@ -142,20 +140,19 @@ export default function AsignarPrograma({ isOpen, onClose }: Props) {
   const hasChanges = JSON.stringify(selectedUserIds.sort()) !== JSON.stringify(originalUserIds.sort());
   
   return (
-    <div className="fixed inset-0 bg-white/30 flex justify-center items-center z-50 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 bg-white/30 dark:bg-black/50 flex justify-center items-center z-50 p-4 backdrop-blur-sm">
       <motion.div 
-        className="bg-slate-50 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" 
+        className="bg-slate-50 dark:bg-neutral-900 border dark:border-neutral-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" 
         initial={{ opacity: 0, y: -30 }} 
         animate={{ opacity: 1, y: 0 }}
       >
         <div className="flex-grow p-6 overflow-y-auto space-y-6">
-            {/* Sección de Selección de Programa */}
-            <div className="p-6 bg-white rounded-lg border">
-                <h3 className="font-semibold mb-2">1. Seleccione un Programa</h3>
+            <div className="p-6 bg-white dark:bg-neutral-800 rounded-lg border dark:border-neutral-700">
+                <h3 className="font-semibold mb-2 dark:text-gray-100">1. Seleccione un Programa</h3>
                 <select
                     value={selectedProgram}
                     onChange={handleProgramChange}
-                    className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-neutral-900 dark:border-neutral-700 dark:text-gray-100"
                 >
                     <option value="">-- Seleccionar --</option>
                     {filteredPrograms.map(p => (
@@ -164,24 +161,29 @@ export default function AsignarPrograma({ isOpen, onClose }: Props) {
                 </select>
             </div>
 
-            {/* Sección de Gestión de Usuarios */}
             <AnimatePresence>
             {selectedProgram && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="relative p-6 bg-white rounded-lg border"
+                  className="relative p-6 bg-white dark:bg-neutral-800 rounded-lg border dark:border-neutral-700"
                 >
-                  {saving && <div className="absolute inset-0 bg-white/70 flex justify-center items-center z-10 rounded-lg"><Loader2 className="animate-spin h-6 w-6 text-blue-600" /></div>}
-                  <h3 className="text-lg font-semibold mb-4">2. Usuarios para: <span className="text-blue-600">{selectedProgram}</span></h3>
+                  {saving && (
+                    <div className="absolute inset-0 bg-white/70 dark:bg-neutral-900/70 flex justify-center items-center z-10 rounded-lg">
+                        <Loader2 className="animate-spin h-6 w-6 text-blue-600" />
+                    </div>
+                  )}
+                  <h3 className="text-lg font-semibold mb-4 dark:text-gray-100">
+                    2. Usuarios para: <span className="text-blue-600 dark:text-blue-500">{selectedProgram}</span>
+                  </h3>
                   
                   <div className="relative mb-2">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
                       <Input
                           placeholder="Filtrar usuario por email..."
                           value={userSearchTerm}
                           onChange={(e) => setUserSearchTerm(e.target.value)}
-                          className="pl-9"
+                          className="pl-9 dark:bg-neutral-900 dark:border-neutral-700 dark:text-gray-100 dark:placeholder-gray-500"
                       />
                   </div>
                   
@@ -192,7 +194,7 @@ export default function AsignarPrograma({ isOpen, onClose }: Props) {
                         onClick={() => setFilterAssigned(p => !p)}
                         className={`
                           relative inline-flex items-center h-6 rounded-full w-11 transition-colors
-                          ${filterAssigned ? 'bg-blue-600' : 'bg-gray-200'}
+                          ${filterAssigned ? 'bg-blue-600' : 'bg-gray-200 dark:bg-neutral-700'} 
                         `}
                       >
                         <motion.span
@@ -203,20 +205,20 @@ export default function AsignarPrograma({ isOpen, onClose }: Props) {
                           aria-hidden="true"
                         />
                       </button>
-                      <span className="text-sm text-gray-700">Solo usuarios asignados</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">Solo usuarios asignados</span>
                     </div>
                   </div>
                   
                   <div className="space-y-2 max-h-60 overflow-y-auto mb-4">
                       {filteredUsers.map(user => (
-                          <div key={user.user_id} className="flex items-center justify-between p-2 bg-slate-50 rounded-md">
-                              <span className="text-sm font-medium text-gray-700">{user.email}</span>
+                          <div key={user.user_id} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-neutral-900 rounded-md">
+                              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{user.email}</span>
                               <button
                                 type="button"
                                 onClick={() => handleSwitchChange(user.user_id, !selectedUserIds.includes(user.user_id))}
                                 className={`
                                   relative inline-flex items-center h-6 rounded-full w-11 transition-colors
-                                  ${selectedUserIds.includes(user.user_id) ? 'bg-blue-600' : 'bg-gray-200'}
+                                  ${selectedUserIds.includes(user.user_id) ? 'bg-blue-600' : 'bg-gray-200 dark:bg-neutral-700'}
                                 `}
                               >
                                 <span className="sr-only">Asignar a {user.email}</span>
@@ -231,13 +233,24 @@ export default function AsignarPrograma({ isOpen, onClose }: Props) {
                           </div>
                       ))}
                       {filteredUsers.length === 0 && (
-                          <p className="text-sm text-gray-500 italic text-center py-4">No se encontraron usuarios.</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 italic text-center py-4">No se encontraron usuarios.</p>
                       )}
                   </div>
 
                   <div className="flex justify-end gap-3 pt-4">
-                    <Button type="button" variant="outline" onClick={onClose}>Salir</Button>
-                    <Button onClick={handleUpdate} disabled={saving || !hasChanges}>
+                    <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={onClose}
+                        className="dark:bg-transparent dark:text-gray-300 dark:border-neutral-600 dark:hover:bg-neutral-800"
+                    >
+                        Salir
+                    </Button>
+                    <Button 
+                        onClick={handleUpdate} 
+                        disabled={saving || !hasChanges}
+                        className="dark:bg-blue-600 dark:hover:bg-blue-500 dark:text-white"
+                    >
                         <span className="inline">Actualizar</span>
                     </Button>
                   </div>
@@ -246,7 +259,14 @@ export default function AsignarPrograma({ isOpen, onClose }: Props) {
             </AnimatePresence>
             {!selectedProgram && (
                 <div className="flex justify-end pt-4">
-                    <Button type="button" variant="outline" onClick={onClose}>Salir</Button>
+                    <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={onClose}
+                        className="dark:bg-transparent dark:text-gray-300 dark:border-neutral-600 dark:hover:bg-neutral-800"
+                    >
+                        Salir
+                    </Button>
                 </div>
             )}
         </div>

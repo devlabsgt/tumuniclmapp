@@ -19,8 +19,8 @@ export default function EstadisticasNiveles({ niveles, alumnos, onBarClick }: Pr
 
   if (!niveles || !alumnos) {
     return (
-      <div className="p-4 bg-white border rounded-lg shadow-sm">
-        <p className="text-gray-500">Cargando datos...</p>
+      <div className="p-4 bg-white dark:bg-neutral-900 border dark:border-neutral-800 rounded-lg shadow-sm">
+        <p className="text-gray-500 dark:text-gray-400">Cargando datos...</p>
       </div>
     );
   }
@@ -41,17 +41,17 @@ export default function EstadisticasNiveles({ niveles, alumnos, onBarClick }: Pr
   }, [barData]);
 
   return (
-    <div className="h-auto w-full bg-white">
-      <div className="p-4 bg-white border rounded-xl">
+    <div className="h-auto w-full bg-white dark:bg-neutral-900 transition-colors duration-200">
+      <div className="p-4 bg-white dark:bg-neutral-900 border dark:border-neutral-800 rounded-xl">
         <div 
           className="flex justify-between items-center cursor-pointer"
           onClick={() => setIsExpanded(!isExpanded)}
         >
           <div className="flex items-center gap-3">
-            <ClipboardList className="h-6 w-6 text-blue-600" />
+            <ClipboardList className="h-6 w-6 text-blue-600 dark:text-blue-500" />
             <div className="flex flex-col">
-              <h3 className="text-xl font-bold text-gray-800">Niveles </h3>
-              <p className="text-gray-600 text-xs mt-1">Total de niveles: {niveles.length}</p>
+              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">Niveles</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-xs mt-1">Total de niveles: {niveles.length}</p>
             </div>
           </div>
           <motion.div
@@ -59,7 +59,7 @@ export default function EstadisticasNiveles({ niveles, alumnos, onBarClick }: Pr
             animate={{ rotate: isExpanded ? 180 : 0 }}
             transition={{ duration: 0.3 }}
           >
-            <ChevronDown className="h-6 w-6 text-gray-600" />
+            <ChevronDown className="h-6 w-6 text-gray-600 dark:text-gray-400" />
           </motion.div>
         </div>
         <AnimatePresence>
@@ -76,42 +76,46 @@ export default function EstadisticasNiveles({ niveles, alumnos, onBarClick }: Pr
 
                       
             <div className="my-6 relative w-4/5 mx-auto">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w- text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
               <Input
                   placeholder="Buscar nivel..."
                   value={filtroGrafica}
                   onChange={(e) => setFiltroGrafica(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 dark:bg-neutral-800 dark:border-neutral-700 dark:text-gray-100 dark:placeholder-gray-500"
               />
 
             </div>
               {barData.length > 0 ? (
                 <div className="space-y-4">
-                            <div className="border-b-4 border-gray-200 mt-4"></div>
-               <div className="my-2 text-xs text-blue-600 ">
-                  <Typewriter
-                    words={[
-                      'Seleccione una barra para ver los detalles del nivel.',
-                    ]}
-                    loop={1}
-                    cursor
-                    cursorStyle="_"
-                    typeSpeed={40}
-                  />
-              </div>
+                    <div className="border-b-4 border-gray-200 dark:border-neutral-800 mt-4"></div>
+                    <div className="my-2 text-xs text-blue-600 dark:text-blue-400">
+                        <Typewriter
+                            words={[
+                            'Seleccione una barra para ver los detalles del nivel.',
+                            ]}
+                            loop={1}
+                            cursor
+                            cursorStyle="_"
+                            typeSpeed={40}
+                        />
+                    </div>
                   {barData.map((item) => (
-                    <div key={item.id} className="space-y-4 cursor-pointer bg-gray-50 p-4 rounded-md shadow-sm transition-transform duration-200 hover:bg-blue-50 hover:scale-105 mx-5" onClick={() => onBarClick({ activePayload: [{ payload: item }] })}>
-                        <div className="flex justify-between items-start text-sm font-medium text-gray-600">
+                    <div 
+                        key={item.id} 
+                        className="space-y-4 cursor-pointer bg-gray-50 dark:bg-neutral-800 p-4 rounded-md shadow-sm transition-transform duration-200 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:scale-105 mx-5" 
+                        onClick={() => onBarClick({ activePayload: [{ payload: item }] })}
+                    >
+                        <div className="flex justify-between items-start text-sm font-medium text-gray-600 dark:text-gray-300">
                             <div>
-                                <span className="text-lg truncate font-bold">{item.nombre}</span>
-                                <div className="text-xs text-gray-500">{item.descripcion || ' '}</div>
+                                <span className="text-lg truncate font-bold text-gray-800 dark:text-gray-100">{item.nombre}</span>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">{item.descripcion || ' '}</div>
                                 
                             </div>
-                            <span className="font-bold">{item.alumnos_count}</span>
+                            <span className="font-bold text-gray-800 dark:text-gray-100">{item.alumnos_count}</span>
                         </div>
-                        <div className="relative bg-gray-200 rounded-full h-4">
+                        <div className="relative bg-gray-200 dark:bg-neutral-700 rounded-full h-4 overflow-hidden">
                             <motion.div
-                                className="bg-blue-600 h-full rounded-full"
+                                className="bg-blue-600 dark:bg-blue-500 h-full rounded-full"
                                 initial={{ width: 0 }}
                                 animate={{ width: `${(item.alumnos_count / maxAlumnos) * 100}%` }}
                                 transition={{ duration: 0.8, ease: "easeOut" }}
@@ -121,7 +125,7 @@ export default function EstadisticasNiveles({ niveles, alumnos, onBarClick }: Pr
                   ))}
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">No se encontraron niveles con ese nombre.</div>
+                <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">No se encontraron niveles con ese nombre.</div>
               )}
             </motion.div>
           )}

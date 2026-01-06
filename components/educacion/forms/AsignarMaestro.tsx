@@ -153,34 +153,40 @@ export default function AsignarMaestro({ isOpen, onClose, onSave, nivelId }: Pro
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
-        <div className="text-center text-white">Cargando maestros...</div>
+      <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4 backdrop-blur-sm">
+        <div className="text-center text-white font-medium">Cargando maestros...</div>
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
->
+    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
       <motion.div
-        className="bg-slate-50 rounded-xl shadow-2xl w-full max-w-lg p-8"
+        className="bg-slate-50 dark:bg-neutral-900 border dark:border-neutral-800 rounded-xl shadow-2xl w-full max-w-lg p-8"
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
       >
         <div className="flex justify-between items-start mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">Asignar Maestro</h2>
-            <p className="text-sm text-gray-500">Para el nivel: <span className="font-semibold">{nivel?.nombre}</span></p>
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Asignar Maestro</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Para el nivel: <span className="font-semibold text-gray-700 dark:text-gray-300">{nivel?.nombre}</span>
+            </p>
           </div>
-          <Button size="icon" variant="ghost" onClick={onClose} className="rounded-full -mt-2 -mr-2">
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            onClick={onClose} 
+            className="rounded-full -mt-2 -mr-2 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-neutral-800"
+          >
             <X className="h-5 w-5" />
           </Button>
         </div>
         
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="p-6 bg-white rounded-lg border">
+          <div className="p-6 bg-white dark:bg-neutral-800 rounded-lg border border-gray-200 dark:border-neutral-700">
             <div className="relative">
-              <label htmlFor="maestro" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="maestro" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 {maestroActual ? 'Maestro Asignado' : 'Asignar Maestro'}
               </label>
               <Input 
@@ -190,18 +196,19 @@ export default function AsignarMaestro({ isOpen, onClose, onSave, nivelId }: Pro
                 placeholder="Buscar o crear maestro..." 
                 autoComplete="off"
                 readOnly={!!maestroActual}
+                className="dark:bg-neutral-900 dark:border-neutral-700 dark:text-gray-100 dark:placeholder-gray-500"
               />
               {searchResults.length > 0 && (
-                <div className="absolute w-full bg-white border rounded-md mt-1 z-10 max-h-40 overflow-y-auto shadow-lg">
-                    {searchResults.map(maestro => (
-                        <button
-                            type="button"
-                            key={maestro.id}
-                            className="w-full text-left p-2 hover:bg-blue-600 hover:text-white"
-                            onClick={() => handleSelectMaestro(maestro)}
-                        >
-                            {maestro.nombre}
-                        </button>
+                <div className="absolute w-full bg-white dark:bg-neutral-900 border dark:border-neutral-700 rounded-md mt-1 z-10 max-h-40 overflow-y-auto shadow-lg">
+                    {searchResults.map((maestro, index) => (
+                      <button
+                        type="button"
+                        key={maestro.id}
+                        className={`w-full text-left p-2 hover:bg-blue-600 hover:text-white dark:text-gray-200 transition-colors duration-150 ${index < searchResults.length - 1 ? 'border-b dark:border-neutral-800' : ''}`}
+                        onClick={() => handleSelectMaestro(maestro)}
+                      >
+                        {maestro.nombre}
+                      </button>
                     ))}
                 </div>
               )}
@@ -210,15 +217,32 @@ export default function AsignarMaestro({ isOpen, onClose, onSave, nivelId }: Pro
           
           <div className="flex justify-end gap-3 pt-4">
             {maestroActual ? (
-              <Button type="button" variant="outline" className="text-red-500 border-red-500 hover:bg-red-50" onClick={handleDesasignar} disabled={isSubmitting}>
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="text-red-500 border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20" 
+                onClick={handleDesasignar} 
+                disabled={isSubmitting}
+              >
                 Desasignar Maestro
               </Button>
             ) : (
-              <Button type="submit" disabled={isSubmitting || !searchTerm} className="bg-blue-600 hover:bg-blue-700">
+              <Button 
+                type="submit" 
+                disabled={isSubmitting || !searchTerm} 
+                className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500"
+              >
                 {isSubmitting ? 'Guardando...' : (selectedMaestro ? 'Asignar' : 'Crear y Asignar')}
               </Button>
             )}
-            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+            <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose}
+                className="dark:bg-transparent dark:text-gray-300 dark:border-neutral-600 dark:hover:bg-neutral-800"
+            >
+                Cancelar
+            </Button>
           </div>
         </form>
       </motion.div>

@@ -38,6 +38,7 @@ export default function Dimgpdf({ rootElementRef, fileName }: DimgpdfProps) {
     setIsDropdownOpen(false);
     
     // Ocultar todos los botones de control para la captura
+    // Nota: Si el elemento padre tiene clases 'dark:', el PDF saldrá con fondo oscuro.
     const buttonsToHide = element.querySelectorAll('button, [id="download-button"], [id="close-modal-button"]');
     buttonsToHide.forEach(btn => (btn as HTMLElement).style.display = 'none');
 
@@ -46,6 +47,8 @@ export default function Dimgpdf({ rootElementRef, fileName }: DimgpdfProps) {
         scale: 2,
         useCORS: true,
         logging: true,
+        // Si quisieras forzar fondo blanco en el PDF incluso en modo dark, podrías descomentar esto:
+        // backgroundColor: '#ffffff', 
       });
 
       if (type === 'pdf') {
@@ -95,7 +98,7 @@ export default function Dimgpdf({ rootElementRef, fileName }: DimgpdfProps) {
       <Button
         id="download-button"
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className="bg-blue-600 hover:bg-blue-700 shadow-lg gap-2 w-full"
+        className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 text-white shadow-lg gap-2 w-full transition-colors"
       >
         <Download className="h-4 w-4" />
         Descargar
@@ -108,17 +111,17 @@ export default function Dimgpdf({ rootElementRef, fileName }: DimgpdfProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="absolute bottom-full mb-2 right-0 w-full rounded-lg bg-blue-600 shadow-xl z-20 overflow-hidden"
+            className="absolute bottom-full mb-2 right-0 w-full rounded-lg bg-blue-600 dark:bg-neutral-800 dark:border dark:border-neutral-700 shadow-xl z-20 overflow-hidden"
           >
             <button
               onClick={() => captureAndDownload('pdf')}
-              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-blue-700 transition-colors"
+              className="w-full text-left px-4 py-2 text-sm text-white dark:text-gray-200 hover:bg-blue-700 dark:hover:bg-neutral-700 transition-colors"
             >
               PDF
             </button>
             <button
               onClick={() => captureAndDownload('image')}
-              className="w-full text-left px-4 py-2 text-sm text-white hover:bg-blue-700 transition-colors"
+              className="w-full text-left px-4 py-2 text-sm text-white dark:text-gray-200 hover:bg-blue-700 dark:hover:bg-neutral-700 transition-colors"
             >
               Imagen
             </button>
