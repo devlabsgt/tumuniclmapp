@@ -3,24 +3,23 @@
 import { useState, useEffect } from 'react';
 import { Tarea } from '../types';
 import { actualizarTarea } from '../actions';
-import { X, Save, Calendar, AlignLeft, Type } from 'lucide-react';
+import { X, Save, Calendar, AlignLeft, Type, Lock } from 'lucide-react'; 
 import { toast } from 'react-toastify';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   tarea: Tarea;
+  esJefe: boolean; 
 }
 
-export default function EditarTarea({ isOpen, onClose, tarea }: Props) {
+export default function EditarTarea({ isOpen, onClose, tarea, esJefe }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Estados del formulario
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
 
-  // 👇 FUNCIÓN CLAVE: Convierte UTC a formato local "YYYY-MM-DDTHH:MM"
   const formatDateForInput = (isoString: string) => {
     if (!isoString) return '';
     const date = new Date(isoString);
@@ -34,7 +33,6 @@ export default function EditarTarea({ isOpen, onClose, tarea }: Props) {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
-  // Sincronizar estados cuando se abre el modal
   useEffect(() => {
     if (isOpen && tarea) {
       setTitle(tarea.title);
@@ -70,14 +68,8 @@ export default function EditarTarea({ isOpen, onClose, tarea }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200">
-      {/* Contenedor principal: 
-          - Adaptado para móviles: max-h-[90vh] y overflow-y-auto para evitar cortes si sale el teclado.
-          - En móviles se pega abajo o centro (dependiendo del flex items-end/center arriba).
-      */}
       <div className="bg-white dark:bg-neutral-900 w-full sm:rounded-2xl rounded-t-2xl shadow-2xl max-w-lg flex flex-col transition-colors duration-200 max-h-[90vh] overflow-y-auto">
         
-        {/* HEADER */}
-        {/* Padding reducido en móvil (p-4) y normal en desktop (sm:p-6) */}
         <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-100 dark:border-neutral-800 sticky top-0 bg-white dark:bg-neutral-900 z-10">
           <h2 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-gray-100 flex items-center gap-2">
             Editar Tarea
@@ -87,39 +79,46 @@ export default function EditarTarea({ isOpen, onClose, tarea }: Props) {
           </button>
         </div>
 
-        {/* BODY */}
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5">
           
-          {/* TÍTULO */}
           <div className="space-y-2">
-            <label className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-               <Type size={14}/> Título
+            <label className="flex items-center justify-between text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+               <span className="flex items-center gap-2"><Type size={14}/> Título</span>
+               {!esJefe && <span className="text-[10px] text-orange-500 flex items-center gap-1"><Lock size={10}/> Solo lectura</span>}
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              // text-base evita zoom en iOS. w-full asegura ancho completo.
-              className="w-full p-3 bg-gray-50 dark:bg-neutral-800 border-gray-100 dark:border-neutral-700 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all text-base text-gray-700 dark:text-gray-100 font-medium"
+              disabled={!esJefe} 
+              className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all text-base font-medium
+                ${!esJefe 
+                    ? 'bg-gray-100 dark:bg-neutral-800/50 border-gray-200 dark:border-neutral-700 text-gray-500 cursor-not-allowed opacity-70' 
+                    : 'bg-gray-50 dark:bg-neutral-800 border-gray-100 dark:border-neutral-700 text-gray-700 dark:text-gray-100'
+                }`}
               required
             />
           </div>
 
-          {/* FECHA Y HORA */}
           <div className="space-y-2">
-            <label className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              <Calendar size={14} /> Fecha y Hora Límite
+            <label className="flex items-center justify-between text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <span className="flex items-center gap-2"><Calendar size={14} /> Fecha y Hora Límite</span>
+              {!esJefe && <span className="text-[10px] text-orange-500 flex items-center gap-1"><Lock size={10}/> Solo lectura</span>}
             </label>
             <input
               type="datetime-local" 
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full p-3 bg-gray-50 dark:bg-neutral-800 border-gray-100 dark:border-neutral-700 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-base text-gray-700 dark:text-gray-100 dark:[color-scheme:dark]"
+              disabled={!esJefe} 
+              className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-base dark:[color-scheme:dark]
+                ${!esJefe 
+                    ? 'bg-gray-100 dark:bg-neutral-800/50 border-gray-200 dark:border-neutral-700 text-gray-500 cursor-not-allowed opacity-70' 
+                    : 'bg-gray-50 dark:bg-neutral-800 border-gray-100 dark:border-neutral-700 text-gray-700 dark:text-gray-100'
+                }`}
               required
             />
           </div>
 
-          {/* DESCRIPCIÓN */}
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               <AlignLeft size={14} /> Descripción
@@ -128,12 +127,11 @@ export default function EditarTarea({ isOpen, onClose, tarea }: Props) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
+              placeholder="Añade detalles o actualizaciones..."
               className="w-full p-3 bg-gray-50 dark:bg-neutral-800 border-gray-100 dark:border-neutral-700 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all text-base text-gray-700 dark:text-gray-100 resize-none"
             />
           </div>
 
-          {/* FOOTER BUTTONS */}
-          {/* Flex column-reverse en móvil para apilar botones (cancelar abajo), row en desktop */}
           <div className="pt-2 flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
             <button
                 type="button"

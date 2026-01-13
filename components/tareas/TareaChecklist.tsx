@@ -19,7 +19,6 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
   const [editingStepIndex, setEditingStepIndex] = useState<number | null>(null);
   const [editingStepText, setEditingStepText] = useState('');
 
-  // --- HANDLERS ---
   const toggleCheck = async (idx: number) => {
     if (editingStepIndex !== null || isReadOnly) return;
     const newChecklist = [...checklist];
@@ -81,7 +80,9 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
 
   return (
     <div className="
-        max-h-[30vh] sm:max-h-[220px] 
+        /* ✅ CAMBIO: Altura aumentada para ver ~2 líneas más */
+        /* Móvil: 70% de pantalla | PC: 450px (antes 300px) */
+        max-h-[70vh] sm:max-h-[450px] 
         overflow-y-auto 
         pr-1 sm:pr-2 
         mb-5
@@ -101,7 +102,6 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
                  <div className="flex items-start gap-3 flex-1 min-w-0">
                     <div 
                         onClick={() => toggleCheck(idx)}
-                        // Área táctil ligeramente más grande para el dedo (mt-0.5 para alinear con texto)
                         className={`mt-0.5 min-w-[20px] w-[20px] h-[20px] rounded flex items-center justify-center transition-all border shrink-0
                         ${isReadOnly ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} 
                         ${item.is_completed 
@@ -119,7 +119,6 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
                                 onChange={(e) => setEditingStepText(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && saveStepEdit(idx)}
                                 autoFocus
-                                // text-base evita zoom en iOS
                                 className="w-full text-base bg-white dark:bg-neutral-900 border border-blue-400 dark:border-blue-500 rounded px-2 py-1 focus:outline-none shadow-sm dark:text-gray-100"
                             />
                             <button onClick={() => saveStepEdit(idx)} className="text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 p-2 rounded shrink-0">
@@ -129,7 +128,6 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
                     ) : (
                         <span 
                             onClick={() => toggleCheck(idx)}
-                            // break-words permite que textos largos no rompan el layout en móvil
                             className={`leading-tight select-none flex-1 transition-all break-words
                             ${isReadOnly ? 'cursor-default' : 'cursor-pointer'}
                             ${item.is_completed ? 'line-through opacity-60' : ''}`}
@@ -143,14 +141,12 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
                     <div className="flex items-center gap-1 ml-2 shrink-0">
                         <button 
                             onClick={() => startEditingStep(idx, item.title)} 
-                            // p-2 para mejor touch target
                             className="p-2 text-slate-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
                         >
                             <Edit2 size={16} />
                         </button>
                         <button 
                             onClick={() => handleDeleteItem(idx)} 
-                            // p-2 para mejor touch target
                             className="p-2 text-slate-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
                         >
                             <Trash2 size={16} />
@@ -171,7 +167,6 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
                         onKeyDown={(e) => e.key === 'Enter' && handleAddItem()} 
                         placeholder="Escribe un nuevo paso..."
                         disabled={isAdding} 
-                        // text-base evita zoom en iOS
                         className="w-full text-base pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400 dark:placeholder-gray-500 text-slate-700 dark:text-gray-100" 
                     />
                     <Plus size={16} className="absolute left-3 top-3.5 text-slate-400 dark:text-gray-500" />
