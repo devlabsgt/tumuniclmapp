@@ -1,3 +1,5 @@
+//components/comisiones/Ver.tsx
+
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import Cargando from '@/components/ui/animations/Cargando';
 import { useInfoUsuario } from '@/hooks/usuarios/useInfoUsuario';
+import useUserData from '@/hooks/sesion/useUserData';
 
 type RenglonConfig = { salarioLabel: string; bonoLabel?: string; tieneBono: boolean };
 
@@ -25,7 +28,6 @@ const renglonConfig: Record<string, RenglonConfig> = {
   '035': { salarioLabel: 'Retribución a destajo (035)', tieneBono: false },
   '036': { salarioLabel: 'Retribución por servicios (036)', tieneBono: false },
 };
-
 
 const InfoItem = ({ icon, label, value, isLoading, isDeduction = false, isTotal = false }: { 
   icon: React.ReactNode, 
@@ -67,7 +69,6 @@ const FIANZA_FACTOR_ASEGURADA = 24;
 const FIANZA_PORCENTAJE = 0.0005;
 const IVA_PORCENTAJE = 0.12;
 
-
 const calcularPrimaFianza = (salarioBase: number): number => {
   if (salarioBase <= 0) return 0;
   const sumaAsegurada = salarioBase * FIANZA_FACTOR_ASEGURADA;
@@ -76,18 +77,11 @@ const calcularPrimaFianza = (salarioBase: number): number => {
   return primaBase + iva;
 };
 
-
 const calcularISR = (salarioBase: number): number => {
   if (salarioBase === 0) return 0;
-
   const rentaGravadaAnual = salarioBase * 12;
-
   const igssDeducibleAnual = Math.min(salarioBase, TECHO_COTIZACION_IGSS) * PORCENTAJE_IGSS * 12;
-
-  const deduccionesISRAnual = 
-    GASTOS_PERSONALES_ANUAL_ISR + 
-    igssDeducibleAnual;
-  
+  const deduccionesISRAnual = GASTOS_PERSONALES_ANUAL_ISR + igssDeducibleAnual;
   const rentaImponible = rentaGravadaAnual - deduccionesISRAnual;
 
   if (rentaImponible <= 0) return 0;
@@ -102,14 +96,18 @@ const calcularISR = (salarioBase: number): number => {
   return isrAnual / 12;
 };
 
-
 export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpleadoProps) {
   const { 
     usuario: datosCompletos, 
     cargando: cargandoDatos
   } = useInfoUsuario(userId);
 
+  const { rol } = useUserData();
+
   if (!isOpen) return null;
+
+  const ROLES_PERMITIDOS = ['SUPER', 'RRHH', 'SECRETARIO', 'DAFIM'];
+  const mostrarFinanciera = ROLES_PERMITIDOS.includes(rol);
 
   const formatCurrency = (amount: number | null | undefined, options: { sign?: 'default' | 'negative' } = {}) => {
     if (amount === null || amount === undefined) return '--';
@@ -126,6 +124,7 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
       return new Intl.DateTimeFormat('es-GT', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(correctedDate);
     } catch (e) { return dateString; }
   };
+
   const formatTime = (timeString: string | null | undefined) => {
     if (!timeString) return '--';
     try {
@@ -135,12 +134,12 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
       return new Intl.DateTimeFormat('es-GT', { hour: '2-digit', minute: '2-digit', hour12: true }).format(date);
     } catch (e) { return timeString; }
   };
+
   const formatDays = (days: number[] | null | undefined) => {
     if (!days || days.length === 0) return '--';
     const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
     return days.sort((a, b) => a - b).map(d => dayNames[d] || '?').join(', ');
   };
-
 
   const isGlobalLoading = cargandoDatos;
   const renglon = datosCompletos?.renglon;
@@ -154,7 +153,6 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
   const bonoLabel = (configActual && configActual.bonoLabel) ? configActual.bonoLabel : "Bonificación";
   
   const totalDevengado = salarioBase + bonificacion;
-
   const aplicaPrimaFianza = datosCompletos?.prima || false; 
   
   const deduccionIGSS = salarioBase * PORCENTAJE_IGSS; 
@@ -162,10 +160,8 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
   const deduccionISR = calcularISR(salarioBase);
   const deduccionPrimaFianza = aplicaPrimaFianza ? calcularPrimaFianza(salarioBase) : 0; 
   
-
   const totalDeducciones = deduccionIGSS + deduccionPlan + deduccionISR + deduccionPrimaFianza;
   const liquidoARecibir = totalDevengado - totalDeducciones;
-
 
   const pathItems = datosCompletos?.puesto_path_jerarquico
     ? datosCompletos.puesto_path_jerarquico.split(' > ').filter(item => item.toUpperCase() !== 'SIN DIRECCIÓN' && item.toUpperCase() !== 'SIN DIRECCION').slice(1)
@@ -254,73 +250,81 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
                       <InfoItem icon={<Briefcase size={18} />} label="Cargo" value={datosCompletos?.puesto_nombre} />
                       <InfoItem icon={<FileText size={18} />} label="Renglón" value={renglon} />
                       
-                      <InfoItem 
-                        icon={<CircleDollarSign size={18} />} 
-                        label={salarioLabel} 
-                        value={formatCurrency(salarioBase)} 
-                      />
-                      {tieneBono && (
-                        <InfoItem 
-                          icon={<BadgeDollarSign size={18} />} 
-                          label={bonoLabel} 
-                          value={formatCurrency(bonificacion)} 
-                        />
+                      {mostrarFinanciera ? (
+                        <>
+                          <InfoItem 
+                            icon={<CircleDollarSign size={18} />} 
+                            label={salarioLabel} 
+                            value={formatCurrency(salarioBase)} 
+                          />
+                          {tieneBono && (
+                            <InfoItem 
+                              icon={<BadgeDollarSign size={18} />} 
+                              label={bonoLabel} 
+                              value={formatCurrency(bonificacion)} 
+                            />
+                          )}
+                          
+                          <InfoItem 
+                            icon={<Wallet size={18} />} 
+                            label="Total Devengado" 
+                            value={formatCurrency(totalDevengado)}
+                            isTotal={true}
+                          />
+                          
+                          <InfoItem 
+                            icon={<Shield size={18} />}
+                            label={`IGSS (${(PORCENTAJE_IGSS * 100).toFixed(2)}%)`}
+                            value={formatCurrency(deduccionIGSS, { sign: 'negative' })}
+                            isDeduction={true}
+                          />
+                          <InfoItem 
+                            icon={<Building2 size={18} />}
+                            label={`Plan de Prestaciones (${(PORCENTAJE_PLAN_PRESTACIONES * 100).toFixed(0)}%)`}
+                            value={formatCurrency(deduccionPlan, { sign: 'negative' })}
+                            isDeduction={true}
+                          />
+                          {deduccionISR > 0 && (
+                            <InfoItem 
+                                icon={<Landmark size={18} />}
+                                label="ISR (Retención Mensual)" 
+                                value={formatCurrency(deduccionISR, { sign: 'negative' })}
+                                isDeduction={true}
+                            />
+                          )}
+                          {aplicaPrimaFianza && (
+                            <InfoItem 
+                              icon={<Lock size={18} />} 
+                              label="Prima de Fianza" 
+                              value={formatCurrency(deduccionPrimaFianza, { sign: 'negative' })}
+                              isDeduction={true}
+                            />
+                          )}
+                          
+                          <InfoItem 
+                            icon={<TrendingDown size={18} />} 
+                            label="Total Deducciones" 
+                            value={formatCurrency(totalDeducciones, { sign: 'negative' })}
+                            isDeduction={true}
+                            isTotal={true}
+                          />
+                          
+                          <div className="border-t border-gray-200 ">
+                            <InfoItem 
+                              icon={<Banknote size={20} />} 
+                              label="Líquido a Recibir" 
+                              value={formatCurrency(liquidoARecibir)}
+                              isTotal={true}
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 text-center">
+                          <Lock className="mx-auto h-6 w-6 text-gray-400 mb-2" />
+                          <p className="text-xs text-gray-500">Información financiera restringida</p>
+                        </div>
                       )}
-                      
-                      <InfoItem 
-                        icon={<Wallet size={18} />} 
-                        label="Total Devengado" 
-                        value={formatCurrency(totalDevengado)}
-                        isTotal={true}
-                      />
-                      
-                      <InfoItem 
-                        icon={<Shield size={18} />}
-                        label={`IGSS (${(PORCENTAJE_IGSS * 100).toFixed(2)}%)`}
-                        value={formatCurrency(deduccionIGSS, { sign: 'negative' })}
-                        isDeduction={true}
-                      />
-                      <InfoItem 
-                        icon={<Building2 size={18} />}
-                        label={`Plan de Prestaciones (${(PORCENTAJE_PLAN_PRESTACIONES * 100).toFixed(0)}%)`}
-                        value={formatCurrency(deduccionPlan, { sign: 'negative' })}
-                        isDeduction={true}
-                      />
-                      {deduccionISR > 0 && (
-                        <InfoItem 
-                             icon={<Landmark size={18} />}
-                             label="ISR (Retención Mensual)" 
-                             value={formatCurrency(deduccionISR, { sign: 'negative' })}
-                             isDeduction={true}
-                        />
-                      )}
-                       {aplicaPrimaFianza && (
-                         <InfoItem 
-                           icon={<Lock size={18} />} 
-                           label="Prima de Fianza" 
-                           value={formatCurrency(deduccionPrimaFianza, { sign: 'negative' })}
-                           isDeduction={true}
-                         />
-                       )}
-                      
-                      <InfoItem 
-                        icon={<TrendingDown size={18} />} 
-                        label="Total Deducciones" 
-                        value={formatCurrency(totalDeducciones, { sign: 'negative' })}
-                        isDeduction={true}
-                        isTotal={true}
-                      />
-                      
-                      <div className="border-t border-gray-200 ">
-                        <InfoItem 
-                          icon={<Banknote size={20} />} 
-                          label="Líquido a Recibir" 
-                          value={formatCurrency(liquidoARecibir)}
-                          isTotal={true}
-                        />
-                      </div>
                   </div>
-
                 </div>
               </div>
             )}
