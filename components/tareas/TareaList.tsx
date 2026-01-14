@@ -172,7 +172,7 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
                 <div className="space-y-2">
                     <div className="flex items-center gap-3">
                         <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                            {viewMode === 'mis_tareas' ? 'Mis Tareas' : 'Mi Equipo'}
+                            {viewMode === 'mis_tareas' ? 'Mis Actividades' : 'Mi Equipo'}
                         </h1>
                         
                         {esJefe && (
@@ -184,8 +184,8 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
                     
                     <p className="text-slate-500 dark:text-gray-400 text-sm font-medium">
                         {viewMode === 'mis_tareas' 
-                            ? 'Gestiona tus pendientes y prioridades del día' 
-                            : 'Supervisa las tareas asignadas al resto del equipo'}
+                            ? 'Gestiona tus actividades y prioridades del día' 
+                            : 'Supervisa las actividades asignadas al resto del equipo'}
                     </p>
                 </div>
 
@@ -224,7 +224,7 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
                         className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none transition-all flex items-center justify-center gap-2 text-sm active:scale-95"
                     >
                         <Plus size={20} />
-                        Nueva Tarea
+                        Nueva Actividad
                     </button>
                 </div>
             </div>
@@ -271,7 +271,7 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
                         <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                         <input 
                             type="text"
-                            placeholder={viewMode === 'equipo' ? "Buscar por título o empleado..." : "Buscar en mis tareas..."}
+                            placeholder={viewMode === 'equipo' ? "Buscar por título o empleado..." : "Buscar en mis Actividades..."}
                             value={busqueda}
                             onChange={(e) => setBusqueda(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 dark:text-gray-200"
@@ -326,7 +326,7 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
                     <SearchX size={32} className="text-slate-300 dark:text-gray-600" />
                 </div>
                 <h3 className="text-slate-900 dark:text-white font-bold text-lg mb-1">
-                    {viewMode === 'mis_tareas' ? 'No tienes tareas asignadas' : 'El equipo no tiene tareas'}
+                    {viewMode === 'mis_tareas' ? 'No tienes actividades asignadas' : 'El equipo no tiene actividades'}
                 </h3>
                 <p className="text-slate-400 dark:text-gray-500 text-sm mb-4 max-w-xs mx-auto">
                     No se encontraron resultados para <span className="font-medium">"{filtroEstado}"</span> en este periodo {viewMode === 'equipo' && '(excluyéndote a ti)'}.
