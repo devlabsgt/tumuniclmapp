@@ -35,6 +35,35 @@ const getFechaCabecera = (fechaIso: string) => {
     .replace(/de /g, '');
 };
 
+// --- CONFIGURACIÓN DE COLORES POR ESTADO ---
+const TAB_STYLES: Record<string, { active: string, inactive: string, badge: string }> = {
+  'Todos': {
+    active: 'bg-slate-700 text-white shadow-md shadow-slate-500/30 ring-1 ring-slate-600',
+    inactive: 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-neutral-800',
+    badge: 'bg-slate-100 dark:bg-neutral-800 text-slate-500 dark:text-slate-400'
+  },
+  'Asignado': {
+    active: 'bg-blue-600 text-white shadow-md shadow-blue-500/30 ring-1 ring-blue-500',
+    inactive: 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20',
+    badge: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+  },
+  'En Proceso': {
+    active: 'bg-purple-600 text-white shadow-md shadow-purple-500/30 ring-1 ring-purple-500',
+    inactive: 'text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20',
+    badge: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+  },
+  'Completado': {
+    active: 'bg-emerald-600 text-white shadow-md shadow-emerald-500/30 ring-1 ring-emerald-500',
+    inactive: 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20',
+    badge: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+  },
+  'Vencido': {
+    active: 'bg-red-600 text-white shadow-md shadow-red-500/30 ring-1 ring-red-500',
+    inactive: 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20',
+    badge: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+  }
+};
+
 export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: Props) {
   const [viewMode, setViewMode] = useState<'mis_tareas' | 'equipo'>('mis_tareas');
   
@@ -63,15 +92,13 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
     }
   }, [expandedId]);
 
-  // --- LÓGICA DE FILTRADO CORREGIDA ---
+  // --- LÓGICA DE FILTRADO ---
   const tareasFiltradasGlobal = useMemo(() => {
     return tareas.filter(t => {
-      // 1. Filtro Vista (Lógica Ajustada)
+      // 1. Filtro Vista
       if (viewMode === 'mis_tareas') {
-         // MODO MIS TAREAS: Solo mostrar si soy el asignado
          if (t.assigned_to !== usuarioActual) return false;
       } else {
-         // MODO EQUIPO: Solo mostrar lo de los DEMÁS (si soy el asignado, OCULTAR)
          if (t.assigned_to === usuarioActual) return false;
       }
       
@@ -80,7 +107,11 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
       const coincideFecha = (tMonth - 1) === mesSeleccionado && tYear === anioSeleccionado;
       
       // 3. Filtro Busqueda
-      const coincideBusqueda = t.title.toLowerCase().includes(busqueda.toLowerCase());
+      const termino = busqueda.toLowerCase();
+      const coincideTitulo = t.title.toLowerCase().includes(termino);
+      const coincideUsuario = (t.assignee?.nombre || '').toLowerCase().includes(termino);
+      
+      const coincideBusqueda = coincideTitulo || coincideUsuario;
 
       return coincideFecha && coincideBusqueda;
     }).map(t => {
@@ -135,8 +166,9 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
         <div className="flex flex-col gap-6 mb-2 animate-in fade-in slide-in-from-top-2">
             
             {/* CABECERA PRINCIPAL */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4">
                 
+                {/* Título y descripción */}
                 <div className="space-y-2">
                     <div className="flex items-center gap-3">
                         <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
@@ -144,39 +176,9 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
                         </h1>
                         
                         {esJefe && (
-                           <>
-                             <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 transform translate-y-0.5">
+                           <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 transform translate-y-0.5">
                                 Admin
-                             </span>
-                             
-                             {/* Selector de Vista (Switch) */}
-                             <div className="bg-slate-100 dark:bg-neutral-800 p-1 rounded-lg flex items-center border border-slate-200 dark:border-neutral-700 ml-2">
-                                <button
-                                    onClick={() => setViewMode('mis_tareas')}
-                                    className={`flex items-center gap-2 px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
-                                        viewMode === 'mis_tareas' 
-                                        ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm' 
-                                        : 'text-slate-500 hover:text-slate-700 dark:text-gray-400'
-                                    }`}
-                                    title="Ver solo mis tareas"
-                                >
-                                    <User size={12} />
-                                    Mías
-                                </button>
-                                <button
-                                    onClick={() => setViewMode('equipo')}
-                                    className={`flex items-center gap-2 px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
-                                        viewMode === 'equipo' 
-                                        ? 'bg-white dark:bg-neutral-700 text-indigo-600 dark:text-indigo-400 shadow-sm' 
-                                        : 'text-slate-500 hover:text-slate-700 dark:text-gray-400'
-                                    }`}
-                                    title="Ver tareas del resto del equipo (excluyéndome)"
-                                >
-                                    <Users size={12} />
-                                    Equipo
-                                </button>
-                             </div>
-                           </>
+                           </span>
                         )}
                     </div>
                     
@@ -187,10 +189,39 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
                     </p>
                 </div>
 
-                <div className="w-full md:w-auto flex justify-end">
+                {/* Botones de acción */}
+                <div className="w-full lg:w-auto flex flex-col sm:flex-row gap-3">
+                    
+                    {esJefe && (
+                        <div className="bg-slate-100 dark:bg-neutral-800 p-1.5 rounded-xl flex items-center border border-slate-200 dark:border-neutral-700 w-full sm:w-auto">
+                            <button
+                                onClick={() => setViewMode('mis_tareas')}
+                                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                                    viewMode === 'mis_tareas' 
+                                    ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm' 
+                                    : 'text-slate-500 hover:text-slate-700 dark:text-gray-400'
+                                }`}
+                            >
+                                <User size={15} />
+                                Mías
+                            </button>
+                            <button
+                                onClick={() => setViewMode('equipo')}
+                                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                                    viewMode === 'equipo' 
+                                    ? 'bg-white dark:bg-neutral-700 text-indigo-600 dark:text-indigo-400 shadow-sm' 
+                                    : 'text-slate-500 hover:text-slate-700 dark:text-gray-400'
+                                }`}
+                            >
+                                <Users size={15} />
+                                Mi Equipo
+                            </button>
+                        </div>
+                    )}
+
                     <button 
                         onClick={() => setIsModalOpen(true)}
-                        className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none transition-all flex items-center justify-center gap-2 text-sm active:scale-95"
+                        className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none transition-all flex items-center justify-center gap-2 text-sm active:scale-95"
                     >
                         <Plus size={20} />
                         Nueva Tarea
@@ -202,29 +233,36 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
             <div className="flex flex-col lg:flex-row gap-4 mt-2">
                 <div className="w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0">
                     <div className="flex items-center gap-1.5 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 dark:border-neutral-800 shadow-sm min-w-max"> 
-                        {pestañas.map((tab) => (
-                            <button
-                                key={tab}
-                                onClick={() => {
-                                    setFiltroEstado(tab);
-                                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                                }}
-                                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 whitespace-nowrap shrink-0
-                                ${filtroEstado === tab 
-                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30 ring-1 ring-blue-500' 
-                                    : 'bg-transparent text-slate-500 dark:text-gray-400 hover:bg-slate-100 dark:hover:bg-neutral-800'
-                                }`}
-                            >
-                                {tab === 'Todos' && <Filter size={12} className="opacity-70"/>}
-                                {tab.toUpperCase()}
-                                <span className={`px-1.5 py-0.5 rounded-md text-[10px] min-w-[18px] text-center
-                                ${filtroEstado === tab 
-                                    ? 'bg-white/20 text-white' 
-                                    : 'bg-slate-100 dark:bg-neutral-800 text-slate-500 dark:text-gray-500'}`}>
-                                    {conteos[tab as keyof typeof conteos]}
-                                </span>
-                            </button>
-                        ))}
+                        {pestañas.map((tab) => {
+                            // Obtenemos la configuración de color para esta pestaña
+                            const styles = TAB_STYLES[tab] || TAB_STYLES['Todos'];
+                            const isActive = filtroEstado === tab;
+                            
+                            return (
+                                <button
+                                    key={tab}
+                                    onClick={() => {
+                                        setFiltroEstado(tab);
+                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    }}
+                                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 whitespace-nowrap shrink-0
+                                    ${isActive 
+                                        ? styles.active 
+                                        : styles.inactive
+                                    }`}
+                                >
+                                    {tab === 'Todos' && <Filter size={12} className="opacity-70"/>}
+                                    {tab.toUpperCase()}
+                                    <span className={`px-1.5 py-0.5 rounded-md text-[10px] min-w-[18px] text-center
+                                    ${isActive 
+                                        ? 'bg-white/20 text-white' 
+                                        : styles.badge
+                                    }`}>
+                                        {conteos[tab as keyof typeof conteos]}
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -233,7 +271,7 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
                         <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                         <input 
                             type="text"
-                            placeholder={viewMode === 'equipo' ? "Buscar en tareas del equipo..." : "Buscar en mis tareas..."}
+                            placeholder={viewMode === 'equipo' ? "Buscar por título o empleado..." : "Buscar en mis tareas..."}
                             value={busqueda}
                             onChange={(e) => setBusqueda(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 dark:text-gray-200"
@@ -321,7 +359,8 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
                                  isExpanded={expandedId === tarea.id}
                                  onToggle={() => toggleAccordion(tarea.id)}
                                  isJefe={esJefe} 
-                                 usuarioActual={usuarioActual} 
+                                 usuarioActual={usuarioActual}
+                                 usuarios={usuarios} 
                                />
                            </div>
                        ))}

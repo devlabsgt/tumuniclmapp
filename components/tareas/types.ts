@@ -1,6 +1,6 @@
 // components/tareas/types.ts
 
-// ✅ CAMBIO 1: Renombramos 'UsuarioSistema' a 'Usuario' para que coincida con NewTarea.tsx
+// 1. USUARIO
 export interface Usuario {
   user_id: string; // PK
   nombre: string;
@@ -8,41 +8,36 @@ export interface Usuario {
   activo: boolean;
 }
 
-// Estructura de un item del checklist (dentro del JSONB)
+// 2. CHECKLIST
 export interface ChecklistItem {
   title: string;
   is_completed: boolean;
 }
 
-// Estructura de la Tarea (Tabla 'tasks')
+// 3. TAREA (Lo que viene de la Base de Datos)
 export interface Tarea {
   id: string;
   title: string;
   description: string | null;
-  due_date: string; // Supabase devuelve timestamptz como string ISO
-  status: string;   // Texto: Asignado, En Proceso, Completado...
-  checklist: ChecklistItem[];
+  due_date: string; // ISO string
+  status: string;   
+  checklist: ChecklistItem[] | null;
   assigned_to: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
   
-  // Relación (Join) con info_usuario
-  assignee?: {
-    nombre: string;
-  };
-  creator?: {
-    nombre: string;
-  };
+  // Relaciones
+  assignee?: { nombre: string };
+  creator?: { nombre: string };
 }
 
-// Datos necesarios para crear una tarea nueva
+// 4. NUEVA TAREA (Lo que enviamos desde el formulario)
 export interface NewTaskState {
   title: string;
-  description: string;
+  description?: string | null; // 👈 Lo hacemos opcional (?) para evitar errores con vacíos
   due_date: string;
   assigned_to: string;
   checklist: ChecklistItem[];
-  // ✅ CAMBIO 2: Agregamos 'status' porque actions.ts y NewTarea lo usan al guardar
-  status: string; 
+  status?: string; // 👈 ¡CLAVE! Ponemos el '?' para que sea opcional
 }
