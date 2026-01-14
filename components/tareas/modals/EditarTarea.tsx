@@ -72,7 +72,7 @@ export default function EditarTarea({ isOpen, onClose, tarea, esJefe }: Props) {
         
         <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-100 dark:border-neutral-800 sticky top-0 bg-white dark:bg-neutral-900 z-10">
           <h2 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-gray-100 flex items-center gap-2">
-            Editar Tarea
+            Editar Actividad
           </h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-colors text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
             <X size={24} />

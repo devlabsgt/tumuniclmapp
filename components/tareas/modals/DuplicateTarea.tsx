@@ -150,7 +150,7 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
                 <div className="bg-indigo-100 dark:bg-indigo-900/30 p-2 rounded-lg text-indigo-600 dark:text-indigo-400">
                     <Copy size={20} />
                 </div>
-                <h2 className="text-lg font-bold text-gray-800 dark:text-white">Duplicar Tarea</h2>
+                <h2 className="text-lg font-bold text-gray-800 dark:text-white">Duplicar Actividad</h2>
             </div>
             <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-colors text-gray-500 dark:text-gray-400">
                 <X size={20} />
@@ -247,7 +247,7 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
              {/* Checklist */}
              <div>
                 <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-                    <CheckSquare size={14} /> Checklist ({checklist.length})
+                    <CheckSquare size={14} /> Pendientes ({checklist.length})
                 </label>
                 <div className="border border-gray-200 dark:border-neutral-700 rounded-xl bg-gray-50 dark:bg-neutral-800/50 overflow-hidden">
                     {checklist.length > 0 ? (
@@ -324,13 +324,13 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
                             ))}
                         </div>
                     ) : (
-                        <div className="p-4 text-center text-gray-400 text-sm italic">Sin items copiados</div>
+                        <div className="p-4 text-center text-gray-400 text-sm italic">Sin pendientes</div>
                     )}
                     
                     <div className="p-2 flex gap-2 border-t border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800">
                         <input 
                             className="flex-1 px-3 py-2 bg-transparent text-sm text-gray-700 dark:text-white outline-none placeholder:text-gray-400"
-                            placeholder="Añadir paso extra..."
+                            placeholder="Añadir..."
                             value={newItemText} 
                             onChange={e => setNewItemText(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddItem())}

@@ -114,7 +114,7 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
       <div className="bg-white dark:bg-neutral-900 w-full rounded-t-2xl sm:rounded-2xl shadow-2xl max-w-lg max-h-[90vh] overflow-y-auto flex flex-col transition-colors duration-200">
         
         <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 sticky top-0 z-10">
-          <h2 className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-500">Nueva Tarea</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-500">Nueva Actividad</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-colors text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
             <X size={24} />
           </button>
@@ -123,7 +123,7 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5">
           
           <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Título de la tarea</label>
+            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Título de la actividad</label>
             <input
               type="text"
               value={title}
@@ -227,7 +227,7 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
 
           <div className="space-y-3 bg-blue-50/30 dark:bg-blue-900/10 p-3 sm:p-4 rounded-xl border border-blue-100/50 dark:border-blue-800/50">
             <label className="flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-              <CheckSquare size={14} /> Lista de verificación
+              <CheckSquare size={14} /> Lista de pendientes
             </label>
             
             <div className="flex gap-2">
@@ -236,7 +236,7 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
                 value={checklistInput}
                 onChange={(e) => setChecklistInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addChecklistItem(e)}
-                placeholder="Escribe un paso..."
+                placeholder="Escribe aquí..."
                 className="flex-1 p-3 bg-white dark:bg-neutral-900 border border-blue-100 dark:border-blue-900 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none text-base text-gray-700 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
               />
               <button
@@ -264,7 +264,7 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
                 ))}
               </div>
             ) : (
-              <p className="text-center text-gray-400 dark:text-gray-500 text-sm py-2 italic">Sin items todavía</p>
+              <p className="text-center text-gray-400 dark:text-gray-500 text-sm py-2 italic">Sin pendientes asignados</p>
             )}
           </div>
 
@@ -287,7 +287,7 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
                 </>
               ) : (
                 <>
-                  <Plus size={20} /> Crear Tarea
+                  <Plus size={20} /> Crear Actividad
                 </>
               )}
             </button>

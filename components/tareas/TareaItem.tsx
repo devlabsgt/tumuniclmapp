@@ -189,7 +189,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
 
             <div className="flex items-center gap-0 sm:gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                 
-                {/* 👇 6. BOTÓN DUPLICAR (COLOR CAMBIADO A NARANJA/AMBER) */}
                 {isJefe && (
                     <button 
                     onClick={() => setIsDuplicateModalOpen(true)}
@@ -225,38 +224,68 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
             </div>
         </div>
 
+        {/* --- INICIO SECCIÓN MODIFICADA: VISTA COMPRIMIDA --- */}
         {!isExpanded && (
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 dark:text-gray-400 font-medium w-full border-t pt-3 sm:border-t-0 sm:pt-0 border-slate-100 dark:border-neutral-800 sm:mt-2">
-                    
-                    <span className="flex items-center gap-1.5 shrink-0 text-slate-600 dark:text-gray-300">
-                        <Clock size={13} className="text-slate-400 dark:text-gray-500"/> 
-                        {formatearHora(tarea.due_date)}
-                    </span>
-                    
-                    {total > 0 && (
-                    <>
-                        <span className="text-slate-300 dark:text-gray-600 hidden sm:inline">•</span>
-                        <div className="flex items-center gap-3 sm:gap-0">
-                             <span className={`shrink-0 mr-3 sm:mr-0 ${porcentaje === 100 ? 'text-green-600 dark:text-green-400' : ''}`}>
-                                {porcentaje}%
-                             </span>
-                             <span className="text-slate-300 dark:text-gray-600 hidden sm:inline sm:mx-2">•</span>
-                             <span className="flex items-center gap-1 shrink-0"><ListTodo size={13}/> {completados}/{total}</span>
-                        </div>
-                    </>
-                    )}
-
+                
+                {/* 1. Hora de vencimiento */}
+                <span className="flex items-center gap-1.5 shrink-0 text-slate-600 dark:text-gray-300">
+                    <Clock size={13} className="text-slate-400 dark:text-gray-500"/> 
+                    {formatearHora(tarea.due_date)}
+                </span>
+                
+                {/* 2. Checklist (Solo si hay items) */}
+                {total > 0 && (
+                <>
                     <span className="text-slate-300 dark:text-gray-600 hidden sm:inline">•</span>
-                    
+                    <div className="flex items-center gap-3 sm:gap-0">
+                            <span className={`shrink-0 mr-3 sm:mr-0 ${porcentaje === 100 ? 'text-green-600 dark:text-green-400' : ''}`}>
+                                {porcentaje}%
+                            </span>
+                            <span className="text-slate-300 dark:text-gray-600 hidden sm:inline sm:mx-2">•</span>
+                            <span className="flex items-center gap-1 shrink-0"><ListTodo size={13}/> {completados}/{total}</span>
+                    </div>
+                </>
+                )}
+
+                <span className="text-slate-300 dark:text-gray-600 hidden sm:inline">•</span>
+                
+                {/* 3. LÓGICA DE USUARIOS: DE -> PARA */}
+                {esAutoAsignado ? (
+                    // CASO A: Tarea personal (Creador = Asignado)
                     <span className="flex items-center gap-1.5 shrink-0 text-slate-600 dark:text-gray-400 w-full sm:w-auto mt-1 sm:mt-0" 
-                        title={esAsignadoAMi ? 'Asignado a ti' : `Asignado a ${tarea.assignee?.nombre || 'nadie'}`}>
+                        title={esAsignadoAMi ? 'Auto-asignado a ti' : `Auto-asignado a ${nombreAsignado}`}>
                         <User size={13} className={esAsignadoAMi ? 'text-blue-500' : 'text-slate-400'}/>
                         <span className="truncate sm:max-w-[150px]">
-                        {esAsignadoAMi ? 'Mí mismo' : nombreAsignado}
+                            {esAsignadoAMi ? 'Mí mismo' : nombreAsignado}
                         </span>
                     </span>
+                ) : (
+                    // CASO B: Tarea delegada (Creador != Asignado) -> Muestra "De: X -> Para: Y"
+                    <div className="flex items-center gap-2 w-full sm:w-auto mt-1 sm:mt-0">
+                        
+                        {/* Creador */}
+                        <span className="flex items-center gap-1 text-slate-500 dark:text-gray-500" title={`Creado por: ${nombreCreador}`}>
+                            <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wide">Creado:</span>
+                            <span className="truncate max-w-[100px]">{nombreCreador}</span>
+                        </span>
+
+                        {/* Flecha separadora */}
+                        <span className="text-slate-300 dark:text-gray-600">→</span>
+
+                        {/* Asignado */}
+                        <span className="flex items-center gap-1 text-slate-600 dark:text-gray-400" title={`Asignado a: ${nombreAsignado}`}>
+                            <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wide">Asignado:</span>
+                            <span className={`truncate max-w-[100px] ${esAsignadoAMi ? 'text-blue-600 font-medium' : ''}`}>
+                                {esAsignadoAMi ? 'Mí mismo' : nombreAsignado}
+                            </span>
+                        </span>
+                    </div>
+                )}
             </div>
         )}
+        {/* --- FIN SECCIÓN MODIFICADA --- */}
+
       </div>
 
       
