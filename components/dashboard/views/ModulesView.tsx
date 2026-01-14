@@ -17,12 +17,17 @@ export default function ModulesView({ rol, modulos = [], esjefe }: ModulesViewPr
   const modulosDisponibles = useMemo(() =>
     TODOS_LOS_MODULOS.filter(m => {
       if (rol === 'SUPER') return true;
+      if (['ACTIVIDADES', 'PERMISOS'].includes(m.id)) return true;
       if (m.subgrupo === 'Concejo Municipal' && (rol === 'CONCEJAL' || rol === 'ALCALDE')) return true;
       if (m.id === 'ASISTENCIA') return esjefe;
       if (m.id === 'COMISIONES_JEFE') return esjefe;
       if (rol === 'INVITADO' || rol === 'ALCALDE') return true;
+      
       const tieneModuloAsignado = modulos.includes(m.permiso);
+      
       if (m.id === 'COMISIONES_RRHH') return rol === 'RRHH' || rol === 'SECRETARIO' || tieneModuloAsignado;
+      if (m.id === 'PERMISOS_GESTION') return rol === 'RRHH' || tieneModuloAsignado;
+      
       return tieneModuloAsignado;
     })
   , [rol, modulos, esjefe]);
@@ -52,9 +57,15 @@ export default function ModulesView({ rol, modulos = [], esjefe }: ModulesViewPr
           <div className={`space-y-4 ${(!tienePoliticas) ? 'w-full' : ''}`}>
            <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4 text-center md:text-left">Gestión Administrativa</h2>
            
+           <ModuleAccordion titulo="Gestión Propia" descripcion="Gestión de actividades y permisos personales." iconKey="fmdwwfgs">
+              {modulosGestion.filter(m => ['ACTIVIDADES', 'PERMISOS'].includes(m.id)).map(modulo => (
+                <ModuleCard key={modulo.id} modulo={modulo} loadingModule={loadingModule} setLoadingModule={setLoadingModule} />
+              ))}
+           </ModuleAccordion>
+           
            {esjefe && (
               <ModuleAccordion titulo="Gestión Jefe de Área" descripcion="Gestión y supervisión de equipos." iconKey="tobsqthh">
-                {modulosGestion.filter(m => m.subgrupo === 'Gestión Jefe de Área').map(modulo => (
+                {modulosGestion.filter(m => m.subgrupo === 'Gestión Jefe de Área' && m.id !== 'ACTIVIDADES').map(modulo => (
                   <ModuleCard key={modulo.id} modulo={modulo} loadingModule={loadingModule} setLoadingModule={setLoadingModule} />
                 ))}
               </ModuleAccordion>
@@ -73,7 +84,7 @@ export default function ModulesView({ rol, modulos = [], esjefe }: ModulesViewPr
            </ModuleAccordion>
 
            <div className="space-y-4">
-              {modulosGestion.filter(m => !m.subgrupo).map(modulo => (
+              {modulosGestion.filter(m => !m.subgrupo && !['ACTIVIDADES', 'PERMISOS', 'PERMISOS_GESTION'].includes(m.id)).map(modulo => (
                 <ModuleCard key={modulo.id} modulo={modulo} loadingModule={loadingModule} setLoadingModule={setLoadingModule} />
               ))}
            </div>
