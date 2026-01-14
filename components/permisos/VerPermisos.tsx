@@ -347,11 +347,12 @@ export default function VerPermisos() {
                   <table className="w-full table-fixed text-xs">
                     <thead className="bg-slate-50 dark:bg-neutral-900 text-left border-b border-gray-100 dark:border-neutral-800">
                       <tr>
-                        <th className="py-3 px-4 text-[10px] xl:text-xs w-[35%] font-semibold text-slate-600 dark:text-slate-400">Nombre</th>
+                        <th className="py-3 px-4 text-[10px] xl:text-xs w-[30%] font-semibold text-slate-600 dark:text-slate-400">Nombre</th>
                         <th className="py-3 px-2 text-[10px] xl:text-xs w-[15%] text-center font-semibold text-slate-600 dark:text-slate-400">Tipo</th>
-                        <th className="py-3 px-2 text-[10px] xl:text-xs w-[15%] text-center font-semibold text-slate-600 dark:text-slate-400">Fecha Solicitud</th>
+                        <th className="py-3 px-2 text-[10px] xl:text-xs w-[10%] text-center font-semibold text-slate-600 dark:text-slate-400">Fecha</th>
                         <th className="py-3 px-2 text-[10px] xl:text-xs w-[20%] text-center font-semibold text-slate-600 dark:text-slate-400">Duración</th>
                         <th className="py-3 px-2 text-[10px] xl:text-xs w-[10%] text-center font-semibold text-slate-600 dark:text-slate-400">Estado</th>
+                        <th className="py-3 px-2 text-[10px] xl:text-xs w-[10%] text-center font-semibold text-slate-600 dark:text-slate-400">Remunerado</th>
                         <th className="py-3 px-2 text-[10px] xl:text-xs w-[5%] text-center font-semibold text-slate-600 dark:text-slate-400"></th>
                       </tr>
                     </thead>
@@ -362,7 +363,7 @@ export default function VerPermisos() {
                         return (
                         <Fragment key={grupo.oficina_nombre}>
                           <tr className="border-b border-slate-100 dark:border-neutral-800">
-                            <td colSpan={6} className="p-1">
+                            <td colSpan={7} className="p-1">
                                <div 
                                   onClick={() => toggleOficina(grupo.oficina_nombre)}
                                   className="bg-slate-100 dark:bg-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-700 cursor-pointer transition-colors py-2.5 px-4 text-sm font-semibold text-blue-600 dark:text-blue-400 flex items-center justify-between rounded-sm"
@@ -391,7 +392,7 @@ export default function VerPermisos() {
                                   transition={{ duration: 0.3, ease: "easeInOut" }}
                                   style={{ display: 'table-row' }} 
                                 >
-                                  <td colSpan={6} className="p-0 border-b border-slate-100 dark:border-neutral-800">
+                                  <td colSpan={7} className="p-0 border-b border-slate-100 dark:border-neutral-800">
                                      <table className="w-full table-fixed">
                                         <tbody>
                                         {grupo.permisos.map((permiso) => (
@@ -400,7 +401,7 @@ export default function VerPermisos() {
                                               onClick={(e) => handleEditarPermiso(e, permiso)}
                                               className="border-b border-slate-50 dark:border-neutral-900 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors cursor-pointer group"
                                             >
-                                              <td className="py-3 px-4 text-[11px] xl:text-xs text-slate-700 dark:text-slate-300 w-[35%] truncate pl-8">
+                                              <td className="py-3 px-4 text-[11px] xl:text-xs text-slate-700 dark:text-slate-300 w-[30%] truncate pl-8">
                                                 <div className="flex flex-col">
                                                     <span className="font-medium truncate" title={permiso.usuario?.nombre}>{permiso.usuario?.nombre}</span>
                                                     <span className="text-[10px] text-gray-400 truncate" title={permiso.usuario?.puesto_nombre || ''}>{permiso.usuario?.puesto_nombre}</span>
@@ -409,18 +410,29 @@ export default function VerPermisos() {
                                               <td className="py-3 px-2 text-center text-gray-600 dark:text-gray-400 capitalize w-[15%]">
                                                 {permiso.tipo.replace('_', ' ')}
                                               </td>
-                                              <td className="py-3 px-2 text-center text-gray-600 dark:text-gray-400 w-[15%] whitespace-nowrap">
+                                              <td className="py-3 px-2 text-center text-gray-600 dark:text-gray-400 w-[10%] whitespace-nowrap">
                                                 {format(parseISO(permiso.created_at), "d MMM yyyy", { locale: es })}
                                               </td>
                                               <td className="py-3 px-2 text-center text-gray-600 dark:text-gray-400 w-[20%] whitespace-nowrap">
                                                 <div className="flex flex-col items-center">
-                                                  <span>{format(parseISO(permiso.inicio), "d MMM HH:mm", { locale: es })}</span>
+                                                  <span>{format(parseISO(permiso.inicio), "d MMM h:mm a", { locale: es })}</span>
                                                   <span className="text-[9px] text-gray-400">a</span>
-                                                  <span>{format(parseISO(permiso.fin), "d MMM HH:mm", { locale: es })}</span>
+                                                  <span>{format(parseISO(permiso.fin), "d MMM h:mm a", { locale: es })}</span>
                                                 </div>
                                               </td>
                                               <td className="py-3 px-2 text-center w-[10%]">
                                                 {getEstadoBadge(permiso.estado)}
+                                              </td>
+                                              <td className="py-3 px-2 text-center w-[10%]">
+                                                {permiso.estado === 'aprobado' ? (
+                                                    permiso.remunerado ? (
+                                                        <span className="inline-flex items-center justify-center font-medium text-emerald-600 dark:text-emerald-400 text-[10px]">SÍ</span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center justify-center text-gray-400 text-[10px]">NO</span>
+                                                    )
+                                                ) : (
+                                                    <span className="text-gray-300 dark:text-gray-600 text-[10px]">--</span>
+                                                )}
                                               </td>
                                               <td className="py-3 px-2 text-center w-[5%]">
                                                 <div className="flex items-center justify-center">

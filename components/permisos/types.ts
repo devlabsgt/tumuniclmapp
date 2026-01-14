@@ -15,6 +15,7 @@ export type PermisoEmpleado = {
   fin: string
   estado: 'pendiente' | 'aprobado' | 'rechazado'
   created_at: string
+  remunerado: boolean 
   usuario?: UsuarioConJerarquia
 }
 

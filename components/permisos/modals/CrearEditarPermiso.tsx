@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { X, Save, Loader2, ShieldAlert, Check, ChevronsUpDown, Eye } from 'lucide-react'
+import { X, Save, Loader2, ShieldAlert, Check, ChevronsUpDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PermisoEmpleado, UsuarioConJerarquia } from '../types'
 import { guardarPermiso, PerfilUsuario } from '../acciones'
@@ -67,6 +67,7 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
   const [selectedTipo, setSelectedTipo] = useState<string>('')
   const [openComboboxTipo, setOpenComboboxTipo] = useState(false)
   const [otroTipoManual, setOtroTipoManual] = useState<string>('')
+  const [esRemunerado, setEsRemunerado] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -75,6 +76,8 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
       
       if (permisoAEditar) {
         setSelectedUserId(permisoAEditar.user_id)
+        setEsRemunerado(permisoAEditar.remunerado || false)
+        
         const tipoEncontrado = TODOS_LOS_TIPOS.find(t => t.toLowerCase() === permisoAEditar.tipo.toLowerCase())
         if (tipoEncontrado) {
           setSelectedTipo(tipoEncontrado)
@@ -84,6 +87,7 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
         }
       } else {
         setSelectedTipo('')
+        setEsRemunerado(false)
         if (usuarios.length === 1) {
            setSelectedUserId(usuarios[0].id)
         } else {
@@ -120,6 +124,21 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
     formData.set('user_id', selectedUserId)
     const tipoFinal = selectedTipo === 'Otros' ? otroTipoManual : selectedTipo
     formData.set('tipo', tipoFinal)
+
+    // === SOLUCIÓN ZONA HORARIA ===
+    // Convertimos la hora local del input a ISO String (UTC) antes de enviar
+    const inicioLocal = formData.get('inicio') as string
+    const finLocal = formData.get('fin') as string
+
+    if (inicioLocal) {
+        // new Date() usa la zona horaria del navegador (Guatemala) para crear el objeto
+        // toISOString() lo convierte a UTC absoluto, que es lo que Supabase guarda correctamente
+        formData.set('inicio', new Date(inicioLocal).toISOString())
+    }
+    if (finLocal) {
+        formData.set('fin', new Date(finLocal).toISOString())
+    }
+    // ============================
     
     try {
       await guardarPermiso(formData, permisoAEditar?.id)
@@ -134,6 +153,7 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
     }
   }
 
+  // format() usa la hora local del navegador para mostrar, lo cual es correcto
   const defaultInicio = permisoAEditar?.inicio 
     ? format(new Date(permisoAEditar.inicio), "yyyy-MM-dd'T'HH:mm") 
     : ''
@@ -142,12 +162,8 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
     ? format(new Date(permisoAEditar.fin), "yyyy-MM-dd'T'HH:mm") 
     : ''
 
-  // Roles administrativos (pueden editar todo)
   const esAdmin = ['SUPER', 'RRHH', 'SECRETARIO'].includes(perfilUsuario?.rol || '');
-  
-  // Si estamos en modo EDICIÓN y NO es admin, es solo lectura
   const esSoloLectura = !!permisoAEditar && !esAdmin;
-
   const esUnicoUsuario = usuarios.length === 1;
   const usuarioSeleccionadoObj = usuarios.find(u => u.id === selectedUserId);
 
@@ -240,7 +256,6 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
               Tipo de Permiso
             </label>
             
-            {/* Si es solo lectura, mostramos input deshabilitado en vez de combobox para que se vea claro el valor */}
             {esSoloLectura ? (
                <input
                  type="text"
@@ -338,6 +353,24 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
             )}
           </div>
 
+          <div className="flex items-center space-x-2 py-1">
+            <input
+              type="checkbox"
+              id="remunerado"
+              name="remunerado"
+              checked={esRemunerado}
+              onChange={(e) => setEsRemunerado(e.target.checked)}
+              disabled={esSoloLectura}
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-neutral-700 dark:bg-neutral-900 disabled:opacity-50"
+            />
+            <label
+              htmlFor="remunerado"
+              className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700 dark:text-gray-300"
+            >
+              Remunerado
+            </label>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label htmlFor="inicio" className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -389,7 +422,6 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
               name="estado"
               id="estado"
               required
-              // Solo admin puede cambiar el estado, incluso en edición
               disabled={!esAdmin || esSoloLectura} 
               defaultValue={permisoAEditar?.estado || 'pendiente'}
               className="p-2 text-sm rounded-md border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 focus:ring-1 focus:ring-blue-500 outline-none disabled:opacity-50 disabled:bg-gray-100 dark:disabled:bg-neutral-900 disabled:cursor-not-allowed dark:text-gray-200"
@@ -417,7 +449,6 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
               {esSoloLectura ? 'Cerrar' : 'Cancelar'}
             </Button>
             
-            {/* Ocultamos el botón de guardar si es solo lectura */}
             {!esSoloLectura && (
                 <Button 
                 type="submit" 

@@ -11,7 +11,6 @@ export type PerfilUsuario = {
   dependenciaId: string | null
 }
 
-// Función auxiliar para obtener rol (Reutilizada internamente)
 async function getRolInterno(userId: string, supabase: any) {
   const { data } = await supabase
     .from('usuarios_roles')
@@ -29,10 +28,8 @@ export async function obtenerPerfilUsuario(): Promise<PerfilUsuario | null> {
   
   if (!user) return null
 
-  // 1. Obtener Rol
   const rolEncontrado = await getRolInterno(user.id, supabase)
 
-  // 2. Obtener Info Usuario (Jefe y Dependencia)
   const { data: infoData } = await supabase
     .from('info_usuario')
     .select('esjefe, dependencia_id')
@@ -80,8 +77,6 @@ export async function guardarPermiso(formData: FormData, id?: string) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Usuario no autenticado')
 
-  // === SEGURIDAD DE EDICIÓN ===
-  // Si hay ID (es una edición), verificamos que el usuario tenga rol administrativo
   if (id) {
     const rolActual = await getRolInterno(user.id, supabase)
     const esAdministrativo = ['SUPER', 'RRHH', 'SECRETARIO'].includes(rolActual || '')
@@ -90,13 +85,15 @@ export async function guardarPermiso(formData: FormData, id?: string) {
       throw new Error('No tienes permisos para editar solicitudes existentes.')
     }
   }
-  // ============================
 
   const tipo = formData.get('tipo') as string
   const inicio = formData.get('inicio') as string
   const fin = formData.get('fin') as string
   const estado = formData.get('estado') as string
   const userIdSeleccionado = formData.get('user_id') as string
+  
+  // Leemos el checkbox. Si no está marcado, formData.get devuelve null
+  const remunerado = formData.get('remunerado') === 'on'
 
   if (!userIdSeleccionado) throw new Error('El usuario es obligatorio')
 
@@ -104,6 +101,7 @@ export async function guardarPermiso(formData: FormData, id?: string) {
     tipo,
     inicio,
     fin,
+    remunerado, // Guardamos el valor booleano
     user_id: userIdSeleccionado 
   }
 
@@ -115,7 +113,7 @@ export async function guardarPermiso(formData: FormData, id?: string) {
   if (id) {
     const { error: updateError } = await supabase
       .from('permisos_empleado')
-      .update({ tipo, inicio, fin, estado })
+      .update({ tipo, inicio, fin, estado, remunerado })
       .eq('id', id)
     error = updateError
   } else {
