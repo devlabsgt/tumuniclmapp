@@ -75,6 +75,36 @@ export const TODOS_LOS_MODULOS = [
     subgrupo: 'Gestión Jefe de Área'
   },
   {
+    id: 'ACTIVIDADES',
+    permiso: 'ACTIVIDADES',
+    titulo: 'Gestión de Actividades',
+    descripcion: 'Planificación y seguimiento de actividades.',
+    ruta: '/protected/actividades',
+    iconoKey: 'hrtsficn',
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Gestión Jefe de Área'
+  },
+  {
+    id: 'PERMISOS',
+    permiso: 'PERMISOS',
+    titulo: 'Mis Permisos',
+    descripcion: 'Solicitud y control de permisos personales.',
+    ruta: '/protected/permisos',
+    iconoKey: 'abhwievu',
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Gestión Propia' 
+  },
+  {
+    id: 'PERMISOS_GESTION',
+    permiso: 'RRHH', 
+    titulo: 'Gestión de Permisos del Personal',
+    descripcion: 'Administración y aprobación de permisos.',
+    ruta: '/protected/permisos', 
+    iconoKey: 'abhwievu',
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Recursos Humanos'
+  },
+  {
     id: 'COMISIONES_RRHH',
     permiso: 'COMISIONES',
     titulo: 'Gestión de Comisiones',

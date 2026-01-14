@@ -319,9 +319,7 @@ export default function TarjetaEmpleado({ isOpen, onClose, userId }: TarjetaEmpl
                           </div>
                         </>
                       ) : (
-                        <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 text-center">
-                          <Lock className="mx-auto h-6 w-6 text-gray-400 mb-2" />
-                          <p className="text-xs text-gray-500">Información financiera restringida</p>
+                        <div>
                         </div>
                       )}
                   </div>
