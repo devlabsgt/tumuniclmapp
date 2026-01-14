@@ -1,16 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { Tarea, ChecklistItem, Usuario } from './types'; // 👈 Asegúrate de importar Usuario
+import { Tarea, ChecklistItem, Usuario } from './types'; 
 import { cambiarEstado, eliminarTarea } from './actions';
 import EditarTarea from './modals/EditarTarea';
-import DuplicateTarea from './modals/DuplicateTarea'; // 👈 1. Importar el nuevo modal
+import DuplicateTarea from './modals/DuplicateTarea'; 
 import TareaChecklist from './TareaChecklist'; 
 import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
 import { 
   Edit2, Trash2, ChevronDown, MoreHorizontal, Calendar, 
-  User, Clock, ListTodo, AlertCircle, Copy // 👈 2. Importar icono Copy
+  User, Clock, ListTodo, AlertCircle, Copy 
 } from 'lucide-react';
 
 interface Props {
@@ -19,7 +19,7 @@ interface Props {
   onToggle?: () => void;
   isJefe: boolean;
   usuarioActual: string;
-  usuarios: Usuario[]; // 👈 3. Nueva prop necesaria para el modal de duplicar
+  usuarios: Usuario[]; 
 }
 
 const getNombreCorto = (nombreCompleto: string | undefined | null) => {
@@ -61,10 +61,10 @@ const getNombreCorto = (nombreCompleto: string | undefined | null) => {
   return `${primerNombre} ${partesApellido.join(' ')}`;
 };
 
-export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe, usuarioActual, usuarios }: Props) { // 👈 4. Recibimos usuarios
+export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe, usuarioActual, usuarios }: Props) { 
   const [loading, setLoading] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false); // 👈 5. Nuevo estado
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false); 
 
   const formatearFecha = (fechaISO: string) => {
     if (!fechaISO) return '';
@@ -189,11 +189,11 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
 
             <div className="flex items-center gap-0 sm:gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                 
-                {/* 👇 6. BOTÓN DUPLICAR (Disponible si es Jefe) */}
+                {/* 👇 6. BOTÓN DUPLICAR (COLOR CAMBIADO A NARANJA/AMBER) */}
                 {isJefe && (
                     <button 
                     onClick={() => setIsDuplicateModalOpen(true)}
-                    className="p-2 text-slate-400 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-slate-100 dark:hover:bg-indigo-900/20 transition-all"
+                    className="p-2 text-slate-400 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all"
                     title="Duplicar Tarea"
                     >
                         <Copy size={18} />
@@ -373,7 +373,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
         esJefe={isJefe} 
     />
 
-    {/* 👇 7. RENDERIZAR NUEVO MODAL */}
     <DuplicateTarea
         isOpen={isDuplicateModalOpen}
         onClose={() => setIsDuplicateModalOpen(false)}
