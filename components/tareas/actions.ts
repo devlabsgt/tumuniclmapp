@@ -4,7 +4,10 @@ import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { ChecklistItem, NewTaskState, Tarea, Usuario } from './types'; 
 
-// --- CARGAR DATOS ---
+// --- CARGAR DATOS (FILTRADO POR DEPENDENCIA) ---
+// --- CARGAR DATOS (CON LOGS DE DEPURACIÓN) ---
+// --- CARGAR DATOS (CON LOGS COMPLETOS) ---
+// --- CARGAR DATOS (CON LOGICA RECURSIVA DE DEPENDENCIAS) ---
 export async function obtenerDatosGestor() {
   const supabase = await createClient();
   
@@ -12,16 +15,17 @@ export async function obtenerDatosGestor() {
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) return null;
 
-  // 2. Averiguamos si es JEFE
+  // 2. Traemos perfil
   const { data: perfil } = await supabase
     .from('info_usuario')
-    .select('esjefe')
+    .select('esjefe, dependencia_id') 
     .eq('user_id', user.id)
     .single();
 
   const esJefe = perfil?.esjefe ?? false;
+  const miDependencia = perfil?.dependencia_id;
 
-  // 3. TRAER TAREAS
+  // 3. TAREAS (Lógica estándar)
   let query = supabase.from('tasks')
     .select('*') 
     .order('due_date', { ascending: true });
@@ -30,25 +34,71 @@ export async function obtenerDatosGestor() {
     query = query.or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`);
   }
 
-  // 4. TRAER USUARIOS
-  const usuariosQuery = supabase.from('info_usuario')
-    .select('user_id, nombre, esjefe, activo')
+  // 4. PREPARAR FILTRO DE USUARIOS (Lógica Jerárquica)
+  let listaDeIds: string[] = [];
+
+  if (miDependencia) {
+    // A) Primero averiguamos si mi puesto tiene un PADRE (Ej: Soy 'Conta', padre es 'Finanzas')
+    const { data: depActual } = await supabase
+      .from('dependencias')
+      .select('id, parent_id')
+      .eq('id', miDependencia)
+      .single();
+
+    const idPadre = depActual?.parent_id;
+
+    if (idPadre) {
+      // CASO 1: Tengo un jefe/padre. 
+      // Quiero ver a: El Padre (Jefe de área) + Mis hermanos (mismo parent_id) + Yo mismo.
+      const { data: familia } = await supabase
+        .from('dependencias')
+        .select('id')
+        .or(`id.eq.${idPadre},parent_id.eq.${idPadre}`); // Trae al padre Y a los hijos
+      
+      listaDeIds = familia?.map(d => d.id) || [miDependencia];
+      
+    } else {
+      // CASO 2: Yo soy el padre supremo (o no tengo padre asignado).
+      // Traemos a los que cuelguen directamente de mí (mis hijos directos) y a mí mismo.
+      const { data: hijos } = await supabase
+        .from('dependencias')
+        .select('id')
+        .or(`id.eq.${miDependencia},parent_id.eq.${miDependencia}`);
+        
+      listaDeIds = hijos?.map(d => d.id) || [miDependencia];
+    }
+  } else {
+    // Si no tengo dependencia, solo me veo a mí mismo (seguridad)
+    listaDeIds = []; 
+  }
+
+  // 5. CONSULTA FINAL DE USUARIOS
+  let usuariosQuery = supabase.from('info_usuario')
+    .select('user_id, nombre, esjefe, activo, dependencia_id')
     .eq('activo', true)
     .order('nombre');
+
+  if (listaDeIds.length > 0) {
+    // Usamos .in() para buscar en la lista de IDs validos (Padre + Hijos)
+    usuariosQuery = usuariosQuery.in('dependencia_id', listaDeIds);
+  } else {
+    // Fallback: solo yo
+    usuariosQuery = usuariosQuery.eq('user_id', user.id);
+  }
 
   const [tareasRes, usuariosRes] = await Promise.all([query, usuariosQuery]);
 
   const rawTareas = tareasRes.data || [];
   const usuarios = (usuariosRes.data || []) as Usuario[];
 
-  // 5. MANUAL JOIN
+  // 6. MANUAL JOIN
   const tareas: Tarea[] = rawTareas.map((t: any) => {
     const creador = usuarios.find(u => u.user_id === t.created_by);
     const asignado = usuarios.find(u => u.user_id === t.assigned_to);
 
     return {
       ...t,
-      creator: { nombre: creador?.nombre || 'Desconocido' },
+      creator: { nombre: creador?.nombre || 'Desconocido' }, 
       assignee: { nombre: asignado?.nombre || 'Sin asignar' }
     };
   });

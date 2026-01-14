@@ -17,6 +17,7 @@ interface Props {
   isExpanded?: boolean;
   onToggle?: () => void;
   isJefe: boolean;
+  usuarioActual: string; // 👈 1. Nueva prop agregada
 }
 
 const getNombreCorto = (nombreCompleto: string | undefined | null) => {
@@ -58,7 +59,7 @@ const getNombreCorto = (nombreCompleto: string | undefined | null) => {
   return `${primerNombre} ${partesApellido.join(' ')}`;
 };
 
-export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe }: Props) {
+export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe, usuarioActual }: Props) { // 👈 2. Recibimos usuarioActual
   const [loading, setLoading] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
@@ -76,7 +77,11 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe 
     });
   };
 
+  // Logica antigua (solo verifica si creador == asignado) - La mantenemos para el detalle inferior
   const esAutoAsignado = tarea.created_by === tarea.assigned_to;
+
+  // 👇 3. Lógica NUEVA: Verifica si yo (el que mira la pantalla) soy el asignado
+  const esAsignadoAMi = tarea.assigned_to === usuarioActual;
   
   const nombreCreador = getNombreCorto(tarea.creator?.nombre || 'Desconocido');
   const nombreAsignado = getNombreCorto(tarea.assignee?.nombre || 'Sin asignar');
@@ -231,11 +236,12 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe 
 
                     <span className="text-slate-300 dark:text-gray-600 hidden sm:inline">•</span>
                     
+                    {/* 👇 4. AQUÍ CAMBIAMOS LA VISUALIZACIÓN USANDO esAsignadoAMi */}
                     <span className="flex items-center gap-1.5 shrink-0 text-slate-600 dark:text-gray-400 w-full sm:w-auto mt-1 sm:mt-0" 
-                        title={esAutoAsignado ? 'Asignado a ti' : `Asignado a ${tarea.assignee?.nombre || 'nadie'}`}>
-                        <User size={13} className={esAutoAsignado ? 'text-blue-500' : 'text-slate-400'}/>
+                        title={esAsignadoAMi ? 'Asignado a ti' : `Asignado a ${tarea.assignee?.nombre || 'nadie'}`}>
+                        <User size={13} className={esAsignadoAMi ? 'text-blue-500' : 'text-slate-400'}/>
                         <span className="truncate sm:max-w-[150px]">
-                        {esAutoAsignado ? 'Mí mismo' : nombreAsignado}
+                        {esAsignadoAMi ? 'Mí mismo' : nombreAsignado}
                         </span>
                     </span>
             </div>
@@ -312,6 +318,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe 
                         <span className="text-[10px] text-slate-400 dark:text-gray-500">Creado: {formatearFecha(tarea.created_at)}</span>
                       </div>
                       
+                      {/* Aquí usamos la lógica antigua, porque esto describe la acción original de creación/asignación, no quién lo ve ahora */}
                       {esAutoAsignado ? (
                         <div className="flex items-center gap-2.5">
                             <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 flex items-center justify-center text-[10px] font-bold border border-blue-200 dark:border-blue-800">
