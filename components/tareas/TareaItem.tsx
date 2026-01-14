@@ -1,15 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { Tarea, ChecklistItem } from './types';
+import { Tarea, ChecklistItem, Usuario } from './types'; // 👈 Asegúrate de importar Usuario
 import { cambiarEstado, eliminarTarea } from './actions';
 import EditarTarea from './modals/EditarTarea';
+import DuplicateTarea from './modals/DuplicateTarea'; // 👈 1. Importar el nuevo modal
 import TareaChecklist from './TareaChecklist'; 
 import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
 import { 
   Edit2, Trash2, ChevronDown, MoreHorizontal, Calendar, 
-  User, Clock, ListTodo, AlertCircle
+  User, Clock, ListTodo, AlertCircle, Copy // 👈 2. Importar icono Copy
 } from 'lucide-react';
 
 interface Props {
@@ -17,7 +18,8 @@ interface Props {
   isExpanded?: boolean;
   onToggle?: () => void;
   isJefe: boolean;
-  usuarioActual: string; // 👈 1. Nueva prop agregada
+  usuarioActual: string;
+  usuarios: Usuario[]; // 👈 3. Nueva prop necesaria para el modal de duplicar
 }
 
 const getNombreCorto = (nombreCompleto: string | undefined | null) => {
@@ -59,9 +61,10 @@ const getNombreCorto = (nombreCompleto: string | undefined | null) => {
   return `${primerNombre} ${partesApellido.join(' ')}`;
 };
 
-export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe, usuarioActual }: Props) { // 👈 2. Recibimos usuarioActual
+export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe, usuarioActual, usuarios }: Props) { // 👈 4. Recibimos usuarios
   const [loading, setLoading] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false); // 👈 5. Nuevo estado
 
   const formatearFecha = (fechaISO: string) => {
     if (!fechaISO) return '';
@@ -77,10 +80,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
     });
   };
 
-  // Logica antigua (solo verifica si creador == asignado) - La mantenemos para el detalle inferior
   const esAutoAsignado = tarea.created_by === tarea.assigned_to;
-
-  // 👇 3. Lógica NUEVA: Verifica si yo (el que mira la pantalla) soy el asignado
   const esAsignadoAMi = tarea.assigned_to === usuarioActual;
   
   const nombreCreador = getNombreCorto(tarea.creator?.nombre || 'Desconocido');
@@ -188,6 +188,18 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
             </div>
 
             <div className="flex items-center gap-0 sm:gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                
+                {/* 👇 6. BOTÓN DUPLICAR (Disponible si es Jefe) */}
+                {isJefe && (
+                    <button 
+                    onClick={() => setIsDuplicateModalOpen(true)}
+                    className="p-2 text-slate-400 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-slate-100 dark:hover:bg-indigo-900/20 transition-all"
+                    title="Duplicar Tarea"
+                    >
+                        <Copy size={18} />
+                    </button>
+                )}
+
                 {!isReadOnly && (
                     <button 
                     onClick={() => setIsEditModalOpen(true)} 
@@ -236,7 +248,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
 
                     <span className="text-slate-300 dark:text-gray-600 hidden sm:inline">•</span>
                     
-                    {/* 👇 4. AQUÍ CAMBIAMOS LA VISUALIZACIÓN USANDO esAsignadoAMi */}
                     <span className="flex items-center gap-1.5 shrink-0 text-slate-600 dark:text-gray-400 w-full sm:w-auto mt-1 sm:mt-0" 
                         title={esAsignadoAMi ? 'Asignado a ti' : `Asignado a ${tarea.assignee?.nombre || 'nadie'}`}>
                         <User size={13} className={esAsignadoAMi ? 'text-blue-500' : 'text-slate-400'}/>
@@ -318,7 +329,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                         <span className="text-[10px] text-slate-400 dark:text-gray-500">Creado: {formatearFecha(tarea.created_at)}</span>
                       </div>
                       
-                      {/* Aquí usamos la lógica antigua, porque esto describe la acción original de creación/asignación, no quién lo ve ahora */}
                       {esAutoAsignado ? (
                         <div className="flex items-center gap-2.5">
                             <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 flex items-center justify-center text-[10px] font-bold border border-blue-200 dark:border-blue-800">
@@ -361,6 +371,15 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
         onClose={() => setIsEditModalOpen(false)}
         tarea={tarea}
         esJefe={isJefe} 
+    />
+
+    {/* 👇 7. RENDERIZAR NUEVO MODAL */}
+    <DuplicateTarea
+        isOpen={isDuplicateModalOpen}
+        onClose={() => setIsDuplicateModalOpen(false)}
+        tareaOriginal={tarea}
+        usuarios={usuarios}
+        esJefe={isJefe}
     />
     </>
   );

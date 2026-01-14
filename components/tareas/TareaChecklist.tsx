@@ -19,6 +19,14 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
   const [editingStepIndex, setEditingStepIndex] = useState<number | null>(null);
   const [editingStepText, setEditingStepText] = useState('');
 
+  // 1. LÓGICA DE ORDENAMIENTO (Pendientes primero)
+  const sortedChecklist = checklist
+    .map((item, index) => ({ ...item, originalIndex: index }))
+    .sort((a, b) => {
+        // false (0) va antes que true (1)
+        return Number(a.is_completed) - Number(b.is_completed);
+    });
+
   const toggleCheck = async (idx: number) => {
     if (editingStepIndex !== null || isReadOnly) return;
     const newChecklist = [...checklist];
@@ -80,8 +88,6 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
 
   return (
     <div className="
-        /* ✅ CAMBIO: Altura aumentada para ver ~2 líneas más */
-        /* Móvil: 70% de pantalla | PC: 450px (antes 300px) */
         max-h-[70vh] sm:max-h-[450px] 
         overflow-y-auto 
         pr-1 sm:pr-2 
@@ -92,73 +98,80 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
         [&::-webkit-scrollbar-thumb]:rounded-full
     ">
         <ul className="space-y-2 pb-2">
-            {checklist.map((item, idx) => (
-            <li key={idx} 
-                className={`flex items-start sm:items-center justify-between text-sm p-2 rounded-lg transition-colors group border border-transparent
-                ${item.is_completed 
-                    ? 'bg-slate-50/50 dark:bg-neutral-800/30 text-slate-400 dark:text-gray-500' 
-                    : 'hover:bg-slate-50 dark:hover:bg-neutral-800 hover:border-slate-100 dark:hover:border-neutral-700 text-slate-700 dark:text-gray-200'}`}
-            >
-                 <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <div 
-                        onClick={() => toggleCheck(idx)}
-                        className={`mt-0.5 min-w-[20px] w-[20px] h-[20px] rounded flex items-center justify-center transition-all border shrink-0
-                        ${isReadOnly ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} 
-                        ${item.is_completed 
-                            ? 'bg-green-500 border-green-500 shadow-sm' 
-                            : 'bg-white dark:bg-neutral-800 border-slate-300 dark:border-neutral-600 hover:border-blue-400 dark:hover:border-blue-500'}`}
-                    >
-                        {item.is_completed && <Check size={14} className="text-white" strokeWidth={4} />}
+            {sortedChecklist.map((item) => {
+                const idx = item.originalIndex; 
+                
+                return (
+                <li key={idx} 
+                    className={`flex items-start sm:items-center justify-between text-sm p-2 rounded-lg transition-colors group border border-transparent
+                    ${item.is_completed 
+                        ? 'bg-slate-50/50 dark:bg-neutral-800/30' // Solo fondo muy suave
+                        : 'hover:bg-slate-50 dark:hover:bg-neutral-800 hover:border-slate-100 dark:hover:border-neutral-700'}`}
+                >
+                     <div className="flex items-start gap-3 flex-1 min-w-0">
+                        {/* CHECKBOX (El único indicador visual de estado) */}
+                        <div 
+                            onClick={() => toggleCheck(idx)}
+                            className={`mt-0.5 min-w-[20px] w-[20px] h-[20px] rounded flex items-center justify-center transition-all border shrink-0
+                            ${isReadOnly ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} 
+                            ${item.is_completed 
+                                ? 'bg-green-500 border-green-500 shadow-sm' 
+                                : 'bg-white dark:bg-neutral-800 border-slate-300 dark:border-neutral-600 hover:border-blue-400 dark:hover:border-blue-500'}`}
+                        >
+                            {item.is_completed && <Check size={14} className="text-white" strokeWidth={4} />}
+                        </div>
+                        
+                        {editingStepIndex === idx ? (
+                            <div className="flex-1 flex gap-2 animate-in fade-in duration-200 min-w-0">
+                                <input 
+                                    type="text" 
+                                    value={editingStepText}
+                                    onChange={(e) => setEditingStepText(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && saveStepEdit(idx)}
+                                    autoFocus
+                                    className="w-full text-base bg-white dark:bg-neutral-900 border border-blue-400 dark:border-blue-500 rounded px-2 py-1 focus:outline-none shadow-sm dark:text-gray-100"
+                                />
+                                <button onClick={() => saveStepEdit(idx)} className="text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 p-2 rounded shrink-0">
+                                    <Check size={18} />
+                                </button>
+                            </div>
+                        ) : (
+                            <span 
+                                onClick={() => toggleCheck(idx)}
+                                className={`
+                                    leading-tight select-none flex-1 transition-all break-words
+                                    ${isReadOnly ? 'cursor-default' : 'cursor-pointer'}
+                                    /* ✅ CORRECCIÓN: Aquí forzamos el color normal SIEMPRE */
+                                    text-slate-700 dark:text-gray-200
+                                `}
+                            >
+                                {item.title}
+                            </span>
+                        )}
                     </div>
-                    
-                    {editingStepIndex === idx ? (
-                        <div className="flex-1 flex gap-2 animate-in fade-in duration-200 min-w-0">
-                            <input 
-                                type="text" 
-                                value={editingStepText}
-                                onChange={(e) => setEditingStepText(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && saveStepEdit(idx)}
-                                autoFocus
-                                className="w-full text-base bg-white dark:bg-neutral-900 border border-blue-400 dark:border-blue-500 rounded px-2 py-1 focus:outline-none shadow-sm dark:text-gray-100"
-                            />
-                            <button onClick={() => saveStepEdit(idx)} className="text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 p-2 rounded shrink-0">
-                                <Check size={18} />
+
+                    {editingStepIndex !== idx && !isReadOnly && (
+                        <div className="flex items-center gap-1 ml-2 shrink-0">
+                            <button 
+                                onClick={() => startEditingStep(idx, item.title)} 
+                                className="p-2 text-slate-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+                            >
+                                <Edit2 size={16} />
+                            </button>
+                            <button 
+                                onClick={() => handleDeleteItem(idx)} 
+                                className="p-2 text-slate-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                            >
+                                <Trash2 size={16} />
                             </button>
                         </div>
-                    ) : (
-                        <span 
-                            onClick={() => toggleCheck(idx)}
-                            className={`leading-tight select-none flex-1 transition-all break-words
-                            ${isReadOnly ? 'cursor-default' : 'cursor-pointer'}
-                            ${item.is_completed ? 'line-through opacity-60' : ''}`}
-                        >
-                            {item.title}
-                        </span>
                     )}
-                </div>
-
-                {editingStepIndex !== idx && !isReadOnly && (
-                    <div className="flex items-center gap-1 ml-2 shrink-0">
-                        <button 
-                            onClick={() => startEditingStep(idx, item.title)} 
-                            className="p-2 text-slate-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
-                        >
-                            <Edit2 size={16} />
-                        </button>
-                        <button 
-                            onClick={() => handleDeleteItem(idx)} 
-                            className="p-2 text-slate-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
-                        >
-                            <Trash2 size={16} />
-                        </button>
-                    </div>
-                )}
-            </li>
-            ))}
+                </li>
+            )})}
         </ul>
 
         {!isReadOnly && (
-            <div className="flex gap-2 mt-2 sticky bottom-0 bg-white dark:bg-neutral-900 pt-2 pb-1">
+            <div className="flex gap-2 mt-2 sticky bottom-0 pt-2 pb-1">
                 <div className="relative flex-1">
                     <input 
                         type="text" 
@@ -174,7 +187,7 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
                 <button 
                     onClick={handleAddItem} 
                     disabled={!newItemText.trim() || isAdding} 
-                    className="bg-blue-600 text-white hover:bg-blue-700 px-4 rounded-xl text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-blue-200 dark:shadow-none"
+                    className="bg-blue-600 text-white hover:bg-blue-700 px-4 rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed shadow-sm shadow-blue-200 dark:shadow-none"
                 >
                     Añadir
                 </button>

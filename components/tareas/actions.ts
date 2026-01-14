@@ -4,10 +4,7 @@ import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { ChecklistItem, NewTaskState, Tarea, Usuario } from './types'; 
 
-// --- CARGAR DATOS (FILTRADO POR DEPENDENCIA) ---
-// --- CARGAR DATOS (CON LOGS DE DEPURACIÓN) ---
-// --- CARGAR DATOS (CON LOGS COMPLETOS) ---
-// --- CARGAR DATOS (CON LOGICA RECURSIVA DE DEPENDENCIAS) ---
+// --- CARGAR DATOS (CON LÓGICA DE JERARQUÍA Y DEPENDENCIAS) ---
 export async function obtenerDatosGestor() {
   const supabase = await createClient();
   
@@ -147,7 +144,7 @@ export async function crearTarea(formData: NewTaskState) {
   revalidatePath('/protected/tareas');
 }
 
-// --- ACTUALIZAR TAREA (CORREGIDO) ---
+// --- ACTUALIZAR TAREA ---
 export async function actualizarTarea(id: string, updates: { title?: string; description?: string; due_date?: string }) {
   const supabase = await createClient();
   
@@ -155,8 +152,6 @@ export async function actualizarTarea(id: string, updates: { title?: string; des
     .from('tasks') 
     .update({
       ...updates
-      // ❌ SE ELIMINÓ: updated_at: new Date().toISOString()
-      // Al quitar esa línea, Supabase ya no buscará la columna inexistente.
     })
     .eq('id', id);
 
@@ -178,11 +173,12 @@ export async function updateChecklist(taskId: string, newChecklist: ChecklistIte
     .eq('id', taskId)
     .single();
 
-  // 👇 LIMPIO: Solo actualizamos el checklist
+  // Solo actualizamos el checklist
   const updates: any = { 
     checklist: newChecklist
   };
 
+  // Si la tarea estaba en "Asignado" y marcamos algo, pasamos a "En Proceso"
   if (tarea && tarea.status === 'Asignado') {
     const hayItemsCompletados = newChecklist.some(item => item.is_completed);
     if (hayItemsCompletados) {
@@ -217,7 +213,7 @@ export async function cambiarEstado(taskId: string, nuevoEstado: string) {
     }
   }
 
-  // 👇 LIMPIO: Solo actualizamos el estado
+  // Solo actualizamos el estado
   const { error } = await supabase.from('tasks')
     .update({ 
         status: nuevoEstado
@@ -241,4 +237,80 @@ export async function eliminarTarea(taskId: string) {
     throw new Error(error.message);
   }
   revalidatePath('/protected/tareas');
+}
+
+// --- DUPLICAR TAREA (REESTRUCTURADO) ---
+// --- DUPLICAR TAREA (VERSIÓN DEBUG) ---
+export async function duplicarTarea(datos: NewTaskState) {
+  // LOG 1: Ver qué llega al servidor
+
+  const supabase = await createClient();
+
+  try {
+    // 1. Auth check
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+        console.error("❌ SERVER: Error de autenticación", authError);
+        throw new Error("Usuario no autenticado o sesión expirada");
+    }
+
+    // 2. Verificar perfil (Jefe)
+    const { data: perfil } = await supabase
+        .from('info_usuario')
+        .select('esjefe')
+        .eq('user_id', user.id)
+        .single();
+    
+    const esJefe = perfil?.esjefe ?? false;
+
+    // 3. Preparar el Payload (Datos limpios)
+    // Forzamos la lógica de asignación aquí
+    let asignadoA = datos.assigned_to;
+    if (!asignadoA || (!esJefe && asignadoA !== user.id)) {
+        asignadoA = user.id;
+    }
+
+    // Limpieza de Checklist
+    const checklistLimpio = Array.isArray(datos.checklist) 
+        ? datos.checklist.map(i => ({ title: String(i.title), is_completed: false }))
+        : [];
+
+    // Limpieza de Fecha (CRÍTICO)
+    if (!datos.due_date) {
+        throw new Error("La fecha llegó vacía al servidor");
+    }
+
+    // Objeto final a insertar
+    const payloadInsert = {
+        title: datos.title,
+        description: datos.description || null, // Convertir '' a null
+        due_date: datos.due_date,
+        assigned_to: asignadoA,
+        created_by: user.id,
+        status: 'Asignado',
+        checklist: checklistLimpio
+    };
+
+
+    // 4. Insertar
+    const { data, error } = await supabase
+        .from('tasks')
+        .insert([payloadInsert])
+        .select(); // El select nos ayuda a ver si retornó algo
+
+    if (error) {
+        // AQUÍ ESTÁ EL TESORO: El error real de la base de datos
+        console.error("🔴 SERVER ERROR SUPABASE (Detalles):", error);
+        console.error("Mensaje:", error.message);
+        console.error("Detalles:", error.details);
+        console.error("Hint:", error.hint);
+        throw new Error(`Error BD: ${error.message}`);
+    }
+
+    revalidatePath('/protected/tareas');
+
+  } catch (err: any) {
+    console.error("💥 SERVER: Excepción capturada:", err);
+    throw new Error(err.message || "Error desconocido en servidor");
+  }
 }
