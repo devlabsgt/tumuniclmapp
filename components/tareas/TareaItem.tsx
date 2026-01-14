@@ -10,7 +10,7 @@ import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
 import { 
   Edit2, Trash2, ChevronDown, MoreHorizontal, Calendar, 
-  User, Clock, ListTodo, AlertCircle, Copy 
+  User, Clock, ListTodo, AlertCircle, Copy, ArrowRight
 } from 'lucide-react';
 
 interface Props {
@@ -22,6 +22,7 @@ interface Props {
   usuarios: Usuario[]; 
 }
 
+// Función auxiliar para acortar nombres
 const getNombreCorto = (nombreCompleto: string | undefined | null) => {
   if (!nombreCompleto) return 'Sin nombre';
   
@@ -37,7 +38,6 @@ const getNombreCorto = (nombreCompleto: string | undefined | null) => {
   const p2 = partes[2] ? partes[2].toLowerCase() : '';
 
   const conectores = ['de', 'del', 'la', 'las', 'los', 'san', 'da', 'di', 'van', 'von', 'y'];
-
   const sufijosNombreCompuesto = ['jesús', 'jesus', 'carmen', 'pilar', 'rocío', 'rocio', 'luz', 'maría', 'maria', 'ángeles', 'angeles', 'fatima', 'fátima'];
   
   if (total > 3 && (p1 === 'de' || p1 === 'del') && sufijosNombreCompuesto.includes(p2)) {
@@ -80,6 +80,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
     });
   };
 
+  // Comparación de IDs para saber si es delegada o propia
   const esAutoAsignado = tarea.created_by === tarea.assigned_to;
   const esAsignadoAMi = tarea.assigned_to === usuarioActual;
   
@@ -171,6 +172,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
         ${isExpanded ? 'ring-2 ring-blue-400/50 dark:ring-blue-900/40 shadow-xl z-10' : 'hover:-translate-y-0.5'}
     `}>
       
+      {/* --- CABECERA CLICKEABLE (ACCORDION TRIGGER) --- */}
       <div onClick={onToggle} className="p-4 sm:p-5 cursor-pointer flex flex-col gap-1 sm:gap-0">
         
         <div className="flex justify-between items-start gap-3 sm:gap-4 w-full">
@@ -224,17 +226,17 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
             </div>
         </div>
 
-        {/* --- INICIO SECCIÓN MODIFICADA: VISTA COMPRIMIDA --- */}
+        {/* --- VISTA RESUMEN (CUANDO EL ACORDEÓN ESTÁ CERRADO) --- */}
         {!isExpanded && (
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 dark:text-gray-400 font-medium w-full border-t pt-3 sm:border-t-0 sm:pt-0 border-slate-100 dark:border-neutral-800 sm:mt-2">
                 
-                {/* 1. Hora de vencimiento */}
+                {/* 1. Hora */}
                 <span className="flex items-center gap-1.5 shrink-0 text-slate-600 dark:text-gray-300">
                     <Clock size={13} className="text-slate-400 dark:text-gray-500"/> 
                     {formatearHora(tarea.due_date)}
                 </span>
                 
-                {/* 2. Checklist (Solo si hay items) */}
+                {/* 2. Checklist (si existe) */}
                 {total > 0 && (
                 <>
                     <span className="text-slate-300 dark:text-gray-600 hidden sm:inline">•</span>
@@ -250,50 +252,59 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
 
                 <span className="text-slate-300 dark:text-gray-600 hidden sm:inline">•</span>
                 
-                {/* 3. LÓGICA DE USUARIOS: DE -> PARA */}
-                {esAutoAsignado ? (
-                    // CASO A: Tarea personal (Creador = Asignado)
-                    <span className="flex items-center gap-1.5 shrink-0 text-slate-600 dark:text-gray-400 w-full sm:w-auto mt-1 sm:mt-0" 
-                        title={esAsignadoAMi ? 'Auto-asignado a ti' : `Auto-asignado a ${nombreAsignado}`}>
-                        <User size={13} className={esAsignadoAMi ? 'text-blue-500' : 'text-slate-400'}/>
-                        <span className="truncate sm:max-w-[150px]">
-                            {esAsignadoAMi ? 'Mí mismo' : nombreAsignado}
-                        </span>
-                    </span>
-                ) : (
-                    // CASO B: Tarea delegada (Creador != Asignado) -> Muestra "De: X -> Para: Y"
-                    <div className="flex items-center gap-2 w-full sm:w-auto mt-1 sm:mt-0">
-                        
-                        {/* Creador */}
-                        <span className="flex items-center gap-1 text-slate-500 dark:text-gray-500" title={`Creado por: ${nombreCreador}`}>
-                            <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wide">Creado:</span>
-                            <span className="truncate max-w-[100px]">{nombreCreador}</span>
-                        </span>
+                {/* 3. LÓGICA DE USUARIOS (Corrección Visual) */}
+                <div className="flex-1 min-w-0 flex items-center justify-end sm:justify-start">
+                    
+                    {esAutoAsignado ? (
+                        /* CASO A: Auto-asignado - CAMBIO SOLICITADO */
+                        <div className="flex items-center gap-1.5 text-xs">
+                             {/* Etiqueta explícita */}
+                             <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">
+                                CREADO Y ASIGNADO:
+                             </span>
+                             
+                             {/* Icono y Nombre */}
+                             <div className="flex items-center gap-1">
+                                <User size={13} className={esAsignadoAMi ? 'text-blue-500' : 'text-slate-400'}/>
+                                <span className={`truncate max-w-[120px] ${esAsignadoAMi ? 'text-blue-600 font-bold' : 'font-medium text-slate-700 dark:text-gray-300'}`}>
+                                    {esAsignadoAMi ? 'Mí mismo' : nombreAsignado}
+                                </span>
+                             </div>
+                        </div>
+                    ) : (
+                        /* CASO B: Delegado (Creador != Asignado) -> Mostramos "De -> Para" */
+                        <div className="flex items-center gap-2 text-xs w-full sm:w-auto">
+                            {/* Creador - AHORA (Mismo color y tono que el asignado) */}
+                            <div className="flex items-center gap-1 text-slate-700 dark:text-gray-300">
+                                <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Creado:</span>
+                                <span className="truncate max-w-[80px] sm:max-w-[100px]">{nombreCreador}</span>
+                            </div>
 
-                        {/* Flecha separadora */}
-                        <span className="text-slate-300 dark:text-gray-600">→</span>
+                            {/* Flecha */}
+                            <ArrowRight size={12} className="text-slate-300 dark:text-gray-600 shrink-0" />
 
-                        {/* Asignado */}
-                        <span className="flex items-center gap-1 text-slate-600 dark:text-gray-400" title={`Asignado a: ${nombreAsignado}`}>
-                            <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wide">Asignado:</span>
-                            <span className={`truncate max-w-[100px] ${esAsignadoAMi ? 'text-blue-600 font-medium' : ''}`}>
-                                {esAsignadoAMi ? 'Mí mismo' : nombreAsignado}
-                            </span>
-                        </span>
-                    </div>
-                )}
+                            {/* Asignado */}
+                            <div className="flex items-center gap-1 text-slate-700 dark:text-gray-300">
+                                <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Asignado:</span>
+                                <span className={`truncate max-w-[80px] sm:max-w-[100px] ${esAsignadoAMi ? 'text-blue-600 font-semibold' : ''}`}>
+                                    {esAsignadoAMi ? 'Mí mismo' : nombreAsignado}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
             </div>
         )}
-        {/* --- FIN SECCIÓN MODIFICADA --- */}
-
       </div>
 
-      
+      {/* --- CONTENIDO EXPANDIDO --- */}
       <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'}`}>
         <div className="px-4 sm:px-5 pb-5 pt-0 border-t border-slate-100 dark:border-neutral-800 mt-1">
             
             <div className="grid grid-cols-1 lg:grid-cols-5 lg:gap-8 gap-6 mt-5">
                 
+                {/* Columna Izquierda: Info y Acción */}
                 <div className="flex flex-col gap-5 lg:col-span-2">
                       
                     <div className="bg-slate-50 dark:bg-neutral-800 p-4 rounded-xl border border-slate-100 dark:border-neutral-700 h-fit">
@@ -339,6 +350,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                     )}
                 </div>
 
+                {/* Columna Derecha: Checklist */}
                 <div className="flex flex-col h-full lg:col-span-3">
                       <div className="bg-slate-50/50 dark:bg-neutral-800/30 rounded-xl border border-slate-100 dark:border-neutral-800 p-4 h-full min-h-[300px]">
                         <TareaChecklist 
@@ -351,6 +363,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
             
             </div>
 
+            {/* Footer de detalles (Expandido) */}
             <div className="mt-6 pt-4 border-t border-slate-100 dark:border-neutral-800">
                 <div className="bg-slate-50 dark:bg-neutral-800 rounded-xl p-3 text-xs text-slate-500 dark:text-gray-400 flex flex-col gap-2">
                       <div className="flex justify-between items-center border-b pb-2 border-slate-200 dark:border-neutral-700">
@@ -364,7 +377,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                                 {nombreCreador.charAt(0)}
                             </div>
                             <span className="text-slate-600 dark:text-gray-400">
-                                      Creado y Asignado: <span className="font-semibold text-slate-800 dark:text-gray-200">{nombreCreador}</span>
+                                    Creado y Asignado: <span className="font-semibold text-slate-800 dark:text-gray-200">{nombreCreador}</span>
                             </span>
                         </div>
                       ) : (
