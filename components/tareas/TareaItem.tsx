@@ -381,5 +381,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
         esJefe={isJefe}
     />
     </>
+    
   );
 }
