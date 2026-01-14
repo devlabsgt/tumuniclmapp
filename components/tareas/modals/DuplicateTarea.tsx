@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Copy, Calendar, User, AlignLeft, CheckSquare, Plus, Trash2, Edit2, Check } from 'lucide-react';
 import { toast } from 'react-toastify';
+import Swal from 'sweetalert2'; // <--- 1. IMPORTANTE: Importar SweetAlert2
 import { Tarea, Usuario, ChecklistItem } from '../types'; 
 import { duplicarTarea } from '../actions'; 
 
@@ -73,12 +74,35 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
     setNewItemText('');
   };
 
+  // 2. MODIFICACIÓN: Función actualizada con SweetAlert2
   const handleRemoveItem = (index: number) => {
-    setChecklist(checklist.filter((_, i) => i !== index));
-    // Si borramos el que se estaba editando, cancelamos edición
-    if (editingIndex === index) {
-        cancelEditing();
-    }
+    Swal.fire({
+      title: '¿Estás seguro?',
+      text: "Este ítem se eliminará de la lista",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444', // Rojo (Tailwind red-500)
+      cancelButtonColor: '#6b7280', // Gris (Tailwind gray-500)
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      background: '#fff', // Puedes ajustar esto si quieres soporte Dark Mode en el modal
+      customClass: {
+        popup: 'rounded-2xl' // Para que combine con tu diseño redondeado
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Solo borramos si el usuario confirma
+        setChecklist(checklist.filter((_, i) => i !== index));
+        
+        // Si borramos el que se estaba editando, cancelamos edición
+        if (editingIndex === index) {
+            cancelEditing();
+        }
+        
+        // Opcional: Feedback visual rápido
+        // toast.success('Ítem eliminado'); 
+      }
+    });
   };
 
   // Funciones de Edición
@@ -188,10 +212,10 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
 
                 {/* Asignado */}
                 <div>
-                     <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
+                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
                         <User size={14} /> Asignado
-                     </label>
-                     <div className="relative">
+                      </label>
+                      <div className="relative">
                         <button 
                             type="button" 
                             disabled={!esJefe}
@@ -226,7 +250,7 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
                                 ))}
                             </div>
                         )}
-                     </div>
+                      </div>
                 </div>
             </div>
 
@@ -308,7 +332,7 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
                                                     <Edit2 size={16}/>
                                                 </button>
                                                 
-                                                {/* Botón Eliminar */}
+                                                {/* Botón Eliminar con SweetAlert */}
                                                 <button 
                                                     type="button" 
                                                     onClick={() => handleRemoveItem(idx)}
