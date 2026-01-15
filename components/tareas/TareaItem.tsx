@@ -10,7 +10,7 @@ import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
 import { 
   Edit2, Trash2, ChevronDown, MoreHorizontal, Calendar, 
-  User, Clock, ListTodo, AlertCircle, Copy, ArrowRight
+  User, Clock, ListTodo, AlertCircle, Copy, ArrowRight, ArrowDown
 } from 'lucide-react';
 
 interface Props {
@@ -252,41 +252,35 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
 
                 <span className="text-slate-300 dark:text-gray-600 hidden sm:inline">•</span>
                 
-                {/* 3. LÓGICA DE USUARIOS (Corrección Visual) */}
-                <div className="flex-1 min-w-0 flex items-center justify-end sm:justify-start">
+                {/* 3. LÓGICA DE USUARIOS - SOLUCIÓN MÓVIL VERTICAL (TEXTOS ORIGINALES) */}
+                <div className="w-full mt-2 pt-2 border-t border-dashed border-slate-200 dark:border-neutral-700 sm:w-auto sm:mt-0 sm:pt-0 sm:border-t-0 sm:border-none sm:flex-1">
                     
                     {esAutoAsignado ? (
-                        /* CASO A: Auto-asignado - CAMBIO SOLICITADO */
+                        /* CASO A: Auto-asignado */
                         <div className="flex items-center gap-1.5 text-xs">
-                             {/* Etiqueta explícita */}
-                             <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">
-                                CREADO Y ASIGNADO:
+                             <div className="bg-slate-100 dark:bg-neutral-800 p-1 rounded-full"><User size={10} className={esAsignadoAMi ? 'text-blue-500' : 'text-slate-400'}/></div>
+                             <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Creado y Asignado:</span>
+                             <span className={`truncate max-w-[200px] ${esAsignadoAMi ? 'text-blue-600 font-bold' : 'font-medium text-slate-700 dark:text-gray-300'}`}>
+                                {esAsignadoAMi ? 'Mí mismo' : nombreAsignado}
                              </span>
-                             
-                             {/* Icono y Nombre */}
-                             <div className="flex items-center gap-1">
-                                <User size={13} className={esAsignadoAMi ? 'text-blue-500' : 'text-slate-400'}/>
-                                <span className={`truncate max-w-[120px] ${esAsignadoAMi ? 'text-blue-600 font-bold' : 'font-medium text-slate-700 dark:text-gray-300'}`}>
-                                    {esAsignadoAMi ? 'Mí mismo' : nombreAsignado}
-                                </span>
-                             </div>
                         </div>
                     ) : (
-                        /* CASO B: Delegado (Creador != Asignado) -> Mostramos "De -> Para" */
-                        <div className="flex items-center gap-2 text-xs w-full sm:w-auto">
-                            {/* Creador - AHORA (Mismo color y tono que el asignado) */}
-                            <div className="flex items-center gap-1 text-slate-700 dark:text-gray-300">
-                                <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Creado:</span>
-                                <span className="truncate max-w-[80px] sm:max-w-[100px]">{nombreCreador}</span>
+                        /* CASO B: Delegado -> Vertical en móvil (flex-col), Horizontal en Desktop (sm:flex-row) */
+                        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2 text-xs w-full">
+                            
+                            {/* Creador */}
+                            <div className="flex items-center gap-1.5 text-slate-700 dark:text-gray-300 w-full sm:w-auto">
+                                <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider shrink-0 sm:w-auto">Creado: </span>
+                                <span className="font-medium truncate block w-full sm:w-auto">{nombreCreador}</span>
                             </div>
 
-                            {/* Flecha */}
-                            <ArrowRight size={12} className="text-slate-300 dark:text-gray-600 shrink-0" />
+                            {/* Icono de flecha (Oculto en móvil, Visible en Desktop) */}
+                            <ArrowRight size={12} className="hidden sm:block text-slate-300 dark:text-gray-600 shrink-0" />
 
                             {/* Asignado */}
-                            <div className="flex items-center gap-1 text-slate-700 dark:text-gray-300">
-                                <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Asignado:</span>
-                                <span className={`truncate max-w-[80px] sm:max-w-[100px] ${esAsignadoAMi ? 'text-blue-600 font-semibold' : ''}`}>
+                            <div className="flex items-center gap-1.5 text-slate-700 dark:text-gray-300 w-full sm:w-auto">
+                                <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider shrink-0 sm:w-auto">Asignado: </span>
+                                <span className={`truncate block w-full sm:w-auto ${esAsignadoAMi ? 'text-blue-600 font-semibold' : ''}`}>
                                     {esAsignadoAMi ? 'Mí mismo' : nombreAsignado}
                                 </span>
                             </div>
