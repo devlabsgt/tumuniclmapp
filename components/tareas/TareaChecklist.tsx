@@ -5,7 +5,7 @@ import { ChecklistItem } from './types';
 import { updateChecklist } from './actions'; 
 import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
-import { Check, Edit2, Trash2, Plus } from 'lucide-react';
+import { Check, Edit2, Trash2, Plus, Loader2 } from 'lucide-react';
 
 interface Props {
   tareaId: string;
@@ -19,19 +19,30 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
   const [editingStepIndex, setEditingStepIndex] = useState<number | null>(null);
   const [editingStepText, setEditingStepText] = useState('');
 
-  // 1. LÓGICA DE ORDENAMIENTO (Pendientes primero)
+  // Estado para rastrear qué items específicos están cargando
+  const [pendingIndices, setPendingIndices] = useState<number[]>([]);
+
   const sortedChecklist = checklist
     .map((item, index) => ({ ...item, originalIndex: index }))
     .sort((a, b) => {
-        // false (0) va antes que true (1)
         return Number(a.is_completed) - Number(b.is_completed);
     });
 
   const toggleCheck = async (idx: number) => {
-    if (editingStepIndex !== null || isReadOnly) return;
+    if (editingStepIndex !== null || isReadOnly || pendingIndices.includes(idx)) return;
+
+    setPendingIndices(prev => [...prev, idx]);
+
     const newChecklist = [...checklist];
     newChecklist[idx].is_completed = !newChecklist[idx].is_completed;
-    try { await updateChecklist(tareaId, newChecklist); } catch (error) { toast.error('Error al actualizar'); }
+
+    try { 
+        await updateChecklist(tareaId, newChecklist); 
+    } catch (error) { 
+        toast.error('Error al actualizar'); 
+    } finally {
+        setPendingIndices(prev => prev.filter(i => i !== idx));
+    }
   };
 
   const handleAddItem = async () => {
@@ -100,25 +111,51 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
         <ul className="space-y-2 pb-2">
             {sortedChecklist.map((item) => {
                 const idx = item.originalIndex; 
+                const isPending = pendingIndices.includes(idx);
                 
                 return (
                 <li key={idx} 
-                    className={`flex items-start sm:items-center justify-between text-sm p-2 rounded-lg transition-colors group border border-transparent
-                    ${item.is_completed 
-                        ? 'bg-slate-50/50 dark:bg-neutral-800/30' // Solo fondo muy suave
-                        : 'hover:bg-slate-50 dark:hover:bg-neutral-800 hover:border-slate-100 dark:hover:border-neutral-700'}`}
+                    className={`
+                        flex items-start sm:items-center justify-between text-sm p-2 rounded-lg transition-all duration-300 group border
+                        ${isPending 
+                            ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800' // 1. CAMBIO: Color suave si está cargando
+                            : 'border-transparent'
+                        }
+                        ${item.is_completed && !isPending
+                            ? 'bg-slate-50/50 dark:bg-neutral-800/30' 
+                            : !isPending && 'hover:bg-slate-50 dark:hover:bg-neutral-800 hover:border-slate-100 dark:hover:border-neutral-700'}
+                    `}
                 >
-                     <div className="flex items-start gap-3 flex-1 min-w-0">
-                        {/* CHECKBOX (El único indicador visual de estado) */}
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        {/* CHECKBOX ANIMADO */}
                         <div 
                             onClick={() => toggleCheck(idx)}
-                            className={`mt-0.5 min-w-[20px] w-[20px] h-[20px] rounded flex items-center justify-center transition-all border shrink-0
-                            ${isReadOnly ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} 
-                            ${item.is_completed 
-                                ? 'bg-green-500 border-green-500 shadow-sm' 
-                                : 'bg-white dark:bg-neutral-800 border-slate-300 dark:border-neutral-600 hover:border-blue-400 dark:hover:border-blue-500'}`}
+                            className={`
+                                mt-0.5 min-w-[20px] w-[20px] h-[20px] rounded flex items-center justify-center border shrink-0
+                                transition-all duration-200 ease-in-out transform
+                                
+                                /* 2. CAMBIO: Animación de click (efecto rebote/presión) */
+                                ${!isReadOnly && !isPending ? 'active:scale-75 active:bg-slate-200 cursor-pointer' : ''}
+                                ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}
+
+                                /* 3. CAMBIO: Estilos condicionales según estado */
+                                ${isPending
+                                    ? 'bg-white dark:bg-neutral-800 border-blue-400 dark:border-blue-500 ring-2 ring-blue-200 dark:ring-blue-900 shadow-md scale-105' // Sobresale al cargar
+                                    : item.is_completed 
+                                        ? 'bg-green-500 border-green-500 shadow-sm rotate-0' 
+                                        : 'bg-white dark:bg-neutral-800 border-slate-300 dark:border-neutral-600 hover:border-blue-400 dark:hover:border-blue-500 rotate-0'
+                                }
+                            `}
                         >
-                            {item.is_completed && <Check size={14} className="text-white" strokeWidth={4} />}
+                            {isPending ? (
+                                <Loader2 size={12} className="animate-spin text-blue-500" />
+                            ) : (
+                                <Check 
+                                    size={14} 
+                                    className={`text-white transition-all duration-200 ${item.is_completed ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} 
+                                    strokeWidth={4} 
+                                />
+                            )}
                         </div>
                         
                         {editingStepIndex === idx ? (
@@ -139,10 +176,10 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
                             <span 
                                 onClick={() => toggleCheck(idx)}
                                 className={`
-                                    leading-tight select-none flex-1 transition-all break-words
-                                    ${isReadOnly ? 'cursor-default' : 'cursor-pointer'}
-                                    /* ✅ CORRECCIÓN: Aquí forzamos el color normal SIEMPRE */
+                                    leading-tight select-none flex-1 transition-all break-words duration-200
+                                    ${(isReadOnly || isPending) ? 'cursor-default' : 'cursor-pointer'}
                                     text-slate-700 dark:text-gray-200
+                                    ${isPending ? 'opacity-80 font-medium text-blue-700 dark:text-blue-300' : ''} 
                                 `}
                             >
                                 {item.title}
@@ -150,8 +187,8 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
                         )}
                     </div>
 
-                    {editingStepIndex !== idx && !isReadOnly && (
-                        <div className="flex items-center gap-1 ml-2 shrink-0">
+                    {editingStepIndex !== idx && !isReadOnly && !isPending && (
+                        <div className="flex items-center gap-1 ml-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button 
                                 onClick={() => startEditingStep(idx, item.title)} 
                                 className="p-2 text-slate-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
@@ -187,9 +224,9 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
                 <button 
                     onClick={handleAddItem} 
                     disabled={!newItemText.trim() || isAdding} 
-                    className="bg-blue-600 text-white hover:bg-blue-700 px-4 rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed shadow-sm shadow-blue-200 dark:shadow-none"
+                    className="bg-blue-600 text-white hover:bg-blue-700 px-4 rounded-xl text-sm font-bold transition-colors disabled:cursor-not-allowed shadow-sm shadow-blue-200 dark:shadow-none active:scale-95"
                 >
-                    Añadir
+                    {isAdding ? <Loader2 size={18} className="animate-spin"/> : "Añadir"}
                 </button>
             </div>
         )}

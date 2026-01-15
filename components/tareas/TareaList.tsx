@@ -73,7 +73,7 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
   const [busqueda, setBusqueda] = useState('');
   const [mesSeleccionado, setMesSeleccionado] = useState(new Date().getMonth());
   const [anioSeleccionado, setAnioSeleccionado] = useState(new Date().getFullYear()); 
-
+  
   const scrollPositionRef = useRef(0);
 
   const toggleAccordion = (id: string) => {
@@ -95,14 +95,16 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
   // --- LÓGICA DE FILTRADO ---
   const tareasFiltradasGlobal = useMemo(() => {
     return tareas.filter(t => {
-      // 1. Filtro Vista
+      // 1. Filtro Vista (Mis Tareas vs Mi Equipo)
       if (viewMode === 'mis_tareas') {
          if (t.assigned_to !== usuarioActual) return false;
       } else {
+         // Modo Equipo: Ocultamos lo que es asignado a mí mismo
          if (t.assigned_to === usuarioActual) return false;
       }
       
       // 2. Filtro Fecha
+      if (!t.due_date) return false;
       const [tYear, tMonth] = t.due_date.split('T')[0].split('-').map(Number);
       const coincideFecha = (tMonth - 1) === mesSeleccionado && tYear === anioSeleccionado;
       
@@ -110,7 +112,6 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
       const termino = busqueda.toLowerCase();
       const coincideTitulo = t.title.toLowerCase().includes(termino);
       const coincideUsuario = (t.assignee?.nombre || '').toLowerCase().includes(termino);
-      
       const coincideBusqueda = coincideTitulo || coincideUsuario;
 
       return coincideFecha && coincideBusqueda;
@@ -230,14 +231,14 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
             </div>
 
             {/* FILTROS Y BUSCADOR */}
-            <div className="flex flex-col lg:flex-row gap-4 mt-2">
-                <div className="w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0">
+            <div className="flex flex-col xl:flex-row gap-4 mt-2">
+                
+                {/* 1. TABS DE ESTADO */}
+                <div className="w-full xl:w-auto overflow-x-auto pb-1 xl:pb-0">
                     <div className="flex items-center gap-1.5 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 dark:border-neutral-800 shadow-sm min-w-max"> 
                         {pestañas.map((tab) => {
-                            // Obtenemos la configuración de color para esta pestaña
                             const styles = TAB_STYLES[tab] || TAB_STYLES['Todos'];
                             const isActive = filtroEstado === tab;
-                            
                             return (
                                 <button
                                     key={tab}
@@ -246,18 +247,12 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
                                         window.scrollTo({ top: 0, behavior: 'smooth' });
                                     }}
                                     className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 whitespace-nowrap shrink-0
-                                    ${isActive 
-                                        ? styles.active 
-                                        : styles.inactive
-                                    }`}
+                                    ${isActive ? styles.active : styles.inactive}`}
                                 >
                                     {tab === 'Todos' && <Filter size={12} className="opacity-70"/>}
                                     {tab.toUpperCase()}
                                     <span className={`px-1.5 py-0.5 rounded-md text-[10px] min-w-[18px] text-center
-                                    ${isActive 
-                                        ? 'bg-white/20 text-white' 
-                                        : styles.badge
-                                    }`}>
+                                    ${isActive ? 'bg-white/20 text-white' : styles.badge}`}>
                                         {conteos[tab as keyof typeof conteos]}
                                     </span>
                                 </button>
@@ -266,32 +261,36 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
                     </div>
                 </div>
 
+                {/* 2. BUSCADOR Y FILTROS DE FECHA */}
                 <div className="flex flex-1 flex-col sm:flex-row gap-3">
                     <div className="relative flex-1 group">
                         <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                         <input 
                             type="text"
-                            placeholder={viewMode === 'equipo' ? "Buscar por título o empleado..." : "Buscar en mis Actividades..."}
+                            placeholder={viewMode === 'equipo' ? "Buscar por título..." : "Buscar en mis Actividades..."}
                             value={busqueda}
                             onChange={(e) => setBusqueda(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 dark:text-gray-200"
                         />
                     </div>
 
-                    <div className="flex gap-2 shrink-0">
-                        <div className="relative">
+                    <div className="flex gap-2 shrink-0 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
+                        
+                        {/* SELECTOR MES */}
+                        <div className="relative min-w-[110px]">
                             <select 
                                 value={mesSeleccionado} 
                                 onChange={(e) => setMesSeleccionado(Number(e.target.value))}
-                                className="appearance-none pl-4 pr-9 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200 min-w-[110px]"
+                                className="w-full appearance-none pl-9 pr-8 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200"
                             >
                                 {MESES.map((mes, index) => (
                                     <option key={index} value={index}>{mes}</option>
                                 ))}
                             </select>
-                            <CalendarIcon size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            <CalendarIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                         </div>
 
+                        {/* SELECTOR AÑO */}
                         <div className="relative">
                             <select 
                                 value={anioSeleccionado} 
@@ -326,15 +325,15 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
                     <SearchX size={32} className="text-slate-300 dark:text-gray-600" />
                 </div>
                 <h3 className="text-slate-900 dark:text-white font-bold text-lg mb-1">
-                    {viewMode === 'mis_tareas' ? 'No tienes actividades asignadas' : 'El equipo no tiene actividades'}
+                    {viewMode === 'mis_tareas' ? 'No tienes actividades asignadas' : 'No se encontraron actividades'}
                 </h3>
                 <p className="text-slate-400 dark:text-gray-500 text-sm mb-4 max-w-xs mx-auto">
-                    No se encontraron resultados para <span className="font-medium">"{filtroEstado}"</span> en este periodo {viewMode === 'equipo' && '(excluyéndote a ti)'}.
+                    No hay resultados para estos filtros.
                 </p>
                 
                 {(filtroEstado !== 'Todos' || busqueda) && (
                     <button onClick={() => { setFiltroEstado('Todos'); setBusqueda(''); }} className="px-4 py-2 bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 text-slate-600 dark:text-gray-300 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-neutral-700 transition-colors">
-                        Limpiar filtros
+                        Limpiar todos los filtros
                     </button>
                 )}
            </div>

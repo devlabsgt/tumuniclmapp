@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { ChecklistItem, NewTaskState, Tarea, Usuario } from './types'; 
 
-// --- CARGAR DATOS (CON LÓGICA DE JERARQUÍA Y DEPENDENCIAS) ---
+// --- CARGAR DATOS (NUEVA LÓGICA: TODOS LOS EMPLEADOS + PRIVACIDAD DE TAREAS) ---
 export async function obtenerDatosGestor() {
   const supabase = await createClient();
   
@@ -12,100 +12,45 @@ export async function obtenerDatosGestor() {
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) return null;
 
-  // 2. Traemos perfil
+  // 2. Traemos perfil (Solo necesitamos saber si es jefe para permisos visuales)
   const { data: perfil } = await supabase
     .from('info_usuario')
-    .select('esjefe, dependencia_id') 
+    .select('esjefe') 
     .eq('user_id', user.id)
     .single();
 
   const esJefe = perfil?.esjefe ?? false;
-  const miDependencia = perfil?.dependencia_id;
 
-  // 3. TAREAS (Lógica estándar de fetch)
-  let query = supabase.from('tasks')
-    .select('*') 
+  // 3. TAREAS: Lógica de "Solo lo mío y lo que yo asigne"
+  // Traemos tareas donde:
+  // A) Yo soy el responsable (assigned_to = yo)
+  // B) Yo soy el creador (created_by = yo) -> Esto permite ver las tareas que asignaste a otros
+  const { data: rawTareas } = await supabase
+    .from('tasks')
+    .select('*')
+    .or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`) 
     .order('due_date', { ascending: true });
 
-  if (!esJefe) {
-    query = query.or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`);
-  }
-
-  // 4. PREPARAR FILTRO DE USUARIOS (Lógica Jerárquica)
-  let listaDeIds: string[] = [];
-
-  if (miDependencia) {
-    // A) Primero averiguamos si mi puesto tiene un PADRE
-    const { data: depActual } = await supabase
-      .from('dependencias')
-      .select('id, parent_id')
-      .eq('id', miDependencia)
-      .single();
-
-    const idPadre = depActual?.parent_id;
-
-    if (idPadre) {
-      // CASO 1: Tengo un jefe/padre. 
-      const { data: familia } = await supabase
-        .from('dependencias')
-        .select('id')
-        .or(`id.eq.${idPadre},parent_id.eq.${idPadre}`);
-      
-      listaDeIds = familia?.map(d => d.id) || [miDependencia];
-      
-    } else {
-      // CASO 2: Yo soy el padre supremo
-      const { data: hijos } = await supabase
-        .from('dependencias')
-        .select('id')
-        .or(`id.eq.${miDependencia},parent_id.eq.${miDependencia}`);
-        
-      listaDeIds = hijos?.map(d => d.id) || [miDependencia];
-    }
-  } else {
-    listaDeIds = []; 
-  }
-
-  // 5. CONSULTA FINAL DE USUARIOS
-  let usuariosQuery = supabase.from('info_usuario')
-    .select('user_id, nombre, esjefe, activo, dependencia_id')
+  // 4. USUARIOS: Traemos A TODOS los activos (Sin filtro de dependencia)
+  // Esto permite asignar tareas a cualquier empleado de la empresa.
+  const { data: rawUsuarios } = await supabase
+    .from('info_usuario')
+    .select('user_id, nombre, esjefe, activo')
     .eq('activo', true)
     .order('nombre');
 
-  if (listaDeIds.length > 0) {
-    usuariosQuery = usuariosQuery.in('dependencia_id', listaDeIds);
-  } else {
-    usuariosQuery = usuariosQuery.eq('user_id', user.id);
-  }
+  const usuarios = (rawUsuarios || []) as Usuario[];
+  const misTareas = rawTareas || [];
 
-  const [tareasRes, usuariosRes] = await Promise.all([query, usuariosQuery]);
-
-  const rawTareas = tareasRes.data || [];
-  const usuarios = (usuariosRes.data || []) as Usuario[];
-
-
-  // --- CORRECCIÓN CRÍTICA APLICADA AQUÍ ---
-  
-  // 1. Identificamos quiénes son "nuestra gente"
-  const idsUsuariosValidos = new Set(usuarios.map(u => u.user_id));
-
-  // 2. Filtramos ESTRICTAMENTE por responsabilidad.
-  const tareasFiltradasRaw = rawTareas.filter((t: any) => {
-      const esResponsabilidadNuestra = idsUsuariosValidos.has(t.assigned_to);
-      return esResponsabilidadNuestra;
-  });
-
-
-  // 6. MANUAL JOIN (Enriquecemos con nombres)
-  const tareas: Tarea[] = tareasFiltradasRaw.map((t: any) => {
-
+  // 5. Enriquecemos con nombres (Manual Join)
+  const tareas: Tarea[] = misTareas.map((t: any) => {
+    // Buscamos los nombres en la lista global de usuarios
     const creador = usuarios.find(u => u.user_id === t.created_by); 
-    
     const asignado = usuarios.find(u => u.user_id === t.assigned_to);
 
     return {
       ...t,
-      creator: { nombre: creador?.nombre || 'Externo / Desconocido' }, 
+      creator: { nombre: creador?.nombre || 'Desconocido' }, 
       assignee: { nombre: asignado?.nombre || 'Sin asignar' }
     };
   });
@@ -114,7 +59,7 @@ export async function obtenerDatosGestor() {
     usuarioActual: user.id,
     esJefe: esJefe,
     tareas: tareas,
-    usuarios: usuarios
+    usuarios: usuarios // Enviamos la lista completa para el dropdown de "Nueva Tarea"
   };
 }
 
@@ -133,6 +78,7 @@ export async function crearTarea(formData: NewTaskState) {
   const esJefe = perfil?.esjefe ?? false;
   let asignadoFinal = formData.assigned_to || user.id;
 
+  // Si no es jefe, forzamos que se asigne a sí mismo (seguridad extra)
   if (!esJefe && asignadoFinal !== user.id) {
     asignadoFinal = user.id;
   }
