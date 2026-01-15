@@ -118,7 +118,7 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
                     className={`
                         flex items-start sm:items-center justify-between text-sm p-2 rounded-lg transition-all duration-300 group border
                         ${isPending 
-                            ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800' // 1. CAMBIO: Color suave si está cargando
+                            ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800' 
                             : 'border-transparent'
                         }
                         ${item.is_completed && !isPending
@@ -133,14 +133,10 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
                             className={`
                                 mt-0.5 min-w-[20px] w-[20px] h-[20px] rounded flex items-center justify-center border shrink-0
                                 transition-all duration-200 ease-in-out transform
-                                
-                                /* 2. CAMBIO: Animación de click (efecto rebote/presión) */
                                 ${!isReadOnly && !isPending ? 'active:scale-75 active:bg-slate-200 cursor-pointer' : ''}
                                 ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}
-
-                                /* 3. CAMBIO: Estilos condicionales según estado */
                                 ${isPending
-                                    ? 'bg-white dark:bg-neutral-800 border-blue-400 dark:border-blue-500 ring-2 ring-blue-200 dark:ring-blue-900 shadow-md scale-105' // Sobresale al cargar
+                                    ? 'bg-white dark:bg-neutral-800 border-blue-400 dark:border-blue-500 ring-2 ring-blue-200 dark:ring-blue-900 shadow-md scale-105' 
                                     : item.is_completed 
                                         ? 'bg-green-500 border-green-500 shadow-sm rotate-0' 
                                         : 'bg-white dark:bg-neutral-800 border-slate-300 dark:border-neutral-600 hover:border-blue-400 dark:hover:border-blue-500 rotate-0'
@@ -187,8 +183,9 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
                         )}
                     </div>
 
+                    {/* --- BOTONES DE ACCIÓN (SIEMPRE VISIBLES) --- */}
                     {editingStepIndex !== idx && !isReadOnly && !isPending && (
-                        <div className="flex items-center gap-1 ml-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-1 ml-2 shrink-0">
                             <button 
                                 onClick={() => startEditingStep(idx, item.title)} 
                                 className="p-2 text-slate-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"

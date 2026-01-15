@@ -35,28 +35,27 @@ const getFechaCabecera = (fechaIso: string) => {
     .replace(/de /g, '');
 };
 
-// --- CONFIGURACIÓN DE COLORES POR ESTADO ---
+// --- CONFIGURACIÓN DE COLORES POR ESTADO (ACTUALIZADO) ---
 const TAB_STYLES: Record<string, { active: string, inactive: string, badge: string }> = {
+  // TODOS -> AZUL
   'Todos': {
-    active: 'bg-slate-700 text-white shadow-md shadow-slate-500/30 ring-1 ring-slate-600',
-    inactive: 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-neutral-800',
-    badge: 'bg-slate-100 dark:bg-neutral-800 text-slate-500 dark:text-slate-400'
-  },
-  'Asignado': {
     active: 'bg-blue-600 text-white shadow-md shadow-blue-500/30 ring-1 ring-blue-500',
     inactive: 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20',
     badge: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
   },
-  'En Proceso': {
+  // ASIGNADO -> MORADO
+  'Asignado': {
     active: 'bg-purple-600 text-white shadow-md shadow-purple-500/30 ring-1 ring-purple-500',
     inactive: 'text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20',
     badge: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
   },
+  // COMPLETADO -> VERDE
   'Completado': {
     active: 'bg-emerald-600 text-white shadow-md shadow-emerald-500/30 ring-1 ring-emerald-500',
     inactive: 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20',
     badge: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
   },
+  // VENCIDO -> ROJO
   'Vencido': {
     active: 'bg-red-600 text-white shadow-md shadow-red-500/30 ring-1 ring-red-500',
     inactive: 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20',
@@ -67,7 +66,9 @@ const TAB_STYLES: Record<string, { active: string, inactive: string, badge: stri
 export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: Props) {
   const [viewMode, setViewMode] = useState<'mis_tareas' | 'equipo'>('mis_tareas');
   
-  const [filtroEstado, setFiltroEstado] = useState('Todos');
+  // CAMBIO IMPORTANTE: Inicia en 'Asignado' por defecto
+  const [filtroEstado, setFiltroEstado] = useState('Asignado');
+  
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [busqueda, setBusqueda] = useState('');
@@ -95,11 +96,10 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
   // --- LÓGICA DE FILTRADO ---
   const tareasFiltradasGlobal = useMemo(() => {
     return tareas.filter(t => {
-      // 1. Filtro Vista (Mis Tareas vs Mi Equipo)
+      // 1. Filtro Vista
       if (viewMode === 'mis_tareas') {
          if (t.assigned_to !== usuarioActual) return false;
       } else {
-         // Modo Equipo: Ocultamos lo que es asignado a mí mismo
          if (t.assigned_to === usuarioActual) return false;
       }
       
@@ -117,15 +117,19 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
       return coincideFecha && coincideBusqueda;
     }).map(t => {
       const esVencida = new Date() > new Date(t.due_date) && t.status !== 'Completado';
-      return { ...t, estadoFiltro: esVencida ? 'Vencido' : t.status };
+      // Si viniera 'En Proceso' de la BD antigua, lo tratamos como 'Asignado' visualmente si no está vencido
+      let estadoFinal = t.status;
+      if (esVencida) estadoFinal = 'Vencido';
+      
+      return { ...t, estadoFiltro: estadoFinal };
     });
   }, [tareas, mesSeleccionado, anioSeleccionado, busqueda, viewMode, usuarioActual]);
 
   const conteos = useMemo(() => {
     return {
       Todos: tareasFiltradasGlobal.length,
-      Asignado: tareasFiltradasGlobal.filter(t => t.estadoFiltro === 'Asignado').length,
-      'En Proceso': tareasFiltradasGlobal.filter(t => t.estadoFiltro === 'En Proceso').length,
+      // Agrupamos 'En Proceso' (legacy) dentro de Asignado para el conteo
+      Asignado: tareasFiltradasGlobal.filter(t => t.estadoFiltro === 'Asignado' || t.estadoFiltro === 'En Proceso').length,
       'Completado': tareasFiltradasGlobal.filter(t => t.estadoFiltro === 'Completado').length,
       'Vencido': tareasFiltradasGlobal.filter(t => t.estadoFiltro === 'Vencido').length,
     };
@@ -133,6 +137,12 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
 
   const listaVisual = tareasFiltradasGlobal.filter(t => {
     if (filtroEstado === 'Todos') return true;
+    
+    // Si filtramos por 'Asignado', incluimos 'En Proceso' por compatibilidad
+    if (filtroEstado === 'Asignado') {
+        return t.estadoFiltro === 'Asignado' || t.estadoFiltro === 'En Proceso';
+    }
+    
     return t.estadoFiltro === filtroEstado;
   });
 
@@ -158,7 +168,8 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
     }));
   }, [tareasRenderizadas, expandedId]);
 
-  const pestañas = ['Todos', 'Asignado', 'En Proceso', 'Completado', 'Vencido'];
+  // Se eliminó 'En Proceso' de las pestañas visibles
+  const pestañas = ['Todos', 'Asignado', 'Completado', 'Vencido'];
 
   return (
     <div className="space-y-6 relative w-full max-w-full mx-auto px-0">
