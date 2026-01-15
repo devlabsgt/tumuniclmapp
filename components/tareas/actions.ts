@@ -22,7 +22,7 @@ export async function obtenerDatosGestor() {
   const esJefe = perfil?.esjefe ?? false;
   const miDependencia = perfil?.dependencia_id;
 
-  // 3. TAREAS (Lógica estándar)
+  // 3. TAREAS (Lógica estándar de fetch)
   let query = supabase.from('tasks')
     .select('*') 
     .order('due_date', { ascending: true });
@@ -35,7 +35,7 @@ export async function obtenerDatosGestor() {
   let listaDeIds: string[] = [];
 
   if (miDependencia) {
-    // A) Primero averiguamos si mi puesto tiene un PADRE (Ej: Soy 'Conta', padre es 'Finanzas')
+    // A) Primero averiguamos si mi puesto tiene un PADRE
     const { data: depActual } = await supabase
       .from('dependencias')
       .select('id, parent_id')
@@ -46,17 +46,15 @@ export async function obtenerDatosGestor() {
 
     if (idPadre) {
       // CASO 1: Tengo un jefe/padre. 
-      // Quiero ver a: El Padre (Jefe de área) + Mis hermanos (mismo parent_id) + Yo mismo.
       const { data: familia } = await supabase
         .from('dependencias')
         .select('id')
-        .or(`id.eq.${idPadre},parent_id.eq.${idPadre}`); // Trae al padre Y a los hijos
+        .or(`id.eq.${idPadre},parent_id.eq.${idPadre}`);
       
       listaDeIds = familia?.map(d => d.id) || [miDependencia];
       
     } else {
-      // CASO 2: Yo soy el padre supremo (o no tengo padre asignado).
-      // Traemos a los que cuelguen directamente de mí (mis hijos directos) y a mí mismo.
+      // CASO 2: Yo soy el padre supremo
       const { data: hijos } = await supabase
         .from('dependencias')
         .select('id')
@@ -65,7 +63,6 @@ export async function obtenerDatosGestor() {
       listaDeIds = hijos?.map(d => d.id) || [miDependencia];
     }
   } else {
-    // Si no tengo dependencia, solo me veo a mí mismo (seguridad)
     listaDeIds = []; 
   }
 
@@ -76,10 +73,8 @@ export async function obtenerDatosGestor() {
     .order('nombre');
 
   if (listaDeIds.length > 0) {
-    // Usamos .in() para buscar en la lista de IDs validos (Padre + Hijos)
     usuariosQuery = usuariosQuery.in('dependencia_id', listaDeIds);
   } else {
-    // Fallback: solo yo
     usuariosQuery = usuariosQuery.eq('user_id', user.id);
   }
 
@@ -88,14 +83,29 @@ export async function obtenerDatosGestor() {
   const rawTareas = tareasRes.data || [];
   const usuarios = (usuariosRes.data || []) as Usuario[];
 
-  // 6. MANUAL JOIN
-  const tareas: Tarea[] = rawTareas.map((t: any) => {
-    const creador = usuarios.find(u => u.user_id === t.created_by);
+
+  // --- CORRECCIÓN CRÍTICA APLICADA AQUÍ ---
+  
+  // 1. Identificamos quiénes son "nuestra gente"
+  const idsUsuariosValidos = new Set(usuarios.map(u => u.user_id));
+
+  // 2. Filtramos ESTRICTAMENTE por responsabilidad.
+  const tareasFiltradasRaw = rawTareas.filter((t: any) => {
+      const esResponsabilidadNuestra = idsUsuariosValidos.has(t.assigned_to);
+      return esResponsabilidadNuestra;
+  });
+
+
+  // 6. MANUAL JOIN (Enriquecemos con nombres)
+  const tareas: Tarea[] = tareasFiltradasRaw.map((t: any) => {
+
+    const creador = usuarios.find(u => u.user_id === t.created_by); 
+    
     const asignado = usuarios.find(u => u.user_id === t.assigned_to);
 
     return {
       ...t,
-      creator: { nombre: creador?.nombre || 'Desconocido' }, 
+      creator: { nombre: creador?.nombre || 'Externo / Desconocido' }, 
       assignee: { nombre: asignado?.nombre || 'Sin asignar' }
     };
   });
@@ -192,7 +202,6 @@ export async function updateChecklist(taskId: string, newChecklist: ChecklistIte
     .eq('id', taskId);
 
   if (error) {
-    console.log("🔴 ERROR SUPABASE (Update Checklist):", error.message);
     throw new Error(error.message);
   }
   
@@ -239,11 +248,8 @@ export async function eliminarTarea(taskId: string) {
   revalidatePath('/protected/tareas');
 }
 
-// --- DUPLICAR TAREA (REESTRUCTURADO) ---
-// --- DUPLICAR TAREA (VERSIÓN DEBUG) ---
+// --- DUPLICAR TAREA ---
 export async function duplicarTarea(datos: NewTaskState) {
-  // LOG 1: Ver qué llega al servidor
-
   const supabase = await createClient();
 
   try {
@@ -263,27 +269,23 @@ export async function duplicarTarea(datos: NewTaskState) {
     
     const esJefe = perfil?.esjefe ?? false;
 
-    // 3. Preparar el Payload (Datos limpios)
-    // Forzamos la lógica de asignación aquí
+    // 3. Preparar el Payload
     let asignadoA = datos.assigned_to;
     if (!asignadoA || (!esJefe && asignadoA !== user.id)) {
         asignadoA = user.id;
     }
 
-    // Limpieza de Checklist
     const checklistLimpio = Array.isArray(datos.checklist) 
         ? datos.checklist.map(i => ({ title: String(i.title), is_completed: false }))
         : [];
 
-    // Limpieza de Fecha (CRÍTICO)
     if (!datos.due_date) {
         throw new Error("La fecha llegó vacía al servidor");
     }
 
-    // Objeto final a insertar
     const payloadInsert = {
         title: datos.title,
-        description: datos.description || null, // Convertir '' a null
+        description: datos.description || null,
         due_date: datos.due_date,
         assigned_to: asignadoA,
         created_by: user.id,
@@ -291,19 +293,14 @@ export async function duplicarTarea(datos: NewTaskState) {
         checklist: checklistLimpio
     };
 
-
     // 4. Insertar
     const { data, error } = await supabase
         .from('tasks')
         .insert([payloadInsert])
-        .select(); // El select nos ayuda a ver si retornó algo
+        .select();
 
     if (error) {
-        // AQUÍ ESTÁ EL TESORO: El error real de la base de datos
         console.error("🔴 SERVER ERROR SUPABASE (Detalles):", error);
-        console.error("Mensaje:", error.message);
-        console.error("Detalles:", error.details);
-        console.error("Hint:", error.hint);
         throw new Error(`Error BD: ${error.message}`);
     }
 
