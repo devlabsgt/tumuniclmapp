@@ -50,11 +50,29 @@ export default function EditarTarea({ isOpen, onClose, tarea, esJefe }: Props) {
     try {
       const isoDate = dueDate ? new Date(dueDate).toISOString() : null;
 
-      await actualizarTarea(tarea.id, {
+      // 1. Detectar si la fecha cambió
+      const fechaOriginal = formatDateForInput(tarea.due_date);
+      const fechaCambio = dueDate !== fechaOriginal;
+
+      // 2. Detectar si la tarea necesita "Revivir" (estaba completada o vencida)
+      const estabaCompletada = tarea.status === 'Completado';
+      const estabaVencida = new Date(tarea.due_date) < new Date();
+
+      // 3. Preparamos el objeto. Usamos 'any' para poder meter 'status'
+      // sin que TypeScript se queje de que el action no lo espera.
+      const datosActualizados: any = {
         title,
         description,
-        due_date: isoDate as string
-      });
+        due_date: isoDate
+      };
+
+      // LÓGICA CLAVE: Si cambiaste la fecha Y (estaba completada O vencida) -> Reactivar
+      if (fechaCambio && (estabaCompletada || estabaVencida)) {
+         datosActualizados.status = 'En Proceso';
+      }
+
+      // Enviamos 'datosActualizados' forzando el tipo para evitar el error rojo
+      await actualizarTarea(tarea.id, datosActualizados);
 
       toast.success('Tarea actualizada correctamente');
       onClose();
@@ -93,8 +111,8 @@ export default function EditarTarea({ isOpen, onClose, tarea, esJefe }: Props) {
               disabled={!esJefe} 
               className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all text-base font-medium
                 ${!esJefe 
-                    ? 'bg-gray-100 dark:bg-neutral-800/50 border-gray-200 dark:border-neutral-700 text-gray-500 cursor-not-allowed opacity-70' 
-                    : 'bg-gray-50 dark:bg-neutral-800 border-gray-100 dark:border-neutral-700 text-gray-700 dark:text-gray-100'
+                  ? 'bg-gray-100 dark:bg-neutral-800/50 border-gray-200 dark:border-neutral-700 text-gray-500 cursor-not-allowed opacity-70' 
+                  : 'bg-gray-50 dark:bg-neutral-800 border-gray-100 dark:border-neutral-700 text-gray-700 dark:text-gray-100'
                 }`}
               required
             />
@@ -112,8 +130,8 @@ export default function EditarTarea({ isOpen, onClose, tarea, esJefe }: Props) {
               disabled={!esJefe} 
               className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-base dark:[color-scheme:dark]
                 ${!esJefe 
-                    ? 'bg-gray-100 dark:bg-neutral-800/50 border-gray-200 dark:border-neutral-700 text-gray-500 cursor-not-allowed opacity-70' 
-                    : 'bg-gray-50 dark:bg-neutral-800 border-gray-100 dark:border-neutral-700 text-gray-700 dark:text-gray-100'
+                  ? 'bg-gray-100 dark:bg-neutral-800/50 border-gray-200 dark:border-neutral-700 text-gray-500 cursor-not-allowed opacity-70' 
+                  : 'bg-gray-50 dark:bg-neutral-800 border-gray-100 dark:border-neutral-700 text-gray-700 dark:text-gray-100'
                 }`}
               required
             />

@@ -201,7 +201,9 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                     </button>
                 )}
 
-                {!isReadOnly && (
+                {/* --- AQUÍ ESTÁ EL CAMBIO CLAVE --- */}
+                {/* Mostramos el botón si NO es solo lectura O SI ES JEFE */}
+                {(!isReadOnly || isJefe) && (
                     <button 
                     onClick={() => setIsEditModalOpen(true)} 
                     className="p-2 text-slate-400 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-slate-100 dark:hover:bg-blue-900/30 transition-all"
@@ -226,17 +228,14 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
             </div>
         </div>
 
-        {/* --- VISTA RESUMEN (CUANDO EL ACORDEÓN ESTÁ CERRADO) --- */}
+        {/* --- VISTA RESUMEN --- */}
         {!isExpanded && (
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 dark:text-gray-400 font-medium w-full border-t pt-3 sm:border-t-0 sm:pt-0 border-slate-100 dark:border-neutral-800 sm:mt-2">
-                
-                {/* 1. Hora */}
                 <span className="flex items-center gap-1.5 shrink-0 text-slate-600 dark:text-gray-300">
                     <Clock size={13} className="text-slate-400 dark:text-gray-500"/> 
                     {formatearHora(tarea.due_date)}
                 </span>
                 
-                {/* 2. Checklist (si existe) */}
                 {total > 0 && (
                 <>
                     <span className="text-slate-300 dark:text-gray-600 hidden sm:inline">•</span>
@@ -252,11 +251,8 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
 
                 <span className="text-slate-300 dark:text-gray-600 hidden sm:inline">•</span>
                 
-                {/* 3. LÓGICA DE USUARIOS - SOLUCIÓN MÓVIL VERTICAL (TEXTOS ORIGINALES) */}
                 <div className="w-full mt-2 pt-2 border-t border-dashed border-slate-200 dark:border-neutral-700 sm:w-auto sm:mt-0 sm:pt-0 sm:border-t-0 sm:border-none sm:flex-1">
-                    
                     {esAutoAsignado ? (
-                        /* CASO A: Auto-asignado */
                         <div className="flex items-center gap-1.5 text-xs">
                              <div className="bg-slate-100 dark:bg-neutral-800 p-1 rounded-full"><User size={10} className={esAsignadoAMi ? 'text-blue-500' : 'text-slate-400'}/></div>
                              <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Creado y Asignado:</span>
@@ -265,19 +261,14 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                              </span>
                         </div>
                     ) : (
-                        /* CASO B: Delegado -> Vertical en móvil (flex-col), Horizontal en Desktop (sm:flex-row) */
                         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2 text-xs w-full">
-                            
-                            {/* Creador */}
                             <div className="flex items-center gap-1.5 text-slate-700 dark:text-gray-300 w-full sm:w-auto">
                                 <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider shrink-0 sm:w-auto">Creado: </span>
                                 <span className="font-medium truncate block w-full sm:w-auto">{nombreCreador}</span>
                             </div>
 
-                            {/* Icono de flecha (Oculto en móvil, Visible en Desktop) */}
                             <ArrowRight size={12} className="hidden sm:block text-slate-300 dark:text-gray-600 shrink-0" />
 
-                            {/* Asignado */}
                             <div className="flex items-center gap-1.5 text-slate-700 dark:text-gray-300 w-full sm:w-auto">
                                 <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider shrink-0 sm:w-auto">Asignado: </span>
                                 <span className={`truncate block w-full sm:w-auto ${esAsignadoAMi ? 'text-blue-600 font-semibold' : ''}`}>
@@ -287,7 +278,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                         </div>
                     )}
                 </div>
-
             </div>
         )}
       </div>
