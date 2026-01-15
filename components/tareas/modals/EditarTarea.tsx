@@ -68,7 +68,7 @@ export default function EditarTarea({ isOpen, onClose, tarea, esJefe }: Props) {
 
       // LÓGICA CLAVE: Si cambiaste la fecha Y (estaba completada O vencida) -> Reactivar
       if (fechaCambio && (estabaCompletada || estabaVencida)) {
-         datosActualizados.status = 'En Proceso';
+         datosActualizados.status = 'Asignado';
       }
 
       // Enviamos 'datosActualizados' forzando el tipo para evitar el error rojo

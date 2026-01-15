@@ -123,24 +123,9 @@ export async function actualizarTarea(id: string, updates: { title?: string; des
 export async function updateChecklist(taskId: string, newChecklist: ChecklistItem[]) {
   const supabase = await createClient();
   
-  const { data: tarea } = await supabase
-    .from('tasks')
-    .select('status')
-    .eq('id', taskId)
-    .single();
-
-  // Solo actualizamos el checklist
   const updates: any = { 
     checklist: newChecklist
   };
-
-  // Si la tarea estaba en "Asignado" y marcamos algo, pasamos a "En Proceso"
-  if (tarea && tarea.status === 'Asignado') {
-    const hayItemsCompletados = newChecklist.some(item => item.is_completed);
-    if (hayItemsCompletados) {
-      updates.status = 'En Proceso';
-    }
-  }
 
   const { error } = await supabase
     .from('tasks')

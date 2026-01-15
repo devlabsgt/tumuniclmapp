@@ -10,7 +10,7 @@ import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
 import { 
   Edit2, Trash2, ChevronDown, MoreHorizontal, Calendar, 
-  User, Clock, ListTodo, AlertCircle, Copy, ArrowRight, ArrowDown
+  User, Clock, ListTodo, AlertCircle, Copy, ArrowRight
 } from 'lucide-react';
 
 interface Props {
@@ -80,9 +80,10 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
     });
   };
 
-  // Comparación de IDs para saber si es delegada o propia
+  // --- LÓGICA DE PERMISOS Y ROLES ---
   const esAutoAsignado = tarea.created_by === tarea.assigned_to;
   const esAsignadoAMi = tarea.assigned_to === usuarioActual;
+  const esCreadoPorMi = tarea.created_by === usuarioActual;
   
   const nombreCreador = getNombreCorto(tarea.creator?.nombre || 'Desconocido');
   const nombreAsignado = getNombreCorto(tarea.assignee?.nombre || 'Sin asignar');
@@ -95,6 +96,9 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
   const fechaLimite = new Date(tarea.due_date);
   const esVencida = new Date() > fechaLimite && tarea.status !== 'Completado';
   const isReadOnly = esVencida || tarea.status === 'Completado';
+
+  // Lógica de edición: Jefe siempre, o Usuario si es suya y no está finalizada/vencida
+  const puedeEditar = isJefe || (!isReadOnly && (esAsignadoAMi || esCreadoPorMi));
 
   const handleTerminar = async () => {
     if (checklist.some(i => !i.is_completed)) {
@@ -122,6 +126,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
   };
 
   const getStatusStyles = () => {
+      // 1. COMPLETADO -> VERDE
       if (tarea.status === 'Completado') {
           return {
               badge: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800',
@@ -129,6 +134,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
               label: 'Completado'
           };
       }
+      // 2. VENCIDO -> ROJO
       if (esVencida) {
           return {
               badge: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
@@ -136,17 +142,14 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
               label: 'Vencido'
           };
       }
-      if (tarea.status === 'En Proceso') {
-          return {
-              badge: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
-              border: 'border-purple-500',
-              label: 'En Proceso'
-          };
-      }
+      
+      // 3. DEFECTO (ASIGNADO) -> MORADO
+      // Aquí cae todo lo demás, incluido "Asignado" y el antiguo "En Proceso"
       return {
-          badge: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
-          border: 'border-blue-500',
-          label: tarea.status
+          badge: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
+          border: 'border-purple-500',
+          // Visualmente normalizamos cualquier estado extraño a "Asignado"
+          label: (tarea.status === 'En Proceso' || !tarea.status) ? 'Asignado' : tarea.status
       };
   };
 
@@ -201,12 +204,11 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                     </button>
                 )}
 
-                {/* --- AQUÍ ESTÁ EL CAMBIO CLAVE --- */}
-                {/* Mostramos el botón si NO es solo lectura O SI ES JEFE */}
-                {(!isReadOnly || isJefe) && (
+                {puedeEditar && (
                     <button 
                     onClick={() => setIsEditModalOpen(true)} 
                     className="p-2 text-slate-400 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-slate-100 dark:hover:bg-blue-900/30 transition-all"
+                    title="Editar Tarea"
                     >
                     <Edit2 size={18} />
                     </button>
@@ -257,7 +259,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                              <div className="bg-slate-100 dark:bg-neutral-800 p-1 rounded-full"><User size={10} className={esAsignadoAMi ? 'text-blue-500' : 'text-slate-400'}/></div>
                              <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Creado y Asignado:</span>
                              <span className={`truncate max-w-[200px] ${esAsignadoAMi ? 'text-blue-600 font-bold' : 'font-medium text-slate-700 dark:text-gray-300'}`}>
-                                {esAsignadoAMi ? 'Mí mismo' : nombreAsignado}
+                                {esAsignadoAMi ? 'Yo' : nombreAsignado}
                              </span>
                         </div>
                     ) : (
@@ -272,7 +274,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                             <div className="flex items-center gap-1.5 text-slate-700 dark:text-gray-300 w-full sm:w-auto">
                                 <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider shrink-0 sm:w-auto">Asignado: </span>
                                 <span className={`truncate block w-full sm:w-auto ${esAsignadoAMi ? 'text-blue-600 font-semibold' : ''}`}>
-                                    {esAsignadoAMi ? 'Mí mismo' : nombreAsignado}
+                                    {esAsignadoAMi ? 'Yo' : nombreAsignado}
                                 </span>
                             </div>
                         </div>
