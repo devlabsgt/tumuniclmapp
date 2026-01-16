@@ -10,7 +10,7 @@ import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
 import { 
   Edit2, Trash2, ChevronDown, MoreHorizontal, Calendar, 
-  User, Clock, ListTodo, AlertCircle, Copy, ArrowRight
+  User, Clock, AlertCircle, Copy, ArrowRight
 } from 'lucide-react';
 
 interface Props {
@@ -109,19 +109,38 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
     try {
       await cambiarEstado(tarea.id, 'Completado');
       Swal.fire({ icon: 'success', title: '¡Completada!', timer: 1500, showConfirmButton: false });
+      
+      // Cierra el acordeón al completar para evitar errores visuales
+      if (onToggle) {
+        onToggle(); 
+      }
+      
     } catch (error: any) { toast.error(error.message); } finally { setLoading(false); }
   };
 
-  const handleEliminar = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleEliminar = async (e?: React.MouseEvent) => {
+    // Seguridad extra por si se llama directo
+    if(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
     const result = await Swal.fire({
         title: '¿Eliminar?', icon: 'warning', showCancelButton: true,
         confirmButtonColor: '#ef4444', confirmButtonText: 'Sí, borrar', cancelButtonText: 'Cancelar'
     });
+    
     if (result.isConfirmed) {
         setLoading(true);
-        try { await eliminarTarea(tarea.id); toast.info('Tarea eliminada'); } 
-        catch { toast.error('Error al eliminar'); } finally { setLoading(false); }
+        try { 
+            await eliminarTarea(tarea.id); 
+            toast.info('Tarea eliminada'); 
+        } 
+        catch { 
+            toast.error('Error al eliminar'); 
+        } finally { 
+            setLoading(false); 
+        }
     }
   };
 
@@ -144,11 +163,9 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
       }
       
       // 3. DEFECTO (ASIGNADO) -> MORADO
-      // Aquí cae todo lo demás, incluido "Asignado" y el antiguo "En Proceso"
       return {
           badge: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
           border: 'border-purple-500',
-          // Visualmente normalizamos cualquier estado extraño a "Asignado"
           label: (tarea.status === 'En Proceso' || !tarea.status) ? 'Asignado' : tarea.status
       };
   };
@@ -175,7 +192,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
         ${isExpanded ? 'ring-2 ring-blue-400/50 dark:ring-blue-900/40 shadow-xl z-10' : 'hover:-translate-y-0.5'}
     `}>
       
-      {/* --- CABECERA CLICKEABLE (ACCORDION TRIGGER) --- */}
+      {/* --- CABECERA CLICKEABLE --- */}
       <div onClick={onToggle} className="p-4 sm:p-5 cursor-pointer flex flex-col gap-1 sm:gap-0">
         
         <div className="flex justify-between items-start gap-3 sm:gap-4 w-full">
@@ -187,16 +204,24 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                     </span>
                 </div>
                 
-                <h3 className={`font-bold text-base text-slate-800 dark:text-gray-100 leading-snug break-words ${tarea.status === 'Completado' && 'line-through text-slate-400 dark:text-gray-500'}`}>
+                <h3 className="font-bold text-base text-slate-800 dark:text-gray-100 leading-snug break-words">
                     {tarea.title}
                 </h3>
             </div>
 
-            <div className="flex items-center gap-0 sm:gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+            {/* CONTENEDOR DE BOTONES DE ACCIÓN */}
+            <div className="flex items-center gap-0 sm:gap-1 shrink-0" 
+                 onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                 }}>
                 
                 {isJefe && (
                     <button 
-                    onClick={() => setIsDuplicateModalOpen(true)}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setIsDuplicateModalOpen(true);
+                    }}
                     className="p-2 text-slate-400 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all"
                     title="Duplicar Tarea"
                     >
@@ -206,7 +231,10 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
 
                 {puedeEditar && (
                     <button 
-                    onClick={() => setIsEditModalOpen(true)} 
+                    onClick={(e) => {
+                        e.stopPropagation(); 
+                        setIsEditModalOpen(true);
+                    }}
                     className="p-2 text-slate-400 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-slate-100 dark:hover:bg-blue-900/30 transition-all"
                     title="Editar Tarea"
                     >
@@ -216,7 +244,14 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                 
                 {isJefe && (
                     <button 
-                    onClick={handleEliminar} 
+                    onClick={(e) => {
+                        // DETENCIÓN TOTAL DEL EVENTO
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (e.nativeEvent) e.nativeEvent.stopImmediatePropagation();
+                        handleEliminar(e);
+                    }}
+                    
                     className="p-2 text-slate-400 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-slate-100 dark:hover:bg-red-900/30 transition-all"
                     title="Eliminar tarea (Solo Jefe)"
                     >
@@ -239,16 +274,21 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                 </span>
                 
                 {total > 0 && (
-                <>
-                    <span className="text-slate-300 dark:text-gray-600 hidden sm:inline">•</span>
-                    <div className="flex items-center gap-3 sm:gap-0">
-                            <span className={`shrink-0 mr-3 sm:mr-0 ${porcentaje === 100 ? 'text-green-600 dark:text-green-400' : ''}`}>
+                    <>
+                        <span className="text-slate-300 dark:text-gray-600 hidden sm:inline">•</span>
+                        
+                        <div className="flex items-center gap-2 mr-2 sm:mr-0">
+                            <span className={`text-xs font-bold shrink-0 ${porcentaje === 100 ? 'text-green-600 dark:text-green-400' : 'text-slate-600 dark:text-gray-400'}`}>
                                 {porcentaje}%
                             </span>
-                            <span className="text-slate-300 dark:text-gray-600 hidden sm:inline sm:mx-2">•</span>
-                            <span className="flex items-center gap-1 shrink-0"><ListTodo size={13}/> {completados}/{total}</span>
-                    </div>
-                </>
+                            <div className="w-24 sm:w-32 md:w-52 bg-slate-200 dark:bg-neutral-700 h-1.5 rounded-full overflow-hidden flex-shrink-0">
+                                <div 
+                                    className={`h-full rounded-full transition-all duration-500 ease-out ${colorBarra}`} 
+                                    style={{ width: `${porcentaje}%` }}
+                                />
+                            </div>
+                        </div>
+                    </>
                 )}
 
                 <span className="text-slate-300 dark:text-gray-600 hidden sm:inline">•</span>
@@ -394,20 +434,28 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
       </div>
     </div>
     
-    <EditarTarea 
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        tarea={tarea}
-        esJefe={isJefe} 
-    />
+    {/* AQUÍ ESTÁ EL CAMBIO CRÍTICO: RENDERIZADO CONDICIONAL */}
+    {isEditModalOpen && (
+        <EditarTarea 
+            isOpen={isEditModalOpen}
+            onClose={() => {
+                setIsEditModalOpen(false);
+                if (onToggle) onToggle(); 
+            }}
+            tarea={tarea}
+            esJefe={isJefe} 
+        />
+    )}
 
-    <DuplicateTarea
-        isOpen={isDuplicateModalOpen}
-        onClose={() => setIsDuplicateModalOpen(false)}
-        tareaOriginal={tarea}
-        usuarios={usuarios}
-        esJefe={isJefe}
-    />
+    {isDuplicateModalOpen && (
+        <DuplicateTarea
+            isOpen={isDuplicateModalOpen}
+            onClose={() => setIsDuplicateModalOpen(false)}
+            tareaOriginal={tarea}
+            usuarios={usuarios}
+            esJefe={isJefe}
+        />
+    )}
     </>
   );
 }
