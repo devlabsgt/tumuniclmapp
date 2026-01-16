@@ -187,11 +187,6 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
                             {viewMode === 'mis_tareas' ? 'Mis Actividades' : 'Mi Equipo'}
                         </h1>
                         
-                        {esJefe && (
-                           <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 transform translate-y-0.5">
-                                Admin
-                           </span>
-                        )}
                     </div>
                     
                     <p className="text-slate-500 dark:text-gray-400 text-sm font-medium">
