@@ -22,7 +22,6 @@ interface Props {
   usuarios: Usuario[]; 
 }
 
-// Función auxiliar para acortar nombres
 const getNombreCorto = (nombreCompleto: string | undefined | null) => {
   if (!nombreCompleto) return 'Sin nombre';
   
@@ -80,7 +79,33 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
     });
   };
 
-  // --- LÓGICA DE PERMISOS Y ROLES ---
+  const renderDescripcionConLinks = (texto: string) => {
+    if (!texto) return null;
+
+    const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}(\/[^\s]*)?)/g;
+    const partes = texto.split(urlRegex);
+
+    return partes.map((parte, i) => {
+      if (!parte) return null;
+      if (parte.match(urlRegex)) {
+        const href = parte.startsWith('http') ? parte : parte.startsWith('www.') ? `https://${parte}` : `https://${parte}`;
+        return (
+          <a 
+            key={i} 
+            href={href} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-blue-600 dark:text-blue-400 underline hover:no-underline break-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {parte}
+          </a>
+        );
+      }
+      return <span key={i}>{parte}</span>;
+    });
+  };
+
   const esAutoAsignado = tarea.created_by === tarea.assigned_to;
   const esAsignadoAMi = tarea.assigned_to === usuarioActual;
   const esCreadoPorMi = tarea.created_by === usuarioActual;
@@ -97,7 +122,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
   const esVencida = new Date() > fechaLimite && tarea.status !== 'Completado';
   const isReadOnly = esVencida || tarea.status === 'Completado';
 
-  // Lógica de edición: Jefe siempre, o Usuario si es suya y no está finalizada/vencida
   const puedeEditar = isJefe || (!isReadOnly && (esAsignadoAMi || esCreadoPorMi));
 
   const handleTerminar = async () => {
@@ -110,7 +134,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
       await cambiarEstado(tarea.id, 'Completado');
       Swal.fire({ icon: 'success', title: '¡Completada!', timer: 1500, showConfirmButton: false });
       
-      // Cierra el acordeón al completar para evitar errores visuales
       if (onToggle) {
         onToggle(); 
       }
@@ -119,7 +142,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
   };
 
   const handleEliminar = async (e?: React.MouseEvent) => {
-    // Seguridad extra por si se llama directo
     if(e) {
       e.preventDefault();
       e.stopPropagation();
@@ -145,7 +167,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
   };
 
   const getStatusStyles = () => {
-      // 1. COMPLETADO -> VERDE
       if (tarea.status === 'Completado') {
           return {
               badge: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800',
@@ -153,7 +174,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
               label: 'Completado'
           };
       }
-      // 2. VENCIDO -> ROJO
       if (esVencida) {
           return {
               badge: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
@@ -162,7 +182,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
           };
       }
       
-      // 3. DEFECTO (ASIGNADO) -> MORADO
       return {
           badge: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
           border: 'border-purple-500',
@@ -192,7 +211,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
         ${isExpanded ? 'ring-2 ring-blue-400/50 dark:ring-blue-900/40 shadow-xl z-10' : 'hover:-translate-y-0.5'}
     `}>
       
-      {/* --- CABECERA CLICKEABLE --- */}
       <div onClick={onToggle} className="p-4 sm:p-5 cursor-pointer flex flex-col gap-1 sm:gap-0">
         
         <div className="flex justify-between items-start gap-3 sm:gap-4 w-full">
@@ -209,7 +227,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                 </h3>
             </div>
 
-            {/* CONTENEDOR DE BOTONES DE ACCIÓN */}
             <div className="flex items-center gap-0 sm:gap-1 shrink-0" 
                  onClick={(e) => {
                     e.preventDefault();
@@ -245,7 +262,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                 {isJefe && (
                     <button 
                     onClick={(e) => {
-                        // DETENCIÓN TOTAL DEL EVENTO
                         e.preventDefault();
                         e.stopPropagation();
                         if (e.nativeEvent) e.nativeEvent.stopImmediatePropagation();
@@ -265,7 +281,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
             </div>
         </div>
 
-        {/* --- VISTA RESUMEN --- */}
         {!isExpanded && (
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 dark:text-gray-400 font-medium w-full border-t pt-3 sm:border-t-0 sm:pt-0 border-slate-100 dark:border-neutral-800 sm:mt-2">
                 <span className="flex items-center gap-1.5 shrink-0 text-slate-600 dark:text-gray-300">
@@ -297,24 +312,24 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                     {esAutoAsignado ? (
                         <div className="flex items-center gap-1.5 text-xs">
                              <div className="bg-slate-100 dark:bg-neutral-800 p-1 rounded-full"><User size={10} className={esAsignadoAMi ? 'text-blue-500' : 'text-slate-400'}/></div>
-                             <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Creado y Asignado:</span>
+                             <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Creado y asignado por:</span>
                              <span className={`truncate max-w-[200px] ${esAsignadoAMi ? 'text-blue-600 font-bold' : 'font-medium text-slate-700 dark:text-gray-300'}`}>
-                                {esAsignadoAMi ? 'Yo' : nombreAsignado}
+                                {esAsignadoAMi ? `${nombreAsignado} (Yo)` : nombreAsignado}
                              </span>
                         </div>
                     ) : (
                         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2 text-xs w-full">
                             <div className="flex items-center gap-1.5 text-slate-700 dark:text-gray-300 w-full sm:w-auto">
-                                <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider shrink-0 sm:w-auto">Creado: </span>
+                                <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider shrink-0 sm:w-auto">Creado por: </span>
                                 <span className="font-medium truncate block w-full sm:w-auto">{nombreCreador}</span>
                             </div>
 
                             <ArrowRight size={12} className="hidden sm:block text-slate-300 dark:text-gray-600 shrink-0" />
 
                             <div className="flex items-center gap-1.5 text-slate-700 dark:text-gray-300 w-full sm:w-auto">
-                                <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider shrink-0 sm:w-auto">Asignado: </span>
+                                <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider shrink-0 sm:w-auto">Asignado a: </span>
                                 <span className={`truncate block w-full sm:w-auto ${esAsignadoAMi ? 'text-blue-600 font-semibold' : ''}`}>
-                                    {esAsignadoAMi ? 'Yo' : nombreAsignado}
+                                    {esAsignadoAMi ? `${nombreAsignado} (Yo)` : nombreAsignado}
                                 </span>
                             </div>
                         </div>
@@ -324,20 +339,18 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
         )}
       </div>
 
-      {/* --- CONTENIDO EXPANDIDO --- */}
       <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'}`}>
         <div className="px-4 sm:px-5 pb-5 pt-0 border-t border-slate-100 dark:border-neutral-800 mt-1">
             
             <div className="grid grid-cols-1 lg:grid-cols-5 lg:gap-8 gap-6 mt-5">
                 
-                {/* Columna Izquierda: Info y Acción */}
                 <div className="flex flex-col gap-5 lg:col-span-2">
                       
                     <div className="bg-slate-50 dark:bg-neutral-800 p-4 rounded-xl border border-slate-100 dark:border-neutral-700 h-fit">
                         <label className="text-[10px] uppercase font-bold text-slate-400 dark:text-gray-500 mb-2 block">Descripción</label>
-                        <p className="text-sm text-slate-700 dark:text-gray-300 whitespace-pre-line leading-relaxed break-words">
-                            {tarea.description || <span className="italic text-slate-400 dark:text-gray-500 flex items-center gap-2"><MoreHorizontal size={16}/> Sin descripción...</span>}
-                        </p>
+                        <div className="text-sm text-slate-700 dark:text-gray-300 whitespace-pre-line leading-relaxed break-words">
+                            {tarea.description ? renderDescripcionConLinks(tarea.description) : <span className="italic text-slate-400 dark:text-gray-500 flex items-center gap-2"><MoreHorizontal size={16}/> Sin descripción...</span>}
+                        </div>
                     </div>
 
                     <div className="space-y-4">
@@ -376,7 +389,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                     )}
                 </div>
 
-                {/* Columna Derecha: Checklist */}
                 <div className="flex flex-col h-full lg:col-span-3">
                       <div className="bg-slate-50/50 dark:bg-neutral-800/30 rounded-xl border border-slate-100 dark:border-neutral-800 p-4 h-full min-h-[300px]">
                         <TareaChecklist 
@@ -389,7 +401,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
             
             </div>
 
-            {/* Footer de detalles (Expandido) */}
             <div className="mt-6 pt-4 border-t border-slate-100 dark:border-neutral-800">
                 <div className="bg-slate-50 dark:bg-neutral-800 rounded-xl p-3 text-xs text-slate-500 dark:text-gray-400 flex flex-col gap-2">
                       <div className="flex justify-between items-center border-b pb-2 border-slate-200 dark:border-neutral-700">
@@ -403,7 +414,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                                 {nombreCreador.charAt(0)}
                             </div>
                             <span className="text-slate-600 dark:text-gray-400">
-                                    Creado y Asignado: <span className="font-semibold text-slate-800 dark:text-gray-200">{nombreCreador}</span>
+                                    Creado y asignado por: <span className="font-semibold text-slate-800 dark:text-gray-200">{esAsignadoAMi ? `${nombreAsignado} (Yo)` : nombreAsignado}</span>
                             </span>
                         </div>
                       ) : (
@@ -413,7 +424,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                                     {nombreCreador.charAt(0)}
                                 </div>
                                 <span className="truncate" title={tarea.creator?.nombre}>
-                                    Creado: <span className="font-medium text-slate-700 dark:text-gray-300">{nombreCreador}</span>
+                                    Creado por: <span className="font-medium text-slate-700 dark:text-gray-300">{nombreCreador}</span>
                                 </span>
                             </div>
                             <div className="h-px bg-slate-200 dark:bg-neutral-700 w-full sm:hidden"></div>
@@ -422,7 +433,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                                     {nombreAsignado.charAt(0)}
                                 </div>
                                 <span className="truncate" title={tarea.assignee?.nombre}>
-                                    Asignado: <span className="font-medium text-slate-700 dark:text-gray-300">{nombreAsignado}</span>
+                                    Asignado a: <span className="font-medium text-slate-700 dark:text-gray-300">{esAsignadoAMi ? `${nombreAsignado} (Yo)` : nombreAsignado}</span>
                                 </span>
                             </div>
                         </div>
@@ -434,7 +445,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
       </div>
     </div>
     
-    {/* AQUÍ ESTÁ EL CAMBIO CRÍTICO: RENDERIZADO CONDICIONAL */}
     {isEditModalOpen && (
         <EditarTarea 
             isOpen={isEditModalOpen}
