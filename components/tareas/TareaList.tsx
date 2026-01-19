@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef, useLayoutEffect } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react'; // <--- CORREGIDO: useEffect
 import { Tarea, Usuario } from './types'; 
 import TareaItem from './TareaItem';
 import NewTarea from './modals/NewTarea'; 
@@ -35,27 +35,23 @@ const getFechaCabecera = (fechaIso: string) => {
     .replace(/de /g, '');
 };
 
-// --- CONFIGURACIÓN DE COLORES POR ESTADO (ACTUALIZADO) ---
+// --- CONFIGURACIÓN DE COLORES POR ESTADO ---
 const TAB_STYLES: Record<string, { active: string, inactive: string, badge: string }> = {
-  // TODOS -> AZUL
   'Todos': {
     active: 'bg-blue-600 text-white shadow-md shadow-blue-500/30 ring-1 ring-blue-500',
     inactive: 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20',
     badge: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
   },
-  // ASIGNADO -> MORADO
   'Asignado': {
     active: 'bg-purple-600 text-white shadow-md shadow-purple-500/30 ring-1 ring-purple-500',
     inactive: 'text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20',
     badge: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
   },
-  // COMPLETADO -> VERDE
   'Completado': {
     active: 'bg-emerald-600 text-white shadow-md shadow-emerald-500/30 ring-1 ring-emerald-500',
     inactive: 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20',
     badge: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
   },
-  // VENCIDO -> ROJO
   'Vencido': {
     active: 'bg-red-600 text-white shadow-md shadow-red-500/30 ring-1 ring-red-500',
     inactive: 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20',
@@ -65,8 +61,6 @@ const TAB_STYLES: Record<string, { active: string, inactive: string, badge: stri
 
 export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: Props) {
   const [viewMode, setViewMode] = useState<'mis_tareas' | 'equipo'>('mis_tareas');
-  
-  // CAMBIO IMPORTANTE: Inicia en 'Asignado' por defecto
   const [filtroEstado, setFiltroEstado] = useState('Asignado');
   
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -87,7 +81,8 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
     }
   };
 
-  useLayoutEffect(() => {
+  // CORREGIDO: Cambiado useLayoutEffect por useEffect
+  useEffect(() => {
     if (expandedId === null) {
         window.scrollTo({ top: scrollPositionRef.current, behavior: 'instant' });
     }
@@ -117,7 +112,6 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
       return coincideFecha && coincideBusqueda;
     }).map(t => {
       const esVencida = new Date() > new Date(t.due_date) && t.status !== 'Completado';
-      // Si viniera 'En Proceso' de la BD antigua, lo tratamos como 'Asignado' visualmente si no está vencido
       let estadoFinal = t.status;
       if (esVencida) estadoFinal = 'Vencido';
       
@@ -128,17 +122,35 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
   const conteos = useMemo(() => {
     return {
       Todos: tareasFiltradasGlobal.length,
-      // Agrupamos 'En Proceso' (legacy) dentro de Asignado para el conteo
       Asignado: tareasFiltradasGlobal.filter(t => t.estadoFiltro === 'Asignado' || t.estadoFiltro === 'En Proceso').length,
       'Completado': tareasFiltradasGlobal.filter(t => t.estadoFiltro === 'Completado').length,
       'Vencido': tareasFiltradasGlobal.filter(t => t.estadoFiltro === 'Vencido').length,
     };
   }, [tareasFiltradasGlobal]);
 
+  // --- FILTRO DE PESTAÑAS VACÍAS ---
+  const pestañas = useMemo(() => {
+    const base = ['Todos', 'Asignado', 'Completado', 'Vencido'];
+    return base.filter(tab => conteos[tab as keyof typeof conteos] > 0);
+  }, [conteos]);
+
+  // Seguridad: Si la pestaña actual desaparece (se queda en 0), cambiamos a la primera disponible
+  // CORREGIDO: Cambiado useLayoutEffect por useEffect
+  useEffect(() => {
+    if (pestañas.length > 0 && !pestañas.includes(filtroEstado)) {
+        // Intentamos ir a 'Todos' si existe, si no al primero que haya
+        if (pestañas.includes('Todos')) {
+            setFiltroEstado('Todos');
+        } else {
+            setFiltroEstado(pestañas[0]);
+        }
+    }
+  }, [pestañas, filtroEstado]);
+  // ------------------------------------------------
+
   const listaVisual = tareasFiltradasGlobal.filter(t => {
     if (filtroEstado === 'Todos') return true;
     
-    // Si filtramos por 'Asignado', incluimos 'En Proceso' por compatibilidad
     if (filtroEstado === 'Asignado') {
         return t.estadoFiltro === 'Asignado' || t.estadoFiltro === 'En Proceso';
     }
@@ -168,9 +180,6 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
     }));
   }, [tareasRenderizadas, expandedId]);
 
-  // Se eliminó 'En Proceso' de las pestañas visibles
-  const pestañas = ['Todos', 'Asignado', 'Completado', 'Vencido'];
-
   return (
     <div className="space-y-6 relative w-full max-w-full mx-auto px-0">
       
@@ -179,16 +188,12 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
             
             {/* CABECERA PRINCIPAL */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4">
-                
-                {/* Título y descripción */}
                 <div className="space-y-2">
                     <div className="flex items-center gap-3">
                         <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                             {viewMode === 'mis_tareas' ? 'Mis Actividades' : 'Mi Equipo'}
                         </h1>
-                        
                     </div>
-                    
                     <p className="text-slate-500 dark:text-gray-400 text-sm font-medium">
                         {viewMode === 'mis_tareas' 
                             ? 'Gestiona tus actividades y prioridades del día' 
@@ -196,9 +201,7 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
                     </p>
                 </div>
 
-                {/* Botones de acción */}
                 <div className="w-full lg:w-auto flex flex-col sm:flex-row gap-3">
-                    
                     {esJefe && (
                         <div className="bg-slate-100 dark:bg-neutral-800 p-1.5 rounded-xl flex items-center border border-slate-200 dark:border-neutral-700 w-full sm:w-auto">
                             <button
@@ -239,33 +242,35 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
             {/* FILTROS Y BUSCADOR */}
             <div className="flex flex-col xl:flex-row gap-4 mt-2">
                 
-                {/* 1. TABS DE ESTADO */}
-                <div className="w-full xl:w-auto overflow-x-auto pb-1 xl:pb-0">
-                    <div className="flex items-center gap-1.5 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 dark:border-neutral-800 shadow-sm min-w-max"> 
-                        {pestañas.map((tab) => {
-                            const styles = TAB_STYLES[tab] || TAB_STYLES['Todos'];
-                            const isActive = filtroEstado === tab;
-                            return (
-                                <button
-                                    key={tab}
-                                    onClick={() => {
-                                        setFiltroEstado(tab);
-                                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                                    }}
-                                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 whitespace-nowrap shrink-0
-                                    ${isActive ? styles.active : styles.inactive}`}
-                                >
-                                    {tab === 'Todos' && <Filter size={12} className="opacity-70"/>}
-                                    {tab.toUpperCase()}
-                                    <span className={`px-1.5 py-0.5 rounded-md text-[10px] min-w-[18px] text-center
-                                    ${isActive ? 'bg-white/20 text-white' : styles.badge}`}>
-                                        {conteos[tab as keyof typeof conteos]}
-                                    </span>
-                                </button>
-                            );
-                        })}
+                {/* 1. TABS DE ESTADO (SOLO VISIBLES SI HAY ITEMS O PESTAÑAS ACTIVAS) */}
+                {pestañas.length > 0 && (
+                    <div className="w-full xl:w-auto overflow-x-auto pb-1 xl:pb-0">
+                        <div className="flex items-center gap-1.5 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 dark:border-neutral-800 shadow-sm min-w-max"> 
+                            {pestañas.map((tab) => {
+                                const styles = TAB_STYLES[tab] || TAB_STYLES['Todos'];
+                                const isActive = filtroEstado === tab;
+                                return (
+                                    <button
+                                        key={tab}
+                                        onClick={() => {
+                                            setFiltroEstado(tab);
+                                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                                        }}
+                                        className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 whitespace-nowrap shrink-0
+                                        ${isActive ? styles.active : styles.inactive}`}
+                                    >
+                                        {tab === 'Todos' && <Filter size={12} className="opacity-70"/>}
+                                        {tab.toUpperCase()}
+                                        <span className={`px-1.5 py-0.5 rounded-md text-[10px] min-w-[18px] text-center
+                                        ${isActive ? 'bg-white/20 text-white' : styles.badge}`}>
+                                            {conteos[tab as keyof typeof conteos]}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* 2. BUSCADOR Y FILTROS DE FECHA */}
                 <div className="flex flex-1 flex-col sm:flex-row gap-3">
@@ -281,8 +286,6 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
                     </div>
 
                     <div className="flex gap-2 shrink-0 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
-                        
-                        {/* SELECTOR MES */}
                         <div className="relative min-w-[110px]">
                             <select 
                                 value={mesSeleccionado} 
@@ -296,7 +299,6 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
                             <CalendarIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                         </div>
 
-                        {/* SELECTOR AÑO */}
                         <div className="relative">
                             <select 
                                 value={anioSeleccionado} 
@@ -325,7 +327,8 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
       )}
 
       <div className="pb-20 space-y-6"> 
-        {listaVisual.length === 0 ? (
+        {/* Si no hay ninguna pestaña visible, significa que no hay tareas en absoluto con los filtros actuales */}
+        {pestañas.length === 0 ? (
            <div className="flex flex-col items-center justify-center py-16 sm:py-24 bg-slate-50 dark:bg-neutral-900/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-neutral-800 text-center px-4 animate-in fade-in zoom-in-95 duration-300">
                 <div className="w-16 h-16 bg-slate-100 dark:bg-neutral-800 rounded-full flex items-center justify-center mb-4">
                     <SearchX size={32} className="text-slate-300 dark:text-gray-600" />
@@ -337,11 +340,16 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
                     No hay resultados para estos filtros.
                 </p>
                 
-                {(filtroEstado !== 'Todos' || busqueda) && (
-                    <button onClick={() => { setFiltroEstado('Todos'); setBusqueda(''); }} className="px-4 py-2 bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 text-slate-600 dark:text-gray-300 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-neutral-700 transition-colors">
-                        Limpiar todos los filtros
+                {(busqueda || mesSeleccionado !== new Date().getMonth()) && (
+                    <button onClick={() => { setFiltroEstado('Todos'); setBusqueda(''); setMesSeleccionado(new Date().getMonth()); }} className="px-4 py-2 bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 text-slate-600 dark:text-gray-300 rounded-lg text-sm font-semibold hover:bg-slate-50 dark:hover:bg-neutral-700 transition-colors">
+                        Limpiar búsqueda
                     </button>
                 )}
+           </div>
+        ) : listaVisual.length === 0 ? (
+           // Caso raro donde hay pestañas (ej. "Vencido" tiene 1), pero estamos filtrando en una que tiene 0 (si falló el auto-switch)
+           <div className="text-center py-12">
+               <p className="text-gray-400">Esta categoría no tiene tareas visibles.</p>
            </div>
         ) : (
            tareasAgrupadas.map((grupo) => (
