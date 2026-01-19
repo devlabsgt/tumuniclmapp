@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react'; // <--- CORREGIDO: useEffect
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Tarea, Usuario } from './types'; 
 import TareaItem from './TareaItem';
 import NewTarea from './modals/NewTarea'; 
-import { Plus, Filter, SearchX, ArrowLeft, Search, Calendar as CalendarIcon, User, Users } from 'lucide-react';
+import { Plus, Filter, SearchX, ArrowLeft, Search, Calendar as CalendarIcon, User, Users, Loader2 } from 'lucide-react';
 
 interface Props {
   tareas: Tarea[];
@@ -35,7 +35,6 @@ const getFechaCabecera = (fechaIso: string) => {
     .replace(/de /g, '');
 };
 
-// --- CONFIGURACIÓN DE COLORES POR ESTADO ---
 const TAB_STYLES: Record<string, { active: string, inactive: string, badge: string }> = {
   'Todos': {
     active: 'bg-blue-600 text-white shadow-md shadow-blue-500/30 ring-1 ring-blue-500',
@@ -60,16 +59,28 @@ const TAB_STYLES: Record<string, { active: string, inactive: string, badge: stri
 };
 
 export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: Props) {
+  // 1. ESTADO DE MONTAJE (Para evitar error de hidratación en Chrome)
+  const [isMounted, setIsMounted] = useState(false);
+
   const [viewMode, setViewMode] = useState<'mis_tareas' | 'equipo'>('mis_tareas');
   const [filtroEstado, setFiltroEstado] = useState('Asignado');
-  
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [busqueda, setBusqueda] = useState('');
-  const [mesSeleccionado, setMesSeleccionado] = useState(new Date().getMonth());
-  const [anioSeleccionado, setAnioSeleccionado] = useState(new Date().getFullYear()); 
+
+  // 2. INICIALIZAR FECHAS CON VALORES NEUTROS (0 y año actual fijo)
+  const [mesSeleccionado, setMesSeleccionado] = useState(0); 
+  const [anioSeleccionado, setAnioSeleccionado] = useState(ANIO_ACTUAL); 
   
   const scrollPositionRef = useRef(0);
+
+  // 3. EFECTO: Se ejecuta SOLO en el cliente para poner la fecha real
+  useEffect(() => {
+    const hoy = new Date();
+    setMesSeleccionado(hoy.getMonth());
+    setAnioSeleccionado(hoy.getFullYear());
+    setIsMounted(true); // ¡Listo! Ahora sí podemos renderizar
+  }, []);
 
   const toggleAccordion = (id: string) => {
     if (expandedId === id) {
@@ -81,7 +92,6 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
     }
   };
 
-  // CORREGIDO: Cambiado useLayoutEffect por useEffect
   useEffect(() => {
     if (expandedId === null) {
         window.scrollTo({ top: scrollPositionRef.current, behavior: 'instant' });
@@ -90,6 +100,9 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
 
   // --- LÓGICA DE FILTRADO ---
   const tareasFiltradasGlobal = useMemo(() => {
+    // Si no está montado, retornamos vacío para no calcular con fechas incorrectas
+    if (!isMounted) return [];
+
     return tareas.filter(t => {
       // 1. Filtro Vista
       if (viewMode === 'mis_tareas') {
@@ -117,16 +130,18 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
       
       return { ...t, estadoFiltro: estadoFinal };
     });
-  }, [tareas, mesSeleccionado, anioSeleccionado, busqueda, viewMode, usuarioActual]);
+  }, [tareas, mesSeleccionado, anioSeleccionado, busqueda, viewMode, usuarioActual, isMounted]);
 
   const conteos = useMemo(() => {
+    if (!isMounted) return { Todos: 0, Asignado: 0, Completado: 0, Vencido: 0 };
+
     return {
       Todos: tareasFiltradasGlobal.length,
       Asignado: tareasFiltradasGlobal.filter(t => t.estadoFiltro === 'Asignado' || t.estadoFiltro === 'En Proceso').length,
       'Completado': tareasFiltradasGlobal.filter(t => t.estadoFiltro === 'Completado').length,
       'Vencido': tareasFiltradasGlobal.filter(t => t.estadoFiltro === 'Vencido').length,
     };
-  }, [tareasFiltradasGlobal]);
+  }, [tareasFiltradasGlobal, isMounted]);
 
   // --- FILTRO DE PESTAÑAS VACÍAS ---
   const pestañas = useMemo(() => {
@@ -135,18 +150,25 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
   }, [conteos]);
 
   // Seguridad: Si la pestaña actual desaparece (se queda en 0), cambiamos a la primera disponible
-  // CORREGIDO: Cambiado useLayoutEffect por useEffect
   useEffect(() => {
-    if (pestañas.length > 0 && !pestañas.includes(filtroEstado)) {
-        // Intentamos ir a 'Todos' si existe, si no al primero que haya
+    if (isMounted && pestañas.length > 0 && !pestañas.includes(filtroEstado)) {
         if (pestañas.includes('Todos')) {
             setFiltroEstado('Todos');
         } else {
             setFiltroEstado(pestañas[0]);
         }
     }
-  }, [pestañas, filtroEstado]);
-  // ------------------------------------------------
+  }, [pestañas, filtroEstado, isMounted]);
+
+  // 4. RETORNO TEMPRANO: Muestra un spinner o nada mientras carga el cliente
+  // Esto evita el error de "Hydration Failed" en Chrome
+  if (!isMounted) {
+    return (
+        <div className="w-full h-64 flex items-center justify-center">
+            <Loader2 className="animate-spin text-blue-500" size={32} />
+        </div>
+    );
+  }
 
   const listaVisual = tareasFiltradasGlobal.filter(t => {
     if (filtroEstado === 'Todos') return true;
@@ -162,23 +184,25 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
     ? listaVisual.filter(t => t.id === expandedId)
     : listaVisual;
 
-  const tareasAgrupadas = useMemo(() => {
+  const tareasAgrupadas = tareasRenderizadas.reduce((grupos: any[], tarea) => {
     if (expandedId) {
         return [{ fechaKey: 'expanded', titulo: null, tareas: tareasRenderizadas }];
     }
-    const grupos: Record<string, Tarea[]> = {};
-    tareasRenderizadas.forEach((tarea) => {
-        const fechaKey = tarea.due_date.split('T')[0]; 
-        if (!grupos[fechaKey]) grupos[fechaKey] = [];
-        grupos[fechaKey].push(tarea);
-    });
-    const fechasOrdenadas = Object.keys(grupos).sort();
-    return fechasOrdenadas.map(fechaKey => ({
-        fechaKey,
-        titulo: getFechaCabecera(fechaKey),
-        tareas: grupos[fechaKey]
-    }));
-  }, [tareasRenderizadas, expandedId]);
+    
+    const fechaKey = tarea.due_date.split('T')[0]; 
+    const grupoExistente = grupos.find(g => g.fechaKey === fechaKey);
+
+    if (grupoExistente) {
+        grupoExistente.tareas.push(tarea);
+    } else {
+        grupos.push({
+            fechaKey,
+            titulo: getFechaCabecera(fechaKey),
+            tareas: [tarea]
+        });
+    }
+    return grupos;
+  }, []).sort((a: any, b: any) => a.fechaKey.localeCompare(b.fechaKey));
 
   return (
     <div className="space-y-6 relative w-full max-w-full mx-auto px-0">
@@ -347,12 +371,11 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
                 )}
            </div>
         ) : listaVisual.length === 0 ? (
-           // Caso raro donde hay pestañas (ej. "Vencido" tiene 1), pero estamos filtrando en una que tiene 0 (si falló el auto-switch)
            <div className="text-center py-12">
                <p className="text-gray-400">Esta categoría no tiene tareas visibles.</p>
            </div>
         ) : (
-           tareasAgrupadas.map((grupo) => (
+           tareasAgrupadas.map((grupo: any) => (
                <div key={grupo.fechaKey} className="animate-in fade-in duration-500">
                    
                    {grupo.titulo && (
@@ -365,7 +388,7 @@ export default function TareaList({ tareas, usuarios, usuarioActual, esJefe }: P
                    )}
 
                    <div className="grid grid-cols-1 gap-3 sm:gap-4">
-                       {grupo.tareas.map((tarea) => (
+                       {grupo.tareas.map((tarea: Tarea) => (
                            <div key={tarea.id}>
                                <TareaItem 
                                  tarea={tarea} 
