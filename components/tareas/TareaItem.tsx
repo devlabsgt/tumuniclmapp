@@ -134,7 +134,8 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
       await cambiarEstado(tarea.id, 'Completado');
       Swal.fire({ icon: 'success', title: '¡Completada!', timer: 1500, showConfirmButton: false });
       
-      if (onToggle) {
+      // Cierra el acordeón al completar
+      if (isExpanded && onToggle) {
         onToggle(); 
       }
       
@@ -450,7 +451,11 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
             isOpen={isEditModalOpen}
             onClose={() => {
                 setIsEditModalOpen(false);
-                if (onToggle) onToggle(); 
+                // LÓGICA CORREGIDA:
+                // Solo cerramos (toggle) si estaba expandida previamente.
+                if (isExpanded && onToggle) {
+                    onToggle(); 
+                }
             }}
             tarea={tarea}
             esJefe={isJefe} 
