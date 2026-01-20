@@ -1,14 +1,21 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
-import { PermisoEmpleado } from './types'
+import { PermisoEmpleado, EstadoPermiso } from './types'
 import { revalidatePath } from 'next/cache'
+
+export type OficinaInfo = {
+  id: string
+  nombre: string
+}
 
 export type PerfilUsuario = {
   id: string
+  nombre: string
   rol: string | null
   esJefe: boolean
   dependenciaId: string | null
+  oficinasACargo: OficinaInfo[] 
 }
 
 async function getRolInterno(userId: string, supabase: any) {
@@ -32,23 +39,28 @@ export async function obtenerPerfilUsuario(): Promise<PerfilUsuario | null> {
 
   const { data: infoData } = await supabase
     .from('info_usuario')
-    .select('esjefe, dependencia_id')
+    .select('nombre, esjefe, dependencia_id')
     .eq('user_id', user.id)
     .single()
 
+  const { data: dependenciasJefe } = await supabase
+    .from('dependencias')
+    .select('id, nombre')
+    .eq('jefe_id', user.id)
+
+  const oficinasACargo = dependenciasJefe?.map((d: any) => ({
+      id: d.id,
+      nombre: d.nombre
+  })) || []
+
   return {
     id: user.id,
+    nombre: infoData?.nombre || 'Usuario',
     rol: rolEncontrado,
-    esJefe: infoData?.esjefe || false,
-    dependenciaId: infoData?.dependencia_id || null
+    esJefe: infoData?.esjefe || oficinasACargo.length > 0,
+    dependenciaId: infoData?.dependencia_id || null,
+    oficinasACargo: oficinasACargo
   }
-}
-
-export async function obtenerRolUsuario() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  return await getRolInterno(user.id, supabase)
 }
 
 export async function obtenerPermisos(mes: number, anio: number) {
@@ -64,77 +76,137 @@ export async function obtenerPermisos(mes: number, anio: number) {
     .lte('created_at', fechaFin)
     .order('created_at', { ascending: false })
 
-  if (error) {
-    throw new Error(error.message)
-  }
+  if (error) throw new Error(error.message)
 
   return data as unknown as PermisoEmpleado[]
 }
 
+export async function gestionarPermiso(permisoId: string, accion: 'aprobar' | 'rechazar', idEmpleado: string) {
+    const supabase = await createClient()
+    const perfil = await obtenerPerfilUsuario()
+    if (!perfil) throw new Error('No autorizado')
+
+    // 1. Obtener estado actual
+    const { data: permisoActual, error } = await supabase
+        .from('permisos_empleado')
+        .select('estado')
+        .eq('id', permisoId)
+        .single()
+    
+    if (error || !permisoActual) throw new Error('Permiso no encontrado')
+
+    // 2. Obtener datos de oficina del empleado
+    const { data: infoEmpleado } = await supabase
+        .from('info_usuario')
+        .select('dependencia_id, oficina_nombre')
+        .eq('user_id', idEmpleado)
+        .single()
+    
+    const depIdEmpleado = infoEmpleado?.dependencia_id
+    const depNombreEmpleado = infoEmpleado?.oficina_nombre?.toLowerCase().trim()
+    
+    // 3. Validar si soy jefe (por ID O por Nombre para evitar errores)
+    const idsOficinasJefe = perfil.oficinasACargo.map(o => o.id)
+    const nombresOficinasJefe = perfil.oficinasACargo.map(o => o.nombre.toLowerCase().trim())
+    
+    const soySuJefe = (depIdEmpleado && idsOficinasJefe.includes(depIdEmpleado)) || 
+                      (depNombreEmpleado && nombresOficinasJefe.includes(depNombreEmpleado))
+    
+    const soyRRHH = ['RRHH', 'SUPER', 'SECRETARIO'].includes(perfil.rol || '')
+
+    let nuevoEstado: EstadoPermiso | null = null
+
+    if (accion === 'rechazar') {
+        if (soyRRHH) {
+             nuevoEstado = 'rechazado_rrhh'
+        } else if (soySuJefe) {
+             nuevoEstado = 'rechazado_jefe'
+        } else {
+            throw new Error('No tienes permiso para rechazar esto.')
+        }
+    } 
+    else if (accion === 'aprobar') {
+        if (permisoActual.estado === 'pendiente') {
+            // Si soy jefe, apruebo mi parte
+            if (soySuJefe) {
+                nuevoEstado = 'aprobado_jefe'
+            } else if (soyRRHH) {
+                // RRHH puede aprobar directo (caso admin/excepcional)
+                nuevoEstado = 'aprobado'
+            } else {
+                throw new Error('Solo el jefe inmediato puede aprobar en primera instancia.')
+            }
+        } 
+        else if (permisoActual.estado === 'aprobado_jefe') {
+            if (soyRRHH) {
+                nuevoEstado = 'aprobado' 
+            } else {
+                throw new Error('Esperando aprobación final de RRHH.')
+            }
+        }
+    }
+
+    if (nuevoEstado) {
+        // Solo actualizamos estado, nada más
+        await supabase
+            .from('permisos_empleado')
+            .update({ estado: nuevoEstado })
+            .eq('id', permisoId)
+        
+        revalidatePath('/protected/permisos')
+        return true
+    }
+    return false
+}
+
 export async function guardarPermiso(formData: FormData, id?: string) {
   const supabase = await createClient()
-  
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Usuario no autenticado')
 
-  if (id) {
-    const rolActual = await getRolInterno(user.id, supabase)
-    const esAdministrativo = ['SUPER', 'RRHH', 'SECRETARIO'].includes(rolActual || '')
-    
-    if (!esAdministrativo) {
-      throw new Error('No tienes permisos para editar solicitudes existentes.')
-    }
-  }
+  const rolActual = await getRolInterno(user.id, supabase)
+  const esAdmin = ['SUPER', 'RRHH', 'SECRETARIO'].includes(rolActual || '')
 
   const tipo = formData.get('tipo') as string
   const inicio = formData.get('inicio') as string
   const fin = formData.get('fin') as string
-  const estado = formData.get('estado') as string
   const userIdSeleccionado = formData.get('user_id') as string
-  
-  // Leemos el checkbox. Si no está marcado, formData.get devuelve null
   const remunerado = formData.get('remunerado') === 'on'
-
-  if (!userIdSeleccionado) throw new Error('El usuario es obligatorio')
+  const estadoForm = formData.get('estado') as string
 
   const datos: any = {
-    tipo,
-    inicio,
-    fin,
-    remunerado, // Guardamos el valor booleano
+    tipo, inicio, fin, 
     user_id: userIdSeleccionado 
   }
 
-  if (estado) {
-    datos.estado = estado
+  // Solo RRHH puede definir si es remunerado
+  if (esAdmin) {
+      datos.remunerado = remunerado
   }
 
-  let error
-  if (id) {
-    const { error: updateError } = await supabase
-      .from('permisos_empleado')
-      .update({ tipo, inicio, fin, estado, remunerado })
-      .eq('id', id)
-    error = updateError
+  // Lógica de Estado al Guardar
+  if (!id) {
+      if (esAdmin && estadoForm) {
+          datos.estado = estadoForm
+      } else {
+          datos.estado = 'pendiente'
+      }
   } else {
-    const { error: insertError } = await supabase
-      .from('permisos_empleado')
-      .insert(datos)
-    error = insertError
+      if (esAdmin && estadoForm) {
+          datos.estado = estadoForm
+      }
   }
 
-  if (error) throw new Error(error.message)
-  
-  revalidatePath('/permisos')
+  if (id) {
+    await supabase.from('permisos_empleado').update(datos).eq('id', id)
+  } else {
+    await supabase.from('permisos_empleado').insert(datos)
+  }
+  revalidatePath('/protected/permisos')
 }
 
 export async function eliminarPermiso(id: string) {
     const supabase = await createClient()
-    const { error } = await supabase
-        .from('permisos_empleado')
-        .delete()
-        .eq('id', id)
-    
-    if (error) throw new Error(error.message)
-    revalidatePath('/permisos')
+    await supabase.from('permisos_empleado').delete().eq('id', id)
+    revalidatePath('/protected/permisos')
 }
