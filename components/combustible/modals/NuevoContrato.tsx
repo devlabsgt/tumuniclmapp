@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { createContrato, updateContrato, deleteContrato } from '@/components/combustible/actions'
 import { ContratoExtendido } from '@/components/combustible/types'
-import { Plus, X, Loader2, Pencil, Trash2, Save, FileText, AlertCircle, ShoppingCart } from 'lucide-react'
+import { Plus, X, Loader2, Pencil, Trash2, Save, FileText, AlertCircle, Fuel } from 'lucide-react'
 import Swal from 'sweetalert2'
 
 interface ItemContrato {
@@ -235,7 +235,7 @@ export default function NuevoContrato({ contrato }: Props) {
         
         <div className="flex justify-between items-center p-4 border-b border-gray-100 dark:border-neutral-800 shrink-0">
           <h3 className="text-lg font-bold text-slate-800 dark:text-gray-100 flex items-center gap-2">
-            {isEditing ? <><Pencil size={20} className="text-blue-500"/> Editar Contrato</> : <><Plus size={20} className="text-green-500"/> Nuevo Contrato Multiplex</>}
+            {isEditing ? <><Pencil size={20} className="text-blue-500"/> Editar Contrato</> : <><Plus size={20} className="text-green-500"/> Nuevo Contrato Combustible</>}
           </h3>
           <button onClick={() => setIsOpen(false)} className="p-2 bg-gray-100 dark:bg-neutral-800 rounded-full text-gray-500 hover:text-gray-700 transition-colors">
             <X size={20} />
@@ -294,7 +294,7 @@ export default function NuevoContrato({ contrato }: Props) {
                 <div className="lg:col-span-8 space-y-5">
                     
                     <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                        <ShoppingCart size={16}/> Configuración de Cupones
+                        <Fuel size={32} strokeWidth={1} className="text-gray-300"/>
                     </h4>
 
                     <div className="grid grid-cols-12 gap-3 items-end bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30 shadow-sm">
@@ -338,7 +338,7 @@ export default function NuevoContrato({ contrato }: Props) {
                                 {items.length === 0 ? (
                                     <tr>
                                         <td colSpan={5} className="p-12 text-center text-gray-400 italic flex flex-col items-center justify-center gap-2">
-                                           <ShoppingCart size={32} strokeWidth={1} className="text-gray-300"/>
+                                            <Fuel size={32} strokeWidth={1} className="text-gray-300"/>
                                            No hay cupones agregados aún.
                                         </td>
                                     </tr>
