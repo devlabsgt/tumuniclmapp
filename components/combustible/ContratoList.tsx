@@ -71,7 +71,8 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
         <NuevoContrato />
       </div>
 
-      <div className="flex flex-wrap justify-center gap-6">
+      {/* Cambiado: items-start para que se alineen arriba aunque tengan distinta altura */}
+      <div className="flex flex-wrap justify-center items-start gap-6">
         {listaContratos.map((c) => {
           
           const detallesSeguros = c.detalles || [] 
@@ -90,7 +91,8 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
           return (
             <div 
                 key={c.id} 
-                className="w-full max-w-[380px] h-[520px] bg-white dark:bg-neutral-900 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-neutral-800 flex flex-col overflow-hidden"
+                // CAMBIO 1: h-auto en lugar de h-[520px] para que crezca según contenido
+                className="w-full max-w-[380px] h-auto bg-white dark:bg-neutral-900 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-neutral-800 flex flex-col overflow-hidden"
             >
               
               <div className="p-5 border-b border-gray-100 dark:border-neutral-800 bg-gray-50/50 dark:bg-neutral-800/30 flex-shrink-0">
@@ -120,29 +122,50 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
                     <Layers size={12}/> Detalle de Cupones
                 </p>
                 
-                <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-2 scroll-smooth overscroll-contain">
+                {/* CAMBIO 2: Eliminado overflow-y-auto y custom-scrollbar */}
+                <div className="flex-1 space-y-3">
                     {detallesSeguros.length > 0 ? (
-                        detallesSeguros.map((detalle) => (
-                            <div key={detalle.id} className="flex items-center justify-between text-sm p-2 rounded-lg bg-gray-50 dark:bg-neutral-800/50 border border-gray-100 dark:border-neutral-800 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors duration-200">
-                                <div className="flex flex-col">
-                                    <span className="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
-                                        {detalle.producto === 'Diesel' 
-                                            ? <div className="w-2 h-2 rounded-full bg-green-600"></div> 
-                                            : <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                        }
-                                        {detalle.producto}
-                                    </span>
-                                    <span className="text-xs text-gray-500 font-mono">Q{detalle.denominacion} c/u</span>
-                                </div>
+                        detallesSeguros.map((detalle) => {
+                            // Cálculo para la barra individual
+                            const porcentajeItem = detalle.cantidad_inicial > 0 
+                                ? (detalle.cantidad_actual / detalle.cantidad_inicial) * 100 
+                                : 0;
+                            
+                            // Color dinámico según combustible
+                            const colorBarra = detalle.producto === 'Diesel' ? 'bg-green-500' : 'bg-blue-500';
+                            const bgBarra = detalle.producto === 'Diesel' ? 'bg-green-100 dark:bg-green-900/20' : 'bg-blue-100 dark:bg-blue-900/20';
 
-                                <div className="text-right">
-                                    <span className={`block font-bold ${detalle.cantidad_actual === 0 ? 'text-red-500' : 'text-gray-800 dark:text-white'}`}>
-                                        {detalle.cantidad_actual} <span className="text-[10px] text-gray-400 font-normal">disp.</span>
-                                    </span>
-                                    <span className="text-[10px] text-gray-400">de {detalle.cantidad_inicial}</span>
+                            return (
+                            <div key={detalle.id} className="flex flex-col p-3 rounded-lg bg-gray-50 dark:bg-neutral-800/50 border border-gray-100 dark:border-neutral-800 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors duration-200">
+                                <div className="flex items-center justify-between text-sm mb-2">
+                                    <div className="flex flex-col">
+                                        <span className="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+                                            {detalle.producto === 'Diesel' 
+                                                ? <div className="w-2 h-2 rounded-full bg-green-600"></div> 
+                                                : <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                            }
+                                            {detalle.producto}
+                                        </span>
+                                        <span className="text-xs text-gray-500 font-mono">Q{detalle.denominacion} c/u</span>
+                                    </div>
+
+                                    <div className="text-right">
+                                        <span className={`block font-bold ${detalle.cantidad_actual === 0 ? 'text-red-500' : 'text-gray-800 dark:text-white'}`}>
+                                            {detalle.cantidad_actual} <span className="text-[10px] text-gray-400 font-normal">disp.</span>
+                                        </span>
+                                        <span className="text-[10px] text-gray-400">de {detalle.cantidad_inicial}</span>
+                                    </div>
+                                </div>
+                                
+                                {/* CAMBIO 3: Barra de progreso individual */}
+                                <div className={`w-full h-1.5 rounded-full overflow-hidden ${bgBarra}`}>
+                                    <div 
+                                        className={`h-full rounded-full transition-all duration-500 ${colorBarra}`}
+                                        style={{ width: `${porcentajeItem}%` }}
+                                    />
                                 </div>
                             </div>
-                        ))
+                        )})
                     ) : (
                         <div className="text-center p-3 border border-dashed border-gray-200 rounded-lg bg-gray-50 text-xs text-gray-400 italic">
                             Sin detalles registrados.
@@ -151,7 +174,7 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
                 </div>
               </div>
 
-              <div className="p-4 bg-gray-50 dark:bg-neutral-900 border-t border-gray-100 dark:border-neutral-800 flex-shrink-0">
+              <div className="p-4 bg-gray-50 dark:bg-neutral-900 border-t border-gray-100 dark:border-neutral-800 flex-shrink-0 mt-auto">
                  <div className="flex justify-between items-end mb-2">
                     <div className="flex flex-col">
                         <span className="text-[10px] uppercase font-bold text-gray-400">Saldo Disponible</span>
