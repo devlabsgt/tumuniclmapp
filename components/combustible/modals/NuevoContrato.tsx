@@ -2,9 +2,9 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { createContrato, updateContrato, deleteContrato } from '@/components/combustible/actions'
+import { createContrato, updateContrato, deleteContrato, getSiguienteCorrelativo } from '@/components/combustible/actions'
 import { ContratoExtendido } from '@/components/combustible/types'
-import { Plus, X, Loader2, Pencil, Trash2, Save, FileText, AlertCircle, Fuel } from 'lucide-react'
+import { Plus, X, Loader2, Pencil, Trash2, Save, FileText, AlertCircle, Fuel, RefreshCw } from 'lucide-react'
 import Swal from 'sweetalert2'
 
 interface ItemContrato {
@@ -22,20 +22,59 @@ interface Props {
 export default function NuevoContrato({ contrato }: Props) {
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isGenerating, setIsGenerating] = useState(false) 
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
 
   const [items, setItems] = useState<ItemContrato[]>([])
   
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [generatedContractNum, setGeneratedContractNum] = useState('')
+
   const [tempProducto, setTempProducto] = useState('Gasolina')
   const [tempDenom, setTempDenom] = useState('')
   const [tempCant, setTempCant] = useState('')
+
+  const isEditing = !!contrato
+
+  const generateContractNumber = async (year: number) => {
+    if (isEditing && contrato) return
+
+    setIsGenerating(true)
+    try {
+      const res = await getSiguienteCorrelativo(year)
+      
+      if (res && res.success) {
+        if (res.formatted) {
+           setGeneratedContractNum(res.formatted)
+        } else {
+           const nextSeq = res.sequence || 1
+           const seqString = String(nextSeq).padStart(4, '0')
+           setGeneratedContractNum(`${seqString}-${year}`)
+        }
+      }
+    } catch (err) {
+      console.error("Error generando correlativo", err)
+      setError("Error al conectar con el servidor para generar el correlativo.")
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  useEffect(() => {
+    if (isOpen && !isEditing) {
+      generateContractNumber(selectedYear)
+    }
+  }, [isOpen, selectedYear, isEditing])
 
   useEffect(() => {
     setMounted(true)
     
     if (isOpen) {
         if (contrato) {
+           setGeneratedContractNum(contrato.numero_contrato)
+           setSelectedYear(contrato.anio)
+
            if (contrato.detalles && contrato.detalles.length > 0) {
               const loadedItems: ItemContrato[] = contrato.detalles.map(d => ({
                  id: crypto.randomUUID(),
@@ -52,6 +91,7 @@ export default function NuevoContrato({ contrato }: Props) {
            setTempDenom('')
            setTempCant('')
            setError(null)
+           setSelectedYear(new Date().getFullYear())
         }
     }
   }, [contrato, isOpen])
@@ -64,8 +104,6 @@ export default function NuevoContrato({ contrato }: Props) {
     }
     return () => document.body.classList.remove('overflow-hidden')
   }, [isOpen])
-
-  const isEditing = !!contrato
 
   const years = useMemo(() => {
     const currentYear = new Date().getFullYear()
@@ -124,7 +162,6 @@ export default function NuevoContrato({ contrato }: Props) {
 
     if (result.isConfirmed) {
         setItems(items.filter(i => i.id !== id))
-        
         Swal.fire({
             toast: true, position: 'top', icon: 'success',
             title: 'Cupón eliminado', showConfirmButton: false, timer: 1500,
@@ -133,71 +170,69 @@ export default function NuevoContrato({ contrato }: Props) {
     }
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    
-    const formData = new FormData(e.currentTarget)
-    const anio = formData.get('anio')
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    
+    const formData = new FormData(e.currentTarget)
     const estacion = formData.get('estacion') as string
-    const numeroContrato = formData.get('numero_contrato') as string
-
+    
     if (!estacion || estacion === "") {
         setError("Debes seleccionar una Estación de Servicio.")
         return
     }
 
-    if (!numeroContrato || numeroContrato.trim() === "") {
-        setError("El número de contrato físico es obligatorio.")
+    if (!generatedContractNum || generatedContractNum.trim() === "") {
+        setError("El número de contrato no se ha generado correctamente.")
         return
     }
 
-    if (items.length === 0) {
-        setError("Debes agregar al menos un cupón al detalle para guardar.")
-        return
-    }
+    if (items.length === 0) {
+        setError("Debes agregar al menos un cupón al detalle para guardar.")
+        return
+    }
 
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true)
+    setError(null)
 
-    const data: any = {
-      anio: Number(anio),
-      estacion: estacion,
-      numero_contrato: numeroContrato.trim(), 
-      detalles: items.map(i => ({
-          producto: i.producto,
-          denominacion: i.denominacion,
-          cantidad: i.cantidad
-      }))
-    }
-    
-    let res
-    if (isEditing && contrato) {
-       res = await updateContrato(contrato.id, data)
-    } else {
-       res = await createContrato(data)
-    }
+    const data: any = {
+      anio: Number(selectedYear),
+      estacion: estacion,
+      numero_contrato: generatedContractNum.trim(), 
+      detalles: items.map(i => ({
+          producto: i.producto,
+          denominacion: i.denominacion,
+          cantidad: i.cantidad
+      }))
+    }
+    
+    let res
+    if (isEditing && contrato) {
+       res = await updateContrato(contrato.id, data)
+    } else {
+       res = await createContrato(data)
+    }
 
-    if (res?.success) {
-      setIsOpen(false)
-      if (!isEditing) setItems([]) 
-      Swal.fire({
-          toast: true, position: 'top-end', icon: 'success', 
-          title: isEditing ? 'Actualizado correctamente' : 'Contrato creado',
-          showConfirmButton: false, timer: 3000, background: isEditing ? '#3b82f6' : '#22c55e', color: '#fff',
-          customClass: { container: 'z-[99999]' }
-      })
-    } else {
-      setError(res?.error || 'Error desconocido')
-    }
-    setIsLoading(false)
-  }
+    if (res?.success) {
+      setIsOpen(false)
+      if (!isEditing) setItems([]) 
+      Swal.fire({
+          toast: true, position: 'top-end', icon: 'success', 
+          title: isEditing ? 'Actualizado correctamente' : 'Contrato creado',
+          showConfirmButton: false, timer: 3000, background: isEditing ? '#3b82f6' : '#22c55e', color: '#fff',
+          customClass: { container: 'z-[99999]' }
+      })
+    } else {
+      setError(res?.error || 'Error desconocido')
+    }
+    setIsLoading(false)
+  }
 
   async function handleDelete() {
     if (!contrato) return
 
     const result = await Swal.fire({
         title: '¿Eliminar Contrato?',
-        text: "Se borrará el contrato y todos sus cupones asociados. Esta acción no se puede deshacer.",
+        text: "Se borrará el contrato y todos sus cupones asociados.",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
@@ -210,7 +245,6 @@ export default function NuevoContrato({ contrato }: Props) {
     if (!result.isConfirmed) return
 
     setIsLoading(true)
-
     const res = await deleteContrato(contrato.id)
 
     if (res?.success) {
@@ -262,7 +296,17 @@ export default function NuevoContrato({ contrato }: Props) {
                         <div className="space-y-4">
                             <div className="space-y-1">
                                 <label className="text-xs font-bold text-gray-500">Año del Contrato</label>
-                                <select name="anio" defaultValue={contrato?.anio || new Date().getFullYear()} className="w-full p-2.5 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium">
+                                <select 
+                                    name="anio" 
+                                    value={selectedYear}
+                                    disabled={isEditing} 
+                                    onChange={(e) => setSelectedYear(Number(e.target.value))}
+                                    className={`w-full p-2.5 border rounded-lg outline-none text-sm font-medium
+                                        ${isEditing 
+                                            ? 'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200 dark:bg-neutral-800 dark:border-neutral-700' 
+                                            : 'bg-white dark:bg-neutral-900 border-gray-200 dark:border-neutral-700 focus:ring-2 focus:ring-blue-500'
+                                        }`}
+                                >
                                     {years.map(y => <option key={y} value={y}>{y}</option>)}
                                 </select>
                             </div>
@@ -278,14 +322,42 @@ export default function NuevoContrato({ contrato }: Props) {
                             </div>
 
                             <div className="space-y-1">
-                                <label className="text-xs font-bold text-gray-500">No. Contrato Físico</label>
-                                <input name="numero_contrato" required defaultValue={contrato?.numero_contrato} className="w-full p-2.5 bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium" />
+                                <div className="flex justify-between items-center">
+                                    <label className="text-xs font-bold text-gray-500">No. Contrato Físico</label>
+                                    {!isEditing && (
+                                      <button 
+                                        type="button" 
+                                        onClick={() => generateContractNumber(selectedYear)}
+                                        className="text-[10px] text-blue-500 hover:underline flex items-center gap-1"
+                                        title="Recalcular secuencia"
+                                      >
+                                        <RefreshCw size={10} className={isGenerating ? "animate-spin" : ""} /> Actualizar
+                                      </button>
+                                    )}
+                                </div>
+                                <div className="relative">
+                                    <input 
+                                        name="numero_contrato" 
+                                        required 
+                                        readOnly
+                                        value={generatedContractNum}
+                                        className="w-full p-2.5 border rounded-lg outline-none text-sm font-bold tracking-widest bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200 dark:bg-neutral-800 dark:border-neutral-700 dark:text-gray-400"
+                                    />
+                                    {isGenerating && (
+                                        <div className="absolute right-3 top-2.5">
+                                            <Loader2 size={16} className="animate-spin text-blue-500"/>
+                                        </div>
+                                    )}
+                                </div>
+                                <p className="text-[10px] text-gray-400 mt-1">
+                                    {isEditing ? 'El número no se puede editar.' : 'Generado automáticamente.'}
+                                </p>
                             </div>
                         </div>
 
                         <div className="mt-6 p-3 bg-blue-100/50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
                              <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                                ℹ️ Asegúrese de ingresar correctamente el número de contrato físico para futuras referencias en auditoría.
+                                ℹ️ El número se genera automáticamente basado en los registros del año <strong>{selectedYear}</strong>.
                              </p>
                         </div>
                     </div>
@@ -401,8 +473,8 @@ export default function NuevoContrato({ contrato }: Props) {
                 </button>
                 <button 
                     type="submit" 
-                    disabled={isLoading} 
-                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-md transition-all flex items-center justify-center gap-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
+                    disabled={isLoading || isGenerating} 
+                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-md transition-all flex items-center justify-center gap-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                     {isLoading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} 
                     {isEditing ? 'Actualizar Contrato' : 'Guardar Contrato'}
