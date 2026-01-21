@@ -184,3 +184,48 @@ export async function deleteContrato(id: string) {
   revalidatePath('/protected/combustible')
   return { success: true }
 }
+
+export async function getSiguienteCorrelativo(anio: number) {
+  const supabase = await createClient(); 
+
+  try {
+    const { data: contratos, error } = await supabase
+      .from('ContratoCombustible') 
+      .select('numero_contrato')
+      .eq('anio', anio);
+
+    if (error) {
+        console.error('Error obteniendo contratos:', error);
+        throw error;
+    }
+
+    let maximoNumero = 0;
+
+    if (contratos && contratos.length > 0) {
+      contratos.forEach((fila) => {
+        const textoContrato = fila.numero_contrato || ""; 
+        const match = textoContrato.match(/^(\d+)-/);
+        
+        if (match) {
+          const numeroActual = parseInt(match[1], 10);
+          if (numeroActual > maximoNumero) {
+            maximoNumero = numeroActual;
+          }
+        }
+      });
+    }
+
+    const siguiente = maximoNumero + 1;
+    const codigoFormateado = `${String(siguiente).padStart(4, '0')}-${anio}`;
+
+    return { 
+      success: true, 
+      sequence: siguiente,
+      formatted: codigoFormateado 
+    }; 
+
+  } catch (error) {
+    console.error('Error calculando correlativo:', error);
+    return { success: false, error: 'Error al obtener secuencia' };
+  }
+}

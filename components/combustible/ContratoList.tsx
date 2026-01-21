@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { ContratoExtendido } from '@/components/combustible/types' 
 import NuevoContrato from './modals/NuevoContrato'
-import { Fuel, Hash, AlertCircle, Calendar, MapPin, Layers, Beaker, TrendingDown } from 'lucide-react'
+import { Fuel, Hash, AlertCircle, Calendar, Layers, Beaker, TrendingDown } from 'lucide-react'
 
 interface Props {
   contratos: ContratoExtendido[]
@@ -71,7 +71,6 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
         <NuevoContrato />
       </div>
 
-      {/* Cambiado: items-start para que se alineen arriba aunque tengan distinta altura */}
       <div className="flex flex-wrap justify-center items-start gap-6">
         {listaContratos.map((c) => {
           
@@ -91,7 +90,6 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
           return (
             <div 
                 key={c.id} 
-                // CAMBIO 1: h-auto en lugar de h-[520px] para que crezca según contenido
                 className="w-full max-w-[380px] h-auto bg-white dark:bg-neutral-900 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-neutral-800 flex flex-col overflow-hidden"
             >
               
@@ -111,7 +109,7 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
                   </div>
                   
                   <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                      <MapPin size={14} className="text-gray-400"/>
+                      <Fuel size={14} className="text-gray-400"/>
                       <span className="font-medium">{c.estacion}</span>
                   </div>
               </div>
@@ -122,45 +120,75 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
                     <Layers size={12}/> Detalle de Cupones
                 </p>
                 
-                {/* CAMBIO 2: Eliminado overflow-y-auto y custom-scrollbar */}
-                <div className="flex-1 space-y-3">
+                <div className="flex-1 space-y-4">
                     {detallesSeguros.length > 0 ? (
                         detallesSeguros.map((detalle) => {
-                            // Cálculo para la barra individual
+                            // Cálculo de valores monetarios individuales
+                            const valorInicialItem = detalle.cantidad_inicial * detalle.denominacion;
+                            const valorActualItem = detalle.cantidad_actual * detalle.denominacion;
+
+                            // Porcentaje individual
                             const porcentajeItem = detalle.cantidad_inicial > 0 
                                 ? (detalle.cantidad_actual / detalle.cantidad_inicial) * 100 
                                 : 0;
                             
-                            // Color dinámico según combustible
-                            const colorBarra = detalle.producto === 'Diesel' ? 'bg-green-500' : 'bg-blue-500';
-                            const bgBarra = detalle.producto === 'Diesel' ? 'bg-green-100 dark:bg-green-900/20' : 'bg-blue-100 dark:bg-blue-900/20';
+                            // Determinación de colores (Azul: Gasolina, Verde: Diesel)
+                            const isDiesel = detalle.producto === 'Diesel';
+                            const colorPrincipal = isDiesel ? 'bg-green-600' : 'bg-blue-600';
+                            const colorBarra = isDiesel ? 'bg-green-500' : 'bg-blue-500';
+                            const colorFondoBarra = isDiesel ? 'bg-green-100 dark:bg-green-900/20' : 'bg-blue-100 dark:bg-blue-900/20';
 
                             return (
-                            <div key={detalle.id} className="flex flex-col p-3 rounded-lg bg-gray-50 dark:bg-neutral-800/50 border border-gray-100 dark:border-neutral-800 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors duration-200">
-                                <div className="flex items-center justify-between text-sm mb-2">
-                                    <div className="flex flex-col">
-                                        <span className="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
-                                            {detalle.producto === 'Diesel' 
-                                                ? <div className="w-2 h-2 rounded-full bg-green-600"></div> 
-                                                : <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                            }
+                            <div key={detalle.id} className="relative flex flex-col rounded-xl bg-gray-50 dark:bg-neutral-800/50 border border-gray-100 dark:border-neutral-800 overflow-hidden">
+                                
+                               
+                                <div className={`${colorPrincipal} text-white p-3 flex justify-between items-center shadow-sm`}>
+                                    
+                                    <div>
+                                        <div className="text-2xl font-black leading-none mb-0.5">
+                                            Q{detalle.denominacion}
+                                        </div>
+                                        <div className="text-[10px] uppercase font-bold tracking-wider opacity-90">
                                             {detalle.producto}
-                                        </span>
-                                        <span className="text-xs text-gray-500 font-mono">Q{detalle.denominacion} c/u</span>
+                                        </div>
                                     </div>
 
                                     <div className="text-right">
-                                        <span className={`block font-bold ${detalle.cantidad_actual === 0 ? 'text-red-500' : 'text-gray-800 dark:text-white'}`}>
-                                            {detalle.cantidad_actual} <span className="text-[10px] text-gray-400 font-normal">disp.</span>
+                                        <div className="text-lg font-bold leading-none">
+                                            {detalle.cantidad_inicial} 
+                                        </div>
+                                        <div className="text-xs font-medium opacity-80 mt-0.5">
+                                            Q{formatoMoneda(valorInicialItem)}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between items-end px-3 pb-3 mt-3">
+                                    
+                                    <div>
+                                        <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">
+                                            Cupones
                                         </span>
-                                        <span className="text-[10px] text-gray-400">de {detalle.cantidad_inicial}</span>
+                                        <div className="text-sm font-bold text-gray-800 dark:text-gray-100">
+                                            {detalle.cantidad_actual} 
+                                            <span className="text-gray-400 text-xs font-normal"> / {detalle.cantidad_inicial}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="text-right">
+                                        <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">
+                                            Saldo
+                                        </span>
+                                        <div className="text-sm font-bold text-gray-800 dark:text-gray-100">
+                                            Q{formatoMoneda(valorActualItem)}
+                                            <span className="text-gray-400 text-xs font-normal"> / Q{formatoMoneda(valorInicialItem)}</span>
+                                        </div>
                                     </div>
                                 </div>
                                 
-                                {/* CAMBIO 3: Barra de progreso individual */}
-                                <div className={`w-full h-1.5 rounded-full overflow-hidden ${bgBarra}`}>
+                                <div className={`w-full h-1.5 ${colorFondoBarra}`}>
                                     <div 
-                                        className={`h-full rounded-full transition-all duration-500 ${colorBarra}`}
+                                        className={`h-full transition-all duration-500 ${colorBarra}`}
                                         style={{ width: `${porcentajeItem}%` }}
                                     />
                                 </div>
@@ -177,7 +205,7 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
               <div className="p-4 bg-gray-50 dark:bg-neutral-900 border-t border-gray-100 dark:border-neutral-800 flex-shrink-0 mt-auto">
                  <div className="flex justify-between items-end mb-2">
                     <div className="flex flex-col">
-                        <span className="text-[10px] uppercase font-bold text-gray-400">Saldo Disponible</span>
+                        <span className="text-[10px] uppercase font-bold text-gray-400">Saldo Total Disponible</span>
                         <span className="text-lg font-black text-gray-800 dark:text-white">
                              Q{formatoMoneda(totalValorActual)}
                         </span>
