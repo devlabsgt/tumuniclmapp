@@ -523,8 +523,6 @@ export const obtenerDatosReporte = async (agendas: AgendaConcejo[]): Promise<Rep
   }
 
   const userIds = Array.from(new Set(registros.map((r) => r.user_id)));
-
-  // CORREGIDO: Uso explícito de la relación info_usuario_dependencia_id_fkey
   const { data: infoUsuarios, error: errorInfo } = await supabase
     .from('info_usuario')
     .select(`
