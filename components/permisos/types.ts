@@ -15,6 +15,7 @@ export type PermisoEmpleado = {
   tipo: string
   inicio: string
   fin: string
+  descripcion: string | null 
   estado: EstadoPermiso
   created_at: string
   remunerado: boolean | null 

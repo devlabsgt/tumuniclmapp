@@ -1,8 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import Swal from 'sweetalert2';
-import { toast } from 'react-toastify';
 import { PermisoEmpleado, PermisosPorOficina, UsuarioConJerarquia, EstadoPermiso } from '@/components/permisos/types';
-import { obtenerPermisos, eliminarPermiso, obtenerPerfilUsuario, PerfilUsuario, gestionarPermiso } from '@/components/permisos/acciones';
+import { obtenerPermisos, eliminarPermiso, obtenerPerfilUsuario, PerfilUsuario } from '@/components/permisos/acciones';
 import { useListaUsuarios } from '@/hooks/usuarios/useListarUsuarios';
 
 export type TipoVistaPermisos = 'mis_permisos' | 'gestion_jefe' | 'gestion_rrhh';
@@ -15,12 +14,9 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [oficinasAbiertas, setOficinasAbiertas] = useState<Record<string, boolean>>({});
   
-  // === CORRECCIÓN AQUÍ ===
-  // Si es RRHH, su "bandeja de entrada" son los 'aprobado_jefe'.
-  // Si es Jefe o Usuario, prefieren ver 'todos' el historial.
-  const estadoDefault = tipoVista === 'gestion_rrhh' ? 'aprobado_jefe' : 'todos';
-  
-  const [filtroEstado, setFiltroEstado] = useState<'todos' | EstadoPermiso>(estadoDefault);
+  // CAMBIO 1: Estado inicial siempre en 'todos'
+  // Antes seleccionaba automático, ahora dejamos que el usuario filtre si quiere.
+  const [filtroEstado, setFiltroEstado] = useState<'todos' | EstadoPermiso>('todos');
   
   const [mesSeleccionado, setMesSeleccionado] = useState(new Date().getMonth() + 1);
   const [anioSeleccionado, setAnioSeleccionado] = useState(new Date().getFullYear());
@@ -141,8 +137,7 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
                  const esDeMisOficinas = (depId && idsOficinasJefe.includes(depId)) || 
                                          (depNombre && nombresOficinasJefe.includes(depNombre));
                                          
-                 const noSoyYoMismo = p.user_id !== perfilUsuario.id;
-                 return esDeMisOficinas && noSoyYoMismo;
+                 return esDeMisOficinas; 
               });
               
               usuariosFiltrados = usuariosFiltrados.filter(u => {
@@ -161,7 +156,6 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
                 permisosFiltrados = []; 
                 usuariosFiltrados = [];
             } else {
-                // RRHH ve lo que ya pasó por el jefe O lo que ya finalizó.
                 permisosFiltrados = permisosFiltrados.filter(p => 
                     p.estado === 'aprobado_jefe' || 
                     p.estado === 'aprobado' || 
@@ -187,6 +181,32 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
     });
   }, [permisosVisibles, searchTerm, filtroEstado]);
 
+  // CAMBIO 2: Ordenamiento Prioritario
+  // Ordenamos para que los "pendientes de acción" queden arriba de todo.
+  const registrosOrdenados = useMemo(() => {
+      const lista = [...registrosFinales];
+      
+      return lista.sort((a, b) => {
+          // Definimos qué estado es "prioritario" (el que requiere acción) según la vista
+          let estadoPrioridad = 'pendiente'; 
+          
+          if (tipoVista === 'gestion_rrhh') {
+              // Para RRHH, lo urgente son los que ya aprobó el jefe
+              estadoPrioridad = 'aprobado_jefe';
+          }
+          // Para 'gestion_jefe', estadoPrioridad es 'pendiente' (default)
+
+          const aEsPrioridad = a.estado === estadoPrioridad;
+          const bEsPrioridad = b.estado === estadoPrioridad;
+
+          if (aEsPrioridad && !bEsPrioridad) return -1; // a va primero
+          if (!aEsPrioridad && bEsPrioridad) return 1;  // b va primero
+          
+          // Si ambos tienen la misma prioridad (o ninguno la tiene), mantenemos el orden original (por fecha desc)
+          return 0;
+      });
+  }, [registrosFinales, tipoVista]);
+
   const datosAgrupados = useMemo(() => {
     const grupos: Record<string, PermisosPorOficina> = {};
 
@@ -200,7 +220,8 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
         });
     }
 
-    registrosFinales.forEach(r => {
+    // Usamos registrosOrdenados en lugar de registrosFinales
+    registrosOrdenados.forEach(r => {
       const nombreOficina = r.usuario?.oficina_nombre || 'Sin Oficina Asignada';
       const pathOrden = r.usuario?.oficina_path_orden || '9999';
       
@@ -215,7 +236,7 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
     });
 
     return Object.values(grupos).sort((a, b) => a.path_orden.localeCompare(b.path_orden, undefined, { numeric: true }));
-  }, [registrosFinales, tipoVista, perfilUsuario]);
+  }, [registrosOrdenados, tipoVista, perfilUsuario]);
 
   const estadisticas = useMemo(() => {
     let pendientes = 0; let aprobados = 0; let rechazados = 0; let avalados = 0;

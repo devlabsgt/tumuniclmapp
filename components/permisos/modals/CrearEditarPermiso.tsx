@@ -30,19 +30,28 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
   const [openComboboxTipo, setOpenComboboxTipo] = useState(false)
   const [otroTipoManual, setOtroTipoManual] = useState<string>('')
   const [esRemunerado, setEsRemunerado] = useState(false)
+  
+  // Nuevo estado para la descripción
+  const [descripcion, setDescripcion] = useState('')
 
-  // === LÓGICA SIMPLIFICADA ===
+  // Rol RRHH
   const esRRHH = ['RRHH', 'SUPER', 'SECRETARIO'].includes(perfilUsuario?.rol || '');
   
+  // Vista
+  const mostrarOpcionRemunerado = esRRHH && tipoVista === 'gestion_rrhh';
+
+  // Lógica de Bloqueo
+  const estadoActual = permisoAEditar?.estado || '';
+  const contieneBloqueo = estadoActual.includes('aprobado') || estadoActual.includes('rechazado');
+
   // Modos de Gestión
   const esJefeAprobando = tipoVista === 'gestion_jefe' && permisoAEditar?.estado === 'pendiente';
   const esRRHHAprobando = tipoVista === 'gestion_rrhh' && permisoAEditar?.estado === 'aprobado_jefe';
   const esModoGestion = esJefeAprobando || esRRHHAprobando;
   
-  // Modo Lectura: Si existe permiso y NO soy RRHH (o si estoy gestionando, los inputs de texto se bloquean)
-  const esSoloLectura = (!!permisoAEditar && !esRRHH) || esModoGestion;
+  // Modo Lectura
+  const esSoloLectura = (!!permisoAEditar && !esRRHH) || esModoGestion || contieneBloqueo;
 
-  // Nombre a mostrar en el input
   const nombreEmpleado = permisoAEditar?.usuario?.nombre || perfilUsuario?.nombre || '';
   const userId = permisoAEditar?.user_id || perfilUsuario?.id || '';
 
@@ -50,11 +59,12 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
     if (isOpen) {
       if (permisoAEditar) {
         setEsRemunerado(permisoAEditar.remunerado || false)
+        setDescripcion(permisoAEditar.descripcion || '') 
         const tipo = [...TIPOS_GENERAL, ...TIPOS_SEGURIDAD_SOCIAL].find(t => t.toLowerCase() === permisoAEditar.tipo.toLowerCase())
         if (tipo) { setSelectedTipo(tipo); setOtroTipoManual('') } 
         else { setSelectedTipo('Otros'); setOtroTipoManual(permisoAEditar.tipo) }
       } else {
-        setSelectedTipo(''); setOtroTipoManual(''); setEsRemunerado(false)
+        setSelectedTipo(''); setOtroTipoManual(''); setEsRemunerado(false); setDescripcion('')
       }
     }
   }, [isOpen, permisoAEditar])
@@ -65,16 +75,9 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
       if (!permisoAEditar) return;
       setLoading(true);
       try {
-          // Si es RRHH aprobando, enviamos el estado del check remunerado
           if (esRRHHAprobando && accion === 'aprobar') {
-             // Pequeño truco: guardamos primero el estado del check si cambió
              const formData = new FormData();
              formData.set('remunerado', esRemunerado ? 'on' : 'off');
-             // Nota: Esto requeriría que gestionarPermiso acepte remunerado o hacerlo en dos pasos.
-             // Para simplificar y no romper 'gestionarPermiso', asumimos que el backend maneja el update simple
-             // O usamos guardarPermiso parcial. Por ahora, mantendremos el flujo estándar.
-             
-             // ACTUALIZACIÓN RÁPIDA DEL REMUNERADO ANTES DE APROBAR
              await guardarPermiso(formData, permisoAEditar.id); 
           }
 
@@ -87,6 +90,8 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (contieneBloqueo && !esRRHH) return; 
+
     if (!selectedTipo) return toast.error('Selecciona un tipo.');
     if (selectedTipo === 'Otros' && !otroTipoManual.trim()) return toast.error('Especifique el tipo.');
 
@@ -94,14 +99,21 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
     const formData = new FormData(e.currentTarget)
     formData.set('user_id', userId) 
     formData.set('tipo', selectedTipo === 'Otros' ? otroTipoManual : selectedTipo)
+    
+    // Guardamos la descripción manualmente
+    formData.set('descripcion', descripcion)
 
     const inicio = formData.get('inicio') as string;
     const fin = formData.get('fin') as string;
     if (inicio) formData.set('inicio', new Date(inicio).toISOString());
     if (fin) formData.set('fin', new Date(fin).toISOString());
     
-    // Si NO es RRHH, limpiamos campos administrativos
-    if (!esRRHH) { formData.delete('estado'); formData.delete('remunerado'); }
+    if (esRRHH) {
+        formData.set('remunerado', esRemunerado ? 'on' : 'off');
+    } else {
+        formData.delete('estado'); 
+        formData.delete('remunerado'); 
+    }
 
     try {
       await guardarPermiso(formData, permisoAEditar?.id)
@@ -111,8 +123,19 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
     finally { setLoading(false); }
   }
 
-  const defaultInicio = permisoAEditar?.inicio ? format(new Date(permisoAEditar.inicio), "yyyy-MM-dd'T'HH:mm") : ''
-  const defaultFin = permisoAEditar?.fin ? format(new Date(permisoAEditar.fin), "yyyy-MM-dd'T'HH:mm") : ''
+  // === CÁLCULO DE FECHAS POR DEFECTO ===
+  const now = new Date();
+  const todayStr = format(now, "yyyy-MM-dd");
+
+  // Si edita, usa la fecha guardada. Si es nuevo, usa HOY a las 08:00
+  const defaultInicio = permisoAEditar?.inicio 
+    ? format(new Date(permisoAEditar.inicio), "yyyy-MM-dd'T'HH:mm") 
+    : `${todayStr}T08:00`; 
+
+  // Si edita, usa la fecha guardada. Si es nuevo, usa HOY a las 16:00 (04:00 PM)
+  const defaultFin = permisoAEditar?.fin 
+    ? format(new Date(permisoAEditar.fin), "yyyy-MM-dd'T'HH:mm") 
+    : `${todayStr}T16:00`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -190,8 +213,26 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
             </div>
           </div>
 
-          {/* CHECKBOX REMUNERADO (Visible solo para RRHH y si YA existe la solicitud) */}
-          {esRRHH && permisoAEditar && (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                Descripción <span className="text-gray-400 font-normal italic">(Opcional)</span>
+            </label>
+            <textarea
+                name="descripcion"
+                value={descripcion}
+                onChange={(e) => setDescripcion(e.target.value)}
+                readOnly={esSoloLectura}
+                placeholder="Añadir detalles adicionales..."
+                className={cn(
+                    "p-2 text-sm rounded-md border outline-none w-full min-h-[80px] resize-none",
+                    esSoloLectura 
+                        ? "border-gray-300 bg-gray-100 text-gray-500 dark:bg-neutral-900 dark:border-neutral-800 dark:text-gray-400 cursor-default" 
+                        : "border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 dark:text-gray-200 focus:ring-1 focus:ring-blue-500"
+                )}
+            />
+          </div>
+
+          {mostrarOpcionRemunerado && (
              <div className="flex items-center space-x-2 py-1">
                 <input 
                   type="checkbox" 
@@ -199,8 +240,7 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
                   name="remunerado" 
                   checked={esRemunerado} 
                   onChange={(e) => setEsRemunerado(e.target.checked)} 
-                  // Editable SOLO si RRHH está aprobando. En historial o edición normal, es ReadOnly/Disabled
-                  disabled={!esRRHHAprobando} 
+                  disabled={!esRRHHAprobando}
                   className="h-4 w-4 border-gray-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 disabled:opacity-50" 
                 />
                 <label htmlFor="remunerado" className="text-xs font-medium text-gray-700 dark:text-gray-300">Remunerado</label>
@@ -222,7 +262,12 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
             ) : (
                 <>
                     <Button type="button" variant="outline" onClick={onClose} className="h-10 dark:bg-transparent dark:border-neutral-700 dark:text-gray-300">Cerrar</Button>
-                    {!esSoloLectura && <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white h-10" disabled={loading}>{loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />} Guardar</Button>}
+                    {(!esSoloLectura && !contieneBloqueo) && (
+                        <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white h-10" disabled={loading}>
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />} 
+                            Guardar
+                        </Button>
+                    )}
                 </>
             )}
           </div>

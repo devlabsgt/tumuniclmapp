@@ -104,11 +104,13 @@ export async function guardarPermiso(formData: FormData, id?: string) {
   const tipo = formData.get('tipo') as string
   const inicio = formData.get('inicio') as string
   const fin = formData.get('fin') as string
+  // CAPTURAMOS LA DESCRIPCIÓN
+  const descripcion = formData.get('descripcion') as string
   const userIdSeleccionado = formData.get('user_id') as string
   const remunerado = formData.get('remunerado') === 'on'
   
   const datos: any = { 
-    tipo, inicio, fin, 
+    tipo, inicio, fin, descripcion, // AGREGAMOS DESCRIPCIÓN AL OBJETO
     user_id: userIdSeleccionado 
   }
 
