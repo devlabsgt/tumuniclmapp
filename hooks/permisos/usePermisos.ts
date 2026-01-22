@@ -14,8 +14,6 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [oficinasAbiertas, setOficinasAbiertas] = useState<Record<string, boolean>>({});
   
-  // CAMBIO 1: Estado inicial siempre en 'todos'
-  // Antes seleccionaba automático, ahora dejamos que el usuario filtre si quiere.
   const [filtroEstado, setFiltroEstado] = useState<'todos' | EstadoPermiso>('todos');
   
   const [mesSeleccionado, setMesSeleccionado] = useState(new Date().getMonth() + 1);
@@ -133,11 +131,8 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
               permisosFiltrados = permisosFiltrados.filter(p => {
                  const depId = p.usuario?.dependencia_id;
                  const depNombre = p.usuario?.oficina_nombre?.toLowerCase().trim();
-                 
-                 const esDeMisOficinas = (depId && idsOficinasJefe.includes(depId)) || 
-                                         (depNombre && nombresOficinasJefe.includes(depNombre));
-                                         
-                 return esDeMisOficinas; 
+                 return (depId && idsOficinasJefe.includes(depId)) || 
+                        (depNombre && nombresOficinasJefe.includes(depNombre));
               });
               
               usuariosFiltrados = usuariosFiltrados.filter(u => {
@@ -156,7 +151,9 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
                 permisosFiltrados = []; 
                 usuariosFiltrados = [];
             } else {
+                // CORRECCIÓN: RRHH ahora ve también los 'pendiente'
                 permisosFiltrados = permisosFiltrados.filter(p => 
+                    p.estado === 'pendiente' || 
                     p.estado === 'aprobado_jefe' || 
                     p.estado === 'aprobado' || 
                     p.estado === 'rechazado_rrhh'
@@ -181,31 +178,26 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
     });
   }, [permisosVisibles, searchTerm, filtroEstado]);
 
-  // CAMBIO 2: Ordenamiento Prioritario
-  // Ordenamos para que los "pendientes de acción" queden arriba de todo.
   const registrosOrdenados = useMemo(() => {
       const lista = [...registrosFinales];
       
       return lista.sort((a, b) => {
-          // Definimos qué estado es "prioritario" (el que requiere acción) según la vista
-          let estadoPrioridad = 'pendiente'; 
-          
-          if (tipoVista === 'gestion_rrhh') {
-              // Para RRHH, lo urgente son los que ya aprobó el jefe
-              estadoPrioridad = 'aprobado_jefe';
-          }
-          // Para 'gestion_jefe', estadoPrioridad es 'pendiente' (default)
+          // Lógica de Prioridad: 
+          // 1. Pendientes (necesitan Jefe o RRHH actuando de jefe)
+          // 2. Aprobado Jefe (necesitan RRHH)
+          const scoreA = getPrioridad(a.estado);
+          const scoreB = getPrioridad(b.estado);
 
-          const aEsPrioridad = a.estado === estadoPrioridad;
-          const bEsPrioridad = b.estado === estadoPrioridad;
-
-          if (aEsPrioridad && !bEsPrioridad) return -1; // a va primero
-          if (!aEsPrioridad && bEsPrioridad) return 1;  // b va primero
-          
-          // Si ambos tienen la misma prioridad (o ninguno la tiene), mantenemos el orden original (por fecha desc)
+          if (scoreA !== scoreB) return scoreA - scoreB; // Menor score = más arriba
           return 0;
       });
-  }, [registrosFinales, tipoVista]);
+  }, [registrosFinales]);
+
+  function getPrioridad(estado: string) {
+      if (estado === 'pendiente') return 1;
+      if (estado === 'aprobado_jefe') return 2;
+      return 3; // aprobados y rechazados al final
+  }
 
   const datosAgrupados = useMemo(() => {
     const grupos: Record<string, PermisosPorOficina> = {};
@@ -220,7 +212,6 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
         });
     }
 
-    // Usamos registrosOrdenados en lugar de registrosFinales
     registrosOrdenados.forEach(r => {
       const nombreOficina = r.usuario?.oficina_nombre || 'Sin Oficina Asignada';
       const pathOrden = r.usuario?.oficina_path_orden || '9999';
@@ -242,10 +233,14 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
     let pendientes = 0; let aprobados = 0; let rechazados = 0; let avalados = 0;
     
     permisosVisibles.forEach(r => {
+      // Pendientes: Lo que falta que apruebe el jefe (o RRHH como jefe)
       if (r.estado === 'pendiente') pendientes++;
-      if (r.estado === 'aprobado') aprobados++;
-      if (r.estado.includes('rechazado')) rechazados++;
+      // Avalados: Lo que ya aprobó el jefe, falta RRHH
       if (r.estado === 'aprobado_jefe') avalados++;
+      // Finalizados
+      if (r.estado === 'aprobado') aprobados++;
+      // Rechazados
+      if (r.estado.includes('rechazado')) rechazados++;
     });
     return { pendientes, aprobados, rechazados, avalados };
   }, [permisosVisibles]);

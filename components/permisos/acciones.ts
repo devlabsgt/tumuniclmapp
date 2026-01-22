@@ -42,14 +42,12 @@ export async function gestionarPermiso(permisoId: string, accion: 'aprobar' | 'r
     const { data: permisoActual, error } = await supabase.from('permisos_empleado').select('estado').eq('id', permisoId).single()
     if (error || !permisoActual) throw new Error('Permiso no encontrado')
 
-    // Validar Jefatura (Super permisivo para pruebas)
     const { data: infoEmpleado } = await supabase.from('info_usuario').select('dependencia_id, oficina_nombre').eq('user_id', idEmpleado).single()
     const depIdEmpleado = infoEmpleado?.dependencia_id
     const depNombreEmpleado = infoEmpleado?.oficina_nombre?.toLowerCase().trim()
     const idsOficinasJefe = perfil.oficinasACargo.map(o => String(o.id))
     const nombresOficinasJefe = perfil.oficinasACargo.map(o => o.nombre.toLowerCase().trim())
     
-    // Soy jefe si coinciden IDs, Nombres O si soy SUPER
     const soySuJefe = (depIdEmpleado && idsOficinasJefe.includes(String(depIdEmpleado))) || 
                       (depNombreEmpleado && nombresOficinasJefe.includes(depNombreEmpleado)) ||
                       perfil.rol === 'SUPER'
@@ -59,14 +57,19 @@ export async function gestionarPermiso(permisoId: string, accion: 'aprobar' | 'r
     let nuevoEstado: EstadoPermiso | null = null
 
     if (accion === 'rechazar') {
-        if (soyRRHH && permisoActual.estado === 'aprobado_jefe') nuevoEstado = 'rechazado_rrhh'
-        else if (soySuJefe && permisoActual.estado === 'pendiente') nuevoEstado = 'rechazado_jefe'
-        else if (soyRRHH) nuevoEstado = 'rechazado_rrhh'
-        else throw new Error('No tienes permiso para rechazar.')
+        // RRHH puede rechazar en cualquier etapa
+        if (soyRRHH) {
+             nuevoEstado = 'rechazado_rrhh'
+        } else if (soySuJefe && permisoActual.estado === 'pendiente') {
+             nuevoEstado = 'rechazado_jefe'
+        } else {
+             throw new Error('No tienes permiso para rechazar.')
+        }
     } 
     else if (accion === 'aprobar') {
         if (permisoActual.estado === 'pendiente') {
-            if (soySuJefe || (soyRRHH && perfil.esJefe)) {
+            // CORRECCIÓN: Si soy RRHH, también puedo aprobar la fase de jefe
+            if (soySuJefe || soyRRHH) {
                 nuevoEstado = 'aprobado_jefe'
             } else {
                 throw new Error('Debe ser aprobado por jefatura primero.')
@@ -89,13 +92,11 @@ export async function gestionarPermiso(permisoId: string, accion: 'aprobar' | 'r
     return false
 }
 
-// === AQUÍ ESTÁ LA CORRECCIÓN ===
 export async function guardarPermiso(formData: FormData, id?: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Usuario no autenticado')
 
-  // Obtenemos rol y si es jefe
   const rolActual = await getRolInterno(user.id, supabase)
   const { data: infoUser } = await supabase.from('info_usuario').select('esjefe').eq('user_id', user.id).single()
   const esJefe = infoUser?.esjefe || false
@@ -104,36 +105,29 @@ export async function guardarPermiso(formData: FormData, id?: string) {
   const tipo = formData.get('tipo') as string
   const inicio = formData.get('inicio') as string
   const fin = formData.get('fin') as string
-  // CAPTURAMOS LA DESCRIPCIÓN
   const descripcion = formData.get('descripcion') as string
   const userIdSeleccionado = formData.get('user_id') as string
   const remunerado = formData.get('remunerado') === 'on'
   
   const datos: any = { 
-    tipo, inicio, fin, descripcion, // AGREGAMOS DESCRIPCIÓN AL OBJETO
+    tipo, inicio, fin, descripcion, 
     user_id: userIdSeleccionado 
   }
 
-  // RRHH puede definir remunerado en edición (si aplica)
   if (esAdmin) { datos.remunerado = remunerado }
 
   if (!id) {
-      // --- LÓGICA DE AUTO-APROBACIÓN ---
-      // 1. Si soy Jefe y el permiso es para mí mismo -> Aprobado por Jefe automáticamente
       if (esJefe && userIdSeleccionado === user.id) {
           datos.estado = 'aprobado_jefe'
       }
-      // 2. Si soy RRHH creando para otro -> Nace Pendiente (flujo normal) o lo que defina el admin
       else {
          datos.estado = 'pendiente' 
       }
   } 
 
   if (id) { 
-      // Si es actualización
       await supabase.from('permisos_empleado').update(datos).eq('id', id) 
   } else { 
-      // Si es nuevo
       await supabase.from('permisos_empleado').insert(datos) 
   }
   revalidatePath('/protected/permisos')

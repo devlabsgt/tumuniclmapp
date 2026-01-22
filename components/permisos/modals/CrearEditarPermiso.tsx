@@ -30,27 +30,22 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
   const [openComboboxTipo, setOpenComboboxTipo] = useState(false)
   const [otroTipoManual, setOtroTipoManual] = useState<string>('')
   const [esRemunerado, setEsRemunerado] = useState(false)
-  
-  // Nuevo estado para la descripción
   const [descripcion, setDescripcion] = useState('')
 
-  // Rol RRHH
   const esRRHH = ['RRHH', 'SUPER', 'SECRETARIO'].includes(perfilUsuario?.rol || '');
-  
-  // Vista
   const mostrarOpcionRemunerado = esRRHH && tipoVista === 'gestion_rrhh';
 
-  // Lógica de Bloqueo
   const estadoActual = permisoAEditar?.estado || '';
   const contieneBloqueo = estadoActual.includes('aprobado') || estadoActual.includes('rechazado');
 
-  // Modos de Gestión
-  const esJefeAprobando = tipoVista === 'gestion_jefe' && permisoAEditar?.estado === 'pendiente';
-  const esRRHHAprobando = tipoVista === 'gestion_rrhh' && permisoAEditar?.estado === 'aprobado_jefe';
-  const esModoGestion = esJefeAprobando || esRRHHAprobando;
+  // Lógica de fases
+  const esFaseJefe = permisoAEditar?.estado === 'pendiente';
+  const esFaseRRHH = permisoAEditar?.estado === 'aprobado_jefe';
+
+  // Puede aprobar si es fase jefe (y es jefe o RRHH) O si es fase RRHH (y es RRHH)
+  const puedeGestionar = (tipoVista === 'gestion_jefe' && esFaseJefe) || (tipoVista === 'gestion_rrhh' && (esFaseJefe || esFaseRRHH));
   
-  // Modo Lectura
-  const esSoloLectura = (!!permisoAEditar && !esRRHH) || esModoGestion || contieneBloqueo;
+  const esSoloLectura = (!!permisoAEditar && !esRRHH) || puedeGestionar || contieneBloqueo;
 
   const nombreEmpleado = permisoAEditar?.usuario?.nombre || perfilUsuario?.nombre || '';
   const userId = permisoAEditar?.user_id || perfilUsuario?.id || '';
@@ -75,7 +70,7 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
       if (!permisoAEditar) return;
       setLoading(true);
       try {
-          if (esRRHHAprobando && accion === 'aprobar') {
+          if (esFaseRRHH && accion === 'aprobar') {
              const formData = new FormData();
              formData.set('remunerado', esRemunerado ? 'on' : 'off');
              await guardarPermiso(formData, permisoAEditar.id); 
@@ -99,8 +94,6 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
     const formData = new FormData(e.currentTarget)
     formData.set('user_id', userId) 
     formData.set('tipo', selectedTipo === 'Otros' ? otroTipoManual : selectedTipo)
-    
-    // Guardamos la descripción manualmente
     formData.set('descripcion', descripcion)
 
     const inicio = formData.get('inicio') as string;
@@ -123,19 +116,10 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
     finally { setLoading(false); }
   }
 
-  // === CÁLCULO DE FECHAS POR DEFECTO ===
   const now = new Date();
   const todayStr = format(now, "yyyy-MM-dd");
-
-  // Si edita, usa la fecha guardada. Si es nuevo, usa HOY a las 08:00
-  const defaultInicio = permisoAEditar?.inicio 
-    ? format(new Date(permisoAEditar.inicio), "yyyy-MM-dd'T'HH:mm") 
-    : `${todayStr}T08:00`; 
-
-  // Si edita, usa la fecha guardada. Si es nuevo, usa HOY a las 16:00 (04:00 PM)
-  const defaultFin = permisoAEditar?.fin 
-    ? format(new Date(permisoAEditar.fin), "yyyy-MM-dd'T'HH:mm") 
-    : `${todayStr}T16:00`;
+  const defaultInicio = permisoAEditar?.inicio ? format(new Date(permisoAEditar.inicio), "yyyy-MM-dd'T'HH:mm") : `${todayStr}T08:00`; 
+  const defaultFin = permisoAEditar?.fin ? format(new Date(permisoAEditar.fin), "yyyy-MM-dd'T'HH:mm") : `${todayStr}T16:00`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -143,7 +127,7 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
         
         <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-neutral-800">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-            {esModoGestion ? 'Gestionar Solicitud' : (permisoAEditar ? 'Detalles / Editar' : 'Nueva Solicitud')}
+            {puedeGestionar ? 'Gestionar Solicitud' : (permisoAEditar ? 'Detalles / Editar' : 'Nueva Solicitud')}
           </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"><X className="w-5 h-5" /></button>
         </div>
@@ -240,7 +224,7 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
                   name="remunerado" 
                   checked={esRemunerado} 
                   onChange={(e) => setEsRemunerado(e.target.checked)} 
-                  disabled={!esRRHHAprobando}
+                  disabled={!esFaseRRHH}
                   className="h-4 w-4 border-gray-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 disabled:opacity-50" 
                 />
                 <label htmlFor="remunerado" className="text-xs font-medium text-gray-700 dark:text-gray-300">Remunerado</label>
@@ -248,7 +232,7 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
           )}
 
           <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-100 dark:border-neutral-800">
-            {esModoGestion ? (
+            {puedeGestionar ? (
                 <>
                     <Button type="button" variant="outline" onClick={onClose} disabled={loading} className="dark:bg-transparent dark:border-neutral-700 dark:text-gray-300 h-10">Cancelar</Button>
                     <Button type="button" onClick={() => handleGestion('rechazar')} className="bg-red-600 hover:bg-red-700 text-white h-10 px-4" disabled={loading}>
@@ -256,7 +240,7 @@ export default function CrearEditarPermiso({ isOpen, onClose, permisoAEditar, on
                     </Button>
                     <Button type="button" onClick={() => handleGestion('aprobar')} className="bg-emerald-600 hover:bg-emerald-700 text-white h-10 px-4" disabled={loading}>
                         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2"/>} 
-                        {esJefeAprobando ? 'Aprobar como jefe' : 'Aprobar como RRHH'}
+                        {esFaseJefe ? 'Aprobar como jefe' : 'Aprobar como RRHH'}
                     </Button>
                 </>
             ) : (

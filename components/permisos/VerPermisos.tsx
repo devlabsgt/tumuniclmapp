@@ -46,18 +46,15 @@ export default function VerPermisos({ tipoVista }: Props) {
   const tituloPagina = useMemo(() => {
      if (tipoVista === 'mis_permisos') return 'Mis Solicitudes';
      if (tipoVista === 'gestion_rrhh') return 'Administración de Permisos (RRHH)';
-     if (tipoVista === 'gestion_jefe') return 'Administración de Permisos (Jefe de Área)';
+     if (tipoVista === 'gestion_jefe') return 'Administración de Permisos (JEFE)';
      return 'Permisos';
   }, [tipoVista]);
 
-  // --- ETIQUETAS VISUALES (BADGES) ---
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
       case 'aprobado': 
-        // CAMBIO: Etiqueta visual para el estado final
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800">Aprobado RRHH</span>;
       case 'aprobado_jefe': 
-        // CAMBIO: Etiqueta visual para el estado intermedio
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">Preaprobado Jefe</span>;
       case 'rechazado_jefe':
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800">Rechazado Jefe</span>;
@@ -66,11 +63,10 @@ export default function VerPermisos({ tipoVista }: Props) {
       case 'rechazado': 
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800">Rechazado</span>;
       default: 
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">Pendiente</span>;
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800">Pendiente Jefe</span>;
     }
   };
 
-  // --- FUNCIÓN DE PESTAÑA LATERAL (Border Left) ---
   const getLeftBorderClass = (estado: string) => {
     if (estado === 'aprobado') return "border-l-4 border-l-emerald-500";
     if (estado === 'aprobado_jefe') return "border-l-4 border-l-blue-500";
@@ -85,7 +81,6 @@ export default function VerPermisos({ tipoVista }: Props) {
       <div className="w-full xl:w-4/5 mx-auto md:px-4 pb-10">
         <div className="p-2 bg-white dark:bg-neutral-900 rounded-lg shadow-md w-full border border-gray-100 dark:border-neutral-800 transition-colors duration-200">
           
-          {/* --- HEADER Y FILTROS --- */}
           <div className="flex flex-col gap-4 mb-6 p-2">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200 truncate max-w-2xl" title={tituloPagina}>
@@ -119,26 +114,25 @@ export default function VerPermisos({ tipoVista }: Props) {
               </div>
               
               <div className="flex flex-wrap gap-2">
-                 {/* FILTROS (Etiquetas actualizadas) */}
                  
-                 {/* 1. Pendientes */}
-                 {(esRRHH ? estadisticas.avalados > 0 : estadisticas.pendientes > 0) && (
+                 {/* 1. Pendientes Jefe (Para todos) */}
+                 {estadisticas.pendientes > 0 && (
                     <Button 
                         size="sm" 
-                        onClick={() => setFiltroEstado(prev => prev === (esRRHH ? 'aprobado_jefe' : 'pendiente') ? 'todos' : (esRRHH ? 'aprobado_jefe' : 'pendiente'))} 
+                        onClick={() => setFiltroEstado(prev => prev === 'pendiente' ? 'todos' : 'pendiente')} 
                         className={cn(
                             "h-7 px-3 text-[10px] font-bold rounded-md border",
-                            filtroEstado === (esRRHH ? 'aprobado_jefe' : 'pendiente')
+                            filtroEstado === 'pendiente'
                                 ? "bg-amber-500 text-white border-amber-500 hover:bg-amber-500" 
                                 : "bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800 dark:hover:bg-amber-900/30"
                         )}
                     >
-                        Pendientes: {esRRHH ? estadisticas.avalados : estadisticas.pendientes}
+                        Pendientes Jefe: {estadisticas.pendientes}
                     </Button>
                  )}
 
-                 {/* 2. Preaprobado Jefe (Antes Aprobado Jefe) */}
-                 {!esRRHH && estadisticas.avalados > 0 && (
+                 {/* 2. Pendientes RRHH (Preaprobado Jefe) */}
+                 {estadisticas.avalados > 0 && (
                     <Button 
                         size="sm" 
                         onClick={() => setFiltroEstado(prev => prev === 'aprobado_jefe' ? 'todos' : 'aprobado_jefe')} 
@@ -149,11 +143,11 @@ export default function VerPermisos({ tipoVista }: Props) {
                                 : "bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-900/30"
                         )}
                     >
-                      Preaprobado Jefe: {estadisticas.avalados}
+                      {esRRHH ? `Pendientes RRHH: ${estadisticas.avalados}` : `Preaprobado Jefe: ${estadisticas.avalados}`}
                     </Button>
                  )}
 
-                 {/* 3. Aprobado RRHH (Antes Finalizados) */}
+                 {/* 3. Aprobados Finales */}
                  {estadisticas.aprobados > 0 && (
                     <Button 
                         size="sm" 
@@ -188,7 +182,6 @@ export default function VerPermisos({ tipoVista }: Props) {
             </div>
           </div>
 
-          {/* --- CONTENIDO PRINCIPAL --- */}
           <div className="border-t border-gray-100 dark:border-neutral-800 pt-4">
             {loadingPermisos ? (
               <Cargando texto="Cargando permisos..." />
