@@ -17,23 +17,35 @@ export default function ModulesView({ rol, modulos = [], esjefe }: ModulesViewPr
   const modulosDisponibles = useMemo(() =>
     TODOS_LOS_MODULOS.filter(m => {
       if (rol === 'SUPER') return true;
+
       if (['ACTIVIDADES', 'PERMISOS'].includes(m.id)) return true;
-      if (m.subgrupo === 'Concejo Municipal' && (rol === 'CONCEJAL' || rol === 'ALCALDE')) return true;
-      if (m.id === 'ASISTENCIA') return esjefe;
-      if (m.id === 'COMISIONES_JEFE') return esjefe;
-      if (rol === 'INVITADO' || rol === 'ALCALDE') return true;
-      
-      const tieneModuloAsignado = modulos.includes(m.permiso);
-      
-      if (m.id === 'COMISIONES_RRHH') return rol === 'RRHH' || rol === 'SECRETARIO' || tieneModuloAsignado;
-      if (m.id === 'PERMISOS_GESTION') return rol === 'RRHH' || tieneModuloAsignado;
-      
-      return tieneModuloAsignado;
+
+      if (['ASISTENCIA', 'COMISIONES_JEFE', 'PERMISOS_JEFE', 'ACTIVIDADES_JEFE'].includes(m.id)) return esjefe;
+
+      if (['COMISIONES_RRHH', 'PERMISOS_GESTION', 'ACTIVIDADES_GESTION', 'RRHH', 'ORGANOS_RRHH'].includes(m.id)) {
+         return ['RRHH', 'SECRETARIO'].includes(rol) || modulos.includes('RRHH');
+      }
+
+      if (m.subgrupo === 'Concejo Municipal') {
+         return ['CONCEJAL', 'ALCALDE', 'SECRETARIO'].includes(rol) || modulos.includes('CONCEJO');
+      }
+
+      return modulos.includes(m.permiso);
     })
   , [rol, modulos, esjefe]);
 
   const modulosPoliticas = useMemo(() => modulosDisponibles.filter(m => m.categoria === 'Políticas Públicas'), [modulosDisponibles]);
   const modulosGestion = useMemo(() => modulosDisponibles.filter(m => m.categoria === 'Gestión Administrativa'), [modulosDisponibles]);
+
+  const renderModules = (filterFn: (m: any) => boolean) => 
+    modulosGestion.filter(filterFn).map(modulo => (
+      <ModuleCard 
+        key={modulo.id} 
+        modulo={modulo} 
+        loadingModule={loadingModule} 
+        setLoadingModule={setLoadingModule} 
+      />
+    ));
 
   const tienePoliticas = modulosPoliticas.length > 0;
   const tieneGestion = modulosGestion.length > 0;
@@ -58,35 +70,29 @@ export default function ModulesView({ rol, modulos = [], esjefe }: ModulesViewPr
            <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4 text-center md:text-left">Gestión Administrativa</h2>
            
            <ModuleAccordion titulo="Gestión Propia" descripcion="Gestión de actividades y permisos personales." iconKey="fmdwwfgs">
-              {modulosGestion.filter(m => ['ACTIVIDADES', 'PERMISOS'].includes(m.id)).map(modulo => (
-                <ModuleCard key={modulo.id} modulo={modulo} loadingModule={loadingModule} setLoadingModule={setLoadingModule} />
-              ))}
+              {renderModules(m => m.subgrupo === 'Gestión Propia' || ['ACTIVIDADES', 'PERMISOS'].includes(m.id))}
            </ModuleAccordion>
            
            {esjefe && (
               <ModuleAccordion titulo="Gestión Jefe de Área" descripcion="Gestión y supervisión de equipos." iconKey="tobsqthh">
-                {modulosGestion.filter(m => m.subgrupo === 'Gestión Jefe de Área' && m.id !== 'ACTIVIDADES').map(modulo => (
-                  <ModuleCard key={modulo.id} modulo={modulo} loadingModule={loadingModule} setLoadingModule={setLoadingModule} />
-                ))}
+                {renderModules(m => m.subgrupo === 'Gestión Jefe de Área')}
               </ModuleAccordion>
            )}
 
-           <ModuleAccordion titulo="Concejo Municipal" descripcion="Gestión de actas, sesiones y estructura municipal." iconKey="qaeqyqcc">
-              {modulosGestion.filter(m => m.subgrupo === 'Concejo Municipal').map(modulo => (
-                <ModuleCard key={modulo.id} modulo={modulo} loadingModule={loadingModule} setLoadingModule={setLoadingModule} />
-              ))}
-           </ModuleAccordion>
+           {modulosGestion.some(m => m.subgrupo === 'Concejo Municipal') && (
+             <ModuleAccordion titulo="Concejo Municipal" descripcion="Gestión de actas y sesiones." iconKey="qaeqyqcc">
+                {renderModules(m => m.subgrupo === 'Concejo Municipal')}
+             </ModuleAccordion>
+           )}
 
-           <ModuleAccordion titulo="Recursos Humanos" descripcion="Administración de personal." iconKey="zyuyqigo">
-              {modulosGestion.filter(m => m.subgrupo === 'Recursos Humanos').map(modulo => (
-                <ModuleCard key={modulo.id} modulo={modulo} loadingModule={loadingModule} setLoadingModule={setLoadingModule} />
-              ))}
-           </ModuleAccordion>
+           {modulosGestion.some(m => m.subgrupo === 'Recursos Humanos') && (
+              <ModuleAccordion titulo="Recursos Humanos" descripcion="Administración de personal y permisos." iconKey="zyuyqigo">
+                 {renderModules(m => m.subgrupo === 'Recursos Humanos')}
+              </ModuleAccordion>
+           )}
 
-           <div className="space-y-4">
-              {modulosGestion.filter(m => !m.subgrupo && !['ACTIVIDADES', 'PERMISOS', 'PERMISOS_GESTION'].includes(m.id)).map(modulo => (
-                <ModuleCard key={modulo.id} modulo={modulo} loadingModule={loadingModule} setLoadingModule={setLoadingModule} />
-              ))}
+           <div className="space-y-4 pt-2">
+              {renderModules(m => !m.subgrupo && !['ACTIVIDADES', 'PERMISOS'].includes(m.id))}
            </div>
           </div>
         )}
