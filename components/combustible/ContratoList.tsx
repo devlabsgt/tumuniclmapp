@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { ContratoExtendido } from '@/components/combustible/types' 
 import NuevoContrato from './modals/NuevoContrato'
-import { Fuel, Hash, AlertCircle, Calendar, Layers, Beaker, TrendingDown } from 'lucide-react'
+import { Fuel, Hash, AlertCircle, Calendar, Layers, Beaker, TrendingDown, Filter } from 'lucide-react'
 
 interface Props {
   contratos: ContratoExtendido[]
@@ -13,6 +13,9 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
   
   const [listaContratos, setListaContratos] = useState<ContratoExtendido[]>(contratosIniciales || [])
   
+  // MODIFICACIÓN: Iniciar el estado con el año actual convertido a string
+  const [anioFiltro, setAnioFiltro] = useState<string>(String(new Date().getFullYear()))
+
   const [pruebaContratoId, setPruebaContratoId] = useState<string>('')
   const [pruebaDetalleId, setPruebaDetalleId] = useState<string>('')
   const [cantidadConsumo, setCantidadConsumo] = useState<string>('')
@@ -20,6 +23,18 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
   useEffect(() => {
     setListaContratos(contratosIniciales || [])
   }, [contratosIniciales])
+
+  // Obtener años únicos para el select
+  const aniosDisponibles = useMemo(() => {
+    const years = new Set(listaContratos.map(c => c.anio))
+    return Array.from(years).sort((a, b) => b - a)
+  }, [listaContratos])
+
+  // Filtrar contratos según el año seleccionado
+  const contratosFiltrados = useMemo(() => {
+    if (!anioFiltro) return listaContratos
+    return listaContratos.filter(c => c.anio.toString() === anioFiltro)
+  }, [listaContratos, anioFiltro])
 
   const formatoMoneda = (valor: number) => {
     return valor.toLocaleString('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -68,11 +83,30 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
             Contratos de Combustible
           </h2>
         </div>
-        <NuevoContrato />
+        
+        {/* Sección de Acciones: Filtro y Botón Nuevo */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+            <div className="relative w-full sm:w-48">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Filter className="h-4 w-4 text-gray-400" />
+                </div>
+                <select
+                    value={anioFiltro}
+                    onChange={(e) => setAnioFiltro(e.target.value)}
+                    className="pl-9 w-full rounded-lg border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-sm py-2 px-3 focus:ring-2 focus:ring-blue-500 shadow-sm"
+                >
+                    <option value="">Todos los años</option>
+                    {aniosDisponibles.map(anio => (
+                        <option key={anio} value={anio}>{anio}</option>
+                    ))}
+                </select>
+            </div>
+            <NuevoContrato />
+        </div>
       </div>
 
-      <div className="flex flex-wrap justify-center items-start gap-6">
-        {listaContratos.map((c) => {
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {contratosFiltrados.map((c) => {
           
           const detallesSeguros = c.detalles || [] 
           
@@ -90,7 +124,7 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
           return (
             <div 
                 key={c.id} 
-                className="w-full max-w-[380px] h-auto bg-white dark:bg-neutral-900 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-neutral-800 flex flex-col overflow-hidden"
+                className="w-full h-full bg-white dark:bg-neutral-900 rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-neutral-800 flex flex-col overflow-hidden"
             >
               
               <div className="p-5 border-b border-gray-100 dark:border-neutral-800 bg-gray-50/50 dark:bg-neutral-800/30 flex-shrink-0">
@@ -120,19 +154,14 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
                     <Layers size={12}/> Detalle de Cupones
                 </p>
                 
-                <div className="flex-1 space-y-4">
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {detallesSeguros.length > 0 ? (
                         detallesSeguros.map((detalle) => {
-                            // Cálculo de valores monetarios individuales
                             const valorInicialItem = detalle.cantidad_inicial * detalle.denominacion;
                             const valorActualItem = detalle.cantidad_actual * detalle.denominacion;
-
-                            // Porcentaje individual
                             const porcentajeItem = detalle.cantidad_inicial > 0 
                                 ? (detalle.cantidad_actual / detalle.cantidad_inicial) * 100 
                                 : 0;
-                            
-                            // Determinación de colores (Azul: Gasolina, Verde: Diesel)
                             const isDiesel = detalle.producto === 'Diesel';
                             const colorPrincipal = isDiesel ? 'bg-green-600' : 'bg-blue-600';
                             const colorBarra = isDiesel ? 'bg-green-500' : 'bg-blue-500';
@@ -141,9 +170,7 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
                             return (
                             <div key={detalle.id} className="relative flex flex-col rounded-xl bg-gray-50 dark:bg-neutral-800/50 border border-gray-100 dark:border-neutral-800 overflow-hidden">
                                 
-                               
                                 <div className={`${colorPrincipal} text-white p-3 flex justify-between items-center shadow-sm`}>
-                                    
                                     <div>
                                         <div className="text-2xl font-black leading-none mb-0.5">
                                             Q{detalle.denominacion}
@@ -152,7 +179,6 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
                                             {detalle.producto}
                                         </div>
                                     </div>
-
                                     <div className="text-right">
                                         <div className="text-lg font-bold leading-none">
                                             {detalle.cantidad_inicial} 
@@ -164,7 +190,6 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
                                 </div>
 
                                 <div className="flex justify-between items-end px-3 pb-3 mt-3">
-                                    
                                     <div>
                                         <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">
                                             Cupones
@@ -174,7 +199,6 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
                                             <span className="text-gray-400 text-xs font-normal"> / {detalle.cantidad_inicial}</span>
                                         </div>
                                     </div>
-
                                     <div className="text-right">
                                         <span className="text-[10px] uppercase font-bold text-gray-400 block mb-0.5">
                                             Saldo
@@ -195,7 +219,7 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
                             </div>
                         )})
                     ) : (
-                        <div className="text-center p-3 border border-dashed border-gray-200 rounded-lg bg-gray-50 text-xs text-gray-400 italic">
+                        <div className="col-span-1 sm:col-span-2 text-center p-3 border border-dashed border-gray-200 rounded-lg bg-gray-50 text-xs text-gray-400 italic">
                             Sin detalles registrados.
                         </div>
                     )}
@@ -240,13 +264,14 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
         })}
       </div>
 
-      {listaContratos.length === 0 && (
+      {contratosFiltrados.length === 0 && (
            <div className="flex flex-col items-center justify-center text-gray-400 dark:text-neutral-600 gap-3 p-10 border-2 border-dashed border-gray-200 dark:border-neutral-800 rounded-xl">
               <AlertCircle size={48} strokeWidth={1.5} />
-              <p className="text-base font-medium">No hay contratos registrados</p>
+              <p className="text-base font-medium">No se encontraron contratos para el criterio seleccionado</p>
           </div>
       )}
 
+      {/* Zona de Pruebas */}
       <div className="mt-12 p-6 border-2 border-dashed border-amber-300/50 bg-amber-50/50 dark:border-amber-900/50 dark:bg-amber-900/10 rounded-xl">
         <h3 className="text-lg font-bold text-amber-700 dark:text-amber-500 flex items-center gap-2 mb-4">
             <Beaker className="w-5 h-5" /> 
