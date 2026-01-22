@@ -5,7 +5,7 @@ import Cargando from '@/components/ui/animations/Cargando';
 export default function SignupPage() {
   return (
     <Suspense fallback={<Cargando />}> 
-      <Tareas tipoVista="mis_actividades" />
+      <Tareas tipoVista="gestion_jefe" />
     </Suspense>
   );
 }

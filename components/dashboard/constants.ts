@@ -1,5 +1,3 @@
-export type Vistas = 'modulos' | 'asistencia' | 'comisiones';
-
 export const TODOS_LOS_MODULOS = [
   {
     id: 'EDUCACION',
@@ -22,47 +20,44 @@ export const TODOS_LOS_MODULOS = [
     categoria: 'Políticas Públicas'
   },
   {
-    id: 'AGENDA_CONCEJO',
-    permiso: 'AGENDA_CONCEJO',
-    titulo: 'Agenda de Concejo',
-    descripcion: 'Consulte y gestione las próximas reuniones del concejo.',
-    ruta: '/protected/concejo/agenda/',
-    iconoKey: 'yxsbonud',
-    colorProps: { primaryColor: '#ebe6ef', secondaryColor: '#4bb3fd' },
+    id: 'PERMISOS',
+    permiso: 'PERMISOS',
+    titulo: 'Mis Permisos',
+    descripcion: 'Solicitud y control de permisos personales.',
+    ruta: '/protected/permisos',
+    iconoKey: 'hnqamtrw',
     categoria: 'Gestión Administrativa',
-    subgrupo: 'Concejo Municipal'
+    subgrupo: 'Gestión Propia' 
   },
   {
-    id: 'ORGANOS_CONCEJO', 
-    permiso: 'ORGANOS',
-    titulo: 'Estructura Organizacional',
-    descripcion: 'Estructura y órganos municipales (Concejo).',
-    ruta: '/protected/admin/dependencias',
-    iconoKey: 'ilrifayj',
-    colorProps: { primaryColor: '#ebe6ef', secondaryColor: '#b26836' },
+    id: 'ACTIVIDADES',
+    permiso: 'ACTIVIDADES',
+    titulo: 'Mis Actividades',
+    descripcion: 'Planificación y seguimiento de sus actividades.',
+    ruta: '/protected/actividades',
+    iconoKey: 'hrtsficn',
     categoria: 'Gestión Administrativa',
-    subgrupo: 'Concejo Municipal'
+    subgrupo: 'Gestión Propia'
   },
   {
-    id: 'RRHH',
-    permiso: 'RRHH',
-    titulo: 'Gestión de Personal',
-    descripcion: 'Gestione los datos y el historial de los empleados.',
-    ruta: '/protected/admin/users',
-    iconoKey: 'daeumrty',
+    id: 'PERMISOS_JEFE',
+    permiso: 'PERMISOS',
+    titulo: 'Aprobación de Permisos',
+    descripcion: 'Avalar solicitudes de su equipo a cargo.',
+    ruta: '/protected/permisos/jefe',
+    iconoKey: 'hnqamtrw',
     categoria: 'Gestión Administrativa',
-    subgrupo: 'Recursos Humanos'
+    subgrupo: 'Gestión Jefe de Área'
   },
   {
-    id: 'ORGANOS_RRHH',
-    permiso: 'ORGANOS',
-    titulo: 'Estructura Organizacional',
-    descripcion: 'Gestione dependencias y jerarquías (RRHH).',
-    ruta: '/protected/admin/dependencias',
-    iconoKey: 'ilrifayj', 
-    colorProps: { primaryColor: '#ebe6ef', secondaryColor: '#b26836' },
+    id: 'ACTIVIDADES_JEFE',
+    permiso: 'ACTIVIDADES', 
+    titulo: 'Supervisión de Actividades',
+    descripcion: 'Revise y gestione las actividades de su equipo.',
+    ruta: '/protected/actividades/jefe',
+    iconoKey: 'hrtsficn',
     categoria: 'Gestión Administrativa',
-    subgrupo: 'Recursos Humanos'
+    subgrupo: 'Gestión Jefe de Área'
   },
   {
     id: 'ASISTENCIA',
@@ -75,46 +70,6 @@ export const TODOS_LOS_MODULOS = [
     subgrupo: 'Gestión Jefe de Área'
   },
   {
-    id: 'ACTIVIDADES',
-    permiso: 'ACTIVIDADES',
-    titulo: 'Gestión de Actividades',
-    descripcion: 'Planificación y seguimiento de actividades.',
-    ruta: '/protected/actividades',
-    iconoKey: 'hrtsficn',
-    categoria: 'Gestión Administrativa',
-    subgrupo: 'Gestión Jefe de Área'
-  },
-  {
-    id: 'PERMISOS',
-    permiso: 'PERMISOS',
-    titulo: 'Mis Permisos',
-    descripcion: 'Solicitud y control de permisos personales.',
-    ruta: '/protected/permisos',
-    iconoKey: 'abhwievu',
-    categoria: 'Gestión Administrativa',
-    subgrupo: 'Gestión Propia' 
-  },
-  {
-    id: 'PERMISOS_GESTION',
-    permiso: 'RRHH', 
-    titulo: 'Gestión de Permisos del Personal',
-    descripcion: 'Administración y aprobación de permisos.',
-    ruta: '/protected/permisos', 
-    iconoKey: 'abhwievu',
-    categoria: 'Gestión Administrativa',
-    subgrupo: 'Recursos Humanos'
-  },
-  {
-    id: 'COMISIONES_RRHH',
-    permiso: 'COMISIONES',
-    titulo: 'Gestión de Comisiones',
-    descripcion: 'Cree, apruebe y gestione las comisiones.',
-    ruta: '/protected/comisiones/RRHH',
-    iconoKey: 'vqkaxtlm',
-    categoria: 'Gestión Administrativa',
-    subgrupo: 'Recursos Humanos'
-  },
-  {
     id: 'COMISIONES_JEFE',
     permiso: 'COMISIONES',
     titulo: 'Gestión de Comisiones',
@@ -123,5 +78,78 @@ export const TODOS_LOS_MODULOS = [
     iconoKey: 'vqkaxtlm',
     categoria: 'Gestión Administrativa',
     subgrupo: 'Gestión Jefe de Área'
+  },
+  {
+    id: 'PERMISOS_GESTION',
+    permiso: 'RRHH', 
+    titulo: 'Administración de Permisos',
+    descripcion: 'Aprobación final y gestión de historial.',
+    ruta: '/protected/permisos/rrhh', 
+    iconoKey: 'hnqamtrw',
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Recursos Humanos'
+  },
+  {
+    id: 'ACTIVIDADES_GESTION',
+    permiso: 'RRHH', 
+    titulo: 'Administración de Actividades',
+    descripcion: 'Visión global de actividades municipales.',
+    ruta: '/protected/actividades/rrhh', 
+    iconoKey: 'hrtsficn',
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Recursos Humanos'
+  },
+  {
+    id: 'RRHH',
+    permiso: 'RRHH',
+    titulo: 'Gestión de Personal',
+    descripcion: 'Gestione los datos y el historial de los empleados.',
+    ruta: '/protected/admin/users',
+    iconoKey: 'daeumrty',
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Recursos Humanos'
+  },
+  {
+    id: 'COMISIONES_RRHH',
+    permiso: 'COMISIONES',
+    titulo: 'Gestión de Comisiones Global',
+    descripcion: 'Cree, apruebe y gestione las comisiones.',
+    ruta: '/protected/comisiones/RRHH',
+    iconoKey: 'vqkaxtlm',
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Recursos Humanos'
+  },
+  {
+    id: 'ORGANOS_RRHH',
+    permiso: 'ORGANOS',
+    titulo: 'Estructura Organizacional',
+    descripcion: 'Gestione dependencias y jerarquías.',
+    ruta: '/protected/admin/dependencias',
+    iconoKey: 'ilrifayj', 
+    colorProps: { primaryColor: '#ebe6ef', secondaryColor: '#b26836' },
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Recursos Humanos'
+  },
+  {
+    id: 'AGENDA_CONCEJO',
+    permiso: 'AGENDA_CONCEJO',
+    titulo: 'Agenda de Concejo',
+    descripcion: 'Consulte y gestione las próximas reuniones.',
+    ruta: '/protected/concejo/agenda/',
+    iconoKey: 'yxsbonud',
+    colorProps: { primaryColor: '#ebe6ef', secondaryColor: '#4bb3fd' },
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Concejo Municipal'
+  },
+  {
+    id: 'ORGANOS_CONCEJO', 
+    permiso: 'ORGANOS',
+    titulo: 'Estructura Organizacional',
+    descripcion: 'Vista de estructura y órganos municipales.',
+    ruta: '/protected/admin/dependencias',
+    iconoKey: 'ilrifayj',
+    colorProps: { primaryColor: '#ebe6ef', secondaryColor: '#b26836' },
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Concejo Municipal'
   },
 ];

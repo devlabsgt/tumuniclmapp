@@ -15,7 +15,11 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [oficinasAbiertas, setOficinasAbiertas] = useState<Record<string, boolean>>({});
   
-  const estadoDefault = (tipoVista === 'mis_permisos' || tipoVista === 'gestion_jefe') ? 'todos' : 'pendiente';
+  // === CORRECCIÓN AQUÍ ===
+  // Si es RRHH, su "bandeja de entrada" son los 'aprobado_jefe'.
+  // Si es Jefe o Usuario, prefieren ver 'todos' el historial.
+  const estadoDefault = tipoVista === 'gestion_rrhh' ? 'aprobado_jefe' : 'todos';
+  
   const [filtroEstado, setFiltroEstado] = useState<'todos' | EstadoPermiso>(estadoDefault);
   
   const [mesSeleccionado, setMesSeleccionado] = useState(new Date().getMonth() + 1);
@@ -68,8 +72,6 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
   };
 
   const handleClickFila = (permiso: PermisoEmpleado) => {
-    // SIEMPRE abrimos el modal para ver detalles. 
-    // La decisión de aprobar/rechazar se toma DENTRO del modal.
     setPermisoParaEditar(permiso);
     setModalAbierto(true);
   };
@@ -135,8 +137,10 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
               permisosFiltrados = permisosFiltrados.filter(p => {
                  const depId = p.usuario?.dependencia_id;
                  const depNombre = p.usuario?.oficina_nombre?.toLowerCase().trim();
+                 
                  const esDeMisOficinas = (depId && idsOficinasJefe.includes(depId)) || 
                                          (depNombre && nombresOficinasJefe.includes(depNombre));
+                                         
                  const noSoyYoMismo = p.user_id !== perfilUsuario.id;
                  return esDeMisOficinas && noSoyYoMismo;
               });
@@ -156,6 +160,13 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
             if (!esRRHH) {
                 permisosFiltrados = []; 
                 usuariosFiltrados = [];
+            } else {
+                // RRHH ve lo que ya pasó por el jefe O lo que ya finalizó.
+                permisosFiltrados = permisosFiltrados.filter(p => 
+                    p.estado === 'aprobado_jefe' || 
+                    p.estado === 'aprobado' || 
+                    p.estado === 'rechazado_rrhh'
+                );
             }
             break;
     }
