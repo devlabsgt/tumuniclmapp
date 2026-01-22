@@ -387,7 +387,6 @@ export const fetchAsistenciaGlobalAgenda = async (agendaId: string) => {
 
   const userIds = Array.from(new Set(registros.map((r) => r.user_id)));
 
-  // CORREGIDO: Uso explícito de la relación info_usuario_dependencia_id_fkey
   const { data: datosUsuarios, error: errorUsuarios } = await supabase
     .from('info_usuario')
     .select(`
@@ -583,7 +582,6 @@ export const obtenerDatosReporte = async (agendas: AgendaConcejo[]): Promise<Rep
 };
 
 export const obtenerNombreDirectorDAFIM = async (): Promise<string> => {
-  // CORREGIDO: Uso explícito de la relación info_usuario_dependencia_id_fkey
   const { data, error } = await supabase
     .from('info_usuario')
     .select(`
@@ -592,7 +590,6 @@ export const obtenerNombreDirectorDAFIM = async (): Promise<string> => {
         nombre
       )
     `)
-    // Usamos ILIKE y comodines para coincidir aunque haya errores de escritura ("Adminsitración")
     .ilike('dependencias.nombre', 'Directora de la Dirección de Admin%Financiera Integrada Municipal')
     .eq('activo', true)
     .maybeSingle();

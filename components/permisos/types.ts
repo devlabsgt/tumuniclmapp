@@ -17,7 +17,7 @@ export type PermisoEmpleado = {
   fin: string
   estado: EstadoPermiso
   created_at: string
-  remunerado: boolean 
+  remunerado: boolean | null 
   usuario?: UsuarioConJerarquia
 }
 
