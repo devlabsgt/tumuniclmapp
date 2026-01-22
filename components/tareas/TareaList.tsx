@@ -37,7 +37,7 @@ const TAB_STYLES: Record<string, { active: string, inactive: string, badge: stri
 export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }: Props) {
   // 1. Hooks siempre al principio
   const [isMounted, setIsMounted] = useState(false);
-  const [filtroEstado, setFiltroEstado] = useState('Asignado');
+  const [filtroEstado, setFiltroEstado] = useState('Todos');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [busqueda, setBusqueda] = useState('');

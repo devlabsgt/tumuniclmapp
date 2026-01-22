@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, Fragment } from 'react';
 import { 
-  UserPlus, UserCheck, ChevronRight, ChevronDown 
+  UserCheck, ChevronRight, ChevronDown, Crown 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AsignarJefe from './modals/AsignarJefe';
@@ -44,6 +44,17 @@ export default function Estructura({ datos, onReload }: { datos: any, onReload: 
     const nombreJefe = nodo.jefe?.nombre;
     const tieneAsignacion = !!nombreJefe;
 
+    // --- LÓGICA DE ESTILOS DEL BOTÓN ---
+    // ASIGNAR (Morado) | REASIGNAR (Verde)
+    // En tema claro usamos '100' en vez de '50' para que se vea mejor.
+    const buttonStyles = tieneAsignacion
+      ? "hover:text-green-700 hover:bg-green-100 dark:hover:text-green-400 dark:hover:bg-green-900/20" // Reasignar (Verde)
+      : "hover:text-purple-700 hover:bg-purple-100 dark:hover:text-purple-400 dark:hover:bg-purple-900/20"; // Asignar (Morado)
+
+    const iconColor = tieneAsignacion
+      ? "text-green-600 dark:text-green-400"
+      : "text-purple-600 dark:text-purple-400";
+
     return (
       <Fragment>
         <tr 
@@ -83,20 +94,24 @@ export default function Estructura({ datos, onReload }: { datos: any, onReload: 
             </div>
           </td>
 
-          <td className="py-3 px-2 md:px-4 text-right w-px whitespace-nowrap align-top">
+          <td className="py-3 px-2 md:px-4 align-top">
             {depth > 0 && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-7 px-2 text-[10px] font-bold uppercase text-slate-400 dark:text-neutral-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSeleccion({ id: nodo.id, nombre: nodo.nombre, jefe_id: nodo.jefe_id });
-                }}
-              >
-                <UserPlus className="w-3.5 h-3.5 md:mr-1" /> 
-                <span className="hidden md:inline">Asignar</span>
-              </Button>
+              <div className="flex justify-end">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={`h-7 px-2 text-[10px] font-bold uppercase text-slate-400 dark:text-neutral-500 flex items-center gap-1.5 transition-colors ${buttonStyles}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSeleccion({ id: nodo.id, nombre: nodo.nombre, jefe_id: nodo.jefe_id });
+                  }}
+                >
+                  <span className="hidden md:inline">
+                      {tieneAsignacion ? 'Reasignar' : 'Asignar'}
+                  </span>
+                  <Crown className={`w-3.5 h-3.5 ${iconColor}`} />
+                </Button>
+              </div>
             )}
           </td>
         </tr>
@@ -129,7 +144,7 @@ export default function Estructura({ datos, onReload }: { datos: any, onReload: 
           <thead className="bg-slate-50 dark:bg-neutral-950/50 text-left border-b border-gray-100 dark:border-neutral-800">
             <tr>
               <th className="py-3 px-2 md:px-4 font-bold text-slate-500 dark:text-neutral-500 uppercase tracking-wider w-full">Jerarquía / Oficina</th>
-              <th className="py-3 px-2 md:px-4 w-px whitespace-nowrap text-right font-bold text-slate-500 dark:text-neutral-500 uppercase tracking-wider"></th>
+              <th className="py-3 px-2 md:px-4 text-right font-bold text-slate-500 dark:text-neutral-500 uppercase tracking-wider">Acción</th>
             </tr>
           </thead>
           <tbody>{arbol.map((n: any) => <Fila key={n.id} nodo={n} />)}</tbody>

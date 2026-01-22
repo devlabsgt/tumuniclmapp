@@ -1,3 +1,7 @@
+// 1. DEFINICIÓN DEL TIPO 'Vistas' (Esto es lo que faltaba)
+export type Vistas = 'modulos' | 'asistencia' | 'comisiones';
+
+// 2. ARRAY DE MÓDULOS (Con la configuración de Actividades y Permisos)
 export const TODOS_LOS_MODULOS = [
   {
     id: 'EDUCACION',

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, Fragment, useEffect } from 'react';
+import React, { useState, useMemo, Fragment, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Usuario } from '@/lib/usuarios/esquemas';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,7 @@ import Swal from 'sweetalert2';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useDependencias } from '@/hooks/dependencias/useDependencias';
 import Cargando from '@/components/ui/animations/Cargando';
-import { User, Clock, LogOut, Trash2, Search, ChevronDown, ChevronsDown, ChevronsUp } from 'lucide-react';
+import { Clock, LogOut, Trash2, Search, ChevronDown, ChevronsDown, ChevronsUp, Settings2, UserPlus, Crown } from 'lucide-react';
 
 type UsuarioConJerarquia = Usuario & {
   puesto_nombre: string | null;
@@ -47,12 +47,25 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
   const [oficinasAbiertas, setOficinasAbiertas] = useState<Record<string, boolean>>({});
   const [todosAbiertos, setTodosAbiertos] = useState(false);
 
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
   const hasCreatePermission = rolActual === 'SUPER' || rolActual === 'RRHH' || rolActual === 'SECRETARIO';
   const canOpenModal = rolActual === 'SUPER' || rolActual === 'RRHH' || rolActual === 'SECRETARIO';
 
   useEffect(() => {
     setListaUsuarios(usuarios);
   }, [usuarios]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+        if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+            setMenuAbierto(false);
+        }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const oficinasNivel2 = useMemo(() => {
     const rootIds = new Set(dependencias.filter(d => d.parent_id === null).map(d => d.id));
@@ -298,26 +311,74 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                 />
             </div>
 
-            <div className="flex gap-2 shrink-0 w-full xl:w-auto">
+            <div className="flex gap-2 shrink-0 w-full xl:w-auto relative" ref={menuRef}>
                 {hasCreatePermission && (
-                    <>
-                    <Button
-                        onClick={() => router.push("/protected/admin/horarios")}
-                        className="flex-1 xl:flex-none px-3 py-2 text-white bg-blue-600 dark:bg-blue-700 rounded-lg font-semibold hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors duration-200 text-xs flex items-center justify-center gap-1 h-9"
-                        title="Horarios"
-                    >
-                        <Clock className="h-3.5 w-3.5" />
-                        <span className="text-xs hidden sm:inline">Horarios</span>
-                    </Button>
-                    <Button
-                        onClick={() => router.push("/protected/admin/sign-up")}
-                        className="flex-1 xl:flex-none px-3 py-2 text-white bg-green-600 dark:bg-green-700 rounded-lg font-semibold hover:bg-green-700 dark:hover:bg-green-600 transition-colors duration-200 text-xs flex items-center justify-center gap-1 h-9"
-                        title="Nuevo Usuario"
-                    >
-                        <User className="h-3.5 w-3.5" />
-                        <span className="text-xs hidden sm:inline">Crear</span>
-                    </Button>
-                    </>
+                    <div className="relative w-full xl:w-auto">
+                        <button
+                            onClick={() => setMenuAbierto(!menuAbierto)}
+                            className={`w-full xl:w-auto px-4 py-2 text-white bg-slate-800 dark:bg-slate-700 rounded-lg font-semibold hover:bg-slate-700 dark:hover:bg-slate-600 transition-all duration-200 text-xs flex items-center justify-center gap-2 h-9 shadow-sm ${menuAbierto ? 'ring-2 ring-blue-500/50' : ''}`}
+                        >
+                            <Settings2 className="h-3.5 w-3.5" />
+                            <span>Administrar</span>
+                            <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${menuAbierto ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {menuAbierto && (
+                            <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-neutral-800 rounded-xl shadow-xl border border-gray-100 dark:border-neutral-700 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div className="p-1.5 flex flex-col gap-0.5">
+                                    
+                                    <button
+                                        onClick={() => {
+                                            setMenuAbierto(false);
+                                            router.push("/protected/admin/sign-up");
+                                        }}
+                                        className="w-full text-left px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-neutral-700/50 rounded-lg flex items-center gap-3 transition-colors group"
+                                    >
+                                        <div className="p-1.5 bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 rounded-md group-hover:bg-green-200 dark:group-hover:bg-green-900/50 transition-colors">
+                                            <UserPlus size={16} />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-gray-700 dark:text-gray-200">Crear Usuario</p>
+                                            <p className="text-[10px] text-gray-400">Registrar nuevo empleado</p>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => {
+                                            setMenuAbierto(false);
+                                            router.push("/protected/admin/jefes");
+                                        }}
+                                        className="w-full text-left px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-neutral-700/50 rounded-lg flex items-center gap-3 transition-colors group"
+                                    >
+                                        <div className="p-1.5 bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 rounded-md group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors">
+                                            <Crown size={16} />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-gray-700 dark:text-gray-200">Asignación de Jefe</p>
+                                            <p className="text-[10px] text-gray-400">Gestionar liderazgos</p>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => {
+                                            setMenuAbierto(false);
+                                            router.push("/protected/admin/horarios");
+                                        }}
+                                        className="w-full text-left px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-neutral-700/50 rounded-lg flex items-center gap-3 transition-colors group"
+                                    >
+                                        <div className="p-1.5 bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 rounded-md group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
+                                            <Clock size={16} />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-gray-700 dark:text-gray-200">Asignación de Horarios</p>
+                                            <p className="text-[10px] text-gray-400">Configurar turnos</p>
+                                        </div>
+                                    </button>
+
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 )}
             </div>
           </div>
