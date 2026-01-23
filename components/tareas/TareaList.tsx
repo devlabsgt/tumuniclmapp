@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect, Fragment } from 'react';
 import { Tarea, Usuario, PerfilUsuario, TipoVistaTareas } from './types'; 
 import TareaItem from './TareaItem';
 import NewTarea from './modals/NewTarea'; 
-import { Plus, Filter, SearchX, ArrowLeft, Search, Calendar as CalendarIcon, Building2, ChevronDown } from 'lucide-react';
+import { Plus, SearchX, ArrowLeft, Search, Calendar as CalendarIcon, Building2, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Props {
@@ -28,16 +28,14 @@ const getFechaCabecera = (fechaIso: string) => {
 };
 
 const TAB_STYLES: Record<string, { active: string, inactive: string, badge: string }> = {
-  'Todos': { active: 'bg-blue-600 text-white', inactive: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400', badge: 'bg-blue-100 text-blue-700' },
   'Asignado': { active: 'bg-purple-600 text-white', inactive: 'text-purple-600 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-400', badge: 'bg-purple-100 text-purple-700' },
   'Completado': { active: 'bg-emerald-600 text-white', inactive: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400', badge: 'bg-emerald-100 text-emerald-700' },
   'Vencido': { active: 'bg-red-600 text-white', inactive: 'text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400', badge: 'bg-red-100 text-red-700' }
 };
 
 export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }: Props) {
-  // 1. Hooks siempre al principio
   const [isMounted, setIsMounted] = useState(false);
-  const [filtroEstado, setFiltroEstado] = useState('Todos');
+  const [filtroEstado, setFiltroEstado] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [busqueda, setBusqueda] = useState('');
@@ -71,18 +69,14 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
     if (expandedId === null) window.scrollTo({ top: scrollPositionRef.current, behavior: 'instant' });
   }, [expandedId]);
 
-  // --- LOGICA DE FILTRADO (Hooks se ejecutan siempre) ---
   const tareasFiltradas = useMemo(() => {
-    // Si no está montado, devolvemos array vacío pero el hook SE EJECUTA
     if (!isMounted) return [];
 
     return tareas.filter(t => {
-      // 1. Filtro Fecha
       if (!t.due_date) return false;
       const [tYear, tMonth] = t.due_date.split('T')[0].split('-').map(Number);
       const coincideFecha = (tMonth - 1) === mesSeleccionado && tYear === anioSeleccionado;
       
-      // 2. Filtro Búsqueda
       const termino = busqueda.toLowerCase();
       const coincideTitulo = t.title.toLowerCase().includes(termino);
       const coincideUsuario = (t.assignee?.nombre || '').toLowerCase().includes(termino);
@@ -95,36 +89,32 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
   }, [tareas, mesSeleccionado, anioSeleccionado, busqueda, isMounted]);
 
   const conteos = useMemo(() => ({
-      Todos: tareasFiltradas.length,
       Asignado: tareasFiltradas.filter(t => t.estadoFiltro === 'Asignado' || t.estadoFiltro === 'En Proceso').length,
       'Completado': tareasFiltradas.filter(t => t.estadoFiltro === 'Completado').length,
       'Vencido': tareasFiltradas.filter(t => t.estadoFiltro === 'Vencido').length,
   }), [tareasFiltradas]);
 
-  const pestañas = useMemo(() => ['Todos', 'Asignado', 'Completado', 'Vencido'].filter(t => conteos[t as keyof typeof conteos] > 0), [conteos]);
+  const pestañas = useMemo(() => ['Asignado', 'Completado', 'Vencido'].filter(t => conteos[t as keyof typeof conteos] > 0), [conteos]);
 
-  // Efecto para ajustar pestaña si se queda vacía
   useEffect(() => {
-    if (isMounted && pestañas.length > 0 && !pestañas.includes(filtroEstado)) {
-        setFiltroEstado(pestañas.includes('Todos') ? 'Todos' : pestañas[0]);
+    if (isMounted && pestañas.length > 0 && filtroEstado !== '' && !pestañas.includes(filtroEstado)) {
+        setFiltroEstado('');
     }
   }, [pestañas, filtroEstado, isMounted]);
 
   const listaVisual = useMemo(() => {
-      return tareasFiltradas.filter(t => filtroEstado === 'Todos' ? true : (filtroEstado === 'Asignado' ? (t.estadoFiltro === 'Asignado' || t.estadoFiltro === 'En Proceso') : t.estadoFiltro === filtroEstado));
+      return tareasFiltradas.filter(t => filtroEstado === '' ? true : (filtroEstado === 'Asignado' ? (t.estadoFiltro === 'Asignado' || t.estadoFiltro === 'En Proceso') : t.estadoFiltro === filtroEstado));
   }, [tareasFiltradas, filtroEstado]);
   
   const tareasRenderizadas = useMemo(() => {
       return expandedId ? listaVisual.filter(t => t.id === expandedId) : listaVisual;
   }, [expandedId, listaVisual]);
 
-  // --- AGRUPACIÓN INTELIGENTE (Hook crucial que causaba el error si estaba después del return) ---
   const tareasAgrupadas = useMemo(() => {
       if (!isMounted) return [];
       if (expandedId) return [{ key: 'expanded', titulo: null, tareas: tareasRenderizadas }];
 
       if (tipoVista === 'mis_actividades') {
-          // Agrupar por FECHA
           const grupos: any[] = [];
           tareasRenderizadas.forEach(t => {
               const fechaKey = t.due_date.split('T')[0];
@@ -134,7 +124,6 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
           });
           return grupos.sort((a, b) => a.key.localeCompare(b.key));
       } else {
-          // Agrupar por OFICINA (Jefe/RRHH)
           const grupos: Record<string, { key: string, titulo: string, tareas: Tarea[] }> = {};
           
           if (tipoVista === 'gestion_jefe') {
@@ -160,7 +149,6 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
       return 'Actividades';
   }, [tipoVista, perfilUsuario]);
 
-  // --- RENDERIZADO CONDICIONAL (Aquí sí es seguro hacer return) ---
   if (!isMounted) return <div className="w-full h-64 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>;
 
   return (
@@ -174,7 +162,6 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
                         {tipoVista === 'mis_actividades' ? 'Gestiona tus prioridades del día' : 'Supervisa el avance de tu equipo'}
                     </p>
                 </div>
-                {/* Botón Nueva Tarea: Visible si es 'mis_actividades' O si es Jefe (para asignar a otros) */}
                 {(tipoVista === 'mis_actividades' || (tipoVista === 'gestion_jefe' && perfilUsuario.esJefe)) && (
                     <button onClick={() => setIsModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 text-sm active:scale-95">
                         <Plus size={20} /> Nueva Actividad
@@ -187,11 +174,10 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
                     <div className="overflow-x-auto pb-1 xl:pb-0">
                         <div className="flex items-center gap-1.5 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 dark:border-neutral-800 shadow-sm min-w-max">
                             {pestañas.map((tab) => {
-                                const styles = TAB_STYLES[tab] || TAB_STYLES['Todos'];
+                                const styles = TAB_STYLES[tab];
                                 const isActive = filtroEstado === tab;
                                 return (
-                                    <button key={tab} onClick={() => setFiltroEstado(tab)} className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${isActive ? styles.active : styles.inactive}`}>
-                                        {tab === 'Todos' && <Filter size={12} className="opacity-70"/>}
+                                    <button key={tab} onClick={() => setFiltroEstado(isActive ? '' : tab)} className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${isActive ? styles.active : styles.inactive}`}>
                                         {tab.toUpperCase()}
                                         <span className={`px-1.5 py-0.5 rounded-md text-[10px] min-w-[18px] text-center ${isActive ? 'bg-white/20 text-white' : styles.badge}`}>{conteos[tab as keyof typeof conteos]}</span>
                                     </button>
@@ -234,7 +220,6 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
            </div>
         ) : (
            tareasAgrupadas.map((grupo: any) => {
-               // RENDERIZADO POR FECHA (Mis Actividades)
                if (tipoVista === 'mis_actividades') {
                    return (
                        <div key={grupo.key} className="animate-in fade-in duration-500">
@@ -249,7 +234,6 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
                        </div>
                    );
                } 
-               // RENDERIZADO POR OFICINA (Jefe / RRHH) -> Acordeón
                else {
                    const estaAbierta = oficinasAbiertas[grupo.key] || false;
                    return (
