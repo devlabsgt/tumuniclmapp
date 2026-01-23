@@ -5,7 +5,7 @@ import { ChecklistItem } from './types';
 import { updateChecklist } from './actions'; 
 import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
-import { Check, Edit2, Trash2, Plus, Loader2 } from 'lucide-react';
+import { Check, Edit2, Trash2, Plus, Loader2, CheckSquare, Square } from 'lucide-react';
 
 interface Props {
   tareaId: string;
@@ -18,15 +18,47 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
   const [isAdding, setIsAdding] = useState(false);
   const [editingStepIndex, setEditingStepIndex] = useState<number | null>(null);
   const [editingStepText, setEditingStepText] = useState('');
-
-  // Estado para rastrear qué items específicos están cargando
   const [pendingIndices, setPendingIndices] = useState<number[]>([]);
+  const [isTogglingAll, setIsTogglingAll] = useState(false);
+
+  const allCompleted = checklist.length > 0 && checklist.every(item => item.is_completed);
 
   const sortedChecklist = checklist
     .map((item, index) => ({ ...item, originalIndex: index }))
     .sort((a, b) => {
         return Number(a.is_completed) - Number(b.is_completed);
     });
+
+  const toggleAll = async () => {
+    if (isReadOnly || isTogglingAll || checklist.length === 0) return;
+
+    const actionText = allCompleted ? 'desmarcar' : 'completar';
+    const result = await Swal.fire({
+        title: `¿${allCompleted ? 'Desmarcar' : 'Completar'} todos los pasos?`,
+        text: `¿Estás seguro de que deseas ${actionText} todos los pasos de la lista?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3b82f6',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Sí, continuar',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (!result.isConfirmed) return;
+
+    setIsTogglingAll(true);
+    const newState = !allCompleted;
+    const newChecklist = checklist.map(item => ({ ...item, is_completed: newState }));
+
+    try {
+        await updateChecklist(tareaId, newChecklist);
+        toast.success(newState ? 'Todos completados' : 'Todos desmarcados');
+    } catch (error) {
+        toast.error('Error al actualizar todos');
+    } finally {
+        setIsTogglingAll(false);
+    }
+  };
 
   const toggleCheck = async (idx: number) => {
     if (editingStepIndex !== null || isReadOnly || pendingIndices.includes(idx)) return;
@@ -108,6 +140,31 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
         [&::-webkit-scrollbar-thumb]:bg-slate-200 dark:[&::-webkit-scrollbar-thumb]:bg-neutral-700
         [&::-webkit-scrollbar-thumb]:rounded-full
     ">
+        {!isReadOnly && checklist.length > 1 && (
+            <div className="mb-3 flex justify-start">
+                <button
+                    onClick={toggleAll}
+                    disabled={isTogglingAll}
+                    className={`
+                        flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all
+                        ${allCompleted 
+                            ? 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40' 
+                            : 'bg-green-50 text-green-600 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40'}
+                        disabled:opacity-50 disabled:cursor-not-allowed
+                    `}
+                >
+                    {isTogglingAll ? (
+                        <Loader2 size={14} className="animate-spin" />
+                    ) : allCompleted ? (
+                        <Square size={14} strokeWidth={3} />
+                    ) : (
+                        <CheckSquare size={14} strokeWidth={3} />
+                    )}
+                    {allCompleted ? 'Desmarcar todos' : 'Marcar todos como completados'}
+                </button>
+            </div>
+        )}
+
         <ul className="space-y-2 pb-2">
             {sortedChecklist.map((item) => {
                 const idx = item.originalIndex; 
@@ -127,7 +184,6 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
                     `}
                 >
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        {/* CHECKBOX ANIMADO */}
                         <div 
                             onClick={() => toggleCheck(idx)}
                             className={`
@@ -183,7 +239,6 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
                         )}
                     </div>
 
-                    {/* --- BOTONES DE ACCIÓN (SIEMPRE VISIBLES) --- */}
                     {editingStepIndex !== idx && !isReadOnly && !isPending && (
                         <div className="flex items-center gap-1 ml-2 shrink-0">
                             <button 

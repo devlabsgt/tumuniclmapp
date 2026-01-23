@@ -15,16 +15,35 @@ interface Props {
 }
 
 const MESES = [ 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre' ];
+const MESES_ABREV = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const ANIO_ACTUAL = new Date().getFullYear();
 const ANIOS = Array.from({ length: 6 }, (_, i) => ANIO_ACTUAL - 1 + i);
+
+const formatearFechaCorta = (fecha: Date) => {
+  return `${fecha.getDate()} ${MESES_ABREV[fecha.getMonth()]}`;
+};
+
+const obtenerSemanas = (mes: number, anio: number) => {
+  const primerDiaMes = new Date(anio, mes, 1);
+  const diaSemana = primerDiaMes.getDay();
+  const offset = diaSemana === 0 ? 6 : diaSemana - 1;
+  const inicioPrimerSemana = new Date(anio, mes, 1 - offset);
+
+  return Array.from({ length: 5 }, (_, i) => {
+    const inicio = new Date(inicioPrimerSemana.getFullYear(), inicioPrimerSemana.getMonth(), inicioPrimerSemana.getDate() + (i * 7));
+    const fin = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + 6);
+    return { id: i, label: `${formatearFechaCorta(inicio)} - ${formatearFechaCorta(fin)}`, inicio, fin };
+  });
+};
 
 const getFechaCabecera = (fechaIso: string) => {
   if (!fechaIso) return 'Sin fecha';
   const fechaParte = fechaIso.split('T')[0];
   const [year, month, day] = fechaParte.split('-').map(Number);
   const fecha = new Date(year, month - 1, day);
-  const opciones: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' };
-  return new Intl.DateTimeFormat('es-ES', opciones).format(fecha).replace('.', '').replace(/de /g, '');
+  const opciones: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric' };
+  const str = new Intl.DateTimeFormat('es-ES', opciones).format(fecha);
+  return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
 const TAB_STYLES: Record<string, { active: string, inactive: string, badge: string }> = {
@@ -41,6 +60,7 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
   const [busqueda, setBusqueda] = useState('');
   const [mesSeleccionado, setMesSeleccionado] = useState(0); 
   const [anioSeleccionado, setAnioSeleccionado] = useState(ANIO_ACTUAL);
+  const [semanaSeleccionada, setSemanaSeleccionada] = useState(-1);
   
   const [oficinasAbiertas, setOficinasAbiertas] = useState<Record<string, boolean>>({});
   const scrollPositionRef = useRef(0);
@@ -51,6 +71,14 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
     setAnioSeleccionado(hoy.getFullYear());
     setIsMounted(true);
   }, []);
+
+  const semanasDisponibles = useMemo(() => {
+    return obtenerSemanas(mesSeleccionado, anioSeleccionado);
+  }, [mesSeleccionado, anioSeleccionado]);
+
+  useEffect(() => {
+    setSemanaSeleccionada(-1);
+  }, [mesSeleccionado, anioSeleccionado]);
 
   const toggleAccordion = (id: string) => {
     if (expandedId === id) setExpandedId(null);
@@ -74,8 +102,18 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
 
     return tareas.filter(t => {
       if (!t.due_date) return false;
-      const [tYear, tMonth] = t.due_date.split('T')[0].split('-').map(Number);
-      const coincideFecha = (tMonth - 1) === mesSeleccionado && tYear === anioSeleccionado;
+      const [tYear, tMonth, tDay] = t.due_date.split('T')[0].split('-').map(Number);
+      const tDate = new Date(tYear, tMonth - 1, tDay);
+
+      let coincideFecha = false;
+      if (semanaSeleccionada !== -1) {
+          const sem = semanasDisponibles[semanaSeleccionada];
+          sem.inicio.setHours(0,0,0,0);
+          sem.fin.setHours(23,59,59,999);
+          coincideFecha = tDate >= sem.inicio && tDate <= sem.fin;
+      } else {
+          coincideFecha = (tMonth - 1) === mesSeleccionado && tYear === anioSeleccionado;
+      }
       
       const termino = busqueda.toLowerCase();
       const coincideTitulo = t.title.toLowerCase().includes(termino);
@@ -86,7 +124,7 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
       const esVencida = new Date() > new Date(t.due_date) && t.status !== 'Completado';
       return { ...t, estadoFiltro: esVencida ? 'Vencido' : t.status };
     });
-  }, [tareas, mesSeleccionado, anioSeleccionado, busqueda, isMounted]);
+  }, [tareas, mesSeleccionado, anioSeleccionado, semanaSeleccionada, semanasDisponibles, busqueda, isMounted]);
 
   const conteos = useMemo(() => ({
       Asignado: tareasFiltradas.filter(t => t.estadoFiltro === 'Asignado' || t.estadoFiltro === 'En Proceso').length,
@@ -192,16 +230,22 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
                         <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                         <input type="text" placeholder="Buscar..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 dark:text-gray-200" />
                     </div>
-                    <div className="flex gap-2 shrink-0">
+                    <div className="flex flex-wrap sm:flex-nowrap gap-2 shrink-0">
+                        <div className="relative">
+                            <select value={anioSeleccionado} onChange={(e) => setAnioSeleccionado(Number(e.target.value))} className="pl-4 pr-8 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200">
+                                {ANIOS.map(a => <option key={a} value={a}>{a}</option>)}
+                            </select>
+                        </div>
                         <div className="relative min-w-[110px]">
                             <select value={mesSeleccionado} onChange={(e) => setMesSeleccionado(Number(e.target.value))} className="w-full pl-9 pr-8 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200">
                                 {MESES.map((m, i) => <option key={i} value={i}>{m}</option>)}
                             </select>
                             <CalendarIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                         </div>
-                        <div className="relative">
-                            <select value={anioSeleccionado} onChange={(e) => setAnioSeleccionado(Number(e.target.value))} className="pl-4 pr-8 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200">
-                                {ANIOS.map(a => <option key={a} value={a}>{a}</option>)}
+                        <div className="relative min-w-[140px]">
+                            <select value={semanaSeleccionada} onChange={(e) => setSemanaSeleccionada(Number(e.target.value))} className="w-full pl-3 pr-8 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200">
+                                <option value={-1}>Todas las semanas</option>
+                                {semanasDisponibles.map(sem => <option key={sem.id} value={sem.id}>{sem.label}</option>)}
                             </select>
                         </div>
                     </div>
@@ -213,6 +257,12 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
       {expandedId && <button onClick={() => toggleAccordion(expandedId)} className="flex items-center gap-2 text-slate-500 hover:text-blue-600 mb-2"><ArrowLeft size={16} /> Volver a la lista</button>}
 
       <div className="pb-20 space-y-4">
+        {!expandedId && tareasRenderizadas.length > 0 && (
+           <div className="text-slate-500 dark:text-slate-400 text-sm font-semibold mb-2">
+               Total en {semanaSeleccionada === -1 ? 'el mes' : 'la semana'}: {tareasRenderizadas.length} actividades
+           </div>
+        )}
+
         {pestañas.length === 0 ? (
            <div className="text-center py-16 bg-slate-50 dark:bg-neutral-900/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-neutral-800">
                 <SearchX size={32} className="mx-auto text-slate-300 mb-4" />
@@ -223,9 +273,12 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
                if (tipoVista === 'mis_actividades') {
                    return (
                        <div key={grupo.key} className="animate-in fade-in duration-500">
-                           <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 ml-1 mt-2 flex items-center gap-2">
-                               {grupo.titulo} <span className="bg-slate-100 dark:bg-neutral-800 px-2 py-0.5 rounded-full text-[10px]">{grupo.tareas.length}</span>
-                           </h3>
+                           {grupo.titulo && (
+                               <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 ml-1 mt-2 flex items-center gap-2">
+                                   {grupo.titulo} 
+                                   {!expandedId && <span className="bg-slate-100 dark:bg-neutral-800 px-2 py-0.5 rounded-full text-[10px]">{grupo.tareas.length}</span>}
+                               </h3>
+                           )}
                            <div className="grid grid-cols-1 gap-3">
                                {grupo.tareas.map((t: Tarea) => (
                                    <TareaItem key={t.id} tarea={t} isExpanded={expandedId === t.id} onToggle={() => toggleAccordion(t.id)} isJefe={perfilUsuario.esJefe} usuarioActual={perfilUsuario.id} usuarios={usuarios} />
@@ -245,7 +298,7 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
                                    </div>
                                    <div>
                                        <h3 className="font-bold text-slate-800 dark:text-white text-sm">{grupo.titulo}</h3>
-                                       <p className="text-xs text-slate-500 dark:text-gray-400">{grupo.tareas.length} actividades</p>
+                                       {!expandedId && <p className="text-xs text-slate-500 dark:text-gray-400">{grupo.tareas.length} actividades</p>}
                                    </div>
                                </div>
                                <ChevronDown size={20} className={`text-slate-400 transition-transform ${estaAbierta ? 'rotate-180' : ''}`} />
