@@ -2,8 +2,8 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { createContrato, updateContrato, deleteContrato, getSiguienteCorrelativo } from '@/components/combustible/actions'
-import { ContratoExtendido } from '@/components/combustible/types'
+import { createContrato, updateContrato, deleteContrato, getSiguienteCorrelativo } from '@/components/combustible/contrato/actions'
+import { ContratoExtendido } from '@/components/combustible/contrato/types'
 import { Plus, X, Loader2, Pencil, Trash2, Save, FileText, AlertCircle, Fuel, RefreshCw } from 'lucide-react'
 import Swal from 'sweetalert2'
 
