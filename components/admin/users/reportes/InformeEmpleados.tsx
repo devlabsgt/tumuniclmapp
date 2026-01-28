@@ -11,15 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import {
-  Printer,
-  Loader2,
-  X,
-  FileText,
-  Edit,
-  Eye,
-  AlertCircle,
-} from "lucide-react";
+import { Printer, Loader2, X, FileText, Edit, Eye, Filter } from "lucide-react";
 import jsPDF from "jspdf";
 import * as htmlToImage from "html-to-image";
 import { toast } from "react-toastify";
@@ -37,7 +29,7 @@ interface Props {
   onClose: () => void;
 }
 
-const ITEMS_POR_PAGINA = 15;
+const ITEMS_POR_PAGINA = 16;
 
 export default function InformeEmpleados({ isOpen, onClose }: Props) {
   const [datosBase, setDatosBase] = useState<ReporteNominaFila[]>([]);
@@ -50,6 +42,7 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
   const [anio, setAnio] = useState(new Date().getFullYear().toString());
   const [mes, setMes] = useState((new Date().getMonth() + 1).toString());
   const [firmas, setFirmas] = useState({ coordinator: "", dafim: "" });
+  const [ocultarCeros, setOcultarCeros] = useState(false);
 
   const pagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -57,6 +50,7 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
     if (isOpen) {
       cargarDatos();
       setVista("impresion");
+      setOcultarCeros(false);
     }
   }, [isOpen]);
 
@@ -120,10 +114,16 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
     });
   }, [datosBase, cantidadesManuales]);
 
+  const datosFiltrados = useMemo(() => {
+    if (!ocultarCeros) return datosCalculados;
+    return datosCalculados.filter((d) => d.liquido > 0);
+  }, [datosCalculados, ocultarCeros]);
+
   const empleadosParaEditar = useMemo(
     () => datosCalculados.filter((d) => d.esVariable),
     [datosCalculados],
   );
+
   const faltantesPorIngresar = useMemo(
     () =>
       empleadosParaEditar.filter(
@@ -194,11 +194,11 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
     });
 
   const totales = {
-    salarios: datosCalculados.reduce((a, c) => a + c.salarioFinal, 0),
-    bonis: datosCalculados.reduce((a, c) => a + c.bonifFinal, 0),
-    devengado: datosCalculados.reduce((a, c) => a + c.totalDevengado, 0),
-    liquido: datosCalculados.reduce((a, c) => a + c.liquido, 0),
-    descuentos: datosCalculados.reduce((a, c) => a + c.totalDescuentos, 0),
+    salarios: datosFiltrados.reduce((a, c) => a + c.salarioFinal, 0),
+    bonis: datosFiltrados.reduce((a, c) => a + c.bonifFinal, 0),
+    devengado: datosFiltrados.reduce((a, c) => a + c.totalDevengado, 0),
+    liquido: datosFiltrados.reduce((a, c) => a + c.liquido, 0),
+    descuentos: datosFiltrados.reduce((a, c) => a + c.totalDescuentos, 0),
   };
 
   return (
@@ -214,27 +214,26 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
             </DialogTitle>
           </div>
 
-          {/* Selector de Vista (Switch) */}
-          <div className="flex bg-gray-100 dark:bg-neutral-800 p-1 rounded-lg">
+          <div className="flex flex-wrap items-center gap-2 bg-gray-100 dark:bg-neutral-800 p-1 rounded-lg">
             <button
               onClick={() => setVista("impresion")}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
                 vista === "impresion"
                   ? "bg-white dark:bg-neutral-700 shadow text-purple-600 dark:text-purple-400"
                   : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               }`}
             >
-              <Eye className="w-3.5 h-3.5" /> Ver Nómina
+              <Eye className="w-3.5 h-3.5" /> Nómina
             </button>
             <button
               onClick={() => setVista("ingreso")}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
                 vista === "ingreso"
                   ? "bg-white dark:bg-neutral-700 shadow text-blue-600 dark:text-blue-400"
                   : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               }`}
             >
-              <Edit className="w-3.5 h-3.5" /> Ingresar Datos
+              <Edit className="w-3.5 h-3.5" /> Usuarios sin Valores:
               {faltantesPorIngresar > 0 ? (
                 <span className="ml-1 bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full text-[10px] border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
                   {faltantesPorIngresar}
@@ -244,6 +243,25 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
                   ✓
                 </span>
               )}
+            </button>
+
+            <div className="w-px h-6 bg-gray-300 dark:bg-neutral-700 mx-1"></div>
+
+            <button
+              onClick={() => setOcultarCeros(!ocultarCeros)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all border ${
+                ocultarCeros
+                  ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 border-red-200 dark:border-red-800"
+                  : "bg-transparent text-gray-500 hover:bg-white dark:hover:bg-neutral-700 border-transparent hover:border-gray-200 dark:hover:border-neutral-700"
+              }`}
+              title={
+                ocultarCeros ? "Mostrando todos" : "Ocultando líquidos en cero"
+              }
+            >
+              <Filter
+                className={`w-3.5 h-3.5 ${ocultarCeros ? "fill-current" : ""}`}
+              />
+              {ocultarCeros ? "Ocultar ceros" : "Todo"}
             </button>
           </div>
 
@@ -334,7 +352,7 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
               <div className={`${vista === "ingreso" ? "hidden" : "block"}`}>
                 <NominaImpresion
                   ref={pagesContainerRef}
-                  datos={datosCalculados}
+                  datos={datosFiltrados}
                   anio={anio}
                   nombreMes={nombreMes}
                   numeroInforme={numeroInforme}
