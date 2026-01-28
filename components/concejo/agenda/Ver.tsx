@@ -67,7 +67,10 @@ const AgendaCard = memo(({
   const puedeEditar = tienePermisoEditar && (rol === 'SUPER' || agenda.estado !== 'Finalizada');
   const puedeEliminar = tienePermisoEditar && (rol === 'SUPER' || agenda.estado === 'En preparación');
 
-  const hayActa = Boolean(agenda.acta && agenda.acta.trim() !== '');
+const hayActa = Boolean(
+  typeof agenda.acta === 'string' && 
+  agenda.acta.toLowerCase().includes('.pdf')
+);
   const mostrarBotonActa = agenda.estado === 'Finalizada' && (hayActa || esAdmin);
   const textoActa = hayActa ? 'Ver Acta' : 'Subir Acta';
   const IconoActa = hayActa ? FileText : FileUp;

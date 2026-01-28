@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
-export default function NotFoundPage() {
+export default function NotFound() {
   const router = useRouter();
 
   return (

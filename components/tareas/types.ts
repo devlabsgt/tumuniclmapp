@@ -1,20 +1,35 @@
 // components/tareas/types.ts
 
-// 1. USUARIO
+export type TipoVistaTareas = 'mis_actividades' | 'gestion_jefe' | 'gestion_rrhh';
+
+export interface OficinaInfo {
+  id: string;
+  nombre: string;
+}
+
+export interface PerfilUsuario {
+  id: string;
+  nombre: string;
+  rol: string | null;
+  esJefe: boolean;
+  oficinasACargo: OficinaInfo[];
+}
+
 export interface Usuario {
-  user_id: string; // PK
+  user_id: string;
   nombre: string;
   esjefe: boolean;
   activo: boolean;
+  oficina_nombre?: string | null; // Vital para agrupar
+  dependencia_id?: string | null;
+  puesto_nombre?: string | null;
 }
 
-// 2. CHECKLIST
 export interface ChecklistItem {
   title: string;
   is_completed: boolean;
 }
 
-// 3. TAREA (Lo que viene de la Base de Datos)
 export interface Tarea {
   id: string;
   title: string;
@@ -27,17 +42,22 @@ export interface Tarea {
   created_at: string;
   updated_at: string;
   
-  // Relaciones
-  assignee?: { nombre: string };
+  // Relaciones expandidas
+  assignee?: { 
+    nombre: string; 
+    oficina_nombre?: string; // Para agrupar visualmente
+  };
   creator?: { nombre: string };
+  
+  // Propiedades calculadas en el frontend
+  estadoFiltro?: string; 
 }
 
-// 4. NUEVA TAREA (Lo que enviamos desde el formulario)
 export interface NewTaskState {
   title: string;
-  description?: string | null; // 👈 Lo hacemos opcional (?) para evitar errores con vacíos
+  description?: string | null;
   due_date: string;
   assigned_to: string;
   checklist: ChecklistItem[];
-  status?: string; // 👈 ¡CLAVE! Ponemos el '?' para que sea opcional
+  status?: string;
 }

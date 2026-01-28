@@ -156,7 +156,6 @@ export const actualizarEstadoAgenda = async (id: string, estado: string): Promis
 };
 
 export const eliminarAgenda = async (id: string): Promise<boolean> => {
-  // Primero obtenemos el path del acta si existe
   const { data: agenda } = await supabase
     .from('agenda_concejo')
     .select('acta')
@@ -393,7 +392,7 @@ export const fetchAsistenciaGlobalAgenda = async (agendaId: string) => {
     .select(`
       user_id,
       nombre, 
-      dependencias (
+      dependencias!info_usuario_dependencia_id_fkey (
         nombre
       )
     `)
@@ -472,10 +471,11 @@ export const marcarAsistenciaAgenda = async (
 };
 
 export const obtenerPuestoUsuario = async (userId: string): Promise<string> => {
+  // CORREGIDO: Uso explícito de la relación info_usuario_dependencia_id_fkey
   const { data, error } = await supabase
     .from('info_usuario')
     .select(`
-      dependencias (
+      dependencias!info_usuario_dependencia_id_fkey (
         nombre
       )
     `)
@@ -522,13 +522,12 @@ export const obtenerDatosReporte = async (agendas: AgendaConcejo[]): Promise<Rep
   }
 
   const userIds = Array.from(new Set(registros.map((r) => r.user_id)));
-
   const { data: infoUsuarios, error: errorInfo } = await supabase
     .from('info_usuario')
     .select(`
       user_id,
       nombre,
-      dependencias (
+      dependencias!info_usuario_dependencia_id_fkey (
         nombre
       )
     `)
@@ -587,11 +586,10 @@ export const obtenerNombreDirectorDAFIM = async (): Promise<string> => {
     .from('info_usuario')
     .select(`
       nombre,
-      dependencias!inner (
+      dependencias!info_usuario_dependencia_id_fkey!inner (
         nombre
       )
     `)
-    // Usamos ILIKE y comodines para coincidir aunque haya errores de escritura ("Adminsitración")
     .ilike('dependencias.nombre', 'Directora de la Dirección de Admin%Financiera Integrada Municipal')
     .eq('activo', true)
     .maybeSingle();

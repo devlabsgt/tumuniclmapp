@@ -1,11 +1,11 @@
 import { Suspense } from 'react';
-import  Tareas from '@/components/tareas/gestorTareas';
+import  VerJefes from '@/components/admin/jefes/VerJefes';
 import Cargando from '@/components/ui/animations/Cargando'; 
 
 export default function SignupPage() {
   return (
     <Suspense fallback={<Cargando />}> 
-      <Tareas tipoVista="mis_actividades" />
+      <VerJefes />
     </Suspense>
   );
 }

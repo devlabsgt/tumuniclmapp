@@ -4,10 +4,10 @@ import { Suspense } from 'react';
 import VerPermisos from '@/components/permisos/VerPermisos';
 import Cargando from '@/components/ui/animations/Cargando';
 
-export default function PermisosPage() {
+export default function PermisosRRHHPage() {
   return (
     <Suspense fallback={<Cargando />}>
-      <VerPermisos tipoVista="mis_permisos" />
+      <VerPermisos tipoVista="gestion_rrhh" />
     </Suspense>
   );
 }

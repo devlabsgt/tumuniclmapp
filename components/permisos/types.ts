@@ -7,15 +7,18 @@ export type UsuarioConJerarquia = Usuario & {
   dependencia_id: string | null;
 };
 
+export type EstadoPermiso = 'pendiente' | 'aprobado_jefe' | 'aprobado' | 'rechazado' | 'rechazado_jefe' | 'rechazado_rrhh';
+
 export type PermisoEmpleado = {
   id: string
   user_id: string
   tipo: string
   inicio: string
   fin: string
-  estado: 'pendiente' | 'aprobado' | 'rechazado'
+  descripcion: string | null 
+  estado: EstadoPermiso
   created_at: string
-  remunerado: boolean 
+  remunerado: boolean | null 
   usuario?: UsuarioConJerarquia
 }
 

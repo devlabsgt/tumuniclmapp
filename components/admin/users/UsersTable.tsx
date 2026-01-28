@@ -1,23 +1,44 @@
-'use client';
+"use client";
 
-import React, { useState, useMemo, Fragment, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Usuario } from '@/lib/usuarios/esquemas';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import React, { useState, useMemo, Fragment, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { Usuario } from "@/lib/usuarios/esquemas";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogPanel,
   Transition,
   TransitionChild,
-} from '@headlessui/react';
-import { motion, AnimatePresence } from 'framer-motion';
-import UsuarioForm from './forms/UsuarioForm';
-import Swal from 'sweetalert2';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { useDependencias } from '@/hooks/dependencias/useDependencias';
-import Cargando from '@/components/ui/animations/Cargando';
-import { User, Clock, LogOut, Trash2, Search, ChevronDown, ChevronsDown, ChevronsUp } from 'lucide-react';
+} from "@headlessui/react";
+import { motion, AnimatePresence } from "framer-motion";
+import UsuarioForm from "./forms/UsuarioForm";
+import Swal from "sweetalert2";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import { useDependencias } from "@/hooks/dependencias/useDependencias";
+import Cargando from "@/components/ui/animations/Cargando";
+import {
+  Clock,
+  LogOut,
+  Trash2,
+  Search,
+  ChevronDown,
+  ChevronsDown,
+  ChevronsUp,
+  Settings2,
+  UserPlus,
+  Crown,
+  Banknote,
+} from "lucide-react";
+
+// --- 1. IMPORTAMOS EL COMPONENTE DEL INFORME ---
+import InformeEmpleados from "./reportes/InformeEmpleados";
 
 type UsuarioConJerarquia = Usuario & {
   puesto_nombre: string | null;
@@ -33,32 +54,61 @@ type Props = {
 export default function UsersTable({ usuarios, rolActual }: Props) {
   const router = useRouter();
 
-  const [listaUsuarios, setListaUsuarios] = useState<UsuarioConJerarquia[]>(usuarios);
-  const [terminoBusqueda, setTerminoBusqueda] = useState('');
-  const [usuarioIdSeleccionado, setUsuarioIdSeleccionado] = useState<string | null>(null);
-  const [modoModal, setModoModal] = useState<'editar'>('editar');
-  const [eliminando, setEliminando] = useState(false);
+  const [listaUsuarios, setListaUsuarios] =
+    useState<UsuarioConJerarquia[]>(usuarios);
+  const [terminoBusqueda, setTerminoBusqueda] = useState("");
 
+  // Estado para el modal de Crear/Editar usuario
+  const [usuarioIdSeleccionado, setUsuarioIdSeleccionado] = useState<
+    string | null
+  >(null);
+  const [modoModal, setModoModal] = useState<"editar">("editar");
+
+  // --- 2. ESTADO PARA EL MODAL DE PLANILLA ---
+  const [mostrarPlanilla, setMostrarPlanilla] = useState(false);
+
+  const [eliminando, setEliminando] = useState(false);
   const [nivel2Id, setNivel2Id] = useState<string | null>(null);
   const [nivel3Id, setNivel3Id] = useState<string | null>(null);
-  
+
   const { dependencias, loading: cargandoDependencias } = useDependencias();
 
-  const [oficinasAbiertas, setOficinasAbiertas] = useState<Record<string, boolean>>({});
+  const [oficinasAbiertas, setOficinasAbiertas] = useState<
+    Record<string, boolean>
+  >({});
   const [todosAbiertos, setTodosAbiertos] = useState(false);
 
-  const hasCreatePermission = rolActual === 'SUPER' || rolActual === 'RRHH' || rolActual === 'SECRETARIO';
-  const canOpenModal = rolActual === 'SUPER' || rolActual === 'RRHH' || rolActual === 'SECRETARIO';
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const hasCreatePermission =
+    rolActual === "SUPER" || rolActual === "RRHH" || rolActual === "SECRETARIO";
+  const canOpenModal =
+    rolActual === "SUPER" || rolActual === "RRHH" || rolActual === "SECRETARIO";
 
   useEffect(() => {
     setListaUsuarios(usuarios);
   }, [usuarios]);
 
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuAbierto(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const oficinasNivel2 = useMemo(() => {
-    const rootIds = new Set(dependencias.filter(d => d.parent_id === null).map(d => d.id));
+    const rootIds = new Set(
+      dependencias.filter((d) => d.parent_id === null).map((d) => d.id),
+    );
     return dependencias
-      .filter(d => !d.es_puesto && d.parent_id !== null && rootIds.has(d.parent_id))
-      .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+      .filter(
+        (d) => !d.es_puesto && d.parent_id !== null && rootIds.has(d.parent_id),
+      )
+      .sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
   }, [dependencias]);
 
   const oficinasNivel3 = useMemo(() => {
@@ -66,47 +116,51 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
       return [];
     }
     return dependencias
-      .filter(d => !d.es_puesto && d.parent_id === nivel2Id)
-      .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+      .filter((d) => !d.es_puesto && d.parent_id === nivel2Id)
+      .sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
   }, [dependencias, nivel2Id]);
 
   const usuariosAgrupados = useMemo(() => {
     let usuariosFiltrados = [...listaUsuarios];
-    
+
     let oficinasPermitidas: Set<string | null> | null = null;
 
     if (nivel3Id) {
-      const oficina = dependencias.find(d => d.id === nivel3Id);
+      const oficina = dependencias.find((d) => d.id === nivel3Id);
       if (oficina) {
         oficinasPermitidas = new Set([oficina.nombre]);
       }
     } else if (nivel2Id) {
       oficinasPermitidas = new Set(
         dependencias
-          .filter(d => d.parent_id === nivel2Id && !d.es_puesto)
-          .map(d => d.nombre)
+          .filter((d) => d.parent_id === nivel2Id && !d.es_puesto)
+          .map((d) => d.nombre),
       );
     }
-    
-    usuariosFiltrados = usuariosFiltrados.filter(usuario => {
-      const lowerTermino = terminoBusqueda.toLowerCase();
-      const busquedaCoincide = terminoBusqueda === '' ||
-        (usuario.nombre?.toLowerCase() || '').includes(lowerTermino) ||
-        (usuario.email?.toLowerCase() || '').includes(lowerTermino) ||
-        (usuario.puesto_nombre?.toLowerCase() || '').includes(lowerTermino) ||
-        (usuario.oficina_nombre?.toLowerCase() || '').includes(lowerTermino);
 
-      const oficinaCoincide = !oficinasPermitidas || (oficinasPermitidas.has(usuario.oficina_nombre));
+    usuariosFiltrados = usuariosFiltrados.filter((usuario) => {
+      const lowerTermino = terminoBusqueda.toLowerCase();
+      const busquedaCoincide =
+        terminoBusqueda === "" ||
+        (usuario.nombre?.toLowerCase() || "").includes(lowerTermino) ||
+        (usuario.email?.toLowerCase() || "").includes(lowerTermino) ||
+        (usuario.puesto_nombre?.toLowerCase() || "").includes(lowerTermino) ||
+        (usuario.oficina_nombre?.toLowerCase() || "").includes(lowerTermino);
+
+      const oficinaCoincide =
+        !oficinasPermitidas || oficinasPermitidas.has(usuario.oficina_nombre);
 
       return busquedaCoincide && oficinaCoincide;
     });
 
-
-    const grupos: Record<string, { path_orden: string, usuarios: UsuarioConJerarquia[] }> = {};
+    const grupos: Record<
+      string,
+      { path_orden: string; usuarios: UsuarioConJerarquia[] }
+    > = {};
 
     for (const usuario of usuariosFiltrados) {
-      const oficina = usuario.oficina_nombre || 'Sin Oficina Asignada';
-      const path = usuario.oficina_path_orden || '9999';
+      const oficina = usuario.oficina_nombre || "Sin Oficina Asignada";
+      const path = usuario.oficina_path_orden || "9999";
 
       if (!grupos[oficina]) {
         grupos[oficina] = { path_orden: path, usuarios: [] };
@@ -118,23 +172,26 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
       .map(([oficina_nombre, data]) => ({
         oficina_nombre,
         path_orden: data.path_orden,
-        usuarios: data.usuarios.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')),
+        usuarios: data.usuarios.sort((a, b) =>
+          (a.nombre || "").localeCompare(b.nombre || ""),
+        ),
       }))
-      .sort((a, b) => a.path_orden.localeCompare(b.path_orden, undefined, { numeric: true }));
-
+      .sort((a, b) =>
+        a.path_orden.localeCompare(b.path_orden, undefined, { numeric: true }),
+      );
   }, [listaUsuarios, terminoBusqueda, nivel2Id, nivel3Id, dependencias]);
 
   const handleVerUsuario = (id: string) => {
     if (!canOpenModal) return;
     setUsuarioIdSeleccionado(id);
-    setModoModal('editar');
+    setModoModal("editar");
   };
 
   const handleCerrarModal = () => {
     setUsuarioIdSeleccionado(null);
-    setModoModal('editar');
+    setModoModal("editar");
   };
-  
+
   const handleSuccess = () => {
     router.refresh();
   };
@@ -145,58 +202,75 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
 
   const handleEliminarUsuario = async () => {
     if (!usuarioIdSeleccionado) return;
-  
+
     const result = await Swal.fire({
-      title: '¿Está seguro?',
-      text: 'Esta acción no se puede deshacer.',
-      icon: 'warning',
+      title: "¿Está seguro?",
+      text: "Esta acción no se puede deshacer.",
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar',
-      background: document.documentElement.classList.contains('dark') ? '#171717' : '#fff',
-      color: document.documentElement.classList.contains('dark') ? '#e5e5e5' : '#000',
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+      background: document.documentElement.classList.contains("dark")
+        ? "#171717"
+        : "#fff",
+      color: document.documentElement.classList.contains("dark")
+        ? "#e5e5e5"
+        : "#000",
     });
-  
+
     if (result.isConfirmed) {
       setEliminando(true);
-  
+
       try {
         const res = await fetch(`/api/users?id=${usuarioIdSeleccionado}`, {
-          method: 'DELETE',
+          method: "DELETE",
         });
-  
+
         if (!res.ok) {
           const json = await res.json();
           return Swal.fire({
-            title: 'Error',
-            text: json.error || 'No se pudo eliminar el usuario.',
-            icon: 'error',
-            background: document.documentElement.classList.contains('dark') ? '#171717' : '#fff',
-            color: document.documentElement.classList.contains('dark') ? '#e5e5e5' : '#000',
+            title: "Error",
+            text: json.error || "No se pudo eliminar el usuario.",
+            icon: "error",
+            background: document.documentElement.classList.contains("dark")
+              ? "#171717"
+              : "#fff",
+            color: document.documentElement.classList.contains("dark")
+              ? "#e5e5e5"
+              : "#000",
           });
         }
-        
+
         const idEliminado = usuarioIdSeleccionado;
-        setListaUsuarios(prevUsuarios => prevUsuarios.filter(u => u.id !== idEliminado));
-        
+        setListaUsuarios((prevUsuarios) =>
+          prevUsuarios.filter((u) => u.id !== idEliminado),
+        );
+
         handleCerrarModal();
         Swal.fire({
-            title: '¡Eliminado!',
-            text: 'El usuario ha sido eliminado correctamente.',
-            icon: 'success',
-            background: document.documentElement.classList.contains('dark') ? '#171717' : '#fff',
-            color: document.documentElement.classList.contains('dark') ? '#e5e5e5' : '#000',
+          title: "¡Eliminado!",
+          text: "El usuario ha sido eliminado correctamente.",
+          icon: "success",
+          background: document.documentElement.classList.contains("dark")
+            ? "#171717"
+            : "#fff",
+          color: document.documentElement.classList.contains("dark")
+            ? "#e5e5e5"
+            : "#000",
         });
-        
       } catch (error) {
         Swal.fire({
-            title: 'Error',
-            text: 'Ocurrió un error al intentar eliminar el usuario.',
-            icon: 'error',
-            background: document.documentElement.classList.contains('dark') ? '#171717' : '#fff',
-            color: document.documentElement.classList.contains('dark') ? '#e5e5e5' : '#000',
+          title: "Error",
+          text: "Ocurrió un error al intentar eliminar el usuario.",
+          icon: "error",
+          background: document.documentElement.classList.contains("dark")
+            ? "#171717"
+            : "#fff",
+          color: document.documentElement.classList.contains("dark")
+            ? "#e5e5e5"
+            : "#000",
         });
       } finally {
         setEliminando(false);
@@ -205,24 +279,24 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
   };
 
   const handleNivel2Change = (value: string) => {
-    const newId = value === 'todos' ? null : value;
+    const newId = value === "todos" ? null : value;
     setNivel2Id(newId);
-    setNivel3Id(null); 
+    setNivel3Id(null);
     setOficinasAbiertas({});
     setTodosAbiertos(false);
   };
-  
+
   const handleNivel3Change = (value: string) => {
-    const newId = value === 'todos' ? null : value;
+    const newId = value === "todos" ? null : value;
     setNivel3Id(newId);
     setOficinasAbiertas({});
     setTodosAbiertos(false);
   };
 
   const toggleOficina = (nombreOficina: string) => {
-    setOficinasAbiertas(prev => ({
+    setOficinasAbiertas((prev) => ({
       ...prev,
-      [nombreOficina]: !prev[nombreOficina]
+      [nombreOficina]: !prev[nombreOficina],
     }));
   };
 
@@ -230,7 +304,7 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
     const nuevoEstado = !todosAbiertos;
     setTodosAbiertos(nuevoEstado);
     const nuevasOficinasAbiertas: Record<string, boolean> = {};
-    usuariosAgrupados.forEach(grupo => {
+    usuariosAgrupados.forEach((grupo) => {
       nuevasOficinasAbiertas[grupo.oficina_nombre] = nuevoEstado;
     });
     setOficinasAbiertas(nuevasOficinasAbiertas);
@@ -240,46 +314,81 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
     <>
       <div className="w-full xl:w-4/5 mx-auto md:px-4">
         <div className="p-2 bg-white dark:bg-neutral-900 rounded-lg shadow-md border border-gray-100 dark:border-neutral-800 space-y-4 w-full transition-colors duration-200">
-          
           <div className="flex flex-col xl:flex-row gap-2 w-full items-center p-2 bg-slate-50 dark:bg-neutral-900 rounded-lg">
-            
             <div className="flex shrink-0">
-               <Button
+              <Button
                 variant="outline"
                 size="icon"
                 onClick={toggleTodos}
                 className="h-9 w-9 bg-white dark:bg-neutral-800 dark:text-gray-200 dark:border-neutral-700 dark:hover:bg-neutral-700"
-                title={todosAbiertos ? 'Cerrar todas las oficinas' : 'Abrir todas las oficinas'}
+                title={
+                  todosAbiertos
+                    ? "Cerrar todas las oficinas"
+                    : "Abrir todas las oficinas"
+                }
               >
-                {todosAbiertos ? <ChevronsUp className="h-4 w-4" /> : <ChevronsDown className="h-4 w-4" />}
+                {todosAbiertos ? (
+                  <ChevronsUp className="h-4 w-4" />
+                ) : (
+                  <ChevronsDown className="h-4 w-4" />
+                )}
               </Button>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-2 w-full xl:w-auto shrink-0">
               {cargandoDependencias ? (
-                  <Cargando texto="Cargando..." />
+                <Cargando texto="Cargando..." />
               ) : (
                 <>
-                  <Select onValueChange={handleNivel2Change} value={nivel2Id || 'todos'}>
+                  <Select
+                    onValueChange={handleNivel2Change}
+                    value={nivel2Id || "todos"}
+                  >
                     <SelectTrigger className="bg-white dark:bg-neutral-800 dark:text-gray-100 dark:border-neutral-700 text-xs w-full sm:w-[200px] h-9">
                       <SelectValue placeholder="Dependencia" />
                     </SelectTrigger>
                     <SelectContent className="dark:bg-neutral-800 dark:border-neutral-700">
-                      <SelectItem value="todos" className="dark:text-gray-200 dark:focus:bg-neutral-700">Todas</SelectItem>
-                      {oficinasNivel2.map(oficina => (
-                        <SelectItem key={oficina.id} value={oficina.id} className="dark:text-gray-200 dark:focus:bg-neutral-700">{oficina.nombre}</SelectItem>
+                      <SelectItem
+                        value="todos"
+                        className="dark:text-gray-200 dark:focus:bg-neutral-700"
+                      >
+                        Todas
+                      </SelectItem>
+                      {oficinasNivel2.map((oficina) => (
+                        <SelectItem
+                          key={oficina.id}
+                          value={oficina.id}
+                          className="dark:text-gray-200 dark:focus:bg-neutral-700"
+                        >
+                          {oficina.nombre}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  
-                  <Select onValueChange={handleNivel3Change} value={nivel3Id || 'todos'} disabled={!nivel2Id}>
+
+                  <Select
+                    onValueChange={handleNivel3Change}
+                    value={nivel3Id || "todos"}
+                    disabled={!nivel2Id}
+                  >
                     <SelectTrigger className="bg-white dark:bg-neutral-800 dark:text-gray-100 dark:border-neutral-700 text-xs w-full sm:w-[200px] h-9">
                       <SelectValue placeholder="Oficina" />
                     </SelectTrigger>
                     <SelectContent className="dark:bg-neutral-800 dark:border-neutral-700">
-                      <SelectItem value="todos" className="dark:text-gray-200 dark:focus:bg-neutral-700">Todas</SelectItem>
-                      {oficinasNivel3.map(oficina => (
-                        <SelectItem key={oficina.id} value={oficina.id} className="dark:text-gray-200 dark:focus:bg-neutral-700">{oficina.nombre}</SelectItem>
+                      <SelectItem
+                        value="todos"
+                        className="dark:text-gray-200 dark:focus:bg-neutral-700"
+                      >
+                        Todas
+                      </SelectItem>
+                      {oficinasNivel3.map((oficina) => (
+                        <SelectItem
+                          key={oficina.id}
+                          value={oficina.id}
+                          className="dark:text-gray-200 dark:focus:bg-neutral-700"
+                        >
+                          {oficina.nombre}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -288,37 +397,121 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
             </div>
 
             <div className="relative w-full flex-1">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-                <Input
-                    type="text"
-                    placeholder="Buscar por Nombre..."
-                    value={terminoBusqueda}
-                    onChange={(e) => setTerminoBusqueda(e.target.value)}
-                    className="w-full text-xs pl-8 bg-white dark:bg-neutral-800 dark:text-gray-100 dark:border-neutral-700 h-9"
-                />
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Buscar por Nombre..."
+                value={terminoBusqueda}
+                onChange={(e) => setTerminoBusqueda(e.target.value)}
+                className="w-full text-xs pl-8 bg-white dark:bg-neutral-800 dark:text-gray-100 dark:border-neutral-700 h-9"
+              />
             </div>
 
-            <div className="flex gap-2 shrink-0 w-full xl:w-auto">
-                {hasCreatePermission && (
-                    <>
-                    <Button
-                        onClick={() => router.push("/protected/admin/horarios")}
-                        className="flex-1 xl:flex-none px-3 py-2 text-white bg-blue-600 dark:bg-blue-700 rounded-lg font-semibold hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors duration-200 text-xs flex items-center justify-center gap-1 h-9"
-                        title="Horarios"
-                    >
-                        <Clock className="h-3.5 w-3.5" />
-                        <span className="text-xs hidden sm:inline">Horarios</span>
-                    </Button>
-                    <Button
-                        onClick={() => router.push("/protected/admin/sign-up")}
-                        className="flex-1 xl:flex-none px-3 py-2 text-white bg-green-600 dark:bg-green-700 rounded-lg font-semibold hover:bg-green-700 dark:hover:bg-green-600 transition-colors duration-200 text-xs flex items-center justify-center gap-1 h-9"
-                        title="Nuevo Usuario"
-                    >
-                        <User className="h-3.5 w-3.5" />
-                        <span className="text-xs hidden sm:inline">Crear</span>
-                    </Button>
-                    </>
-                )}
+            <div
+              className="flex gap-2 shrink-0 w-full xl:w-auto relative"
+              ref={menuRef}
+            >
+              {hasCreatePermission && (
+                <div className="relative w-full xl:w-auto">
+                  <button
+                    onClick={() => setMenuAbierto(!menuAbierto)}
+                    className={`w-full xl:w-auto px-4 py-2 text-white bg-slate-800 dark:bg-slate-700 rounded-lg font-semibold hover:bg-slate-700 dark:hover:bg-slate-600 transition-all duration-200 text-xs flex items-center justify-center gap-2 h-9 shadow-sm ${menuAbierto ? "ring-2 ring-blue-500/50" : ""}`}
+                  >
+                    <Settings2 className="h-3.5 w-3.5" />
+                    <span>Administrar</span>
+                    <ChevronDown
+                      className={`h-3 w-3 transition-transform duration-200 ${menuAbierto ? "rotate-180" : ""}`}
+                    />
+                  </button>
+
+                  {menuAbierto && (
+                    <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-neutral-800 rounded-xl shadow-xl border border-gray-100 dark:border-neutral-700 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="p-1.5 flex flex-col gap-0.5">
+                        <button
+                          onClick={() => {
+                            setMenuAbierto(false);
+                            router.push("/protected/admin/sign-up");
+                          }}
+                          className="w-full text-left px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-neutral-700/50 rounded-lg flex items-center gap-3 transition-colors group"
+                        >
+                          <div className="p-1.5 bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 rounded-md group-hover:bg-green-200 dark:group-hover:bg-green-900/50 transition-colors">
+                            <UserPlus size={16} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-gray-700 dark:text-gray-200">
+                              Crear Usuario
+                            </p>
+                            <p className="text-[10px] text-gray-400">
+                              Registrar nuevo empleado
+                            </p>
+                          </div>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setMenuAbierto(false);
+                            router.push("/protected/admin/jefes");
+                          }}
+                          className="w-full text-left px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-neutral-700/50 rounded-lg flex items-center gap-3 transition-colors group"
+                        >
+                          <div className="p-1.5 bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 rounded-md group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors">
+                            <Crown size={16} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-gray-700 dark:text-gray-200">
+                              Asignación de Jefe
+                            </p>
+                            <p className="text-[10px] text-gray-400">
+                              Gestionar liderazgos
+                            </p>
+                          </div>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setMenuAbierto(false);
+                            router.push("/protected/admin/horarios");
+                          }}
+                          className="w-full text-left px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-neutral-700/50 rounded-lg flex items-center gap-3 transition-colors group"
+                        >
+                          <div className="p-1.5 bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 rounded-md group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
+                            <Clock size={16} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-gray-700 dark:text-gray-200">
+                              Asignación de Horarios
+                            </p>
+                            <p className="text-[10px] text-gray-400">
+                              Cree, edite y asigne horarios
+                            </p>
+                          </div>
+                        </button>
+
+                        {/* --- 3. BOTÓN CONECTADO AL ESTADO --- */}
+                        <button
+                          onClick={() => {
+                            setMenuAbierto(false);
+                            setMostrarPlanilla(true); // <--- AHORA SÍ ABRE EL MODAL
+                          }}
+                          className="w-full text-left px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-neutral-700/50 rounded-lg flex items-center gap-3 transition-colors group"
+                        >
+                          <div className="p-1.5 bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 rounded-md group-hover:bg-amber-200 dark:group-hover:bg-amber-900/50 transition-colors">
+                            <Banknote size={16} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-gray-700 dark:text-gray-200">
+                              Generar Planilla
+                            </p>
+                            <p className="text-[10px] text-gray-400">
+                              Cálculo y reporte de nómina
+                            </p>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -335,24 +528,36 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                   <table className="w-full table-fixed text-xs">
                     <thead className="bg-slate-50 dark:bg-neutral-900 text-left border-b border-gray-100 dark:border-neutral-800">
                       <tr>
-                        <th className="py-3 px-4 text-[10px] xl:text-xs w-[35%] font-semibold text-slate-600 dark:text-slate-400">Nombre</th>
-                        <th className="py-3 px-2 text-[10px] xl:text-xs w-[35%] font-semibold text-slate-600 dark:text-slate-400 pl-4">Usuario</th>
-                        <th className="py-3 px-2 text-[10px] xl:text-xs w-[30%] font-semibold text-slate-600 dark:text-slate-400 pl-4">Puesto</th>
+                        <th className="py-3 px-4 text-[10px] xl:text-xs w-[35%] font-semibold text-slate-600 dark:text-slate-400">
+                          Nombre
+                        </th>
+                        <th className="py-3 px-2 text-[10px] xl:text-xs w-[35%] font-semibold text-slate-600 dark:text-slate-400 pl-4">
+                          Usuario
+                        </th>
+                        <th className="py-3 px-2 text-[10px] xl:text-xs w-[30%] font-semibold text-slate-600 dark:text-slate-400 pl-4">
+                          Puesto
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {usuariosAgrupados.map((grupo) => {
-                         const estaAbierta = oficinasAbiertas[grupo.oficina_nombre] || false;
+                        const estaAbierta =
+                          oficinasAbiertas[grupo.oficina_nombre] || false;
 
-                         return (
+                        return (
                           <Fragment key={grupo.path_orden}>
                             <tr className="border-b border-slate-100 dark:border-neutral-800">
                               <td colSpan={3} className="p-1">
-                                <div 
-                                  onClick={() => toggleOficina(grupo.oficina_nombre)}
+                                <div
+                                  onClick={() =>
+                                    toggleOficina(grupo.oficina_nombre)
+                                  }
                                   className="bg-slate-100 dark:bg-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-700 cursor-pointer transition-colors py-2.5 px-4 text-sm font-semibold text-blue-600 dark:text-blue-400 flex items-center justify-between rounded-sm"
                                 >
-                                  <span>{grupo.oficina_nombre} ({grupo.usuarios.length})</span>
+                                  <span>
+                                    {grupo.oficina_nombre} (
+                                    {grupo.usuarios.length})
+                                  </span>
                                   <motion.div
                                     initial={false}
                                     animate={{ rotate: estaAbierta ? 180 : 0 }}
@@ -368,10 +573,13 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                               {estaAbierta && (
                                 <motion.tr
                                   initial={{ opacity: 0, height: 0 }}
-                                  animate={{ opacity: 1, height: 'auto' }}
+                                  animate={{ opacity: 1, height: "auto" }}
                                   exit={{ opacity: 0, height: 0 }}
-                                  transition={{ duration: 0.3, ease: "easeInOut" }}
-                                  style={{ overflow: 'hidden' }}
+                                  transition={{
+                                    duration: 0.3,
+                                    ease: "easeInOut",
+                                  }}
+                                  style={{ overflow: "hidden" }}
                                 >
                                   <td colSpan={3} className="p-0">
                                     <table className="w-full">
@@ -379,17 +587,19 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                                         {grupo.usuarios.map((usuario) => (
                                           <tr
                                             key={usuario.id}
-                                            onClick={() => handleVerUsuario(usuario.id)}
-                                            className={`border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 group ${canOpenModal ? 'cursor-pointer' : 'cursor-default'}`}
+                                            onClick={() =>
+                                              handleVerUsuario(usuario.id)
+                                            }
+                                            className={`border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 group ${canOpenModal ? "cursor-pointer" : "cursor-default"}`}
                                           >
                                             <td className="py-3 px-4 text-[11px] xl:text-xs text-slate-700 dark:text-slate-300 w-[35%] truncate">
-                                              {usuario.nombre || '—'}
+                                              {usuario.nombre || "—"}
                                             </td>
                                             <td className="py-3 px-2 text-[11px] xl:text-xs text-slate-600 dark:text-slate-400 w-[35%] truncate pl-4">
-                                              {usuario.email || '—'}
+                                              {usuario.email || "—"}
                                             </td>
                                             <td className="py-3 px-2 text-[11px] xl:text-xs text-slate-600 dark:text-slate-400 w-[30%] truncate pl-4">
-                                              {usuario.puesto_nombre || '—'}
+                                              {usuario.puesto_nombre || "—"}
                                             </td>
                                           </tr>
                                         ))}
@@ -410,28 +620,39 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
           </div>
         </div>
       </div>
-      
+
+      {/* --- 4. RENDERIZADO DEL MODAL DE PLANILLA --- */}
+      <InformeEmpleados
+        isOpen={mostrarPlanilla}
+        onClose={() => setMostrarPlanilla(false)}
+      />
+
       <Transition show={!!usuarioIdSeleccionado} as={Fragment}>
         <Dialog onClose={() => {}} className="relative z-50">
-          <TransitionChild as={Fragment}
-            enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100"
-            leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
+          <TransitionChild
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
             <div className="fixed inset-0 bg-black/30 dark:bg-black/70 backdrop-blur-sm" />
           </TransitionChild>
           <div className="fixed inset-0 flex items-center justify-center p-4">
             <DialogPanel className="bg-white dark:bg-neutral-900 rounded-lg w-full max-w-lg min-h-[600px] p-6 shadow-xl border dark:border-neutral-800">
-              
               <div className="flex justify-between items-center mb-6">
-                <Button 
-                  variant="ghost" 
-                  onClick={handleCerrarModal} 
+                <Button
+                  variant="ghost"
+                  onClick={handleCerrarModal}
                   className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center gap-2"
                 >
                   <LogOut className="h-4 w-4 rotate-180" />
                   Salir
                 </Button>
 
-                {(rolActual === 'SUPER') && (
+                {rolActual === "SUPER" && (
                   <Button
                     variant="ghost"
                     onClick={handleEliminarUsuario}
@@ -439,7 +660,7 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                     className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
                   >
                     <Trash2 className="h-4 w-4" />
-                    {eliminando ? 'Eliminando...' : 'Eliminar'}
+                    {eliminando ? "Eliminando..." : "Eliminar"}
                   </Button>
                 )}
               </div>
@@ -453,11 +674,11 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <UsuarioForm 
-                      id={usuarioIdSeleccionado} 
-                      onSuccess={handleSuccess} 
-                      onCancel={handleCancel} 
-                      rolUsuarioActual={rolActual || ''}
+                    <UsuarioForm
+                      id={usuarioIdSeleccionado}
+                      onSuccess={handleSuccess}
+                      onCancel={handleCancel}
+                      rolUsuarioActual={rolActual || ""}
                     />
                   </motion.div>
                 )}

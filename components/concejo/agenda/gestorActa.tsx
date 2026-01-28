@@ -6,12 +6,10 @@ import { useRouter } from 'next/navigation'
 import { Loader2, UploadCloud, FileText, Trash2, ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react'
 import { toast } from 'react-toastify'
 import Swal from 'sweetalert2'
-// Imports para el PDF
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
 import 'react-pdf/dist/esm/Page/TextLayer.css'
 
-// Configurar Worker de PDF
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs`
 
 interface GestorActaProps {
@@ -26,7 +24,6 @@ export default function GestorActa({ agendaId, currentActaPath, rol, estadoAgend
   const [isUploading, setIsUploading] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   
-  // Estados para el Visor PDF
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [numPages, setNumPages] = useState<number>(0)
   const [pageNumber, setPageNumber] = useState<number>(1)
@@ -38,14 +35,15 @@ export default function GestorActa({ agendaId, currentActaPath, rol, estadoAgend
 
   const puedeEditar = ['SUPER', 'SECRETARIO', 'SEC-TECNICO'].includes(rol)
 
-  // EFECTO: Si hay path, generar URL firmada automáticamente
   useEffect(() => {
-    if (currentActaPath) {
+    const esActaValida = typeof currentActaPath === 'string' && currentActaPath.toLowerCase().includes('.pdf');
+
+    if (esActaValida) {
       const fetchUrl = async () => {
         setLoadingPdf(true)
         const { data, error } = await supabase.storage
           .from('actas')
-          .createSignedUrl(currentActaPath, 3600) // Valido por 1 hora
+          .createSignedUrl(currentActaPath as string, 3600)
 
         if (error || !data?.signedUrl) {
           console.error(error)
@@ -133,10 +131,9 @@ export default function GestorActa({ agendaId, currentActaPath, rol, estadoAgend
     }
   }
 
-  // --- RENDERIZADO ---
+  const hayActaValida = typeof currentActaPath === 'string' && currentActaPath.toLowerCase().includes('.pdf');
 
-  // CASO 1: NO HAY ACTA -> MOSTRAR UPLOAD
-  if (!currentActaPath) {
+  if (!hayActaValida) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 min-h-[400px]">
         {puedeEditar ? (
@@ -182,10 +179,8 @@ export default function GestorActa({ agendaId, currentActaPath, rol, estadoAgend
     )
   }
 
-  // CASO 2: HAY ACTA -> MOSTRAR VISOR PDF
   return (
     <div className="flex flex-col h-full bg-gray-100 dark:bg-neutral-900">
-      {/* Barra de herramientas PDF */}
       <div className="flex items-center justify-between px-4 py-2 bg-white dark:bg-neutral-800 border-b border-gray-200 dark:border-neutral-700 shadow-sm shrink-0 sticky top-0 z-20">
         <div className="flex items-center gap-2">
            <button onClick={() => setPageNumber(p => Math.max(1, p - 1))} disabled={pageNumber <= 1} className="p-1.5 hover:bg-gray-100 dark:hover:bg-neutral-700 rounded disabled:opacity-30">
@@ -217,7 +212,6 @@ export default function GestorActa({ agendaId, currentActaPath, rol, estadoAgend
         )}
       </div>
 
-      {/* Area del Documento */}
       <div className="flex-1 overflow-auto flex justify-center p-4 md:p-8">
         {loadingPdf ? (
            <div className="self-center flex flex-col items-center gap-2">

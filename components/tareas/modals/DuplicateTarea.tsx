@@ -199,7 +199,7 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 {/* Fecha */}
                 <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
+                    <label className=" text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
                         <Calendar size={14} /> Fecha
                     </label>
                     <input 
@@ -212,7 +212,7 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
 
                 {/* Asignado */}
                 <div>
-                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
+                      <label className=" text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
                         <User size={14} /> Asignado
                       </label>
                       <div className="relative">
@@ -256,7 +256,7 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
 
             {/* Descripción */}
             <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
                     <AlignLeft size={14} /> Descripción
                 </label>
                 <textarea 
@@ -270,7 +270,7 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
 
              {/* Checklist */}
              <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                <label className=" text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
                     <CheckSquare size={14} /> Pendientes ({checklist.length})
                 </label>
                 <div className="border border-gray-200 dark:border-neutral-700 rounded-xl bg-gray-50 dark:bg-neutral-800/50 overflow-hidden">
