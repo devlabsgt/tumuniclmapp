@@ -37,7 +37,7 @@ interface Props {
   onClose: () => void;
 }
 
-const ITEMS_POR_PAGINA = 16;
+const ITEMS_POR_PAGINA = 15;
 
 export default function InformeEmpleados({ isOpen, onClose }: Props) {
   const [datosBase, setDatosBase] = useState<ReporteNominaFila[]>([]);
@@ -203,8 +203,8 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[98vw] h-[95vh] flex flex-col p-0 bg-white dark:bg-neutral-900 text-black [&>button]:hidden">
-        <DialogHeader className="p-4 border-b flex flex-col lg:flex-row items-center justify-between gap-4 shrink-0 bg-white dark:bg-neutral-900 z-10">
+      <DialogContent className="max-w-[98vw] h-[95vh] flex flex-col p-0 bg-white dark:bg-neutral-900 text-black dark:text-gray-100 [&>button]:hidden">
+        <DialogHeader className="p-4 border-b dark:border-neutral-800 flex flex-col lg:flex-row items-center justify-between gap-4 shrink-0 bg-white dark:bg-neutral-900 z-10">
           <div className="flex items-center gap-3 w-full lg:w-auto">
             <div className="p-2.5 bg-green-100 dark:bg-green-900/30 rounded-xl shrink-0">
               <FileText className="h-5 w-5 text-green-600 dark:text-green-400" />
@@ -214,24 +214,35 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
             </DialogTitle>
           </div>
 
+          {/* Selector de Vista (Switch) */}
           <div className="flex bg-gray-100 dark:bg-neutral-800 p-1 rounded-lg">
             <button
               onClick={() => setVista("impresion")}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-all ${vista === "impresion" ? "bg-white shadow text-purple-600" : "text-gray-500 hover:text-gray-700"}`}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                vista === "impresion"
+                  ? "bg-white dark:bg-neutral-700 shadow text-purple-600 dark:text-purple-400"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              }`}
             >
               <Eye className="w-3.5 h-3.5" /> Ver Nómina
             </button>
             <button
               onClick={() => setVista("ingreso")}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-all ${vista === "ingreso" ? "bg-white shadow text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                vista === "ingreso"
+                  ? "bg-white dark:bg-neutral-700 shadow text-blue-600 dark:text-blue-400"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              }`}
             >
               <Edit className="w-3.5 h-3.5" /> Ingresar Datos
               {faltantesPorIngresar > 0 ? (
-                <span className="ml-1 bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full text-[10px] border border-red-200">
+                <span className="ml-1 bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full text-[10px] border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
                   {faltantesPorIngresar}
                 </span>
               ) : (
-                <span className="ml-1 text-green-600 text-[10px]">✓</span>
+                <span className="ml-1 text-green-600 dark:text-green-400 text-[10px]">
+                  ✓
+                </span>
               )}
             </button>
           </div>
@@ -248,7 +259,7 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
             <div className="flex gap-2 items-center">
               <Input
                 type="number"
-                className="w-20 h-10 text-sm font-semibold"
+                className="w-20 h-10 text-sm font-semibold bg-white dark:bg-neutral-800 dark:text-white dark:border-neutral-700"
                 value={anio}
                 onChange={(e) => setAnio(e.target.value)}
               />
@@ -270,7 +281,7 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
               <Button
                 onClick={generatePdf}
                 disabled={loading || datosBase.length === 0 || isPrinting}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-10 px-6"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-10 px-6 dark:bg-blue-600 dark:hover:bg-blue-500"
               >
                 {isPrinting ? (
                   <Loader2 className="animate-spin mr-2 h-4 w-4" />
@@ -279,7 +290,11 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
                 )}{" "}
                 PDF
               </Button>
-              <Button onClick={onClose} variant="outline" className="h-10 px-3">
+              <Button
+                onClick={onClose}
+                variant="outline"
+                className="h-10 px-3 dark:bg-transparent dark:text-gray-300 dark:border-neutral-700 dark:hover:bg-neutral-800"
+              >
                 <X className="h-5 w-5" />
               </Button>
             </div>
@@ -288,15 +303,15 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
 
         <div className="flex-1 overflow-auto bg-gray-100 dark:bg-neutral-950 p-6 flex justify-center">
           {loading ? (
-            <div className="flex flex-col items-center justify-center gap-4 text-gray-500 h-full">
+            <div className="flex flex-col items-center justify-center gap-4 text-gray-500 dark:text-gray-400 h-full">
               <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
               <span>Calculando nómina...</span>
             </div>
           ) : (
             <>
               {vista === "ingreso" && (
-                <div className="w-full bg-white dark:bg-neutral-900 shadow-sm rounded-lg p-6">
-                  <h2 className="text-xl font-bold mb-4">
+                <div className="w-full bg-white dark:bg-neutral-900 shadow-sm rounded-lg p-6 border dark:border-neutral-800">
+                  <h2 className="text-xl font-bold mb-4 dark:text-white">
                     Ingreso de Días/Horas/Periodos
                   </h2>
                   <NominaIngreso
@@ -308,7 +323,7 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
                     <Button
                       onClick={() => setVista("impresion")}
                       size="lg"
-                      className="bg-purple-600 hover:bg-purple-700 shadow-lg text-white font-bold px-8"
+                      className="bg-purple-600 hover:bg-purple-700 shadow-lg text-white font-bold px-8 dark:bg-purple-600 dark:hover:bg-purple-500"
                     >
                       <Eye className="w-5 h-5 mr-2" /> Ver Nómina Final
                     </Button>
