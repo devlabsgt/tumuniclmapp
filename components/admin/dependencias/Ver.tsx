@@ -398,7 +398,6 @@ export default function Ver() {
         prima: data.prima,
         unidades_tiempo: data.unidades_tiempo,
         antiguedad: data.antiguedad,
-        // --- NUEVOS CAMPOS ---
         isr: data.isr,
         plan_prestaciones: data.plan_prestaciones,
       })
@@ -491,6 +490,7 @@ export default function Ver() {
       }
     }
   };
+
   const handleMove = async (id: string, direction: "up" | "down") => {
     const { error } = await supabase.rpc("mover_dependencia", {
       id_a_mover: id,
@@ -502,6 +502,7 @@ export default function Ver() {
       await mutateDependencias();
     }
   };
+
   const handleMoveExtreme = async (
     id: string,
     direction: "inicio" | "final",
@@ -516,6 +517,7 @@ export default function Ver() {
       await mutateDependencias();
     }
   };
+
   const handleOpenEmpleadoModal = (dependencia: DependenciaNode) => {
     setDependenciaParaEmpleado(dependencia);
   };
@@ -600,7 +602,6 @@ export default function Ver() {
     setIsTarjetaOpen(false);
     setUsuarioIdParaTarjeta(null);
   };
-
   const handleOpenDescriptionModal = (
     id: string,
     title: string,

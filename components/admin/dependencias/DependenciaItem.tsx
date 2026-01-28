@@ -207,15 +207,31 @@ const DependenciaItem = ({
     }).format(amount);
   };
 
+  // --- LÓGICA DE CÁLCULO FINANCIERO CORREGIDA ---
   const tienePresupuesto =
     node.renglon ||
     (node.salario && node.salario > 0) ||
     (node.bonificacion && node.bonificacion > 0);
 
+  // Definimos valores base
   const multiplicador =
     node.unidades_tiempo && node.unidades_tiempo > 0 ? node.unidades_tiempo : 1;
-  const totalFinancieroPuesto =
-    ((node.salario || 0) + (node.bonificacion || 0)) * multiplicador;
+  const salarioBase = node.salario || 0;
+  const bonificacionBase = node.bonificacion || 0;
+  const renglonLower = node.renglon ? node.renglon.toLowerCase() : "";
+
+  let totalFinancieroPuesto = 0;
+
+  // Si es renglon 031 (jornales), el salario se multiplica por unidades (días/horas)
+  // pero la bonificación es fija mensual (no se multiplica).
+  if (renglonLower.includes("031-dia") || renglonLower.includes("031-hora")) {
+    totalFinancieroPuesto = salarioBase * multiplicador + bonificacionBase;
+  } else {
+    // Para renglones estándar (011, 022, etc), asumimos que el multiplicador (si existe) aplica a todo
+    // o generalmente es 1, por lo que (S + B) * 1 funciona igual.
+    totalFinancieroPuesto = (salarioBase + bonificacionBase) * multiplicador;
+  }
+  // ---------------------------------------------
 
   const totalPresupuestoGeneral = node.totalPresupuesto || 0;
 

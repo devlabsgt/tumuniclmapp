@@ -98,7 +98,7 @@ export function useInfoUsuario(userId: string | null) {
       console.error("Error en useInfoUsuario:", err);
       setError("Error al cargar datos");
     } finally {
-      setCargando(false);
+      setCargando(false); 
     }
   }, [userId]);
 
