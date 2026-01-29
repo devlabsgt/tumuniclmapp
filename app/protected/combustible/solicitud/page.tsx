@@ -1,11 +1,11 @@
 import { Suspense } from 'react';
-import  Combustible from '@/components/combustible/GestorContratos';
+import  Solicitud from '@/components/combustible/solicitudes/GestorSolicitudes';
 import Cargando from '@/components/ui/animations/Cargando'; 
 
 export default function SignupPage() {
   return (
     <Suspense fallback={<Cargando />}> 
-      <Combustible />
+      <Solicitud />
     </Suspense>
   );
 }

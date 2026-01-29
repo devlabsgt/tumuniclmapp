@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
-import ContratoList from './ContratoList'
+import ContratoList from '@/components/combustible/contrato/ContratoList'
 
 export default async function GestorContratos() {
   const supabase = await createClient()

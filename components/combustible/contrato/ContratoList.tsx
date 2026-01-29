@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { ContratoExtendido } from '@/components/combustible/types' 
+import { ContratoExtendido } from '@/components/combustible/contrato/types' 
 import NuevoContrato from './modals/NuevoContrato'
 import { Fuel, Hash, AlertCircle, Calendar, Layers, Beaker, TrendingDown, Filter } from 'lucide-react'
 
