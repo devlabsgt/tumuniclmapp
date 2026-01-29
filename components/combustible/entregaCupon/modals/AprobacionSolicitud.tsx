@@ -67,8 +67,6 @@ const CouponSelect: React.FC<CouponSelectProps> = ({ value, onChange, options })
 
 export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solicitud }: Props) {
   const [loading, setLoading] = useState(false);
-  
-  // Modificado: Solo necesitamos 'menu' y 'aprobar'
   const [step, setStep] = useState<'menu' | 'aprobar'>('menu');
 
   const [tipoCombustible, setTipoCombustible] = useState<'Gasolina' | 'Diesel'>(
@@ -82,7 +80,17 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
     return solicitud.detalles?.reduce((acc, d) => acc + (d.kilometros_recorrer || 0), 0) || 0;
   }, [solicitud]);
 
-  // Cargar inventario SOLO si estamos en el paso de Aprobar
+  // --- NUEVO: Bloquear Scroll del Body cuando el modal está abierto ---
+  useEffect(() => {
+    if (isOpen) {
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.body.style.overflow = 'unset';
+    }
+    // Cleanup al desmontar
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isOpen]);
+
   useEffect(() => {
     if (step === 'aprobar') {
         const loadInventario = async () => {
@@ -123,7 +131,6 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
 
   const granTotal = useMemo(() => items.reduce((acc, curr) => acc + curr.total_valor, 0), [items]);
 
-  // --- ACCIÓN: APROBAR ---
   const handleSave = async () => {
     const itemsValidos = items.filter(i => i.detalle_contrato_id && i.cantidad_asignada > 0);
     if (itemsValidos.length === 0) return Swal.fire('Error', 'Debe registrar al menos un cupón válido', 'warning');
@@ -138,23 +145,20 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
 
     if (res.success) {
         Swal.fire({ title: '¡Aprobada!', text: 'Cupones asignados correctamente.', icon: 'success', timer: 1500, showConfirmButton: false });
-        // Asegurarse de enviar 'aprobado' (masculino) para coincidir con DB
         onSuccess('aprobado'); 
     } else {
         Swal.fire('Error', res.error || 'No se pudo guardar', 'error');
     }
   };
 
-  // --- ACCIÓN: RECHAZAR (Simplificada) ---
   const handleReject = async () => {
-      // 1. Confirmación visual simple
       const result = await Swal.fire({
           title: '¿Rechazar solicitud?',
           text: "Esta acción cambiará el estado a rechazado.",
           icon: 'warning',
           showCancelButton: true,
-          confirmButtonColor: '#ef4444', // Rojo
-          cancelButtonColor: '#3b82f6', // Azul
+          confirmButtonColor: '#ef4444',
+          cancelButtonColor: '#3b82f6',
           confirmButtonText: 'Sí, rechazar',
           cancelButtonText: 'Cancelar'
       });
@@ -162,15 +166,11 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
       if (!result.isConfirmed) return;
       
       setLoading(true);
-      // Enviamos string vacío como motivo, ya que se eliminó el campo en DB
-      // NOTA: Asegúrate de que en 'actions.ts' la función rechazarSolicitud 
-      // NO intente guardar este string en la base de datos si la columna no existe.
       const res = await rechazarSolicitud(solicitud.id, ''); 
       setLoading(false);
 
       if (res.success) {
           Swal.fire({ title: 'Rechazada', text: 'La solicitud ha sido rechazada.', icon: 'info', timer: 1500, showConfirmButton: false });
-          // Asegurarse de enviar 'rechazado' (masculino)
           onSuccess('rechazado'); 
       } else {
           Swal.fire('Error', res.error || 'No se pudo rechazar', 'error');
@@ -182,7 +182,6 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       
-      {/* CONTENEDOR MODAL */}
       <div className={`bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl flex flex-col border border-gray-200 dark:border-neutral-800 relative transition-all duration-300
           ${step === 'aprobar' ? 'w-full max-w-[95vw] h-[90vh]' : 'w-full max-w-2xl'}
       `}>
@@ -205,15 +204,12 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
           </button>
         </div>
 
-        {/* =================================================== */}
-        {/* PASO 1: MENÚ DE DECISIÓN */}
-        {/* =================================================== */}
+        {/* PASO 1: MENÚ */}
         {step === 'menu' && (
             <div className="p-10 flex flex-col gap-6 items-center justify-center min-h-[300px]">
                 <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-2">¿Qué acción desea realizar con esta solicitud?</h3>
                 
                 <div className="grid grid-cols-2 gap-6 w-full">
-                    {/* Botón APROBAR -> Va a la Tabla */}
                     <button 
                         onClick={() => setStep('aprobar')}
                         className="flex flex-col items-center justify-center gap-3 p-8 rounded-xl border-2 border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 hover:border-emerald-300 transition-all group"
@@ -225,7 +221,6 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
                         <span className="text-xs text-emerald-600/70 text-center">Asignar cupones y procesar entrega.</span>
                     </button>
 
-                    {/* Botón RECHAZAR -> Acción Directa */}
                     <button 
                         onClick={handleReject} 
                         className="flex flex-col items-center justify-center gap-3 p-8 rounded-xl border-2 border-red-100 dark:border-red-900/30 bg-red-50/50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/30 hover:border-red-300 transition-all group"
@@ -240,16 +235,33 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
             </div>
         )}
 
-        {/* =================================================== */}
-        {/* PASO 2: APROBAR FORMULARIO (Tabla de Cupones) */}
-        {/* =================================================== */}
+        {/* PASO 2: APROBAR (TABLA) */}
         {step === 'aprobar' && (
             <>
                 <div className="px-8 py-3 bg-gray-50 dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-800 flex justify-between items-center shrink-0">
                     <button onClick={() => setStep('menu')} className="text-sm font-bold text-blue-600 hover:underline flex items-center gap-1">← Cambiar decisión</button>
+                    
                     <div className="flex bg-white dark:bg-neutral-800 p-1 rounded-lg border border-gray-200 dark:border-neutral-700">
-                        <button onClick={() => setTipoCombustible('Gasolina')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${tipoCombustible === 'Gasolina' ? 'bg-gray-100 dark:bg-neutral-700 text-blue-600' : 'text-gray-500'}`}>Gasolina</button>
-                        <button onClick={() => setTipoCombustible('Diesel')} className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${tipoCombustible === 'Diesel' ? 'bg-gray-100 dark:bg-neutral-700 text-amber-600' : 'text-gray-500'}`}>Diesel</button>
+                        <button 
+                            onClick={() => setTipoCombustible('Gasolina')} 
+                            className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                                tipoCombustible === 'Gasolina' 
+                                ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 shadow-sm' 
+                                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                            }`}
+                        >
+                            Gasolina
+                        </button>
+                        <button 
+                            onClick={() => setTipoCombustible('Diesel')} 
+                            className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                                tipoCombustible === 'Diesel' 
+                                ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 shadow-sm' 
+                                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'
+                            }`}
+                        >
+                            Diesel
+                        </button>
                     </div>
                 </div>
 
@@ -268,14 +280,56 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
                                 {items.map((item, idx) => (
                                     <div key={idx} className="grid grid-cols-12 items-center px-4 py-3 gap-4 hover:bg-gray-50 dark:hover:bg-neutral-800/30 transition-colors group relative overflow-visible z-10">
                                         <div className="col-span-3 relative" style={{ zIndex: 50 - idx }}><CouponSelect value={item.detalle_contrato_id} options={inventario} onChange={(val) => updateItem(idx, 'detalle_contrato_id', val)} /></div>
-                                        <div className="col-span-2"><input type="number" className="w-full text-center font-bold text-gray-900 dark:text-white bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg py-2.5 focus:border-blue-500 outline-none" placeholder="0" value={item.cantidad_asignada > 0 ? item.cantidad_asignada : ''} onChange={(e) => updateItem(idx, 'cantidad_asignada', Number(e.target.value))} onFocus={(e) => e.target.select()} /></div>
-                                        <div className="col-span-2"><div className="relative"><input type="number" className="w-full text-center bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg py-2.5 focus:border-blue-500 outline-none" placeholder="Del..." value={item.correlativo_inicio > 0 ? item.correlativo_inicio : ''} onChange={(e) => updateItem(idx, 'correlativo_inicio', Number(e.target.value))} /><span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">#</span></div></div>
-                                        <div className="col-span-2"><div className="relative"><input type="number" className="w-full text-center bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg py-2.5 text-gray-500 font-medium cursor-not-allowed" placeholder="Al..." readOnly value={item.correlativo_fin > 0 ? item.correlativo_fin : ''} /><span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">#</span></div></div>
+                                        {/* CAMBIO: Se agregaron clases para ocultar flechas del input number */}
+                                        <div className="col-span-2">
+                                            <input 
+                                                type="number" 
+                                                className="w-full text-center font-bold text-gray-900 dark:text-white bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg py-2.5 focus:border-blue-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                                placeholder="0" 
+                                                value={item.cantidad_asignada > 0 ? item.cantidad_asignada : ''} 
+                                                onChange={(e) => updateItem(idx, 'cantidad_asignada', Number(e.target.value))} 
+                                                onFocus={(e) => e.target.select()} 
+                                            />
+                                        </div>
+                                        <div className="col-span-2">
+                                            <div className="relative">
+                                                <input 
+                                                    type="number" 
+                                                    className="w-full text-center bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded-lg py-2.5 focus:border-blue-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                                    placeholder="Del..." 
+                                                    value={item.correlativo_inicio > 0 ? item.correlativo_inicio : ''} 
+                                                    onChange={(e) => updateItem(idx, 'correlativo_inicio', Number(e.target.value))} 
+                                                />
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">#</span>
+                                            </div>
+                                        </div>
+                                        <div className="col-span-2">
+                                            <div className="relative">
+                                                <input 
+                                                    type="number" 
+                                                    className="w-full text-center bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg py-2.5 text-gray-500 font-medium cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                                    placeholder="Al..." 
+                                                    readOnly 
+                                                    value={item.correlativo_fin > 0 ? item.correlativo_fin : ''} 
+                                                />
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">#</span>
+                                            </div>
+                                        </div>
                                         <div className="col-span-2 text-right pr-4"><div className="font-mono font-bold text-lg text-gray-900 dark:text-white">Q{item.total_valor.toFixed(2)}</div></div>
                                         <div className="col-span-1 text-right pl-2"><button onClick={() => removeItem(idx)} className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div>
                                     </div>
                                 ))}
-                                <button onClick={addItem} className="w-full py-3 text-xs font-bold text-gray-400 dark:text-neutral-500 uppercase tracking-widest hover:bg-gray-50 hover:text-blue-500 transition-colors border-t border-dashed border-gray-200 dark:border-neutral-700">+ Agregar fila</button>
+                                
+                                <button 
+                                    onClick={addItem} 
+                                    className="w-full py-4 bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold uppercase tracking-widest transition-all border-t border-dashed border-blue-200 dark:border-blue-800 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 dark:text-blue-400 flex items-center justify-center gap-2 group"
+                                >
+                                    <div className="w-5 h-5 rounded-full border-2 border-current flex items-center justify-center text-[10px] group-hover:scale-110 transition-transform">
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                                    </div>
+                                    Agregar otra tipo de cupon
+                                </button>
+
                             </div>
                             <div className="bg-gray-50 dark:bg-neutral-800/80 p-6 border-t border-gray-200 dark:border-neutral-700 flex justify-end items-center rounded-b-xl gap-4">
                                 <span className="text-sm font-bold text-gray-500 uppercase">Total:</span>
@@ -286,8 +340,19 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
                 </div>
 
                 <div className="p-6 border-t border-gray-100 dark:border-neutral-800 flex justify-end gap-3 bg-white dark:bg-neutral-900 shrink-0 z-20 rounded-b-2xl">
-                   <button onClick={onClose} className="px-6 py-3 rounded-xl border border-gray-300 text-gray-700 font-bold text-sm hover:bg-gray-50">Cancelar</button>
-                   <button onClick={handleSave} disabled={loading} className="px-8 py-3 rounded-xl bg-slate-900 text-white font-bold text-sm shadow-xl flex items-center gap-2">{loading ? 'Procesando...' : 'Confirmar Entrega'}</button>
+                   <button 
+                        onClick={onClose} 
+                        className="px-6 py-3 rounded-xl border-2 border-red-100 text-red-600 font-bold text-sm hover:bg-red-50 hover:border-red-200 transition-colors dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
+                    >
+                        Cancelar
+                    </button>
+                   <button 
+                        onClick={handleSave} 
+                        disabled={loading} 
+                        className="px-8 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-xl shadow-emerald-200 dark:shadow-none flex items-center gap-2 transition-all transform active:scale-95"
+                    >
+                        {loading ? 'Procesando...' : 'Confirmar Entrega'}
+                    </button>
                 </div>
             </>
         )}

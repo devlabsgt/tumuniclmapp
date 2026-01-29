@@ -155,3 +155,76 @@ export const rechazarSolicitud = async (id: number, motivo: string) => {
   revalidatePath('/combustible/entregaCupon');
   return { success: true };
 };
+
+// ==========================================
+// 5. OBTENER DATOS PARA IMPRESIÓN (CORREGIDO)
+// ==========================================
+export const getDatosImpresion = async (solicitud_id: number) => {
+  const supabase = await createClient();
+
+  // A. Obtener el nombre del usuario en sesión (Quien está entregando el vale)
+  const { data: { user } } = await supabase.auth.getUser();
+  let nombreAprobador = 'Encargado de Combustibles'; // Valor por defecto
+
+  if (user) {
+    const { data: datosUser } = await supabase
+      .from('info_usuario')
+      .select('nombre')
+      .eq('user_id', user.id)
+      .single();
+    
+    if (datosUser?.nombre) {
+      nombreAprobador = datosUser.nombre;
+    }
+  }
+
+  // B. Obtener datos de la solicitud (AQUÍ AGREGAMOS "dpi")
+  const { data: solicitud, error: solError } = await supabase
+    .from('solicitud_combustible')
+    .select(`
+      id, created_at, placa, municipio_destino,
+      usuario:info_usuario ( nombre, dpi ), 
+      vehiculo:vehiculos ( modelo, tipo_combustible )
+    `)
+    .eq('id', solicitud_id)
+    .single();
+
+  if (solError || !solicitud) {
+    console.error("Error cargando solicitud:", solError);
+    return null;
+  }
+
+  // C. Obtener los cupones entregados
+  const { data: entregas, error: entError } = await supabase
+    .from('entrega_cupones')
+    .select(`
+      cantidad_entregada,
+      correlativo_inicio,
+      correlativo_fin,
+      detalle:DetalleContrato ( producto, denominacion )
+    `)
+    .eq('solicitud_id', solicitud_id);
+
+  if (entError) {
+    console.error("Error cargando entregas:", entError);
+    return null;
+  }
+
+  return {
+    ...solicitud,
+    aprobador: nombreAprobador, // <--- Enviamos el nombre del admin
+    items: entregas.map((e: any) => {
+      // Manejo seguro por si detalle viene como array
+      const det = Array.isArray(e.detalle) ? e.detalle[0] : e.detalle;
+      
+      return {
+        cantidad: e.cantidad_entregada,
+        producto: det?.producto || '---',
+        denominacion: det?.denominacion || 0,
+        inicio: e.correlativo_inicio,
+        fin: e.correlativo_fin,
+        subtotal: e.cantidad_entregada * (det?.denominacion || 0)
+      };
+    })
+  };
+};

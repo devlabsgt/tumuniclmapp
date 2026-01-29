@@ -43,12 +43,12 @@ export default function RequestManager() {
   };
 
   return (
-    <div className="p-6 w-[95%] max-w-[1450px] mx-auto min-h-screen bg-transparent transition-colors">
+    <div className="p-6 w-[97%] max-w-[1450px] mx-auto min-h-screen bg-transparent transition-colors">
         
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">Gestión de Combustible</h1>
+          <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">Mis Solicitudes de Combustible</h1>
           <p className="text-sm text-gray-500 dark:text-neutral-400 mt-1">Administre sus solicitudes y comisiones.</p>
         </div>
         

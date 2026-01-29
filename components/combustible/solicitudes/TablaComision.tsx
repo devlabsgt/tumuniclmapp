@@ -142,7 +142,7 @@ export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
           {/* KILOMETROS */}
           <div className="md:col-span-2">
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">
-              Kilómetros (Ida y Vuelta)
+              Kilómetros Estimado (Ida y Vuelta)
             </label>
             <div className="relative">
               <input 
