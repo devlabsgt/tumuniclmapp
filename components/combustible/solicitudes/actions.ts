@@ -119,28 +119,27 @@ export const saveSolicitud = async (input: CreateSolicitudPayload) => {
 };
 
 // ==========================================
-// 4. ELIMINAR SOLICITUD (CORREGIDO)
+// 4. ELIMINAR SOLICITUD
 // ==========================================
 export const deleteSolicitud = async (id: number) => {
   const supabase = await createClient();
 
-  // 1. Borrar cabecera (La nueva política ahora permitirá esto)
+  // 1. Borrar cabecera
   const { data, error } = await supabase
     .from('solicitud_combustible')
     .delete()
     .eq('id', id)
-    .select(); // Devuelve un array con el registro eliminado
+    .select(); 
 
   if (error) {
     throw new Error(`Error al eliminar solicitud: ${error.message}`);
   }
 
-  // 2. Verificar si realmente se borró (si el array está vacío, falló el RLS)
   if (!data || data.length === 0) {
     throw new Error("No tienes permisos para eliminar esta solicitud o ya no existe.");
   }
 
-  // 3. Limpieza manual de detalles (itinerario)
+  // 2. Limpieza manual de detalles
   await supabase
     .from('datos_comision_combustible')
     .delete()
@@ -209,4 +208,122 @@ export const updateSolicitud = async (idSolicitud: number, payload: CreateSolici
       if (errInsert) throw new Error(errInsert.message);
   }
   return { success: true };
+};
+
+// ==========================================
+// 5. OBTENER DATOS PARA IMPRESIÓN (PDF)
+// ==========================================
+export const getDatosSolicitudImpresion = async (id: number) => {
+  const supabase = await createClient();
+
+  // 1. Obtener la solicitud
+  const { data: solicitud, error: solError } = await supabase
+    .from('solicitud_combustible')
+    .select(`
+      *,
+      vehiculo:vehiculos ( * ),
+      detalles:datos_comision_combustible ( * )
+    `)
+    .eq('id', id)
+    .single();
+
+  if (solError || !solicitud) return null;
+
+  // 2. Obtener información del solicitante (INCLUYENDO DPI)
+  let nombreSolicitante = '---';
+  let dpiSolicitante = ''; // Variable para el DPI
+  let unidadDireccion = '---';
+
+  if (solicitud.user_id) {
+    const { data: usuario, error: userError } = await supabase
+      .from('info_usuario')
+      // AQUI AGREGAMOS "dpi" AL SELECT
+      .select('nombre, dpi, dependencia_id')
+      .eq('user_id', solicitud.user_id)
+      .single();
+
+    if (!userError && usuario) {
+      nombreSolicitante = usuario.nombre;
+      dpiSolicitante = usuario.dpi || ''; // Guardamos el DPI
+      
+      if (usuario.dependencia_id) {
+        const { data: dep } = await supabase
+          .from('dependencias')
+          .select(`nombre, padre:parent_id ( nombre )`)
+          .eq('id', usuario.dependencia_id)
+          .single();
+
+        if (dep) {
+          const nombreDep = dep.nombre;
+          const padreObj = Array.isArray(dep.padre) ? dep.padre[0] : dep.padre;
+          const nombrePadre = padreObj?.nombre;
+          unidadDireccion = nombrePadre ? `${nombrePadre} / ${nombreDep}` : nombreDep;
+        }
+      }
+    }
+  }
+
+  // 3. Obtener Cupones y ENCARGADO
+  const { data: entregas } = await supabase
+    .from('entrega_cupones')
+    .select(`
+      cantidad_entregada,
+      correlativo_inicio,
+      correlativo_fin,
+      encargado, 
+      detalle:detalle_contrato_id ( producto, denominacion ) 
+    `) 
+    .eq('solicitud_id', id);
+
+  // Lógica Aprobador
+  let nombreAprobador = ''; 
+  if (entregas && entregas.length > 0) {
+    const encargadoId = entregas[0].encargado; 
+    if (encargadoId) {
+      const { data: datosEncargado } = await supabase
+        .from('info_usuario')
+        .select('nombre')
+        .eq('user_id', encargadoId)
+        .single();
+      
+      if (datosEncargado?.nombre) {
+        nombreAprobador = datosEncargado.nombre;
+      }
+    }
+  }
+
+  const itemsCupones = (entregas || []).map((e: any) => {
+    const det = Array.isArray(e.detalle) ? e.detalle[0] : e.detalle;
+    return {
+      cantidad: e.cantidad_entregada,
+      producto: det?.producto || '',
+      denominacion: det?.denominacion || 0,
+      inicio: e.correlativo_inicio,
+      fin: e.correlativo_fin,
+      subtotal: e.cantidad_entregada * (det?.denominacion || 0)
+    };
+  });
+
+  const vehiculoData = Array.isArray(solicitud.vehiculo) ? solicitud.vehiculo[0] : solicitud.vehiculo;
+
+  return {
+    id: solicitud.id,
+    created_at: solicitud.created_at,
+    municipio_destino: solicitud.municipio_destino,
+    departamento_destino: solicitud.departamento_destino,
+    kilometraje_inicial: solicitud.kilometraje_inicial,
+    justificacion: solicitud.justificacion,
+    solicitante_nombre: nombreSolicitante,
+    solicitante_dpi: dpiSolicitante, // <--- Retornamos el DPI
+    unidad_direccion: unidadDireccion,
+    aprobador: nombreAprobador,
+    vehiculo: {
+      tipo: vehiculoData?.tipo_vehiculo || '---',
+      placa: vehiculoData?.placa || '---',
+      modelo: vehiculoData?.modelo || '---',
+      combustible: vehiculoData?.tipo_combustible || '---'
+    },
+    detalles: solicitud.detalles || [],
+    cupones: itemsCupones
+  };
 };

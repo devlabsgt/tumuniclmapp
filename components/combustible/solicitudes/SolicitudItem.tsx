@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { SolicitudCombustible } from './types';
 import { deleteSolicitud } from './actions';
+import SolicitudPrintModal from './modals/InformeEntregaCupones'; // <--- IMPORTACIÓN DEL MODAL
 import Swal from 'sweetalert2';
 import { 
   ChevronDown, 
@@ -15,7 +16,8 @@ import {
   XCircle,
   Edit,
   Trash2,
-  Calendar
+  Calendar,
+  Printer // <--- IMPORTACIÓN ICONO
 } from 'lucide-react';
 
 interface Props {
@@ -28,6 +30,7 @@ interface Props {
 
 export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand, onRefresh, onEdit }) => {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false); // <--- ESTADO PARA EL MODAL
 
   // --- LÓGICA INTERNA Y CÁLCULOS ---
   const totalKilometros = sol.detalles?.reduce((acc, curr) => acc + (Number(curr.kilometros_recorrer) || 0), 0) || 0;
@@ -137,7 +140,14 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
       onEdit(sol);
   };
 
+  // Nuevo Handler para Imprimir
+  const handlePrint = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setShowPrintModal(true);
+  };
+
   return (
+    <>
     <div className={`
         group w-full bg-white dark:bg-neutral-900 rounded-2xl border transition-all duration-300 overflow-hidden
         ${isExpanded 
@@ -208,6 +218,19 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
                                 ) : (
                                     <Trash2 size={18} />
                                 )}
+                            </button>
+                        </div>
+                    )}
+
+                    {/* BOTÓN DE IMPRESIÓN (Solo si aprobado) */}
+                    {sol.estado === 'aprobado' && (
+                         <div className="mr-2">
+                            <button 
+                                onClick={handlePrint}
+                                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-full transition-all"
+                                title="Imprimir Solicitud"
+                            >
+                                <Printer size={18} />
                             </button>
                         </div>
                     )}
@@ -363,5 +386,15 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
             </div>
         </div>
     </div>
+    
+    {/* RENDERIZADO DEL MODAL DE IMPRESIÓN */}
+    {showPrintModal && (
+        <SolicitudPrintModal 
+            isOpen={showPrintModal} 
+            onClose={() => setShowPrintModal(false)} 
+            solicitudId={sol.id} 
+        />
+    )}
+    </>
   );
 };

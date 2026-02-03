@@ -6,8 +6,11 @@ import { useSolicitudes } from './lib/hooks';
 import { SolicitudEntrega } from './lib/schemas';
 import { EntregaItem } from './EntregaItem';
 import AprobacionSolicitud from './modals/AprobacionSolicitud'; 
-import InformeEntregaCupon from './modals/InformeEntregaCupon'; 
-import { Search, Calendar as CalendarIcon, SearchX, CalendarDays } from 'lucide-react'; 
+// IMPORTANTE: Importamos el nuevo modal de previsualización
+import InformeMensualModal from './modals/InformeMensual'; 
+import { Search, Calendar as CalendarIcon, SearchX, CalendarDays, FileDown, Loader2 } from 'lucide-react'; 
+import { getDatosReporteMensual } from './lib/actions';
+import Swal from 'sweetalert2';
 
 // --- UTILIDADES DE FECHA ---
 const MESES = [ 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre' ];
@@ -19,7 +22,6 @@ const formatearFechaCorta = (fecha: Date) => {
   return `${fecha.getDate()} ${MESES_ABREV[fecha.getMonth()]}`;
 };
 
-// Función para el encabezado de grupo (ej: MARTES 27)
 const formatearEncabezadoGrupo = (fechaStr: string) => {
     if (!fechaStr) return 'FECHA DESCONOCIDA';
     const fecha = new Date(fechaStr);
@@ -41,7 +43,6 @@ const obtenerSemanas = (mes: number, anio: number) => {
   });
 };
 
-// --- ESTILOS DE PESTAÑAS ---
 const TAB_STYLES: Record<string, { active: string, inactive: string, badge: string }> = {
   'pendiente': { active: 'bg-amber-500 text-white', inactive: 'text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400', badge: 'bg-amber-100 text-amber-700' },
   'aprobado': { active: 'bg-emerald-600 text-white', inactive: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400', badge: 'bg-emerald-100 text-emerald-700' },
@@ -55,13 +56,15 @@ interface Props {
 export default function ListSolicitud({ initialData }: Props) {
   const { solicitudes, loading, refresh, updateLocalSolicitud } = useSolicitudes(initialData);
   const [isMounted, setIsMounted] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
   
   // Estados para modales
   const [selectedSolicitud, setSelectedSolicitud] = useState<SolicitudEntrega | null>(null);
-  const [printId, setPrintId] = useState<number | null>(null);
-
-  // NUEVO: Estado para controlar qué acordeón está abierto (Solo uno a la vez)
   const [expandedId, setExpandedId] = useState<number | null>(null);
+
+  // NUEVOS ESTADOS PARA PREVISUALIZACIÓN MENSUAL
+  const [datosReporte, setDatosReporte] = useState<any>(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // Filtros
   const [filtroEstado, setFiltroEstado] = useState(''); 
@@ -85,19 +88,35 @@ export default function ListSolicitud({ initialData }: Props) {
     setSemanaSeleccionada(-1);
   }, [mesSeleccionado, anioSeleccionado]);
 
-  // NUEVO: Función para alternar el acordeón
   const handleToggle = (id: number) => {
     setExpandedId(prevId => (prevId === id ? null : id));
   };
 
-  // Filtro Base
+  const handlePrevisualizarReporte = async () => {
+    try {
+        setReportLoading(true);
+        const datos = await getDatosReporteMensual(mesSeleccionado, anioSeleccionado);
+        
+        if (Object.keys(datos).length === 0) {
+            Swal.fire('Sin registros', 'No hay solicitudes aprobadas para las oficinas en este periodo.', 'info');
+            return;
+        }
+
+        setDatosReporte(datos);
+        setIsReportModalOpen(true);
+    } catch (error) {
+        console.error(error);
+        Swal.fire('Error', 'No se pudo cargar la previsualización del reporte.', 'error');
+    } finally {
+        setReportLoading(false);
+    }
+  };
+
   const baseFilteredSolicitudes = useMemo(() => {
     if (!isMounted) return [];
-
     return solicitudes.filter(s => {
         if (!s.created_at) return false;
         const sDate = new Date(s.created_at);
-        
         let coincideFecha = false;
         if (semanaSeleccionada !== -1) {
             const sem = semanasDisponibles[semanaSeleccionada];
@@ -107,14 +126,12 @@ export default function ListSolicitud({ initialData }: Props) {
         } else {
             coincideFecha = sDate.getMonth() === mesSeleccionado && sDate.getFullYear() === anioSeleccionado;
         }
-
         const lowerTerm = searchTerm.toLowerCase();
-        const coincideBusqueda = 
+        return coincideFecha && (
             s.placa.toLowerCase().includes(lowerTerm) ||
             s.municipio_destino.toLowerCase().includes(lowerTerm) ||
-            (s.usuario?.nombre || '').toLowerCase().includes(lowerTerm);
-
-        return coincideFecha && coincideBusqueda;
+            (s.usuario?.nombre || '').toLowerCase().includes(lowerTerm)
+        );
     });
   }, [solicitudes, mesSeleccionado, anioSeleccionado, semanaSeleccionada, semanasDisponibles, searchTerm, isMounted]);
 
@@ -127,27 +144,17 @@ export default function ListSolicitud({ initialData }: Props) {
   const pestañas = ['pendiente', 'aprobado', 'rechazado'];
   
   const listaVisual = useMemo(() => {
-      return baseFilteredSolicitudes.filter(s => {
-          if (filtroEstado === '') return true;
-          return s.estado === filtroEstado;
-      });
+      return baseFilteredSolicitudes.filter(s => filtroEstado === '' ? true : s.estado === filtroEstado);
   }, [baseFilteredSolicitudes, filtroEstado]);
 
-  // Agrupación por fecha
   const groupedSolicitudes = useMemo(() => {
       const groups: Record<string, SolicitudEntrega[]> = {};
-      
       listaVisual.forEach(sol => {
           if (!sol.created_at) return;
-          const date = new Date(sol.created_at);
-          const key = date.toLocaleDateString('en-CA'); 
-          
-          if (!groups[key]) {
-              groups[key] = [];
-          }
+          const key = new Date(sol.created_at).toLocaleDateString('en-CA'); 
+          if (!groups[key]) groups[key] = [];
           groups[key].push(sol);
       });
-
       return Object.entries(groups)
           .sort(([dateA], [dateB]) => dateB.localeCompare(dateA))
           .map(([date, items]) => ({
@@ -170,7 +177,6 @@ export default function ListSolicitud({ initialData }: Props) {
   return (
     <div className="space-y-6 w-[91%] mx-auto animate-in fade-in duration-500 mt-7">
       
-      {/* --- HEADER Y CONTROLES --- */}
       <div className="flex flex-col gap-6 mb-2">
             <div>
                 <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Gestión de Cupones de Combustible</h1>
@@ -210,6 +216,16 @@ export default function ListSolicitud({ initialData }: Props) {
                     </div>
 
                     <div className="flex flex-wrap sm:flex-nowrap gap-2 shrink-0">
+                        <button 
+                            onClick={handlePrevisualizarReporte}
+                            disabled={reportLoading}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-neutral-800 transition-all disabled:opacity-50 shadow-sm"
+                            title="Previsualizar informe mensual por oficinas"
+                        >
+                            {reportLoading ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} className="text-blue-500" />}
+                            <span className="hidden md:inline">INFORME MENSUAL</span>
+                        </button>
+
                         <div className="relative">
                             <select value={anioSeleccionado} onChange={(e) => setAnioSeleccionado(Number(e.target.value))} className="pl-4 pr-8 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200 appearance-none">
                                 {ANIOS.map(a => <option key={a} value={a}>{a}</option>)}
@@ -243,9 +259,7 @@ export default function ListSolicitud({ initialData }: Props) {
             </div>
       </div>
 
-      {/* --- LISTA DE RESULTADOS AGRUPADA --- */}
       <div className="flex flex-col pb-20">
-        
         <div className="text-slate-500 dark:text-slate-400 text-sm font-semibold ml-1 mb-4">
             Total mostradas: {listaVisual.length} solicitudes
         </div>
@@ -257,16 +271,14 @@ export default function ListSolicitud({ initialData }: Props) {
                         <CalendarDays size={14} className="text-slate-400 dark:text-slate-500" />
                         {group.displayDate}
                     </div>
-
                     <div className="flex flex-col gap-4">
                         {group.items.map((sol) => (
                             <EntregaItem 
                                 key={sol.id} 
                                 sol={sol} 
-                                isOpen={expandedId === sol.id} // Controlado por el padre
-                                onToggle={() => handleToggle(sol.id)} // Función de control
+                                isOpen={expandedId === sol.id} 
+                                onToggle={() => handleToggle(sol.id)} 
                                 onClick={(item) => setSelectedSolicitud(item)}
-                                onPrint={(item) => setPrintId(item.id)}
                             />
                         ))}
                     </div>
@@ -281,7 +293,6 @@ export default function ListSolicitud({ initialData }: Props) {
         )}
       </div>
 
-      {/* --- MODALES --- */}
       {selectedSolicitud && (
         <AprobacionSolicitud 
             isOpen={!!selectedSolicitud}
@@ -291,11 +302,17 @@ export default function ListSolicitud({ initialData }: Props) {
         />
       )}
 
-      <InformeEntregaCupon 
-          isOpen={!!printId}
-          onClose={() => setPrintId(null)}
-          solicitudId={printId}
-      />
+      {datosReporte && (
+          <InformeMensualModal 
+              isOpen={isReportModalOpen}
+              onClose={() => {
+                  setIsReportModalOpen(false);
+                  setDatosReporte(null);
+              }}
+              datos={datosReporte}
+              mesNombre={MESES[mesSeleccionado]}
+          />
+      )}
     </div>
   );
 }

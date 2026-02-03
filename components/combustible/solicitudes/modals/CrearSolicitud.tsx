@@ -90,9 +90,15 @@ export const CreateRequestModal: React.FC<Props> = ({
   const handleSubmit = async () => {
     if (loading || !user?.user_id) return;
 
-    // --- NUEVA VALIDACIÓN: Verificar itinerario ---
+    // --- VALIDACIÓN: Verificar itinerario ---
     if (comisiones.length === 0) {
         toast.warning('Debe registrar al menos un recorrido en el itinerario.');
+        return;
+    }
+
+    // --- VALIDACIÓN: Verificar Justificación (NUEVO) ---
+    if (!justificacion.trim()) {
+        toast.warning('La justificación es obligatoria.');
         return;
     }
     // ----------------------------------------------
@@ -202,7 +208,7 @@ export const CreateRequestModal: React.FC<Props> = ({
 
                             <div className="space-y-2">
                                 <label className="block text-[10px] font-bold text-gray-500 dark:text-neutral-400 uppercase tracking-widest ml-1">
-                                    Justificación del Viaje
+                                    Justificación del Viaje <span className="text-red-500">*</span>
                                 </label>
                                 <textarea
                                     value={justificacion}
@@ -233,11 +239,11 @@ export const CreateRequestModal: React.FC<Props> = ({
 
                 <button 
                     onClick={currentStep === totalSteps ? handleSubmit : nextStep} 
-                    // --- NUEVA LÓGICA DE DESHABILITADO ---
+                    // --- NUEVA LÓGICA DE DESHABILITADO (Justificación obligatoria) ---
                     disabled={
                         loading || 
                         (currentStep === 2 && !vehiculo.placa) || 
-                        (currentStep === 3 && comisiones.length === 0)
+                        (currentStep === 3 && (comisiones.length === 0 || !justificacion.trim()))
                     }
                     // -------------------------------------
                     className={`
