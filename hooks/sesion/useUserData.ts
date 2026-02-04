@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import { createClient } from '@/utils/supabase/client';
+import { useQuery } from "@tanstack/react-query";
+import { createClient } from "@/utils/supabase/client";
 
 interface UserData {
   userId: string | null;
@@ -20,23 +20,20 @@ interface UserData {
   dependencia_id: string | null;
 }
 
-// Función fetcher separada (buena práctica)
 async function fetchUserSession() {
   const supabase = createClient();
-  
-  // 1. Verificar sesión básica
-  const { data: { user } } = await supabase.auth.getUser();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return null;
 
-  // 2. Traer datos completos con el RPC
-  const { data, error } = await supabase.rpc('usuario_sesion');
-  
+  const { data, error } = await supabase.rpc("usuario_sesion");
+
   if (error || !data || !data[0]) {
-    // Si hay error en RPC pero hay usuario, retornamos info básica
     return {
       id: user.id,
       email: user.email,
-      // Resto vacío
     };
   }
 
@@ -45,20 +42,20 @@ async function fetchUserSession() {
 
 export default function useUserData(): UserData {
   const { data, isLoading } = useQuery({
-    queryKey: ['userSession'], // Clave única para el caché
+    queryKey: ["userSession"],
     queryFn: fetchUserSession,
-    staleTime: 1000 * 60 * 30, // 30 MINUTOS de vida útil (Esto es lo que te ahorra dinero)
-    gcTime: 1000 * 60 * 60,    // 1 Hora en basura antes de borrar
-    retry: false,              // No reintentar si falla (ahorra llamadas)
-    refetchOnWindowFocus: false, // No recargar si cambias de ventana
+    staleTime: 1000 * 60 * 60,
+    gcTime: 1000 * 60 * 120,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
-  // Mapear los datos para mantener la estructura que tu app espera
   return {
     userId: data?.id || null,
-    nombre: data?.nombre || '',
-    email: data?.email || '',
-    rol: data?.rol || '',
+    nombre: data?.nombre || "",
+    email: data?.email || "",
+    rol: data?.rol || "",
     esjefe: data?.esjefe || false,
     permisos: data?.permisos || [],
     modulos: data?.modulos || [],
