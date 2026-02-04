@@ -1,70 +1,80 @@
-import { NextResponse, type NextRequest } from 'next/server'
-import { createClient } from '@/utils/supabase/proxy'
+import { NextResponse, type NextRequest } from "next/server";
+import { createClient } from "@/utils/supabase/proxy";
 
-export async function proxy(request: NextRequest) {
-  const { supabase, response } = createClient(request)
-  const { data: { user } } = await supabase.auth.getUser();
+export async function middleware(request: NextRequest) {
+  const { supabase, response } = createClient(request);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const isProtectedRoute = request.nextUrl.pathname.startsWith('/protected');
+  const isProtectedRoute = request.nextUrl.pathname.startsWith("/protected");
 
   if (!user && isProtectedRoute) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL("/", request.url));
   }
-  
+
   if (user && isProtectedRoute) {
-      const { data: relacion, error: errorRol } = await supabase
-        .from("usuarios_roles")
-        .select("roles(nombre)")
-        .eq("user_id", user.id)
-        .maybeSingle();
+    const { data: relacion, error: errorRol } = await supabase
+      .from("usuarios_roles")
+      .select("roles(nombre)")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-      if (errorRol) {
-        return response;
-      }
-      
-      const rolNombre = (relacion?.roles as any)?.nombre ?? null;
+    if (errorRol) {
+      return response;
+    }
 
-      if (
-        request.nextUrl.pathname.startsWith("/protected/admin/configs") &&
-        rolNombre !== "SUPER"
-      ) {
-        return NextResponse.redirect(new URL("/unauthorized", request.url));
-      }
+    const rolNombre = (relacion?.roles as any)?.nombre ?? null;
 
-      const rolesPermitidosAdmin = ["SUPER", "ADMINISTRADOR", "SECRETARIO", "INVITADO", "ALCALDE", "CONCEJAL", "RRHH"];
+    if (
+      request.nextUrl.pathname.startsWith("/protected/admin/configs") &&
+      rolNombre !== "SUPER"
+    ) {
+      return NextResponse.redirect(new URL("/unauthorized", request.url));
+    }
 
-      if (
-        request.nextUrl.pathname.startsWith("/protected/admin") &&
-        !rolesPermitidosAdmin.includes(rolNombre)
-      ) {
-        return NextResponse.redirect(new URL("/unauthorized", request.url));
-      }
+    const rolesPermitidosAdmin = [
+      "SUPER",
+      "ADMINISTRADOR",
+      "SECRETARIO",
+      "INVITADO",
+      "ALCALDE",
+      "CONCEJAL",
+      "RRHH",
+    ];
+
+    if (
+      request.nextUrl.pathname.startsWith("/protected/admin") &&
+      !rolesPermitidosAdmin.includes(rolNombre)
+    ) {
+      return NextResponse.redirect(new URL("/unauthorized", request.url));
+    }
   }
-  
+
   if (user && request.nextUrl.pathname === "/") {
-      const { data: relacion } = await supabase
-        .from("usuarios_roles")
-        .select('roles(nombre)')
-        .eq("user_id", user.id)
-        .maybeSingle();
-        
-      const rolNombre = (relacion?.roles as any)?.nombre ?? null;
-      const rolesAdmin = ["ADMINISTRADOR", "SUPER", "SECRETARIO", "RRHH"];
+    const { data: relacion } = await supabase
+      .from("usuarios_roles")
+      .select("roles(nombre)")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-      const destino = rolesAdmin.includes(rolNombre)
-          ? "/protected/admin"
-          : "/protected/user";
-          
-      return NextResponse.redirect(new URL(destino, request.url));
+    const rolNombre = (relacion?.roles as any)?.nombre ?? null;
+    const rolesAdmin = ["ADMINISTRADOR", "SUPER", "SECRETARIO", "RRHH"];
+
+    const destino = rolesAdmin.includes(rolNombre)
+      ? "/protected/admin"
+      : "/protected/user";
+
+    return NextResponse.redirect(new URL(destino, request.url));
   }
 
-  response.headers.set('x-pathname', request.nextUrl.pathname);
+  response.headers.set("x-pathname", request.nextUrl.pathname);
 
   return response;
 }
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|csv|xlsx|woff|woff2|tff|otf|js|css)$).*)",
   ],
-}
+};
