@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { createClient } from '@/utils/supabase/client';
 
 interface UserData {
@@ -9,7 +8,7 @@ interface UserData {
   nombre: string;
   email: string;
   rol: string;
-  esjefe: boolean; 
+  esjefe: boolean;
   permisos: string[];
   modulos: string[];
   programas: string[];
@@ -18,106 +17,57 @@ interface UserData {
   horario_dias: number[] | null;
   horario_entrada: string | null;
   horario_salida: string | null;
-  dependencia_id: string | null; 
+  dependencia_id: string | null;
+}
+
+// Función fetcher separada (buena práctica)
+async function fetchUserSession() {
+  const supabase = createClient();
+  
+  // 1. Verificar sesión básica
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  // 2. Traer datos completos con el RPC
+  const { data, error } = await supabase.rpc('usuario_sesion');
+  
+  if (error || !data || !data[0]) {
+    // Si hay error en RPC pero hay usuario, retornamos info básica
+    return {
+      id: user.id,
+      email: user.email,
+      // Resto vacío
+    };
+  }
+
+  return data[0];
 }
 
 export default function useUserData(): UserData {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [nombre, setNombre] = useState('');
-  const [email, setEmail] = useState('');
-  const [rol, setRol] = useState('');
-  const [esjefe, setEsJefe] = useState(false); 
-  const [permisos, setPermisos] = useState<string[]>([]);
-  const [modulos, setModulos] = useState<string[]>([]);
-  const [programas, setProgramas] = useState<string[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [horario_nombre, setHorarioNombre] = useState<string | null>(null);
-  const [horario_dias, setHorarioDias] = useState<number[] | null>(null);
-  const [horario_entrada, setHorarioEntrada] = useState<string | null>(null);
-  const [horario_salida, setHorarioSalida] = useState<string | null>(null);
-  const [dependencia_id, setDependenciaId] = useState<string | null>(null); 
-  
-  const pathname = usePathname(); 
+  const { data, isLoading } = useQuery({
+    queryKey: ['userSession'], // Clave única para el caché
+    queryFn: fetchUserSession,
+    staleTime: 1000 * 60 * 30, // 30 MINUTOS de vida útil (Esto es lo que te ahorra dinero)
+    gcTime: 1000 * 60 * 60,    // 1 Hora en basura antes de borrar
+    retry: false,              // No reintentar si falla (ahorra llamadas)
+    refetchOnWindowFocus: false, // No recargar si cambias de ventana
+  });
 
-  useEffect(() => {
-    const obtenerUsuario = async () => {
-      const supabase = createClient();
-      setCargando(true);
-      
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (user) {
-        const { data: userData, error: dataError } = await supabase.rpc('usuario_sesion');
-
-        if (dataError || !userData || !userData[0]) {
-          setUserId(user.id);
-          setEmail(user.email || '');
-          setNombre('');
-          setRol('');
-          setEsJefe(false); 
-          setPermisos([]);
-          setModulos([]);
-          setProgramas([]);
-          setHorarioNombre(null);
-          setHorarioDias(null);
-          setHorarioEntrada(null);
-          setHorarioSalida(null);
-          setDependenciaId(null); 
-
-          
-        } else {
-          const resultado = userData[0];
-          setUserId(resultado.id || null);
-          setNombre(resultado.nombre || '');
-          setEmail(resultado.email || ''); 
-          setRol(resultado.rol || '');
-          setEsJefe(resultado.esjefe || false); 
-          setPermisos(resultado.permisos || []);
-          setModulos(resultado.modulos || []);
-          setProgramas(resultado.programas || []);
-          setHorarioNombre(resultado.horario_nombre || null);
-          setHorarioDias(resultado.horario_dias || null);
-          setHorarioEntrada(resultado.horario_entrada || null);
-          setHorarioSalida(resultado.horario_salida || null);
-          setDependenciaId(resultado.dependencia_id || null); 
-
-        }
-      } else {
-        setUserId(null);
-        setNombre('');
-        setEmail('');
-        setRol('');
-        setEsJefe(false); 
-        setPermisos([]);
-        setModulos([]);
-        setProgramas([]);
-        setHorarioNombre(null);
-        setHorarioDias(null);
-        setHorarioEntrada(null);
-        setHorarioSalida(null);
-        setDependenciaId(null);
-        
-      }
-      setCargando(false);
-    };
-
-    obtenerUsuario();
-  }, [pathname]); 
-
-  return { 
-    userId, 
-    nombre, 
-    email, 
-    rol, 
-    esjefe,
-    permisos, 
-    modulos, 
-    programas, 
-    cargando, 
-    horario_nombre, 
-    horario_dias, 
-    horario_entrada, 
-    horario_salida,
-    dependencia_id 
+  // Mapear los datos para mantener la estructura que tu app espera
+  return {
+    userId: data?.id || null,
+    nombre: data?.nombre || '',
+    email: data?.email || '',
+    rol: data?.rol || '',
+    esjefe: data?.esjefe || false,
+    permisos: data?.permisos || [],
+    modulos: data?.modulos || [],
+    programas: data?.programas || [],
+    cargando: isLoading,
+    horario_nombre: data?.horario_nombre || null,
+    horario_dias: data?.horario_dias || null,
+    horario_entrada: data?.horario_entrada || null,
+    horario_salida: data?.horario_salida || null,
+    dependencia_id: data?.dependencia_id || null,
   };
 }
