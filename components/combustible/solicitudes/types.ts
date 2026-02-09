@@ -40,7 +40,9 @@ export interface SolicitudCombustible {
   kilometraje_inicial: number;
   justificacion: string;
   estado: 'pendiente' | 'aprobado' | 'rechazado';
+  correlativo?: number | null;
   detalles: DetalleComision[];
   vehiculo?: Vehiculo; // Join
   usuario?: UsuarioInfo; // Join
+  solvente?: boolean | null;
 }

@@ -26,6 +26,7 @@ interface DatosSolicitud {
   solicitante_dpi: string;
   unidad_direccion: string;
   aprobador: string; 
+  correlativo?: number | null; // <--- 1. AGREGADO EN LA INTERFAZ
   vehiculo: {
     tipo: string;
     placa: string;
@@ -172,7 +173,15 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                                     Departamento de Chiquimula, Guatemala C.A.
                                 </p>
                             </div>
-                            <div className="w-1/4 flex justify-end"></div>
+                            
+                            {/* --- 2. MODIFICACIÓN DEL CORRELATIVO --- */}
+                            <div className="w-1/4 flex justify-end items-center pr-2">
+                                <h3 className="text-lg font-black text-red-600 font-mono">
+                                    No. {datos.correlativo || '---'}
+                                </h3>
+                            </div>
+                            {/* -------------------------------------- */}
+
                         </div>
 
                         {/* === TÍTULO === */}

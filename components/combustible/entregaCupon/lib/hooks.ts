@@ -1,41 +1,34 @@
-'use client'
+"use client";
 
-import { useState, useCallback } from 'react'; 
-import { getSolicitudesParaEntrega } from './actions'; 
-import { SolicitudEntrega } from './schemas'; 
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getSolicitudesParaEntrega } from "./actions";
+import { SolicitudEntrega } from "./schemas";
 
 export const useSolicitudes = (initialData: SolicitudEntrega[] = []) => {
-  
-  // Inicializamos el estado con esa data que viene del servidor
-  const [solicitudes, setSolicitudes] = useState<SolicitudEntrega[]>(initialData);
-  
-  // Si ya tenemos data inicial, no estamos "cargando".
-  const [loading, setLoading] = useState(false); 
+  const queryClient = useQueryClient();
+  const queryKey = ["solicitudes-entrega"];
 
-  const fetchSolicitudes = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await getSolicitudesParaEntrega();
-      setSolicitudes(data);
-    } catch (error) {
-      console.error("Error en hook:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: queryKey,
+    queryFn: getSolicitudesParaEntrega,
+    // Si pasas data inicial (SSR), TanStack la usa como punto de partida
+    initialData: initialData.length > 0 ? initialData : undefined,
+  });
 
-  // --- NUEVA FUNCIÓN: Actualización Local Inmediata (Optimistic UI) ---
-  // Permite modificar una solicitud específica en la lista localmente
   const updateLocalSolicitud = (id: number, fields: Partial<SolicitudEntrega>) => {
-    setSolicitudes(prev => prev.map(sol => 
+    queryClient.setQueryData<SolicitudEntrega[]>(queryKey, (oldData) => {
+      if (!oldData) return [];
+      
+      return oldData.map((sol) =>
         sol.id === id ? { ...sol, ...fields } : sol
-    ));
+      );
+    });
   };
 
   return {
-    solicitudes,
-    loading,
-    refresh: fetchSolicitudes,
-    updateLocalSolicitud // <--- Exportamos la nueva función
+    solicitudes: data || [],
+    loading: isLoading,
+    refresh: refetch,
+    updateLocalSolicitud,
   };
 };

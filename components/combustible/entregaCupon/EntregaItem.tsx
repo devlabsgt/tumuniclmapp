@@ -12,23 +12,21 @@ import {
   Clock, 
   XCircle,
   Printer,
-  Calendar 
+  Calendar,
+  FileSignature // Importado para el icono de validar
 } from 'lucide-react';
 
 interface Props {
   sol: SolicitudEntrega;
-  // --- NUEVAS PROPS PARA EL ACORDEÓN CONTROLADO ---
   isOpen: boolean;
   onToggle: () => void;
-  // ------------------------------------------------
   onClick?: (sol: SolicitudEntrega) => void;
   onPrint?: (sol: SolicitudEntrega) => void; 
+  onValidar?: (sol: SolicitudEntrega) => void; // <--- NUEVO PROP
 }
 
-export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, onPrint }) => {
-  // ELIMINAMOS EL ESTADO LOCAL PORQUE AHORA LO CONTROLA EL PADRE
-  // const [isOpen, setIsOpen] = useState(false);
-
+export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, onPrint, onValidar }) => {
+  
   // Cálculos auxiliares
   const totalKms = sol.detalles?.reduce((acc, d) => acc + (d.kilometros_recorrer || 0), 0) || 0;
   
@@ -37,7 +35,6 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
     if(!dateStr) return '--';
     const date = new Date(dateStr);
     const day = date.getDate();
-    // Ejemplo: 28-ene
     const month = date.toLocaleDateString('es-GT', { month: 'short' }).replace('.', '');
     return `${day}-${month}`;
   };
@@ -61,19 +58,37 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
   const getButtonContent = () => {
     switch (sol.estado) {
         case 'aprobado':
+            // --- CAMBIO CLAVE AQUÍ ---
+            // Si está aprobado pero NO es solvente, mostramos botón de validar
+            if (sol.solvente === false) {
+                 return { 
+                    text: 'Validar Liquidación', 
+                    // Estilo Naranja llamativo para acción pendiente
+                    style: 'bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/20 shadow-sm cursor-pointer border-none',
+                    action: 'validar',
+                    icon: <FileSignature size={16} />
+                };
+            }
+            // Si ya es solvente (o null/true por defecto antiguo), mostramos finalizado
             return { 
-                text: 'Solicitud Aprobada', 
-                style: 'bg-emerald-100 text-emerald-700 border-emerald-200 cursor-not-allowed dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800 border' 
+                text: 'Solicitud Finalizada', 
+                style: 'bg-emerald-100 text-emerald-700 border-emerald-200 cursor-not-allowed dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800 border',
+                action: 'none',
+                icon: <CheckCircle2 size={16} />
             };
         case 'rechazado':
             return { 
                 text: 'Solicitud Rechazada', 
-                style: 'bg-red-100 text-red-700 border-red-200 cursor-not-allowed dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 border' 
+                style: 'bg-red-100 text-red-700 border-red-200 cursor-not-allowed dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 border',
+                action: 'none',
+                icon: <XCircle size={16} />
             };
         default: // pendiente
             return { 
                 text: 'Procesar Solicitud', 
-                style: 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/20 dark:bg-blue-600 dark:hover:bg-blue-500 shadow-sm' 
+                style: 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/20 dark:bg-blue-600 dark:hover:bg-blue-500 shadow-sm',
+                action: 'procesar',
+                icon: null
             };
     }
   };
@@ -88,10 +103,9 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
             : 'border-slate-200 dark:border-neutral-800 hover:border-blue-300 dark:hover:border-neutral-700 hover:shadow-md'
         }
     `}>
-        
-        {/* --- HEADER (Siempre Visible) --- */}
+        {/* ... (HEADER SE MANTIENE EXACTAMENTE IGUAL) ... */}
         <div 
-            onClick={onToggle} // Usamos la función del padre
+            onClick={onToggle}
             className="p-5 cursor-pointer select-none relative z-10"
         >
             <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
@@ -111,8 +125,14 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
 
                     <div className="flex flex-col min-w-0 gap-1">
                         <div className="flex items-center gap-2">
-                             <span className="text-[10px] font-extrabold text-slate-400 dark:text-neutral-500 uppercase tracking-widest bg-slate-50 dark:bg-neutral-800 px-1.5 py-0.5 rounded border border-slate-100 dark:border-neutral-700">
-                                #{sol.id}
+                             <span className={`
+                                text-[10px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded border 
+                                ${sol.correlativo 
+                                    ? 'text-white bg-blue-600 border-blue-600 shadow-sm shadow-blue-500/50' 
+                                    : 'text-slate-400 dark:text-neutral-500 bg-slate-50 dark:bg-neutral-800 border-slate-100 dark:border-neutral-700'
+                                }
+                            `}>
+                                {sol.correlativo ? `No. ${sol.correlativo}` : `ID: ${sol.id}`}
                             </span>
                              <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate">
                                 {sol.municipio_destino}
@@ -188,25 +208,18 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
                                 </div>
                             </div>
 
-                            {/* SECCIÓN VEHÍCULO */}
+                            {/* SECCIÓN VEHÍCULO (Igual que antes) */}
                             <div>
                                 <h4 className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-3 flex items-center gap-2">
                                     <Car size={12} /> Vehículo
                                 </h4>
-                                
                                 <div className="flex flex-row items-center justify-between gap-2 bg-slate-50 dark:bg-neutral-800/50 p-3 rounded-lg border border-slate-100 dark:border-neutral-700 overflow-hidden">
-    
-                                    {/* 1. MODELO */}
                                     <span className="font-bold text-xs text-slate-700 dark:text-white truncate">
                                         {sol.vehiculo?.modelo || 'N/A'} 
                                     </span>
-
-                                    {/* 2. PLACA */}
                                     <span className="font-mono text-[11px] font-bold text-blue-600 dark:text-blue-400 shrink-0">
                                         PLACA: {sol.placa}
                                     </span>
-
-                                    {/* 3. COMBUSTIBLE */}
                                     {sol.vehiculo?.tipo_combustible && (
                                         <div className="flex items-center gap-1.5 shrink-0">
                                             <Fuel size={12} className={sol.vehiculo.tipo_combustible === 'Diesel' ? 'text-emerald-500' : 'text-orange-500'} />
@@ -222,6 +235,7 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
                                 </div>
                             </div>
 
+                            {/* JUSTIFICACIÓN */}
                             <div>
                                 <h4 className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-2 flex items-center gap-2">
                                     <FileText size={12} /> Justificación
@@ -231,17 +245,27 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
                                 </p>
                             </div>
 
+                            {/* --- BOTÓN DE ACCIÓN DINÁMICO --- */}
                             <button 
-                                onClick={(e) => { e.stopPropagation(); onClick && onClick(sol); }}
-                                disabled={!onClick || sol.estado !== 'pendiente'}
-                                className={`w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] ${btnProps.style}`}
+                                onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    // Manejo de clicks según la acción definida
+                                    if (btnProps.action === 'validar' && onValidar) {
+                                        onValidar(sol);
+                                    } else if (btnProps.action === 'procesar' && onClick) {
+                                        onClick(sol);
+                                    }
+                                }}
+                                disabled={btnProps.action === 'none'}
+                                className={`w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all transform active:scale-[0.98] disabled:active:scale-100 ${btnProps.style}`}
                             >
+                                {btnProps.icon}
                                 {btnProps.text}
                             </button>
                         </div>
                     </div>
 
-                    {/* COLUMNA DER: ITINERARIO */}
+                    {/* COLUMNA DER: ITINERARIO (Igual que antes) */}
                     <div className="lg:col-span-8">
                         <div className="flex items-center justify-between mb-4 px-1">
                             <h4 className="text-xs font-bold text-slate-400 dark:text-neutral-500 uppercase tracking-widest flex items-center gap-2">
@@ -256,8 +280,6 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
                             {sol.detalles?.map((det, idx) => (
                                 <div key={idx} className="group bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl p-4 hover:border-blue-400 dark:hover:border-blue-700 hover:shadow-md transition-all">
                                     <div className="flex flex-col lg:flex-row gap-5 justify-between lg:items-center">
-                                        
-                                        {/* INFO LUGAR */}
                                         <div className="flex items-start gap-3 w-full lg:w-auto">
                                             <div className="mt-1 w-2 h-2 shrink-0 rounded-full bg-blue-500 shadow-[0_0_0_4px_rgba(59,130,246,0.1)]"></div>
                                             <div className="min-w-0">
@@ -269,19 +291,14 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
                                                 </span>
                                             </div>
                                         </div>
-
-                                        {/* INFO FECHAS - FORMATO ANCHO (Diseño solicitado) */}
                                         <div className="w-full lg:w-auto flex-shrink-0">
                                             <div className="grid grid-cols-2 divide-x divide-slate-200 dark:divide-neutral-700 border border-slate-200 dark:border-neutral-700 bg-slate-50 dark:bg-neutral-800 rounded-lg overflow-hidden w-full lg:min-w-[320px]">
-                                                {/* Salida */}
                                                 <div className="p-3 flex flex-col items-center justify-center text-center">
                                                     <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1">Salida</span>
                                                     <span className="text-xs font-mono text-slate-700 dark:text-slate-200 font-medium whitespace-nowrap">
                                                         {getSimpleDate(det.fecha_inicio)}, {getSimpleTime(det.fecha_inicio)}
                                                     </span>
                                                 </div>
-                                                
-                                                {/* Retorno */}
                                                 <div className="p-3 flex flex-col items-center justify-center text-center">
                                                     <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider mb-1">Retorno</span>
                                                     <span className="text-xs font-mono text-slate-700 dark:text-slate-200 font-medium whitespace-nowrap">
@@ -290,7 +307,6 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
                                                 </div>
                                             </div>
                                         </div>
-
                                     </div>
                                 </div>
                             ))}

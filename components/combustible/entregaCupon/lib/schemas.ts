@@ -17,7 +17,10 @@ export const solicitudEntregaSchema = z.object({
   kilometraje_inicial: z.number(), // Nuevo
   justificacion: z.string().nullable(),
   estado: z.enum(['pendiente', 'aprobado', 'rechazado']),
+  correlativo: z.number().nullable().optional(),
   
+  solvente: z.boolean().optional().nullable(), // Lo marcamos opcional/nullable por seguridad
+
   usuario: z.object({
     nombre: z.string(),
   }).nullable(),

@@ -157,14 +157,15 @@ export const getMySolicitudes = async (): Promise<SolicitudCombustible[]> => {
     .from('solicitud_combustible')
     .select(`
       id, created_at, placa, municipio_destino, departamento_destino,
-      kilometraje_inicial, justificacion, estado,
+      kilometraje_inicial, justificacion, estado, correlativo, solvente, 
       vehiculo:vehiculos ( placa, modelo, tipo_vehiculo, tipo_combustible ),
       detalles:datos_comision_combustible ( fecha_inicio, fecha_fin, lugar_visitar, kilometros_recorrer )
-    `)
+    `) // ^ AGREGADO: 'solvente' en la lista de campos
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
   if (error) return [];
+  
   return (data || []).map((item: any) => ({
     ...item,
     vehiculo: Array.isArray(item.vehiculo) ? item.vehiculo[0] : item.vehiculo,
@@ -231,20 +232,19 @@ export const getDatosSolicitudImpresion = async (id: number) => {
 
   // 2. Obtener información del solicitante (INCLUYENDO DPI)
   let nombreSolicitante = '---';
-  let dpiSolicitante = ''; // Variable para el DPI
+  let dpiSolicitante = ''; 
   let unidadDireccion = '---';
 
   if (solicitud.user_id) {
     const { data: usuario, error: userError } = await supabase
       .from('info_usuario')
-      // AQUI AGREGAMOS "dpi" AL SELECT
       .select('nombre, dpi, dependencia_id')
       .eq('user_id', solicitud.user_id)
       .single();
 
     if (!userError && usuario) {
       nombreSolicitante = usuario.nombre;
-      dpiSolicitante = usuario.dpi || ''; // Guardamos el DPI
+      dpiSolicitante = usuario.dpi || ''; 
       
       if (usuario.dependencia_id) {
         const { data: dep } = await supabase
@@ -255,6 +255,7 @@ export const getDatosSolicitudImpresion = async (id: number) => {
 
         if (dep) {
           const nombreDep = dep.nombre;
+          // Manejo seguro por si padre es array u objeto
           const padreObj = Array.isArray(dep.padre) ? dep.padre[0] : dep.padre;
           const nombrePadre = padreObj?.nombre;
           unidadDireccion = nombrePadre ? `${nombrePadre} / ${nombreDep}` : nombreDep;
@@ -314,9 +315,10 @@ export const getDatosSolicitudImpresion = async (id: number) => {
     kilometraje_inicial: solicitud.kilometraje_inicial,
     justificacion: solicitud.justificacion,
     solicitante_nombre: nombreSolicitante,
-    solicitante_dpi: dpiSolicitante, // <--- Retornamos el DPI
+    solicitante_dpi: dpiSolicitante,
     unidad_direccion: unidadDireccion,
     aprobador: nombreAprobador,
+    correlativo: solicitud.correlativo, // <--- AQUI ESTÁ EL CAMBIO IMPORTANTE
     vehiculo: {
       tipo: vehiculoData?.tipo_vehiculo || '---',
       placa: vehiculoData?.placa || '---',
@@ -326,4 +328,204 @@ export const getDatosSolicitudImpresion = async (id: number) => {
     detalles: solicitud.detalles || [],
     cupones: itemsCupones
   };
+};
+
+// ==========================================
+// 6. APROBAR SOLICITUD (GENERAR CORRELATIVO)
+// ==========================================
+export const approveSolicitud = async (id: number) => {
+  const supabase = await createClient();
+
+  // 1. VALIDACIÓN
+  const { data: currentSolicitud, error: fetchError } = await supabase
+    .from('solicitud_combustible')
+    .select('estado')
+    .eq('id', id)
+    .single();
+
+  if (fetchError || !currentSolicitud) {
+    throw new Error("No se encontró la solicitud.");
+  }
+
+  if (currentSolicitud.estado !== 'pendiente') {
+    throw new Error(`No se puede aprobar. Estado actual: ${currentSolicitud.estado}`);
+  }
+
+  // 2. CÁLCULO DEL CORRELATIVO
+  const { data: maxRecord } = await supabase
+    .from('solicitud_combustible')
+    .select('correlativo')
+    .not('correlativo', 'is', null)
+    .order('correlativo', { ascending: false })
+    .limit(1)
+    .single();
+
+  const currentMax = maxRecord?.correlativo || 0;
+  const nuevoCorrelativo = currentMax + 1;
+
+  // 3. ACTUALIZAR ESTADO Y SOLVENCIA
+  // AQUI CAMBIAMOS 'solvente' a FALSE para obligar a liquidar después
+  const { error: updateError } = await supabase
+    .from('solicitud_combustible')
+    .update({ 
+      estado: 'aprobado',
+      correlativo: nuevoCorrelativo,
+      solvente: false // <--- CAMBIO CLAVE: El usuario deja de estar solvente
+    })
+    .eq('id', id);
+
+  if (updateError) {
+    throw new Error(`Error al aprobar solicitud: ${updateError.message}`);
+  }
+
+  return { success: true, correlativo: nuevoCorrelativo };
+};
+
+// ==========================================
+// NUEVO: FUNCIONES PARA LIQUIDACIÓN
+// ==========================================
+
+// 1. Buscar datos para pre-llenar la liquidación
+export const getSolicitudParaLiquidacion = async (id: number) => {
+  const supabase = await createClient();
+
+  // 1. Obtener la solicitud
+  const { data: solicitud, error } = await supabase
+    .from('solicitud_combustible')
+    .select(`
+      id, created_at, kilometraje_inicial, municipio_destino, departamento_destino,
+      placa, correlativo, estado, user_id, solvente,
+      vehiculo:vehiculos ( modelo, tipo_vehiculo )
+    `)
+    .eq('id', id)
+    .eq('estado', 'aprobado')
+    .single();
+
+  if (error || !solicitud) return null;
+
+  // 2. Obtener datos del usuario (CORREGIDO SEGÚN CrearSolicitud)
+  let nombreUsuario = '---';
+  let cargoUsuario = '---';  // Equivale a dependencia.nombre
+  let unidadUsuario = '---'; // Equivale a dependencia.padre.nombre
+  
+  if (solicitud.user_id) {
+    const { data: usr } = await supabase
+        .from('info_usuario')
+        .select('nombre, dependencia_id')
+        .eq('user_id', solicitud.user_id)
+        .single();
+    
+    if (usr) {
+        nombreUsuario = usr.nombre;
+
+        if (usr.dependencia_id) {
+             // Traemos la dependencia y su padre
+             const { data: dep } = await supabase
+                .from('dependencias')
+                .select(`
+                    nombre, 
+                    padre:parent_id ( nombre )
+                `)
+                .eq('id', usr.dependencia_id)
+                .single();
+             
+             if(dep) {
+                 // Lógica replicada de DataSolicitante.tsx / InformeEntregaCupones:
+                 // CARGO = Nombre de la dependencia hija
+                 cargoUsuario = dep.nombre;
+
+                 // UNIDAD/DIRECCION = Nombre de la dependencia padre
+                 const padreObj = Array.isArray(dep.padre) ? dep.padre[0] : dep.padre;
+                 if (padreObj?.nombre) {
+                     unidadUsuario = padreObj.nombre;
+                 }
+             }
+        }
+    }
+  }
+
+  return {
+    ...solicitud,
+    usuario: {
+        nombre: nombreUsuario,
+        cargo: cargoUsuario,
+        unidad: unidadUsuario
+    }
+  };
+};
+
+// 2. Guardar la Liquidación
+export const saveLiquidacion = async (payload: {
+  id_solicitud: number;
+  km_final: number;
+  cupones_devueltos: number;
+  fecha_comision: string;
+}) => {
+  const supabase = await createClient();
+
+  // 1. PRIMERO VERIFICAMOS SI YA EXISTE
+  const { data: existingRecord } = await supabase
+    .from('liquidacion')
+    .select('id')
+    .eq('id_solicitud', payload.id_solicitud)
+    .single();
+
+  if (existingRecord) {
+    // 2. SI EXISTE, ACTUALIZAMOS EN LUGAR DE DUPLICAR
+    return await updateLiquidacion(existingRecord.id, {
+        km_final: payload.km_final,
+        cupones_devueltos: payload.cupones_devueltos, // Ahora sí lo aceptará
+        fecha_comision: payload.fecha_comision
+    });
+  }
+
+  // 3. SI NO EXISTE, INSERTAMOS
+  const { error } = await supabase
+    .from('liquidacion')
+    .insert({
+      id_solicitud: payload.id_solicitud,
+      km_final: payload.km_final,
+      cupones_devueltos: payload.cupones_devueltos,
+      fecha_comision: payload.fecha_comision,
+      estado_liquidacion: 'liquidado' 
+    });
+
+  if (error) throw new Error(error.message);
+  return { success: true };
+};
+// ==========================================
+// NUEVO: OBTENER LIQUIDACIÓN EXISTENTE
+// ==========================================
+export const getLiquidacionBySolicitudId = async (idSolicitud: number) => {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('liquidacion')
+    .select('*')
+    .eq('id_solicitud', idSolicitud)
+    .single();
+
+  if (error) return null;
+  return data;
+};
+
+// ==========================================
+// NUEVO: ACTUALIZAR LIQUIDACIÓN (EDICIÓN)
+// ==========================================
+export const updateLiquidacion = async (idLiquidacion: string, payload: {
+  km_final: number;
+  cupones_devueltos: number; // <--- ESTO FALTABA EN TU DEFINICIÓN
+  fecha_comision: string;
+}) => {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('liquidacion')
+    .update({
+      km_final: payload.km_final,
+      cupones_devueltos: payload.cupones_devueltos, // <--- Y AQUÍ TAMBIÉN
+      fecha_comision: payload.fecha_comision
+    })
+    .eq('id', idLiquidacion);
+
+  if (error) throw new Error(error.message);
+  return { success: true };
 };

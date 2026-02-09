@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { SolicitudCombustible } from './types';
 import { deleteSolicitud } from './actions';
-import SolicitudPrintModal from './modals/InformeEntregaCupones'; // <--- IMPORTACIÓN DEL MODAL
+import SolicitudPrintModal from './modals/InformeEntregaCupones'; 
+import LiquidarCupones from './modals/LiquidarCupones'; 
 import Swal from 'sweetalert2';
 import { 
   ChevronDown, 
@@ -17,7 +18,9 @@ import {
   Edit,
   Trash2,
   Calendar,
-  Printer // <--- IMPORTACIÓN ICONO
+  Printer,
+  FileSignature, 
+  Eye            
 } from 'lucide-react';
 
 interface Props {
@@ -30,7 +33,8 @@ interface Props {
 
 export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand, onRefresh, onEdit }) => {
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showPrintModal, setShowPrintModal] = useState(false); // <--- ESTADO PARA EL MODAL
+  const [showPrintModal, setShowPrintModal] = useState(false); 
+  const [showLiquidarModal, setShowLiquidarModal] = useState(false); 
 
   // --- LÓGICA INTERNA Y CÁLCULOS ---
   const totalKilometros = sol.detalles?.reduce((acc, curr) => acc + (Number(curr.kilometros_recorrer) || 0), 0) || 0;
@@ -45,14 +49,8 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
   const color = getStatusColor(sol.estado);
 
   // Helper de fechas
-  const formatDate = (dateStr: string) => {
-    if(!dateStr) return '--';
-    return new Date(dateStr).toLocaleDateString('es-GT', { day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit' });
-  };
-
   const getSimpleDate = (dateStr: string) => {
     if(!dateStr) return '--';
-    // Ajuste para que se vea como "28-ene"
     const date = new Date(dateStr);
     const day = date.getDate();
     const month = date.toLocaleDateString('es-GT', { month: 'short' }).replace('.', '');
@@ -140,10 +138,14 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
       onEdit(sol);
   };
 
-  // Nuevo Handler para Imprimir
   const handlePrint = (e: React.MouseEvent) => {
       e.stopPropagation();
       setShowPrintModal(true);
+  };
+
+  const handleLiquidar = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setShowLiquidarModal(true);
   };
 
   return (
@@ -178,9 +180,17 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
 
                     <div className="flex flex-col min-w-0 gap-1">
                         <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-extrabold text-slate-400 dark:text-neutral-500 uppercase tracking-widest bg-slate-50 dark:bg-neutral-800 px-1.5 py-0.5 rounded border border-slate-100 dark:border-neutral-700">
-                                #{sol.id}
+                            
+                            <span className={`
+                                text-[10px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded border 
+                                ${sol.correlativo 
+                                    ? 'text-white bg-blue-600 border-blue-600 shadow-sm shadow-blue-500/50' 
+                                    : 'text-slate-400 dark:text-neutral-500 bg-slate-50 dark:bg-neutral-800 border-slate-100 dark:border-neutral-700'
+                                }
+                            `}>
+                                {sol.correlativo ? `No. ${sol.correlativo}` : `ID: ${sol.id}`}
                             </span>
+
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate">
                                 {sol.municipio_destino}
                             </h3>
@@ -222,9 +232,10 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
                         </div>
                     )}
 
-                    {/* BOTÓN DE IMPRESIÓN (Solo si aprobado) */}
+                    {/* BOTONES SI ESTÁ APROBADO */}
                     {sol.estado === 'aprobado' && (
-                         <div className="mr-2">
+                         <div className="flex items-center gap-2 mr-2">
+                            
                             <button 
                                 onClick={handlePrint}
                                 className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-full transition-all"
@@ -232,6 +243,24 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
                             >
                                 <Printer size={18} />
                             </button>
+
+                            <button 
+                                onClick={handleLiquidar}
+                                className={`
+                                    flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm
+                                    ${sol.solvente 
+                                        ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400' 
+                                        : 'bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400 animate-pulse'
+                                    }
+                                `}
+                                title={sol.solvente ? "Ver detalles de liquidación" : "Liquidar cupones pendientes"}
+                            >
+                                {sol.solvente ? <Eye size={14} /> : <FileSignature size={14} />}
+                                <span className="hidden sm:inline">
+                                    {sol.solvente ? 'Ver Liquidación' : 'Liquidar'}
+                                </span>
+                            </button>
+
                         </div>
                     )}
 
@@ -329,7 +358,7 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
                         </div>
 
                         <div className="space-y-4">
-                            {sol.detalles?.map((det, idx) => (
+                            {sol.detalles?.map((det: any, idx: number) => (
                                 <div key={idx} className="group bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl p-4 hover:border-blue-400 dark:hover:border-blue-700 hover:shadow-md transition-all">
                                     <div className="flex flex-col lg:flex-row gap-5 justify-between lg:items-center">
                                         
@@ -352,7 +381,6 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
                                                 {/* Salida */}
                                                 <div className="p-3 flex flex-col items-center justify-center text-center">
                                                     <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1">Salida</span>
-                                                    {/* Cambio a text-xs aquí */}
                                                     <span className="text-xs font-mono text-slate-700 dark:text-slate-200 font-medium whitespace-nowrap">
                                                         {getSimpleDate(det.fecha_inicio)}, {getSimpleTime(det.fecha_inicio)}
                                                     </span>
@@ -361,7 +389,6 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
                                                 {/* Retorno */}
                                                 <div className="p-3 flex flex-col items-center justify-center text-center">
                                                     <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider mb-1">Retorno</span>
-                                                    {/* Cambio a text-xs aquí */}
                                                     <span className="text-xs font-mono text-slate-700 dark:text-slate-200 font-medium whitespace-nowrap">
                                                         {getSimpleDate(det.fecha_fin)}, {getSimpleTime(det.fecha_fin)}
                                                     </span>
@@ -387,12 +414,23 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
         </div>
     </div>
     
-    {/* RENDERIZADO DEL MODAL DE IMPRESIÓN */}
+    {/* RENDERIZADO DE MODALES */}
     {showPrintModal && (
         <SolicitudPrintModal 
             isOpen={showPrintModal} 
             onClose={() => setShowPrintModal(false)} 
             solicitudId={sol.id} 
+        />
+    )}
+
+    {/* RENDERIZADO DEL MODAL DE LIQUIDACIÓN */}
+    {showLiquidarModal && (
+        <LiquidarCupones 
+            isOpen={showLiquidarModal} 
+            onClose={() => setShowLiquidarModal(false)}
+            onSuccess={() => onRefresh()} 
+            initialSolicitudId={sol.id}   
+            mode={sol.solvente ? 'view' : 'create'} 
         />
     )}
     </>
