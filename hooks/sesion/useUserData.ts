@@ -1,15 +1,14 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
-import { createClient } from '@/utils/supabase/client';
+import { useQuery } from "@tanstack/react-query";
+import { createClient } from "@/utils/supabase/client";
 
 interface UserData {
   userId: string | null;
   nombre: string;
   email: string;
   rol: string;
-  esjefe: boolean; 
+  esjefe: boolean;
   permisos: string[];
   modulos: string[];
   programas: string[];
@@ -18,106 +17,62 @@ interface UserData {
   horario_dias: number[] | null;
   horario_entrada: string | null;
   horario_salida: string | null;
-  dependencia_id: string | null; 
+  dependencia_id: string | null;
 }
 
 export default function useUserData(): UserData {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [nombre, setNombre] = useState('');
-  const [email, setEmail] = useState('');
-  const [rol, setRol] = useState('');
-  const [esjefe, setEsJefe] = useState(false); 
-  const [permisos, setPermisos] = useState<string[]>([]);
-  const [modulos, setModulos] = useState<string[]>([]);
-  const [programas, setProgramas] = useState<string[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [horario_nombre, setHorarioNombre] = useState<string | null>(null);
-  const [horario_dias, setHorarioDias] = useState<number[] | null>(null);
-  const [horario_entrada, setHorarioEntrada] = useState<string | null>(null);
-  const [horario_salida, setHorarioSalida] = useState<string | null>(null);
-  const [dependencia_id, setDependenciaId] = useState<string | null>(null); 
-  
-  const pathname = usePathname(); 
-
-  useEffect(() => {
-    const obtenerUsuario = async () => {
+  const { data, isLoading } = useQuery({
+    queryKey: ["userSession"],
+    queryFn: async () => {
       const supabase = createClient();
-      setCargando(true);
-      
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-      if (user) {
-        const { data: userData, error: dataError } = await supabase.rpc('usuario_sesion');
+      if (!user) return null;
 
-        if (dataError || !userData || !userData[0]) {
-          setUserId(user.id);
-          setEmail(user.email || '');
-          setNombre('');
-          setRol('');
-          setEsJefe(false); 
-          setPermisos([]);
-          setModulos([]);
-          setProgramas([]);
-          setHorarioNombre(null);
-          setHorarioDias(null);
-          setHorarioEntrada(null);
-          setHorarioSalida(null);
-          setDependenciaId(null); 
+      const { data: userData, error } = await supabase.rpc("usuario_sesion");
 
-          
-        } else {
-          const resultado = userData[0];
-          setUserId(resultado.id || null);
-          setNombre(resultado.nombre || '');
-          setEmail(resultado.email || ''); 
-          setRol(resultado.rol || '');
-          setEsJefe(resultado.esjefe || false); 
-          setPermisos(resultado.permisos || []);
-          setModulos(resultado.modulos || []);
-          setProgramas(resultado.programas || []);
-          setHorarioNombre(resultado.horario_nombre || null);
-          setHorarioDias(resultado.horario_dias || null);
-          setHorarioEntrada(resultado.horario_entrada || null);
-          setHorarioSalida(resultado.horario_salida || null);
-          setDependenciaId(resultado.dependencia_id || null); 
-
-        }
-      } else {
-        setUserId(null);
-        setNombre('');
-        setEmail('');
-        setRol('');
-        setEsJefe(false); 
-        setPermisos([]);
-        setModulos([]);
-        setProgramas([]);
-        setHorarioNombre(null);
-        setHorarioDias(null);
-        setHorarioEntrada(null);
-        setHorarioSalida(null);
-        setDependenciaId(null);
-        
+      if (error || !userData || !userData[0]) {
+        return {
+          id: user.id,
+          email: user.email || "",
+          nombre: "",
+          rol: "",
+          esjefe: false,
+          permisos: [],
+          modulos: [],
+          programas: [],
+          horario_nombre: null,
+          horario_dias: null,
+          horario_entrada: null,
+          horario_salida: null,
+          dependencia_id: null,
+        };
       }
-      setCargando(false);
-    };
 
-    obtenerUsuario();
-  }, [pathname]); 
+      return userData[0];
+    },
+    staleTime: 1000 * 60 * 15,
+    gcTime: 1000 * 60 * 60,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
 
-  return { 
-    userId, 
-    nombre, 
-    email, 
-    rol, 
-    esjefe,
-    permisos, 
-    modulos, 
-    programas, 
-    cargando, 
-    horario_nombre, 
-    horario_dias, 
-    horario_entrada, 
-    horario_salida,
-    dependencia_id 
+  return {
+    userId: data?.id || null,
+    nombre: data?.nombre || "",
+    email: data?.email || "",
+    rol: data?.rol || "",
+    esjefe: data?.esjefe || false,
+    permisos: data?.permisos || [],
+    modulos: data?.modulos || [],
+    programas: data?.programas || [],
+    cargando: isLoading,
+    horario_nombre: data?.horario_nombre || null,
+    horario_dias: data?.horario_dias || null,
+    horario_entrada: data?.horario_entrada || null,
+    horario_salida: data?.horario_salida || null,
+    dependencia_id: data?.dependencia_id || null,
   };
 }
