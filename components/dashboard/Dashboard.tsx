@@ -35,6 +35,20 @@ export default function Dashboard() {
     };
   }, [mostrarTarjetaModal]);
 
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        setVistaActiva("modulos");
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
   const isSuper = rol === "SUPER";
 
   return (
@@ -88,6 +102,7 @@ export default function Dashboard() {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
+            {/* Recuerda mantener el prop onFinalizar que agregamos antes */}
             <Asistencia onFinalizar={() => setVistaActiva("modulos")} />
           </motion.div>
         ) : (
