@@ -58,13 +58,16 @@ export async function obtenerPermisos(mes: number, anio: number) {
   const supabase = await createClient();
   const fechaInicio = new Date(anio, mes - 1, 1).toISOString();
   const fechaFin = new Date(anio, mes, 0, 23, 59, 59, 999).toISOString();
+
   const { data, error } = await supabase
     .from("permisos_empleado")
     .select("*")
     .gte("created_at", fechaInicio)
     .lte("created_at", fechaFin)
     .order("created_at", { ascending: false });
+
   if (error) throw new Error(error.message);
+
   return data as unknown as PermisoEmpleado[];
 }
 
@@ -115,52 +118,41 @@ export async function gestionarPermiso(
 
 export async function guardarPermiso(formData: FormData, id?: string) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Usuario no autenticado");
-
-  const rolActual = await getRolInterno(user.id, supabase);
-  const { data: infoUser } = await supabase
-    .from("info_usuario")
-    .select("esjefe")
-    .eq("user_id", user.id)
-    .single();
-  const esJefe = infoUser?.esjefe || false;
-  const esAdmin = ["SUPER", "RRHH", "SECRETARIO"].includes(rolActual || "");
-
   const tipo = formData.get("tipo") as string;
   const inicio = formData.get("inicio") as string;
   const fin = formData.get("fin") as string;
   const descripcion = formData.get("descripcion") as string;
   const userIdSeleccionado = formData.get("user_id") as string;
+  const estado = formData.get("estado") as string;
   const remunerado = formData.get("remunerado") === "on";
-
   const datos: any = {
     tipo,
     inicio,
     fin,
     descripcion,
     user_id: userIdSeleccionado,
+    remunerado: remunerado,
   };
 
-  if (esAdmin) {
-    datos.remunerado = remunerado;
-  }
-
-  if (!id) {
-    if (esJefe && userIdSeleccionado === user.id) {
-      datos.estado = "aprobado_jefe";
-    } else {
-      datos.estado = "pendiente";
-    }
+  if (estado) {
+    datos.estado = estado;
+  } else if (!id) {
+    datos.estado = "pendiente";
   }
 
   if (id) {
-    await supabase.from("permisos_empleado").update(datos).eq("id", id);
+    const { error } = await supabase
+      .from("permisos_empleado")
+      .update(datos)
+      .eq("id", id);
+
+    if (error) throw new Error(error.message);
   } else {
-    await supabase.from("permisos_empleado").insert(datos);
+    const { error } = await supabase.from("permisos_empleado").insert(datos);
+
+    if (error) throw new Error(error.message);
   }
+
   revalidatePath("/protected/permisos");
 }
 

@@ -30,7 +30,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { TipoVistaPermisos } from "@/hooks/permisos/usePermisos";
+import { TipoVistaPermisos } from "@/components/permisos/hooks";
 
 const TIPOS_GENERAL = [
   "Vacaciones",
@@ -81,6 +81,7 @@ export default function CrearEditarPermiso({
   const esRRHH = ["RRHH", "SUPER", "SECRETARIO"].includes(
     perfilUsuario?.rol || "",
   );
+  // RRHH ve el check en su vista de gestión
   const mostrarOpcionRemunerado = esRRHH && tipoVista === "gestion_rrhh";
 
   const estadoActual = permisoAEditar?.estado || "";
@@ -96,8 +97,12 @@ export default function CrearEditarPermiso({
     (tipoVista === "gestion_jefe" && esFaseJefe) ||
     (tipoVista === "gestion_rrhh" && (esFaseJefe || esFaseRRHH));
 
+  // CORRECCIÓN 1: RRHH puede editar siempre, excepto cuando está en la pantalla de "Gestionar" (botones de aprobar/rechazar)
+  // Si estoy gestionando, es solo lectura visual. Si NO estoy gestionando (ej. editando uno viejo), RRHH puede escribir.
   const esSoloLectura =
-    (!!permisoAEditar && !esRRHH) || puedeGestionar || contieneBloqueo;
+    puedeGestionar || // Si tengo los botones de Aprobar/Rechazar, bloqueo inputs para evitar confusión
+    (!!permisoAEditar && !esRRHH && !puedeGestionar) || // Empleado normal no edita lo enviado
+    (contieneBloqueo && !esRRHH); // Si está finalizado, solo RRHH puede tocar
 
   const nombreEmpleado =
     permisoAEditar?.usuario?.nombre || perfilUsuario?.nombre || "";
@@ -133,10 +138,27 @@ export default function CrearEditarPermiso({
     if (!permisoAEditar) return;
     setLoading(true);
     try {
+      // Si RRHH aprueba, nos aseguramos de mandar el estado del check remunerado
       if (esFaseRRHH && accion === "aprobar") {
         const formData = new FormData();
         formData.set("remunerado", esRemunerado ? "on" : "off");
-        await guardarPermiso(formData, permisoAEditar.id);
+        // Nota: guardarPermiso aquí solo actualizaría el campo remunerado si se manda solo eso,
+        // pero tu server action espera todo el objeto.
+        // Mejor confiamos en que gestionarPermiso maneje el estado, y si necesitas guardar remunerado,
+        // deberías llamarlo antes o asegurarte que gestionarPermiso no lo sobreescriba.
+        // Para simplificar: Guardamos el remunerado primero.
+
+        // HACK: Llamamos a guardarPermiso con los datos actuales para actualizar el remunerado antes de cambiar estado
+        const formUpdate = new FormData();
+        formUpdate.set("user_id", permisoAEditar.user_id);
+        formUpdate.set("tipo", permisoAEditar.tipo);
+        formUpdate.set("inicio", permisoAEditar.inicio);
+        formUpdate.set("fin", permisoAEditar.fin);
+        formUpdate.set("descripcion", permisoAEditar.descripcion || "");
+        formUpdate.set("remunerado", esRemunerado ? "on" : "off");
+        formUpdate.set("estado", permisoAEditar.estado); // Mantenemos estado
+
+        await guardarPermiso(formUpdate, permisoAEditar.id);
       }
 
       await gestionarPermiso(permisoAEditar.id, accion, permisoAEditar.user_id);
@@ -154,6 +176,7 @@ export default function CrearEditarPermiso({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    // CORRECCIÓN 2: RRHH puede guardar aunque contenga bloqueo
     if (contieneBloqueo && !esRRHH) return;
 
     if (!selectedTipo) return toast.error("Selecciona un tipo.");
@@ -174,11 +197,15 @@ export default function CrearEditarPermiso({
     if (inicio) formData.set("inicio", new Date(inicio).toISOString());
     if (fin) formData.set("fin", new Date(fin).toISOString());
 
+    // Aseguramos enviar el estado correcto
     if (esRRHH) {
       formData.set("remunerado", esRemunerado ? "on" : "off");
     } else {
-      formData.delete("estado");
       formData.delete("remunerado");
+    }
+
+    if (permisoAEditar?.estado) {
+      formData.set("estado", permisoAEditar.estado);
     }
 
     try {
@@ -412,12 +439,12 @@ export default function CrearEditarPermiso({
                 name="remunerado"
                 checked={esRemunerado}
                 onChange={(e) => setEsRemunerado(e.target.checked)}
-                disabled={!esFaseRRHH}
-                className="h-4 w-4 border-gray-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 disabled:opacity-50"
+                disabled={loading} // CORRECCIÓN 3: Desbloqueado para RRHH siempre
+                className="h-4 w-4 border-gray-300 dark:border-neutral-700 rounded bg-white dark:bg-neutral-900 cursor-pointer"
               />
               <label
                 htmlFor="remunerado"
-                className="text-xs font-medium text-gray-700 dark:text-gray-300"
+                className="text-xs font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
               >
                 Remunerado
               </label>
@@ -464,7 +491,8 @@ export default function CrearEditarPermiso({
                 >
                   Cerrar
                 </Button>
-                {!esSoloLectura && !contieneBloqueo && (
+                {/* CORRECCIÓN 4: Botón Guardar visible si no es solo lectura O si es RRHH (incluso si está bloqueado) */}
+                {(!esSoloLectura || (esRRHH && contieneBloqueo)) && (
                   <Button
                     type="submit"
                     className="bg-blue-600 hover:bg-blue-700 text-white h-10"
@@ -475,7 +503,7 @@ export default function CrearEditarPermiso({
                     ) : (
                       <Save className="w-4 h-4 mr-2" />
                     )}
-                    Guardar
+                    {contieneBloqueo ? "Actualizar Datos" : "Guardar"}
                   </Button>
                 )}
               </>
