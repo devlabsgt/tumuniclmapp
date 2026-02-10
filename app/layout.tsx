@@ -10,7 +10,7 @@ import { headers } from "next/headers";
 import NotificationListener from "@/components/push/Listener";
 import { ThemeProvider } from "@/components/themes/theme-provider";
 import { ThemeSwitcher } from "@/components/themes/theme-switcher";
-import Providers from "./providers";
+import QueryProvider from "@/components/providers/QueryProvider";
 
 export const metadata: Metadata = {
   title: "SIGEM -CLM-",
@@ -50,13 +50,13 @@ export default async function RootLayout({
   return (
     <html lang="es" className={geistSans.className} suppressHydrationWarning>
       <body className="bg-background text-foreground">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
-          disableTransitionOnChange
-        >
-          <Providers>
+        <QueryProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem={false}
+            disableTransitionOnChange
+          >
             <NotificationListener />
             <div className="flex flex-col min-h-screen">
               {isLoginPage ? (
@@ -129,8 +129,8 @@ export default async function RootLayout({
               />
               <script src="https://cdn.lordicon.com/lordicon.js"></script>
             </div>
-          </Providers>
-        </ThemeProvider>
+          </ThemeProvider>
+        </QueryProvider>
       </body>
     </html>
   );

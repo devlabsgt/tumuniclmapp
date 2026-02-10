@@ -20,33 +20,41 @@ interface UserData {
   dependencia_id: string | null;
 }
 
-async function fetchUserSession() {
-  const supabase = createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data, error } = await supabase.rpc("usuario_sesion");
-
-  if (error || !data || !data[0]) {
-    return {
-      id: user.id,
-      email: user.email,
-    };
-  }
-
-  return data[0];
-}
-
 export default function useUserData(): UserData {
   const { data, isLoading } = useQuery({
     queryKey: ["userSession"],
-    queryFn: fetchUserSession,
-    staleTime: 1000 * 60 * 60,
-    gcTime: 1000 * 60 * 120,
-    retry: false,
+    queryFn: async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return null;
+
+      const { data: userData, error } = await supabase.rpc("usuario_sesion");
+
+      if (error || !userData || !userData[0]) {
+        return {
+          id: user.id,
+          email: user.email || "",
+          nombre: "",
+          rol: "",
+          esjefe: false,
+          permisos: [],
+          modulos: [],
+          programas: [],
+          horario_nombre: null,
+          horario_dias: null,
+          horario_entrada: null,
+          horario_salida: null,
+          dependencia_id: null,
+        };
+      }
+
+      return userData[0];
+    },
+    staleTime: 1000 * 60 * 15,
+    gcTime: 1000 * 60 * 60,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
