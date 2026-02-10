@@ -1,4 +1,3 @@
-// features/solicitudes/SolicitudesList.tsx
 import React, { useState, useMemo, useEffect } from 'react';
 import { SolicitudCombustible } from './types';
 import { SolicitudItem } from './SolicitudItem';
@@ -18,7 +17,6 @@ const MONTHS = [
 const ANIO_ACTUAL = new Date().getFullYear();
 const ANIOS = Array.from({ length: 5 }, (_, i) => ANIO_ACTUAL - 2 + i);
 
-// --- ESTILOS SINCRONIZADOS CON DB (Masculino) ---
 const TAB_STYLES: Record<string, { active: string, inactive: string, badge: string }> = {
   'Todos': {
     active: 'bg-slate-800 text-white shadow-sm',
@@ -119,7 +117,6 @@ export const RequestList: React.FC<Props> = ({ solicitudes, onRefresh, onEdit })
     });
   }, [solicitudes, anioSeleccionado, mesSeleccionado, semanaSeleccionada]);
 
-  // Conteos con Casting para evitar errores de tipo con la DB
   const conteos = useMemo(() => ({
     'Todos': solicitudesFiltradasGlobal.length,
     'pendiente': solicitudesFiltradasGlobal.filter(s => (s.estado as any) === 'pendiente').length,
@@ -155,7 +152,6 @@ export const RequestList: React.FC<Props> = ({ solicitudes, onRefresh, onEdit })
     <div className="w-full flex flex-col gap-6 pb-20 relative">
       <div className="flex flex-col xl:flex-row gap-4">
         
-        {/* PESTAÑAS DE ESTADO */}
         <div className="overflow-x-auto pb-1 xl:pb-0">
           <div className="flex items-center gap-1.5 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 dark:border-neutral-800 shadow-sm min-w-max">
             {pestañas
@@ -181,7 +177,6 @@ export const RequestList: React.FC<Props> = ({ solicitudes, onRefresh, onEdit })
           </div>
         </div>
 
-        {/* SELECTORES DE FECHA */}
         <div className="flex flex-wrap sm:flex-nowrap gap-2 shrink-0 xl:ml-auto">
             <div className="relative">
                 <select 
@@ -231,7 +226,6 @@ export const RequestList: React.FC<Props> = ({ solicitudes, onRefresh, onEdit })
         </div>
       </div>
 
-      {/* LISTADO */}
       {listaVisual.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 bg-slate-50 dark:bg-neutral-900/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-neutral-800">
             <SearchX size={32} className="text-slate-300 mb-4" />

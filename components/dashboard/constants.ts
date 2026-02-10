@@ -23,7 +23,8 @@ export const TODOS_LOS_MODULOS = [
     colorProps: { primaryFrom: '#ffc738', secondaryColor: '#4ade80' },
     categoria: 'Políticas Públicas'
   },
-  {
+
+    {
     id: 'PERMISOS',
     permiso: 'PERMISOS',
     titulo: 'Mis Permisos',
@@ -43,6 +44,17 @@ export const TODOS_LOS_MODULOS = [
     categoria: 'Gestión Administrativa',
     subgrupo: 'Gestión Propia'
   },
+  {
+    id: 'SOLICITUDCOMBUSTIBLE',
+    permiso: 'SOLICITUDCOMBUSTIBLE',
+    titulo: 'Solicitar Cupón Combustible',
+    descripcion: 'Solicitud de cupones de combustible.',
+    ruta: '/protected/solicitud',
+    iconoKey: 'unsfxkxg',
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Gestión Propia'
+  },
+  //-----------------------------------
   {
     id: 'PERMISOS_JEFE',
     permiso: 'PERMISOS',

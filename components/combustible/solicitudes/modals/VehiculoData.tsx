@@ -1,7 +1,6 @@
-// features/solicitudes/modals/VehiculoData.tsx
 import React, { useState, useRef, useEffect } from 'react';
-import { Vehiculo } from '../types'; // Ajusta ruta
-import { searchVehiculos } from '../actions'; // Ajusta ruta
+import { Vehiculo } from '../types'; 
+import { searchVehiculos } from '../actions'; 
 
 const TIPOS_VEHICULO = ["Sedán", "Camioneta", "Pickup", "Camión", "Maquinaria", "Motocicleta"];
 const TIPOS_COMBUSTIBLE = ["Gasolina", "Diesel"];
@@ -19,18 +18,15 @@ export const VehiculoData: React.FC<Props> = ({
   vehiculo, setVehiculo, isNewVehicle, setIsNewVehicle, kmInicial, setKmInicial 
 }) => {
   
-  // Estados locales (solo UI de búsqueda)
   const [placaSearch, setPlacaSearch] = useState('');
   const [searchResults, setSearchResults] = useState<Vehiculo[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isSearchingVeh, setIsSearchingVeh] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Estados para Modal Nuevo Vehículo
   const [showNewVehicleModal, setShowNewVehicleModal] = useState(false);
   const [tempNewVehicle, setTempNewVehicle] = useState({ tipo_vehiculo: '', modelo: '', tipo_combustible: '' });
 
-  // Cerrar dropdown al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -41,17 +37,11 @@ export const VehiculoData: React.FC<Props> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // =========================================================================
-  // CORRECCIÓN AQUÍ: 
-  // Escuchamos cambios en 'vehiculo.placa'. Si el padre manda datos (edición),
-  // actualizamos el input visual 'placaSearch'.
-  // =========================================================================
   useEffect(() => {
       if(vehiculo.placa && placaSearch !== vehiculo.placa) {
           setPlacaSearch(vehiculo.placa);
       }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vehiculo.placa]); // <--- Agregamos la dependencia clave
+  }, [vehiculo.placa]); 
 
 
   const handleSearchPlaca = async (val: string) => {
@@ -66,7 +56,6 @@ export const VehiculoData: React.FC<Props> = ({
         return;
     }
 
-    // Actualizamos placa en el padre parcialmente
     setVehiculo(prev => ({ ...prev, placa: upperVal }));
     setIsSearchingVeh(true);
     
@@ -223,7 +212,6 @@ export const VehiculoData: React.FC<Props> = ({
             </div>
         </div>
 
-        {/* MODAL NUEVO VEHICULO */}
         {showNewVehicleModal && (
             <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
                 <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={() => setShowNewVehicleModal(false)}></div>

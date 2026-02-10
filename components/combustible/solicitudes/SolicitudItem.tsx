@@ -1,8 +1,8 @@
-// features/solicitudes/SolicitudItem.tsx
 import React, { useState } from 'react';
 import { SolicitudCombustible } from './types';
 import { deleteSolicitud } from './actions';
-import SolicitudPrintModal from './modals/InformeEntregaCupones'; // <--- IMPORTACIÓN DEL MODAL
+import SolicitudPrintModal from './modals/InformeEntregaCupones'; 
+import LiquidarCupones from './modals/LiquidarCupones'; 
 import Swal from 'sweetalert2';
 import { 
   ChevronDown, 
@@ -17,7 +17,9 @@ import {
   Edit,
   Trash2,
   Calendar,
-  Printer // <--- IMPORTACIÓN ICONO
+  Printer,
+  FileSignature, 
+  Eye            
 } from 'lucide-react';
 
 interface Props {
@@ -30,29 +32,21 @@ interface Props {
 
 export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand, onRefresh, onEdit }) => {
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showPrintModal, setShowPrintModal] = useState(false); // <--- ESTADO PARA EL MODAL
+  const [showPrintModal, setShowPrintModal] = useState(false); 
+  const [showLiquidarModal, setShowLiquidarModal] = useState(false); 
 
-  // --- LÓGICA INTERNA Y CÁLCULOS ---
   const totalKilometros = sol.detalles?.reduce((acc, curr) => acc + (Number(curr.kilometros_recorrer) || 0), 0) || 0;
 
-  // Helper para colores de estado
   const getStatusColor = (status: string) => {
       if (status === 'aprobado') return 'emerald';
       if (status === 'rechazado') return 'red';
-      return 'amber'; // pendiente
+      return 'amber'; 
   };
 
   const color = getStatusColor(sol.estado);
 
-  // Helper de fechas
-  const formatDate = (dateStr: string) => {
-    if(!dateStr) return '--';
-    return new Date(dateStr).toLocaleDateString('es-GT', { day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit' });
-  };
-
   const getSimpleDate = (dateStr: string) => {
     if(!dateStr) return '--';
-    // Ajuste para que se vea como "28-ene"
     const date = new Date(dateStr);
     const day = date.getDate();
     const month = date.toLocaleDateString('es-GT', { month: 'short' }).replace('.', '');
@@ -64,7 +58,6 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
     return new Date(dateStr).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
-  // --- HANDLERS CON SWEETALERT2 ---
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
     
@@ -140,10 +133,14 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
       onEdit(sol);
   };
 
-  // Nuevo Handler para Imprimir
   const handlePrint = (e: React.MouseEvent) => {
       e.stopPropagation();
       setShowPrintModal(true);
+  };
+
+  const handleLiquidar = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setShowLiquidarModal(true);
   };
 
   return (
@@ -156,14 +153,12 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
         }
     `}>
         
-        {/* --- HEADER (Siempre Visible) --- */}
         <div 
             onClick={onToggleExpand}
             className="p-5 cursor-pointer select-none relative z-10"
         >
             <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
                 
-                {/* IZQUIERDA: Icono + Info Principal */}
                 <div className="flex items-start gap-4 overflow-hidden">
                     <div className={`
                         w-12 h-12 shrink-0 rounded-xl flex items-center justify-center border-2 transition-colors
@@ -178,9 +173,17 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
 
                     <div className="flex flex-col min-w-0 gap-1">
                         <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-extrabold text-slate-400 dark:text-neutral-500 uppercase tracking-widest bg-slate-50 dark:bg-neutral-800 px-1.5 py-0.5 rounded border border-slate-100 dark:border-neutral-700">
-                                #{sol.id}
+                            
+                            <span className={`
+                                text-[10px] font-extrabold uppercase tracking-widest px-1.5 py-0.5 rounded border 
+                                ${sol.correlativo 
+                                    ? 'text-white bg-blue-600 border-blue-600 shadow-sm shadow-blue-500/50' 
+                                    : 'text-slate-400 dark:text-neutral-500 bg-slate-50 dark:bg-neutral-800 border-slate-100 dark:border-neutral-700'
+                                }
+                            `}>
+                                {sol.correlativo ? `No. ${sol.correlativo}` : `ID: ${sol.id}`}
                             </span>
+
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate">
                                 {sol.municipio_destino}
                             </h3>
@@ -194,10 +197,8 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
                     </div>
                 </div>
 
-                {/* DERECHA: Botones de Acción & Chevron */}
                 <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto pl-16 sm:pl-0">
                     
-                    {/* Botones de acción (Solo si pendiente) */}
                     {sol.estado === 'pendiente' && (
                         <div className="flex items-center gap-1 mr-2">
                              <button 
@@ -222,9 +223,9 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
                         </div>
                     )}
 
-                    {/* BOTÓN DE IMPRESIÓN (Solo si aprobado) */}
                     {sol.estado === 'aprobado' && (
-                         <div className="mr-2">
+                         <div className="flex items-center gap-2 mr-2">
+                            
                             <button 
                                 onClick={handlePrint}
                                 className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-full transition-all"
@@ -232,6 +233,24 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
                             >
                                 <Printer size={18} />
                             </button>
+
+                            <button 
+                                onClick={handleLiquidar}
+                                className={`
+                                    flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm
+                                    ${sol.solvente 
+                                        ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400' 
+                                        : 'bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400 animate-pulse'
+                                    }
+                                `}
+                                title={sol.solvente ? "Ver detalles de liquidación" : "Liquidar cupones pendientes"}
+                            >
+                                {sol.solvente ? <Eye size={14} /> : <FileSignature size={14} />}
+                                <span className="hidden sm:inline">
+                                    {sol.solvente ? 'Ver Liquidación' : 'Liquidar'}
+                                </span>
+                            </button>
+
                         </div>
                     )}
 
@@ -243,7 +262,6 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
             </div>
         </div>
 
-        {/* --- BODY (Acordeón) --- */}
         <div className={`
             overflow-hidden transition-all duration-500 ease-in-out border-t border-dashed border-slate-200 dark:border-neutral-800
             ${isExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0 border-none'}
@@ -251,11 +269,9 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
             <div className="p-5 bg-slate-50/50 dark:bg-neutral-950/30">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     
-                    {/* COLUMNA IZQ: Resumen y Vehículo */}
                     <div className="lg:col-span-4 flex flex-col gap-4">
                         <div className="bg-white dark:bg-neutral-900 rounded-xl p-5 border border-slate-200 dark:border-neutral-800 shadow-sm space-y-5">
                             
-                            {/* KILOMETRAJE */}
                             <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-neutral-800/50 rounded-xl border border-slate-100 dark:border-neutral-700">
                                 <div className="flex-1 flex items-center gap-2 border-r border-slate-200 dark:border-neutral-700 pr-2 overflow-hidden">
                                     <Gauge size={14} className="text-slate-400 shrink-0" />
@@ -277,7 +293,6 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
                                 </div>
                             </div>
 
-                            {/* SECCIÓN VEHÍCULO */}
                             <div>
                                 <h4 className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-3 flex items-center gap-2">
                                     <Car size={12} /> Vehículo
@@ -305,7 +320,6 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
                                 </div>
                             </div>
 
-                            {/* JUSTIFICACIÓN */}
                             <div>
                                 <h4 className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-2 flex items-center gap-2">
                                     <FileText size={12} /> Justificación
@@ -317,7 +331,6 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
                         </div>
                     </div>
 
-                    {/* COLUMNA DER: ITINERARIO */}
                     <div className="lg:col-span-8">
                         <div className="flex items-center justify-between mb-4 px-1">
                             <h4 className="text-xs font-bold text-slate-400 dark:text-neutral-500 uppercase tracking-widest flex items-center gap-2">
@@ -329,11 +342,10 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
                         </div>
 
                         <div className="space-y-4">
-                            {sol.detalles?.map((det, idx) => (
+                            {sol.detalles?.map((det: any, idx: number) => (
                                 <div key={idx} className="group bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl p-4 hover:border-blue-400 dark:hover:border-blue-700 hover:shadow-md transition-all">
                                     <div className="flex flex-col lg:flex-row gap-5 justify-between lg:items-center">
                                         
-                                        {/* INFO LUGAR */}
                                         <div className="flex items-start gap-3 w-full lg:w-auto">
                                             <div className="mt-1 w-2 h-2 shrink-0 rounded-full bg-blue-500 shadow-[0_0_0_4px_rgba(59,130,246,0.1)]"></div>
                                             <div className="min-w-0">
@@ -346,22 +358,17 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
                                             </div>
                                         </div>
 
-                                        {/* INFO FECHAS - FORMATO ANCHO */}
                                         <div className="w-full lg:w-auto flex-shrink-0">
                                             <div className="grid grid-cols-2 divide-x divide-slate-200 dark:divide-neutral-700 border border-slate-200 dark:border-neutral-700 bg-slate-50 dark:bg-neutral-800 rounded-lg overflow-hidden w-full lg:min-w-[320px]">
-                                                {/* Salida */}
                                                 <div className="p-3 flex flex-col items-center justify-center text-center">
                                                     <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1">Salida</span>
-                                                    {/* Cambio a text-xs aquí */}
                                                     <span className="text-xs font-mono text-slate-700 dark:text-slate-200 font-medium whitespace-nowrap">
                                                         {getSimpleDate(det.fecha_inicio)}, {getSimpleTime(det.fecha_inicio)}
                                                     </span>
                                                 </div>
                                                 
-                                                {/* Retorno */}
                                                 <div className="p-3 flex flex-col items-center justify-center text-center">
                                                     <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider mb-1">Retorno</span>
-                                                    {/* Cambio a text-xs aquí */}
                                                     <span className="text-xs font-mono text-slate-700 dark:text-slate-200 font-medium whitespace-nowrap">
                                                         {getSimpleDate(det.fecha_fin)}, {getSimpleTime(det.fecha_fin)}
                                                     </span>
@@ -387,12 +394,21 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
         </div>
     </div>
     
-    {/* RENDERIZADO DEL MODAL DE IMPRESIÓN */}
     {showPrintModal && (
         <SolicitudPrintModal 
             isOpen={showPrintModal} 
             onClose={() => setShowPrintModal(false)} 
             solicitudId={sol.id} 
+        />
+    )}
+
+    {showLiquidarModal && (
+        <LiquidarCupones 
+            isOpen={showLiquidarModal} 
+            onClose={() => setShowLiquidarModal(false)}
+            onSuccess={() => onRefresh()} 
+            initialSolicitudId={sol.id}   
+            mode={sol.solvente ? 'view' : 'create'} 
         />
     )}
     </>

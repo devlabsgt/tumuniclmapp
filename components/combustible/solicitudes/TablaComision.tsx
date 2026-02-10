@@ -1,6 +1,5 @@
-// features/solicitudes/components/CommissionTable.tsx
 import React, { useState } from 'react';
-import Swal from 'sweetalert2'; // <--- 1. Importar SweetAlert2
+import Swal from 'sweetalert2'; 
 import { DetalleComision } from '@/components/combustible/solicitudes/types';
 
 interface Props {
@@ -30,9 +29,7 @@ export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
     });
   };
 
-  // --- 2. LÓGICA DE ELIMINAR CON SWEETALERT ---
   const removeItem = (index: number) => {
-    // Detectamos el modo oscuro revisando la clase en el HTML
     const isDarkMode = document.documentElement.classList.contains('dark');
 
     Swal.fire({
@@ -40,19 +37,16 @@ export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
       text: "Este registro se borrará de la lista.",
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#3b82f6', // Rojo
-      cancelButtonColor: '#ef4444', // Azul
+      confirmButtonColor: '#3b82f6', 
+      cancelButtonColor: '#ef4444', 
       confirmButtonText: 'Sí, eliminar',
       cancelButtonText: 'Cancelar',
-      // Estilos dinámicos para Dark Mode
       background: isDarkMode ? '#171717' : '#ffffff', 
       color: isDarkMode ? '#ffffff' : '#1f2937',
     }).then((result) => {
       if (result.isConfirmed) {
-        // Si confirma, ejecutamos la eliminación
         onChange(items.filter((_, i) => i !== index));
 
-        // Alerta de confirmación rápida (opcional)
         Swal.fire({
           title: '¡Eliminado!',
           text: 'El recorrido ha sido quitado.',
@@ -68,7 +62,6 @@ export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
 
   const totalKms = items.reduce((acc, curr) => acc + (Number(curr.kilometros_recorrer) || 0), 0);
 
-  // Formateador de fecha más compacto
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -87,9 +80,6 @@ export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
   return (
     <div className="space-y-6 mt-4">
       
-      {/* ==============================================
-          SECCIÓN 1: FORMULARIO COMPACTO
-          ============================================== */}
       <div className="bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg p-4 shadow-sm">
         
         <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-4 flex items-center gap-2 border-b border-gray-100 dark:border-neutral-700 pb-2">
@@ -99,7 +89,6 @@ export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           
-          {/* LUGAR */}
           <div className="md:col-span-2">
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">
               Lugar a Visitar
@@ -113,7 +102,6 @@ export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
             />
           </div>
 
-          {/* FECHA SALIDA */}
           <div>
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">
               Salida
@@ -126,7 +114,6 @@ export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
             />
           </div>
 
-          {/* FECHA RETORNO */}
           <div>
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">
               Retorno
@@ -139,25 +126,22 @@ export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
             />
           </div>
 
-          {/* KILOMETROS */}
           <div className="md:col-span-2">
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">
               Kilómetros Estimado (Ida y Vuelta)
             </label>
             <div className="relative">
               <input 
-                    type="text"            // Mantiene el diseño sin flechas
-                    inputMode="numeric"    // Mantiene teclado numérico en móviles
+                    type="text"            
+                    inputMode="numeric"    
                     pattern="[0-9]*"
                     className="w-full text-base font-bold p-2 border border-gray-300 dark:border-neutral-600 rounded-md bg-white dark:bg-neutral-900 text-blue-700 dark:text-blue-400 focus:border-blue-600 pr-10"
                     
-                    // Aquí cambiamos cómo se muestra el valor para que no se quede en 0 si el usuario lo borra
                     value={newItem.kilometros_recorrer === 0 ? '' : newItem.kilometros_recorrer}
-                    placeholder="0" // Placeholder para cuando esté vacío
+                    placeholder="0" 
                     
                     onChange={(e) => {
                         const val = e.target.value;
-                        // VALIDACIÓN: Solo permite dígitos (0-9). Si hay letras, no actualiza el estado.
                         if (/^\d*$/.test(val)) {
                             setNewItem({
                                 ...newItem,
@@ -172,7 +156,6 @@ export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
           </div>
         </div>
 
-        {/* BOTÓN AGREGAR */}
         <button
           type="button"
           onClick={handleAddItem}
@@ -192,9 +175,6 @@ export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
         </button>
       </div>
 
-      {/* ==============================================
-          SECCIÓN 2: LISTADO
-          ============================================== */}
       <div>
         <div className="flex justify-between items-center mb-3">
             <h3 className="text-sm font-bold text-gray-700 dark:text-gray-200 flex items-center gap-2">
@@ -220,7 +200,6 @@ export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
                 key={index} 
                 className="bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-sm hover:border-blue-300 transition-colors"
               >
-                {/* Cabecera Tarjeta Compacta */}
                 <div className="p-3 flex justify-between items-start gap-3">
                     <div className="flex gap-3 items-center flex-1">
                         <div className="bg-blue-100 dark:bg-blue-900/50 p-1.5 rounded text-blue-600 dark:text-blue-300 shrink-0">
@@ -233,7 +212,6 @@ export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
                         </div>
                     </div>
                     
-                    {/* BOTÓN ELIMINAR MODIFICADO */}
                     <button 
                       onClick={() => removeItem(index)}
                       className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
@@ -243,10 +221,8 @@ export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
                     </button>
                 </div>
 
-                {/* Detalles Tarjeta (Grid más ajustado) */}
                 <div className="bg-gray-50 dark:bg-neutral-800/50 p-3 border-t border-gray-100 dark:border-neutral-700 flex items-center justify-between gap-2 text-xs">
                     
-                    {/* Fechas */}
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-2">
                             <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
@@ -258,7 +234,6 @@ export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
                         </div>
                     </div>
 
-                    {/* Kilometraje Compacto */}
                     <div className="text-right pl-3 border-l border-gray-200 dark:border-neutral-700">
                         <span className="block text-[10px] font-bold text-gray-400 uppercase">Distancia</span>
                         <span className="text-lg font-black text-blue-700 dark:text-blue-400">
@@ -273,7 +248,6 @@ export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
           </div>
         )}
 
-        {/* --- TOTALES STICKY --- */}
         {items.length > 0 && (
           <div className="mt-4 sticky bottom-2">
              <div className="bg-gray-800 dark:bg-neutral-900 text-white px-4 py-3 rounded-lg shadow-lg flex justify-between items-center border border-gray-700/50 backdrop-blur-sm opacity-95">

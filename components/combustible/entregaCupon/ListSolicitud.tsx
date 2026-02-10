@@ -1,4 +1,3 @@
-// components/combustible/entregaCupon/ListSolicitud.tsx
 'use client'
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -6,13 +5,13 @@ import { useSolicitudes } from './lib/hooks';
 import { SolicitudEntrega } from './lib/schemas';
 import { EntregaItem } from './EntregaItem';
 import AprobacionSolicitud from './modals/AprobacionSolicitud'; 
-// IMPORTANTE: Importamos el nuevo modal de previsualización
-import InformeMensualModal from './modals/InformeMensual'; 
+import InformeMensualModal from './modals/InformeMensual';
+import ValidarLiquidacion from './modals/ValidarLiquidacion';
+
 import { Search, Calendar as CalendarIcon, SearchX, CalendarDays, FileDown, Loader2 } from 'lucide-react'; 
 import { getDatosReporteMensual } from './lib/actions';
 import Swal from 'sweetalert2';
 
-// --- UTILIDADES DE FECHA ---
 const MESES = [ 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre' ];
 const MESES_ABREV = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const ANIO_ACTUAL = new Date().getFullYear();
@@ -58,15 +57,14 @@ export default function ListSolicitud({ initialData }: Props) {
   const [isMounted, setIsMounted] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
   
-  // Estados para modales
   const [selectedSolicitud, setSelectedSolicitud] = useState<SolicitudEntrega | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
-  // NUEVOS ESTADOS PARA PREVISUALIZACIÓN MENSUAL
+  const [validarSolicitud, setValidarSolicitud] = useState<SolicitudEntrega | null>(null);
+
   const [datosReporte, setDatosReporte] = useState<any>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
-  // Filtros
   const [filtroEstado, setFiltroEstado] = useState(''); 
   const [searchTerm, setSearchTerm] = useState('');
   const [mesSeleccionado, setMesSeleccionado] = useState(0); 
@@ -126,11 +124,14 @@ export default function ListSolicitud({ initialData }: Props) {
         } else {
             coincideFecha = sDate.getMonth() === mesSeleccionado && sDate.getFullYear() === anioSeleccionado;
         }
+        
         const lowerTerm = searchTerm.toLowerCase();
+        
         return coincideFecha && (
             s.placa.toLowerCase().includes(lowerTerm) ||
             s.municipio_destino.toLowerCase().includes(lowerTerm) ||
-            (s.usuario?.nombre || '').toLowerCase().includes(lowerTerm)
+            (s.usuario?.nombre || '').toLowerCase().includes(lowerTerm) ||
+            (s.correlativo ? s.correlativo.toString().includes(lowerTerm) : false)
         );
     });
   }, [solicitudes, mesSeleccionado, anioSeleccionado, semanaSeleccionada, semanasDisponibles, searchTerm, isMounted]);
@@ -208,7 +209,7 @@ export default function ListSolicitud({ initialData }: Props) {
                         <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                         <input 
                             type="text" 
-                            placeholder="Buscar placa, destino..." 
+                            placeholder="Buscar placa, destino, correlativo..." 
                             value={searchTerm} 
                             onChange={(e) => setSearchTerm(e.target.value)} 
                             className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 dark:text-gray-200" 
@@ -247,7 +248,7 @@ export default function ListSolicitud({ initialData }: Props) {
                         </div>
                         
                         <button 
-                            onClick={refresh} 
+                            onClick={() => refresh()} 
                             disabled={loading}
                             className="bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-600 dark:text-slate-300 p-2.5 rounded-xl transition-colors disabled:opacity-50"
                             title="Actualizar lista"
@@ -279,6 +280,7 @@ export default function ListSolicitud({ initialData }: Props) {
                                 isOpen={expandedId === sol.id} 
                                 onToggle={() => handleToggle(sol.id)} 
                                 onClick={(item) => setSelectedSolicitud(item)}
+                                onValidar={(item) => setValidarSolicitud(item)}
                             />
                         ))}
                     </div>
@@ -300,6 +302,19 @@ export default function ListSolicitud({ initialData }: Props) {
             onClose={() => handleCloseModal()} 
             onSuccess={(estado) => handleCloseModal(estado)} 
         />
+      )}
+
+      {validarSolicitud && (
+          <ValidarLiquidacion
+              isOpen={!!validarSolicitud}
+              solicitud={validarSolicitud}
+              onClose={() => setValidarSolicitud(null)}
+              onSuccess={() => {
+                  updateLocalSolicitud(validarSolicitud.id, { solvente: true }); 
+                  refresh(); 
+                  setValidarSolicitud(null);
+              }}
+          />
       )}
 
       {datosReporte && (

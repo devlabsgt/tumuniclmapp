@@ -8,9 +8,6 @@ import {
   EntregaCuponFormValues 
 } from './schemas';
 
-// ==========================================
-// 1. OBTENER LISTADO DE SOLICITUDES
-// ==========================================
 export const getSolicitudesParaEntrega = async (): Promise<SolicitudEntrega[]> => {
   const supabase = await createClient();
 
@@ -24,6 +21,8 @@ export const getSolicitudesParaEntrega = async (): Promise<SolicitudEntrega[]> =
       justificacion,
       kilometraje_inicial,
       estado,
+      correlativo,
+      solvente, 
       usuario:info_usuario ( nombre ),
       vehiculo:vehiculos ( modelo, tipo_combustible, tipo_vehiculo ),
       detalles:datos_comision_combustible ( lugar_visitar, kilometros_recorrer, fecha_inicio, fecha_fin )
@@ -38,9 +37,6 @@ export const getSolicitudesParaEntrega = async (): Promise<SolicitudEntrega[]> =
   return data as unknown as SolicitudEntrega[];
 };
 
-// ==========================================
-// 2. OBTENER INVENTARIO
-// ==========================================
 export const getInventarioPorTipo = async (tipo: 'Gasolina' | 'Diesel') => {
   const supabase = await createClient();
    
@@ -58,21 +54,15 @@ export const getInventarioPorTipo = async (tipo: 'Gasolina' | 'Diesel') => {
   return data || [];
 };
 
-// ==========================================
-// 3. GUARDAR ENTREGA Y APROBAR (MODIFICADO)
-// ==========================================
 export const entregarCupones = async (payload: EntregaCuponFormValues) => {
   const supabase = await createClient();
 
-  // A. Obtener el usuario actual (ENCARGADO)
-  // Esto es vital para que salga su nombre en el PDF después
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
       return { success: false, error: "Usuario no autenticado." };
   }
 
-  // B. Validación de datos
   const result = entregaCuponSchema.safeParse(payload);
   if (!result.success) {
     return { success: false, error: "Datos inválidos en la solicitud." };
@@ -83,8 +73,6 @@ export const entregarCupones = async (payload: EntregaCuponFormValues) => {
   try {
     for (const item of items) {
       
-      // 1. Registrar entrega en `entrega_cupones`
-      // AQUI AGREGAMOS LA COLUMNA 'encargado'
       const { error: insertError } = await supabase
         .from('entrega_cupones')
         .insert({
@@ -93,12 +81,11 @@ export const entregarCupones = async (payload: EntregaCuponFormValues) => {
           correlativo_inicio: item.correlativo_inicio,
           correlativo_fin: item.correlativo_fin,
           cantidad_entregada: item.cantidad_asignada,
-          encargado: user.id // <--- GUARDAMOS EL ID DEL ENCARGADO
+          encargado: user.id 
         });
 
       if (insertError) throw new Error("Error al registrar entrega: " + insertError.message);
 
-      // 2. Descontar Inventario
       const { data: currentItem } = await supabase
         .from('DetalleContrato')
         .select('cantidad_actual')
@@ -117,10 +104,24 @@ export const entregarCupones = async (payload: EntregaCuponFormValues) => {
       }
     }
 
-    // 3. Finalizar: Actualizar estado
+    const { data: maxRecord } = await supabase
+      .from('solicitud_combustible')
+      .select('correlativo')
+      .not('correlativo', 'is', null)
+      .order('correlativo', { ascending: false })
+      .limit(1)
+      .single();
+
+    const currentMax = maxRecord?.correlativo || 0;
+    const nuevoCorrelativo = currentMax + 1;
+
     const { error: updateSolError } = await supabase
       .from('solicitud_combustible')
-      .update({ estado: 'aprobado' })
+      .update({ 
+          estado: 'aprobado',
+          correlativo: nuevoCorrelativo,
+          solvente: false 
+      })
       .eq('id', solicitud_id);
 
     if (updateSolError) {
@@ -137,9 +138,6 @@ export const entregarCupones = async (payload: EntregaCuponFormValues) => {
   }
 };
 
-// ==========================================
-// 4. RECHAZAR SOLICITUD
-// ==========================================
 export const rechazarSolicitud = async (id: number, motivo: string) => {
   const supabase = await createClient();
 
@@ -159,15 +157,11 @@ export const rechazarSolicitud = async (id: number, motivo: string) => {
   return { success: true };
 };
 
-// ==========================================
-// 5. OBTENER DATOS PARA IMPRESIÓN (CORREGIDO)
-// ==========================================
 export const getDatosImpresion = async (solicitud_id: number) => {
   const supabase = await createClient();
 
-  // A. Obtener el nombre del usuario en sesión (Quien está entregando el vale)
   const { data: { user } } = await supabase.auth.getUser();
-  let nombreAprobador = 'Encargado de Combustibles'; // Valor por defecto
+  let nombreAprobador = 'Encargado de Combustibles'; 
 
   if (user) {
     const { data: datosUser } = await supabase
@@ -181,7 +175,6 @@ export const getDatosImpresion = async (solicitud_id: number) => {
     }
   }
 
-  // B. Obtener datos de la solicitud (AQUÍ AGREGAMOS "dpi")
   const { data: solicitud, error: solError } = await supabase
     .from('solicitud_combustible')
     .select(`
@@ -197,7 +190,6 @@ export const getDatosImpresion = async (solicitud_id: number) => {
     return null;
   }
 
-  // C. Obtener los cupones entregados
   const { data: entregas, error: entError } = await supabase
     .from('entrega_cupones')
     .select(`
@@ -215,9 +207,8 @@ export const getDatosImpresion = async (solicitud_id: number) => {
 
   return {
     ...solicitud,
-    aprobador: nombreAprobador, // <--- Enviamos el nombre del admin
+    aprobador: nombreAprobador, 
     items: entregas.map((e: any) => {
-      // Manejo seguro por si detalle viene como array
       const det = Array.isArray(e.detalle) ? e.detalle[0] : e.detalle;
       
       return {
@@ -231,8 +222,6 @@ export const getDatosImpresion = async (solicitud_id: number) => {
     })
   };
 };
-
-
 
 export const getDatosReporteMensual = async (mes: number, anio: number, correlativoInicial: number = 20) => {
   const supabase = await createClient();
@@ -274,7 +263,6 @@ export const getDatosReporteMensual = async (mes: number, anio: number, correlat
     
     if (!acc[nombreOficina]) {
       acc[nombreOficina] = {
-        // Formato oficial solicitado: T3208-122-250-XXX-2026
         informeNo: `T3208-122-250-${String(actualCorrelativo).padStart(3, '0')}-2026`,
         items: []
       };
@@ -297,4 +285,110 @@ export const getDatosReporteMensual = async (mes: number, anio: number, correlat
     }
     return acc;
   }, {});
+};
+
+export const getLiquidacionAdmin = async (solicitud_id: number) => {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('liquidacion')
+    .select('*')
+    .eq('id_solicitud', solicitud_id)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error fetching liquidacion:", error);
+    return null;
+  }
+  return data;
+};
+
+export const aprobarLiquidacionFinal = async (
+  solicitud_id: number, 
+  itemsDevolucion: { id: string; cantidad: number }[] = []
+) => {
+  const supabase = await createClient();
+
+  try {
+    if (itemsDevolucion.length > 0) {
+      for (const item of itemsDevolucion) {
+        if (item.cantidad > 0) {
+          const { data: currentItem, error: fetchError } = await supabase
+            .from('DetalleContrato')
+            .select('cantidad_actual')
+            .eq('id', item.id)
+            .single();
+
+          if (fetchError || !currentItem) {
+            throw new Error(`Error al buscar cupón para devolución: ${fetchError?.message}`);
+          }
+
+          const stockActual = Number(currentItem.cantidad_actual);
+          const cantidadDevuelta = Number(item.cantidad);
+
+          const nuevoStock = stockActual + cantidadDevuelta;
+          
+          const { error: updateError } = await supabase
+            .from('DetalleContrato')
+            .update({ cantidad_actual: nuevoStock })
+            .eq('id', item.id);
+
+          if (updateError) {
+            throw new Error(`Error actualizando inventario: ${updateError.message}`);
+          }
+        }
+      }
+    }
+
+    await supabase
+      .from('liquidacion')
+      .update({ estado_liquidacion: 'aprobado' })
+      .eq('id_solicitud', solicitud_id);
+
+    const { error } = await supabase
+      .from('solicitud_combustible')
+      .update({ solvente: true })
+      .eq('id', solicitud_id);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    revalidatePath('/combustible/entregaCupon');
+    return { success: true };
+
+  } catch (error: any) {
+    console.error("Error en aprobación final:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const getEntregasRealizadas = async (solicitud_id: number) => {
+  const supabase = await createClient();
+  
+  const { data, error } = await supabase
+    .from('entrega_cupones')
+    .select(`
+      correlativo_inicio,
+      correlativo_fin,
+      detalle:DetalleContrato ( id, producto, denominacion )
+    `)
+    .eq('solicitud_id', solicitud_id);
+
+  if (error) {
+    console.error("Error obteniendo historial de entregas:", error);
+    return [];
+  }
+  
+  return data.map((item: any) => {
+      const det = Array.isArray(item.detalle) ? item.detalle[0] : item.detalle;
+      return {
+        id: det.id,                 
+        producto: det.producto,
+        denominacion: det.denominacion,
+        inicio: item.correlativo_inicio,
+        fin: item.correlativo_fin
+      };
+  });
 };

@@ -1,9 +1,6 @@
-// features/solicitudes/types.ts
-
 export interface Dependencia {
   id: string;
   nombre: string;
-  // El padre puede venir como objeto o como null desde la BD
   padre?: {
     id: string;
     nombre: string;
@@ -25,8 +22,8 @@ export interface Vehiculo {
 }
 
 export interface DetalleComision {
-  fecha_inicio: string; // ISO Date
-  fecha_fin: string;    // ISO Date
+  fecha_inicio: string; 
+  fecha_fin: string;    
   lugar_visitar: string;
   kilometros_recorrer: number;
 }
@@ -40,7 +37,20 @@ export interface SolicitudCombustible {
   kilometraje_inicial: number;
   justificacion: string;
   estado: 'pendiente' | 'aprobado' | 'rechazado';
+  correlativo?: number | null;
   detalles: DetalleComision[];
-  vehiculo?: Vehiculo; // Join
-  usuario?: UsuarioInfo; // Join
+  vehiculo?: Vehiculo; 
+  usuario?: UsuarioInfo; 
+  solvente?: boolean | null;
+}
+
+export interface CreateSolicitudPayload {
+  usuario_id: string;
+  vehiculo: Vehiculo;
+  es_nuevo_vehiculo: boolean;
+  municipio_destino: string;
+  departamento_destino: string;
+  kilometraje_inicial: number;
+  justificacion: string;
+  detalles: DetalleComision[];
 }
