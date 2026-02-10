@@ -2,7 +2,6 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-// CORRECCIÓN 1: Ruta correcta (mismo directorio)
 import { 
   getMySolicitudes, 
   saveSolicitud, 
@@ -15,19 +14,13 @@ import {
   updateLiquidacion
 } from './actions'; 
 
-// CORRECCIÓN 2: Ruta correcta (mismo directorio)
 import { CreateSolicitudPayload, SolicitudCombustible, Vehiculo } from './types';
 
-// --- CLAVES PARA LA CACHÉ (QUERY KEYS) ---
 export const KEYS = {
   solicitudes: ['solicitudes'],
   vehiculos: (q: string) => ['vehiculos', q],
   liquidacion: (id: number) => ['liquidacion', id],
 };
-
-// ==========================================
-// 1. HOOKS DE LECTURA (GET)
-// ==========================================
 
 export const useSolicitudes = () => {
   return useQuery({
@@ -46,7 +39,6 @@ export const useSearchVehiculos = (query: string) => {
   });
 };
 
-// Hook específico para el Modal de Liquidación
 export const useLiquidacionData = (solicitudId: number | null) => {
   return useQuery({
     queryKey: KEYS.liquidacion(solicitudId!),
@@ -63,14 +55,9 @@ export const useLiquidacionData = (solicitudId: number | null) => {
   });
 };
 
-// ==========================================
-// 2. HOOKS DE ESCRITURA (MUTATIONS)
-// ==========================================
-
 export const useSolicitudMutations = () => {
   const queryClient = useQueryClient();
 
-  // Crear Solicitud
   const crear = useMutation({
     mutationFn: (data: CreateSolicitudPayload) => saveSolicitud(data),
     onSuccess: () => {
@@ -78,7 +65,6 @@ export const useSolicitudMutations = () => {
     },
   });
 
-  // Actualizar Solicitud
   const actualizar = useMutation({
     mutationFn: ({ id, data }: { id: number; data: CreateSolicitudPayload }) => updateSolicitud(id, data),
     onSuccess: () => {
@@ -86,7 +72,6 @@ export const useSolicitudMutations = () => {
     },
   });
 
-  // Eliminar Solicitud
   const eliminar = useMutation({
     mutationFn: (id: number) => deleteSolicitud(id),
     onSuccess: () => {
@@ -100,7 +85,6 @@ export const useSolicitudMutations = () => {
 export const useLiquidacionMutations = () => {
     const queryClient = useQueryClient();
 
-    // Guardar Liquidación
     const guardar = useMutation({
         mutationFn: saveLiquidacion,
         onSuccess: (_, variables) => {
@@ -109,7 +93,6 @@ export const useLiquidacionMutations = () => {
         }
     });
 
-    // Actualizar Liquidación
     const actualizar = useMutation({
         mutationFn: ({ id, data }: { id: string, data: any }) => updateLiquidacion(id, data),
         onSuccess: () => {

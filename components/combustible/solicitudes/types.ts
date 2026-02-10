@@ -1,5 +1,3 @@
-// features/solicitudes/types.ts
-
 export interface Dependencia {
   id: string;
   nombre: string;

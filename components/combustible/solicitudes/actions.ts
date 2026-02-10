@@ -108,9 +108,6 @@ export const saveSolicitud = async (input: CreateSolicitudPayload) => {
   return { success: true, id: solicitudData.id };
 };
 
-// ==========================================
-// 4. ELIMINAR SOLICITUD
-// ==========================================
 export const deleteSolicitud = async (id: number) => {
   const supabase = await createClient();
 
@@ -199,13 +196,9 @@ export const updateSolicitud = async (idSolicitud: number, payload: CreateSolici
   return { success: true };
 };
 
-// ==========================================
-// 5. OBTENER DATOS PARA IMPRESIÓN (PDF)
-// ==========================================
 export const getDatosSolicitudImpresion = async (id: number) => {
   const supabase = await createClient();
 
-  // 1. Obtener la solicitud
   const { data: solicitud, error: solError } = await supabase
     .from('solicitud_combustible')
     .select(`
@@ -218,7 +211,6 @@ export const getDatosSolicitudImpresion = async (id: number) => {
 
   if (solError || !solicitud) return null;
 
-  // 2. Obtener información del solicitante (INCLUYENDO DPI)
   let nombreSolicitante = '---';
   let dpiSolicitante = ''; 
   let unidadDireccion = '---';
@@ -243,7 +235,6 @@ export const getDatosSolicitudImpresion = async (id: number) => {
 
         if (dep) {
           const nombreDep = dep.nombre;
-          // Manejo seguro por si padre es array u objeto
           const padreObj = Array.isArray(dep.padre) ? dep.padre[0] : dep.padre;
           const nombrePadre = padreObj?.nombre;
           unidadDireccion = nombrePadre ? `${nombrePadre} / ${nombreDep}` : nombreDep;
@@ -252,7 +243,6 @@ export const getDatosSolicitudImpresion = async (id: number) => {
     }
   }
 
-  // 3. Obtener Cupones y ENCARGADO
   const { data: entregas } = await supabase
     .from('entrega_cupones')
     .select(`
@@ -264,7 +254,6 @@ export const getDatosSolicitudImpresion = async (id: number) => {
     `) 
     .eq('solicitud_id', id);
 
-  // Lógica Aprobador
   let nombreAprobador = ''; 
   if (entregas && entregas.length > 0) {
     const encargadoId = entregas[0].encargado; 
@@ -306,7 +295,7 @@ export const getDatosSolicitudImpresion = async (id: number) => {
     solicitante_dpi: dpiSolicitante,
     unidad_direccion: unidadDireccion,
     aprobador: nombreAprobador,
-    correlativo: solicitud.correlativo, // <--- AQUI ESTÁ EL CAMBIO IMPORTANTE
+    correlativo: solicitud.correlativo, 
     vehiculo: {
       tipo: vehiculoData?.tipo_vehiculo || '---',
       placa: vehiculoData?.placa || '---',
@@ -318,9 +307,6 @@ export const getDatosSolicitudImpresion = async (id: number) => {
   };
 };
 
-// ==========================================
-// 6. APROBAR SOLICITUD (GENERAR CORRELATIVO)
-// ==========================================
 export const approveSolicitud = async (id: number) => {
   const supabase = await createClient();
 
@@ -364,10 +350,6 @@ export const approveSolicitud = async (id: number) => {
 
   return { success: true, correlativo: nuevoCorrelativo };
 };
-
-// ==========================================
-// NUEVO: FUNCIONES PARA LIQUIDACIÓN
-// ==========================================
 
 export const getSolicitudParaLiquidacion = async (id: number) => {
   const supabase = await createClient();
@@ -431,7 +413,6 @@ export const getSolicitudParaLiquidacion = async (id: number) => {
   };
 };
 
-// 2. Guardar la Liquidación
 export const saveLiquidacion = async (payload: {
   id_solicitud: number;
   km_final: number;
@@ -470,9 +451,6 @@ export const saveLiquidacion = async (payload: {
   if (error) throw new Error(error.message);
   return { success: true };
 };
-// ==========================================
-// NUEVO: OBTENER LIQUIDACIÓN EXISTENTE
-// ==========================================
 export const getLiquidacionBySolicitudId = async (idSolicitud: number) => {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -485,9 +463,6 @@ export const getLiquidacionBySolicitudId = async (idSolicitud: number) => {
   return data;
 };
 
-// ==========================================
-// NUEVO: ACTUALIZAR LIQUIDACIÓN (EDICIÓN)
-// ==========================================
 export const updateLiquidacion = async (idLiquidacion: string, payload: {
   km_final: number;
   cupones_devueltos: number; 

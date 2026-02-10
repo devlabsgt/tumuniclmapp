@@ -22,7 +22,7 @@ export default function ModulesView({
     () =>
       TODOS_LOS_MODULOS.filter((m) => {
         if (rol === "SUPER") return true;
-        if (["ACTIVIDADES", "PERMISOS"].includes(m.id)) return true;
+        if (["ACTIVIDADES", "PERMISOS", "SOLICITUDCOMBUSTIBLE"].includes(m.id)) return true;
         if (
           [
             "ASISTENCIA",
