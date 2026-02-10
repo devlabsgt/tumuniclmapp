@@ -1,5 +1,5 @@
 import React from 'react';
-import { UsuarioInfo } from '@/components/combustible/solicitudes/types'; // Ajusta la ruta según tu estructura
+import { UsuarioInfo } from '@/components/combustible/solicitudes/types'; 
 import { LUGARES_GT } from '@/components/utils/lugaresGT';
 
 interface Props {
@@ -20,7 +20,6 @@ export const DataSolicitante: React.FC<Props> = ({ user, destino, setDestino }) 
 
   return (
     <div className="lg:col-span-7 space-y-6">
-      {/* SECCIÓN 1: DATOS SOLICITANTE */}
       <section className="bg-gray-50 dark:bg-neutral-800/40 rounded-lg p-5 border border-gray-100 dark:border-neutral-700/50">
         <h3 className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-neutral-400 uppercase tracking-wider mb-4">
           <span className="w-2 h-2 rounded-full bg-blue-500"></span>
@@ -48,7 +47,6 @@ export const DataSolicitante: React.FC<Props> = ({ user, destino, setDestino }) 
         </div>
       </section>
 
-      {/* SECCIÓN 2: DESTINO */}
       <section>
         <h3 className="text-xs font-bold text-gray-500 dark:text-neutral-400 uppercase tracking-wider mb-3 pl-1">Destino Principal</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -1,4 +1,3 @@
-// components/combustible/entregaCupon/modals/InformeMensualModal.tsx
 'use client';
 
 import React, { useState } from 'react';
@@ -49,7 +48,6 @@ export default function InformeMensualModal({ isOpen, onClose, datos, mesNombre 
           </div>
         </DialogHeader>
 
-        {/* CAMBIO 1: Contenedor con scroll habilitado, sin flex centrado forzado */}
         <div className="flex-1 overflow-auto p-4 md:p-12 bg-gray-200/50 dark:bg-black/20">
             
             <div className="w-fit mx-auto transform scale-[0.42] origin-top-left sm:scale-75 sm:origin-top md:scale-100 md:origin-top transition-transform duration-200 flex flex-col gap-12 mb-[-60%] sm:mb-[-20%] md:mb-0">
@@ -60,11 +58,27 @@ export default function InformeMensualModal({ isOpen, onClose, datos, mesNombre 
                     return (
                         <div key={oficina} className="w-[816px] min-h-[1247px] bg-white shadow-2xl p-20 text-black flex flex-col relative leading-tight">
                             
-                            {/* ENCABEZADO DERECHA */}
-                            <div className="text-right mb-12">
-                                <p className="font-bold text-[11px]">INFORME No. {infoOficina.informeNo || 'T3208-122-250-XXX-2026'}.</p>
-                                <p className="text-[11px]">Concepción Las Minas, Chiquimula.</p>
-                                <p className="text-[11px]">{new Date().toLocaleDateString('es-GT', { day: 'numeric' })} de {mesNombre.toLowerCase()} del año 2,026.</p>
+                            <div className="flex justify-between items-start mb-12">
+                                
+                                <div className="flex justify-start -mt-10"> 
+                                    <img 
+                                        src="/images/logo-muni.png" 
+                                        alt="Logo" 
+                                        className="h-[100px] object-contain" 
+                                    />
+                                </div>
+
+                                <div className="text-right">
+                                    <p className="font-bold text-[11px] text-black mb-1">
+                                        INFORME No. {infoOficina.informeNo || 'T3208-XXX-2026'}.
+                                    </p>
+                                    <p className="text-[11px] text-black">
+                                        Concepción Las Minas, Chiquimula.
+                                    </p>
+                                    <p className="text-[11px] text-black">
+                                        {new Date().toLocaleDateString('es-GT', { day: 'numeric' })} de {mesNombre.toLowerCase()} del año 2,026.
+                                    </p>
+                                </div>
                             </div>
 
                             <div className="mb-8 text-[11px] font-bold space-y-0.5">
@@ -80,17 +94,16 @@ export default function InformeMensualModal({ isOpen, onClose, datos, mesNombre 
                                 Por medio de la Presente me permito Trasladarle el informe sobre los cupones de combustibles consumidos para el funcionamiento de planes, programas y proyectos para el año 2026, correspondientes al mes de <strong>{mesNombre.toUpperCase()}</strong> para iniciar el proceso de pago de factura.
                             </p>
 
-                            {/* TABLA DE CONTENIDO */}
                             <table className="w-full border-collapse border border-black text-[10px]">
                                 <thead>
-                                    <tr className="bg-[#FFF4BE] border-b border-black">
-                                        <th colSpan={6} className="p-3 text-center font-bold uppercase leading-tight">
+                                    <tr className="bg-blue-100/50 border-b border-black">
+                                        <th colSpan={6} className="p-3 text-center font-bold uppercase leading-tight text-[#0066CC]">
                                             {oficina}
                                         </th>
                                     </tr>
-                                    <tr className="bg-[#FFF4BE] border-b border-black font-bold">
+                                    <tr className="bg-blue-50 border-b border-black font-bold">
                                         <th className="border-r border-black p-2 w-8 text-center">No.</th>
-                                        <th className="border-r border-black p-2 text-center uppercase">Número de Cupón</th>
+                                        <th className="border-r border-black p-2 text-center uppercase">Número de Correlativo</th>
                                         <th className="border-r border-black p-2 text-center uppercase">Cantidad</th>
                                         <th className="border-r border-black p-2 text-center uppercase">Vehículo</th>
                                         <th className="border-r border-black p-2 text-center uppercase">Fecha</th>
@@ -103,7 +116,7 @@ export default function InformeMensualModal({ isOpen, onClose, datos, mesNombre 
                                             <td className="border-r border-black p-2 text-center">{i + 1}</td>
                                             <td className="border-r border-black p-2 text-center font-mono font-bold">
                                                 {d.correlativoInicio && d.correlativoFin 
-                                                    ? (d.correlativoInicio === d.correlativoFin ? d.correlativoInicio : `${d.correlativoInicio} - ${d.correlativoFin}`)
+                                                    ? (d.correlativoInicio === d.correlativoFin ? d.correlativoInicio : `${d.correlativoInicio} al ${d.correlativoFin}`)
                                                     : '---'}
                                             </td>
                                             <td className="border-r border-black p-2 text-center whitespace-nowrap">Q{d.monto.toFixed(2)}</td>

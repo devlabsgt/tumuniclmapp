@@ -1,4 +1,3 @@
-// components/combustible/entregaCupon/modals/AprobacionSolicitud.tsx
 'use client'
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -22,9 +21,6 @@ const EMPTY_ITEM: ItemEntrega = {
     denominacion_valor: 0
 };
 
-// =========================================================
-// COMPONENTE PERSONALIZADO: SELECTOR DE CUPONES
-// =========================================================
 interface CouponSelectProps {
     value: string;
     onChange: (val: string) => void;
@@ -33,6 +29,7 @@ interface CouponSelectProps {
 const CouponSelect: React.FC<CouponSelectProps> = ({ value, onChange, options }) => {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
+    
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (containerRef.current && !containerRef.current.contains(event.target as Node)) setIsOpen(false);
@@ -40,16 +37,30 @@ const CouponSelect: React.FC<CouponSelectProps> = ({ value, onChange, options })
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
+
     const groupedOptions = useMemo(() => {
         const groups: Record<number, InventarioCupon[]> = {};
+        
         options.forEach(opt => {
             const qty = opt.cantidad_actual;
             if (!groups[qty]) groups[qty] = [];
             groups[qty].push(opt);
         });
-        return Object.entries(groups).sort((a, b) => Number(b[0]) - Number(a[0]));
+
+        return Object.entries(groups)
+            .map(([qty, items]) => {
+                items.sort((a, b) => a.denominacion - b.denominacion);
+                return [qty, items] as [string, InventarioCupon[]];
+            })
+            .sort((a, b) => {
+                const minA = a[1][0]?.denominacion || 0;
+                const minB = b[1][0]?.denominacion || 0;
+                return minA - minB;
+            });
     }, [options]);
+
     const selectedOption = options.find(o => o.id === value);
+    
     return (
         <div className="relative w-full" ref={containerRef}>
             <div onClick={() => setIsOpen(!isOpen)} className={`w-full text-sm bg-white dark:bg-neutral-900 border cursor-pointer rounded-lg px-3 py-2.5 flex justify-between items-center transition-all shadow-sm ${isOpen ? 'ring-2 ring-blue-500/20 border-blue-500' : 'border-gray-300 dark:border-neutral-700 hover:border-blue-400'}`}>
@@ -58,7 +69,25 @@ const CouponSelect: React.FC<CouponSelectProps> = ({ value, onChange, options })
             </div>
             {isOpen && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-100">
-                    {options.length === 0 ? (<div className="p-3 text-xs text-gray-400 text-center italic">No hay inventario disponible</div>) : (groupedOptions.map(([qty, items]) => (<div key={qty} className="border-b border-gray-100 dark:border-neutral-700 last:border-0"><div className="bg-gray-50 dark:bg-neutral-900/80 px-3 py-1.5 text-[10px] font-extrabold text-gray-500 dark:text-neutral-400 uppercase tracking-wider sticky top-0 backdrop-blur-sm">{qty} Disponibles</div><ul>{items.map((item) => (<li key={item.id} onClick={() => { onChange(item.id); setIsOpen(false); }} className={`px-4 py-2.5 cursor-pointer flex justify-between items-center group transition-colors border-l-4 ${value === item.id ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500' : 'hover:bg-gray-50 dark:hover:bg-neutral-700/50 border-transparent hover:border-gray-300'}`}><span className="font-bold text-gray-800 dark:text-gray-200 text-sm">Q{item.denominacion}</span><span className="text-xs text-gray-500 dark:text-neutral-500">{item.producto}</span></li>))}</ul></div>)))}
+                    {options.length === 0 ? (
+                        <div className="p-3 text-xs text-gray-400 text-center italic">No hay inventario disponible</div>
+                    ) : (
+                        groupedOptions.map(([qty, items]) => (
+                            <div key={qty} className="border-b border-gray-100 dark:border-neutral-700 last:border-0">
+                                <div className="bg-gray-50 dark:bg-neutral-900/80 px-3 py-1.5 text-[10px] font-extrabold text-gray-500 dark:text-neutral-400 uppercase tracking-wider sticky top-0 backdrop-blur-sm">
+                                    {qty} Disponibles
+                                </div>
+                                <ul>
+                                    {items.map((item) => (
+                                        <li key={item.id} onClick={() => { onChange(item.id); setIsOpen(false); }} className={`px-4 py-2.5 cursor-pointer flex justify-between items-center group transition-colors border-l-4 ${value === item.id ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500' : 'hover:bg-gray-50 dark:hover:bg-neutral-700/50 border-transparent hover:border-gray-300'}`}>
+                                            <span className="font-bold text-gray-800 dark:text-gray-200 text-sm">Q{item.denominacion}</span>
+                                            <span className="text-xs text-gray-500 dark:text-neutral-500">{item.producto}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ))
+                    )}
                 </div>
             )}
         </div>
@@ -80,14 +109,12 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
     return solicitud.detalles?.reduce((acc, d) => acc + (d.kilometros_recorrer || 0), 0) || 0;
   }, [solicitud]);
 
-  // --- NUEVO: Bloquear Scroll del Body cuando el modal está abierto ---
   useEffect(() => {
     if (isOpen) {
         document.body.style.overflow = 'hidden';
     } else {
         document.body.style.overflow = 'unset';
     }
-    // Cleanup al desmontar
     return () => { document.body.style.overflow = 'unset'; };
   }, [isOpen]);
 
@@ -186,7 +213,6 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
           ${step === 'aprobar' ? 'w-full max-w-[95vw] h-[90vh]' : 'w-full max-w-2xl'}
       `}>
         
-        {/* HEADER */}
         <div className="flex justify-between items-center px-8 py-5 border-b border-gray-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 shrink-0 rounded-t-2xl">
           <div>
             <div className="flex items-center gap-3">
@@ -204,7 +230,6 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
           </button>
         </div>
 
-        {/* PASO 1: MENÚ */}
         {step === 'menu' && (
             <div className="p-10 flex flex-col gap-6 items-center justify-center min-h-[300px]">
                 <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-2">¿Qué acción desea realizar con esta solicitud?</h3>
@@ -235,7 +260,6 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
             </div>
         )}
 
-        {/* PASO 2: APROBAR (TABLA) */}
         {step === 'aprobar' && (
             <>
                 <div className="px-8 py-3 bg-gray-50 dark:bg-neutral-900 border-b border-gray-200 dark:border-neutral-800 flex justify-between items-center shrink-0">
@@ -280,7 +304,6 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
                                 {items.map((item, idx) => (
                                     <div key={idx} className="grid grid-cols-12 items-center px-4 py-3 gap-4 hover:bg-gray-50 dark:hover:bg-neutral-800/30 transition-colors group relative overflow-visible z-10">
                                         <div className="col-span-3 relative" style={{ zIndex: 50 - idx }}><CouponSelect value={item.detalle_contrato_id} options={inventario} onChange={(val) => updateItem(idx, 'detalle_contrato_id', val)} /></div>
-                                        {/* CAMBIO: Se agregaron clases para ocultar flechas del input number */}
                                         <div className="col-span-2">
                                             <input 
                                                 type="number" 

@@ -1,18 +1,8 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server';
-import { UsuarioInfo, Vehiculo, DetalleComision, SolicitudCombustible } from './types';
+import { UsuarioInfo, Vehiculo, DetalleComision, SolicitudCombustible, CreateSolicitudPayload } from './types';
 
-interface CreateSolicitudPayload {
-  usuario_id: string;
-  vehiculo: Vehiculo;
-  es_nuevo_vehiculo: boolean;
-  municipio_destino: string;
-  departamento_destino: string;
-  kilometraje_inicial: number;
-  justificacion: string;
-  detalles: DetalleComision[];
-}
 
 const convertToUTC = (dateInput: string | Date | null | undefined) => {
   if (!dateInput) return new Date().toISOString();
@@ -124,7 +114,6 @@ export const saveSolicitud = async (input: CreateSolicitudPayload) => {
 export const deleteSolicitud = async (id: number) => {
   const supabase = await createClient();
 
-  // 1. Borrar cabecera
   const { data, error } = await supabase
     .from('solicitud_combustible')
     .delete()
@@ -139,7 +128,6 @@ export const deleteSolicitud = async (id: number) => {
     throw new Error("No tienes permisos para eliminar esta solicitud o ya no existe.");
   }
 
-  // 2. Limpieza manual de detalles
   await supabase
     .from('datos_comision_combustible')
     .delete()
@@ -160,7 +148,7 @@ export const getMySolicitudes = async (): Promise<SolicitudCombustible[]> => {
       kilometraje_inicial, justificacion, estado, correlativo, solvente, 
       vehiculo:vehiculos ( placa, modelo, tipo_vehiculo, tipo_combustible ),
       detalles:datos_comision_combustible ( fecha_inicio, fecha_fin, lugar_visitar, kilometros_recorrer )
-    `) // ^ AGREGADO: 'solvente' en la lista de campos
+    `) 
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
@@ -336,7 +324,6 @@ export const getDatosSolicitudImpresion = async (id: number) => {
 export const approveSolicitud = async (id: number) => {
   const supabase = await createClient();
 
-  // 1. VALIDACIÓN
   const { data: currentSolicitud, error: fetchError } = await supabase
     .from('solicitud_combustible')
     .select('estado')
@@ -351,7 +338,6 @@ export const approveSolicitud = async (id: number) => {
     throw new Error(`No se puede aprobar. Estado actual: ${currentSolicitud.estado}`);
   }
 
-  // 2. CÁLCULO DEL CORRELATIVO
   const { data: maxRecord } = await supabase
     .from('solicitud_combustible')
     .select('correlativo')
@@ -363,14 +349,12 @@ export const approveSolicitud = async (id: number) => {
   const currentMax = maxRecord?.correlativo || 0;
   const nuevoCorrelativo = currentMax + 1;
 
-  // 3. ACTUALIZAR ESTADO Y SOLVENCIA
-  // AQUI CAMBIAMOS 'solvente' a FALSE para obligar a liquidar después
   const { error: updateError } = await supabase
     .from('solicitud_combustible')
     .update({ 
       estado: 'aprobado',
       correlativo: nuevoCorrelativo,
-      solvente: false // <--- CAMBIO CLAVE: El usuario deja de estar solvente
+      solvente: false 
     })
     .eq('id', id);
 
@@ -385,11 +369,9 @@ export const approveSolicitud = async (id: number) => {
 // NUEVO: FUNCIONES PARA LIQUIDACIÓN
 // ==========================================
 
-// 1. Buscar datos para pre-llenar la liquidación
 export const getSolicitudParaLiquidacion = async (id: number) => {
   const supabase = await createClient();
 
-  // 1. Obtener la solicitud
   const { data: solicitud, error } = await supabase
     .from('solicitud_combustible')
     .select(`
@@ -403,10 +385,9 @@ export const getSolicitudParaLiquidacion = async (id: number) => {
 
   if (error || !solicitud) return null;
 
-  // 2. Obtener datos del usuario (CORREGIDO SEGÚN CrearSolicitud)
   let nombreUsuario = '---';
-  let cargoUsuario = '---';  // Equivale a dependencia.nombre
-  let unidadUsuario = '---'; // Equivale a dependencia.padre.nombre
+  let cargoUsuario = '---';  
+  let unidadUsuario = '---'; 
   
   if (solicitud.user_id) {
     const { data: usr } = await supabase
@@ -419,7 +400,6 @@ export const getSolicitudParaLiquidacion = async (id: number) => {
         nombreUsuario = usr.nombre;
 
         if (usr.dependencia_id) {
-             // Traemos la dependencia y su padre
              const { data: dep } = await supabase
                 .from('dependencias')
                 .select(`
@@ -430,11 +410,8 @@ export const getSolicitudParaLiquidacion = async (id: number) => {
                 .single();
              
              if(dep) {
-                 // Lógica replicada de DataSolicitante.tsx / InformeEntregaCupones:
-                 // CARGO = Nombre de la dependencia hija
                  cargoUsuario = dep.nombre;
 
-                 // UNIDAD/DIRECCION = Nombre de la dependencia padre
                  const padreObj = Array.isArray(dep.padre) ? dep.padre[0] : dep.padre;
                  if (padreObj?.nombre) {
                      unidadUsuario = padreObj.nombre;
@@ -513,7 +490,7 @@ export const getLiquidacionBySolicitudId = async (idSolicitud: number) => {
 // ==========================================
 export const updateLiquidacion = async (idLiquidacion: string, payload: {
   km_final: number;
-  cupones_devueltos: number; // <--- ESTO FALTABA EN TU DEFINICIÓN
+  cupones_devueltos: number; 
   fecha_comision: string;
 }) => {
   const supabase = await createClient();
@@ -521,7 +498,7 @@ export const updateLiquidacion = async (idLiquidacion: string, payload: {
     .from('liquidacion')
     .update({
       km_final: payload.km_final,
-      cupones_devueltos: payload.cupones_devueltos, // <--- Y AQUÍ TAMBIÉN
+      cupones_devueltos: payload.cupones_devueltos, 
       fecha_comision: payload.fecha_comision
     })
     .eq('id', idLiquidacion);

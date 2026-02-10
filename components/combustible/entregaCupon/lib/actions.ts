@@ -8,9 +8,6 @@ import {
   EntregaCuponFormValues 
 } from './schemas';
 
-// ==========================================
-// 1. OBTENER LISTADO DE SOLICITUDES
-// ==========================================
 export const getSolicitudesParaEntrega = async (): Promise<SolicitudEntrega[]> => {
   const supabase = await createClient();
 
@@ -40,9 +37,6 @@ export const getSolicitudesParaEntrega = async (): Promise<SolicitudEntrega[]> =
   return data as unknown as SolicitudEntrega[];
 };
 
-// ==========================================
-// 2. OBTENER INVENTARIO
-// ==========================================
 export const getInventarioPorTipo = async (tipo: 'Gasolina' | 'Diesel') => {
   const supabase = await createClient();
    
@@ -60,20 +54,15 @@ export const getInventarioPorTipo = async (tipo: 'Gasolina' | 'Diesel') => {
   return data || [];
 };
 
-// ==========================================
-// 3. GUARDAR ENTREGA Y APROBAR (MODIFICADO)
-// ==========================================
 export const entregarCupones = async (payload: EntregaCuponFormValues) => {
   const supabase = await createClient();
 
-  // A. Obtener el usuario actual (ENCARGADO)
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
       return { success: false, error: "Usuario no autenticado." };
   }
 
-  // B. Validación de datos
   const result = entregaCuponSchema.safeParse(payload);
   if (!result.success) {
     return { success: false, error: "Datos inválidos en la solicitud." };
@@ -82,10 +71,8 @@ export const entregarCupones = async (payload: EntregaCuponFormValues) => {
   const { items, solicitud_id } = result.data;
 
   try {
-    // 1. Procesar items de entrega e inventario
     for (const item of items) {
       
-      // 1.1 Registrar entrega en `entrega_cupones`
       const { error: insertError } = await supabase
         .from('entrega_cupones')
         .insert({
@@ -99,7 +86,6 @@ export const entregarCupones = async (payload: EntregaCuponFormValues) => {
 
       if (insertError) throw new Error("Error al registrar entrega: " + insertError.message);
 
-      // 1.2 Descontar Inventario
       const { data: currentItem } = await supabase
         .from('DetalleContrato')
         .select('cantidad_actual')
@@ -118,8 +104,6 @@ export const entregarCupones = async (payload: EntregaCuponFormValues) => {
       }
     }
 
-    // --- NUEVA LÓGICA: GENERAR CORRELATIVO SECUENCIAL ---
-    // A. Buscamos el último correlativo generado en toda la tabla
     const { data: maxRecord } = await supabase
       .from('solicitud_combustible')
       .select('correlativo')
@@ -128,18 +112,15 @@ export const entregarCupones = async (payload: EntregaCuponFormValues) => {
       .limit(1)
       .single();
 
-    // B. Calculamos el siguiente
     const currentMax = maxRecord?.correlativo || 0;
     const nuevoCorrelativo = currentMax + 1;
-    // ----------------------------------------------------
 
-    // 3. Finalizar: Actualizar estado, correlativo Y SOLVENCIA
     const { error: updateSolError } = await supabase
       .from('solicitud_combustible')
       .update({ 
           estado: 'aprobado',
           correlativo: nuevoCorrelativo,
-          solvente: false // <--- AQUI ACTUALIZAMOS LA SOLVENCIA
+          solvente: false 
       })
       .eq('id', solicitud_id);
 
@@ -157,9 +138,6 @@ export const entregarCupones = async (payload: EntregaCuponFormValues) => {
   }
 };
 
-// ==========================================
-// 4. RECHAZAR SOLICITUD
-// ==========================================
 export const rechazarSolicitud = async (id: number, motivo: string) => {
   const supabase = await createClient();
 
@@ -179,15 +157,11 @@ export const rechazarSolicitud = async (id: number, motivo: string) => {
   return { success: true };
 };
 
-// ==========================================
-// 5. OBTENER DATOS PARA IMPRESIÓN (CORREGIDO)
-// ==========================================
 export const getDatosImpresion = async (solicitud_id: number) => {
   const supabase = await createClient();
 
-  // A. Obtener el nombre del usuario en sesión (Quien está entregando el vale)
   const { data: { user } } = await supabase.auth.getUser();
-  let nombreAprobador = 'Encargado de Combustibles'; // Valor por defecto
+  let nombreAprobador = 'Encargado de Combustibles'; 
 
   if (user) {
     const { data: datosUser } = await supabase
@@ -201,7 +175,6 @@ export const getDatosImpresion = async (solicitud_id: number) => {
     }
   }
 
-  // B. Obtener datos de la solicitud (AQUÍ AGREGAMOS "dpi")
   const { data: solicitud, error: solError } = await supabase
     .from('solicitud_combustible')
     .select(`
@@ -217,7 +190,6 @@ export const getDatosImpresion = async (solicitud_id: number) => {
     return null;
   }
 
-  // C. Obtener los cupones entregados
   const { data: entregas, error: entError } = await supabase
     .from('entrega_cupones')
     .select(`
@@ -235,9 +207,8 @@ export const getDatosImpresion = async (solicitud_id: number) => {
 
   return {
     ...solicitud,
-    aprobador: nombreAprobador, // <--- Enviamos el nombre del admin
+    aprobador: nombreAprobador, 
     items: entregas.map((e: any) => {
-      // Manejo seguro por si detalle viene como array
       const det = Array.isArray(e.detalle) ? e.detalle[0] : e.detalle;
       
       return {
@@ -251,8 +222,6 @@ export const getDatosImpresion = async (solicitud_id: number) => {
     })
   };
 };
-
-
 
 export const getDatosReporteMensual = async (mes: number, anio: number, correlativoInicial: number = 20) => {
   const supabase = await createClient();
@@ -294,7 +263,6 @@ export const getDatosReporteMensual = async (mes: number, anio: number, correlat
     
     if (!acc[nombreOficina]) {
       acc[nombreOficina] = {
-        // Formato oficial solicitado: T3208-122-250-XXX-2026
         informeNo: `T3208-122-250-${String(actualCorrelativo).padStart(3, '0')}-2026`,
         items: []
       };
@@ -319,9 +287,6 @@ export const getDatosReporteMensual = async (mes: number, anio: number, correlat
   }, {});
 };
 
-// ==========================================
-// 6. OBTENER DETALLE DE LIQUIDACIÓN (ADMIN)
-// ==========================================
 export const getLiquidacionAdmin = async (solicitud_id: number) => {
   const supabase = await createClient();
 
@@ -339,9 +304,6 @@ export const getLiquidacionAdmin = async (solicitud_id: number) => {
   return data;
 };
 
-// ==========================================
-// 7. APROBAR LIQUIDACIÓN (LIBERAR SOLVENCIA)
-// ==========================================
 export const aprobarLiquidacionFinal = async (
   solicitud_id: number, 
   itemsDevolucion: { id: string; cantidad: number }[] = []
@@ -349,11 +311,9 @@ export const aprobarLiquidacionFinal = async (
   const supabase = await createClient();
 
   try {
-    // A. SI HAY CUPONES DEVUELTOS, LOS SUMAMOS AL INVENTARIO
     if (itemsDevolucion.length > 0) {
       for (const item of itemsDevolucion) {
         if (item.cantidad > 0) {
-          // 1. Obtener stock actual
           const { data: currentItem, error: fetchError } = await supabase
             .from('DetalleContrato')
             .select('cantidad_actual')
@@ -364,7 +324,6 @@ export const aprobarLiquidacionFinal = async (
             throw new Error(`Error al buscar cupón para devolución: ${fetchError?.message}`);
           }
 
-          // 2. Sumar al stock
           const stockActual = Number(currentItem.cantidad_actual);
           const cantidadDevuelta = Number(item.cantidad);
 
@@ -382,13 +341,11 @@ export const aprobarLiquidacionFinal = async (
       }
     }
 
-    // B. ACTUALIZAR ESTADO LIQUIDACIÓN
     await supabase
       .from('liquidacion')
       .update({ estado_liquidacion: 'aprobado' })
       .eq('id_solicitud', solicitud_id);
 
-    // C. LIBERAR SOLVENCIA
     const { error } = await supabase
       .from('solicitud_combustible')
       .update({ solvente: true })
@@ -407,13 +364,9 @@ export const aprobarLiquidacionFinal = async (
   }
 };
 
-// ==========================================
-// 8. OBTENER ENTREGAS REALIZADAS (Para Auto-Detección)
-// ==========================================
 export const getEntregasRealizadas = async (solicitud_id: number) => {
   const supabase = await createClient();
   
-  // Consultamos qué rangos se le dieron a esta solicitud
   const { data, error } = await supabase
     .from('entrega_cupones')
     .select(`
@@ -428,12 +381,10 @@ export const getEntregasRealizadas = async (solicitud_id: number) => {
     return [];
   }
   
-  // Limpiamos la data para que sea fácil de usar
   return data.map((item: any) => {
-      // Manejo de array o objeto simple según devuelva Supabase
       const det = Array.isArray(item.detalle) ? item.detalle[0] : item.detalle;
       return {
-        id: det.id,                 // ID del tipo de cupón
+        id: det.id,                 
         producto: det.producto,
         denominacion: det.denominacion,
         inicio: item.correlativo_inicio,

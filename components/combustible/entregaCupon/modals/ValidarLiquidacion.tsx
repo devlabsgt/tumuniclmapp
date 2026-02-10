@@ -1,10 +1,9 @@
-// components/combustible/entregaCupon/modals/ValidarLiquidacion.tsx
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, X, AlertCircle, Gauge, Calendar, FileSignature, Undo2, Trash2, Plus } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Gauge, Calendar, FileSignature, Undo2, Trash2, Plus } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { getLiquidacionAdmin, aprobarLiquidacionFinal, getInventarioPorTipo, getEntregasRealizadas } from '../lib/actions';
 import { SolicitudEntrega, InventarioCupon } from '../lib/schemas';
@@ -16,17 +15,48 @@ interface Props {
   solicitud: SolicitudEntrega;
 }
 
+const AlertMixin = Swal.mixin({
+    target: 'body',
+    confirmButtonColor: '#3b82f6',
+    returnFocus: false,
+    didOpen: () => {
+        const container = Swal.getContainer();
+        if (container) {
+            container.style.setProperty('z-index', '2147483647', 'important');
+        }
+    }
+});
+
+const Toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    background: '#fff',
+    color: '#1f2937',
+    iconColor: '#10b981',
+    didOpen: (toast) => {
+        toast.onmouseenter = Swal.stopTimer;
+        toast.onmouseleave = Swal.resumeTimer;
+        toast.style.setProperty('z-index', '2147483647', 'important');
+        const container = Swal.getContainer();
+        if (container) container.style.setProperty('z-index', '2147483647', 'important');
+    },
+    customClass: {
+        popup: 'colored-toast font-sans text-sm font-medium border border-gray-100 shadow-xl rounded-lg'
+    }
+});
+
 export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicitud }: Props) {
   const [loading, setLoading] = useState(true);
   const [procesando, setProcesando] = useState(false);
   const [liqData, setLiqData] = useState<any>(null);
 
-  // Estados para Devolución
   const [devolverCupones, setDevolverCupones] = useState(false);
   const [inventario, setInventario] = useState<InventarioCupon[]>([]);
   const [historialEntregas, setHistorialEntregas] = useState<any[]>([]);
 
-  // Estado de items
   const [itemsDevolucion, setItemsDevolucion] = useState<{ 
       id: string; 
       cantidad: number; 
@@ -35,7 +65,6 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
       fin: string; 
   }[]>([{ id: '', cantidad: 0, denominacion: 0, inicio: '', fin: '' }]);
 
-  // Cargar datos iniciales
   useEffect(() => {
     if (isOpen && solicitud.id) {
         setLoading(true);
@@ -54,7 +83,6 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
     }
   }, [isOpen, solicitud.id, solicitud.vehiculo?.tipo_combustible]);
 
-  // --- 1. LÓGICA DE AGRUPACIÓN PARA EL SELECT ---
   const inventarioAgrupado = useMemo(() => {
       const grupos: Record<number, InventarioCupon[]> = {};
       
@@ -64,16 +92,20 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
           grupos[cantidad].push(item);
       });
 
-      // Convertimos a array y ordenamos: primero los que tienen más stock
-      return Object.entries(grupos)
-          .sort(([cantA], [cantB]) => Number(cantB) - Number(cantA))
-          .map(([cantidad, items]) => ({
+      const gruposArray = Object.entries(grupos).map(([cantidad, items]) => {
+          items.sort((a, b) => a.denominacion - b.denominacion);
+          
+          return {
               label: `${cantidad} DISPONIBLES`,
-              items: items.sort((a, b) => b.denominacion - a.denominacion) // Ordenar por valor Q dentro del grupo
-          }));
+              items: items,
+              minDenom: items[0].denominacion
+          };
+      });
+
+      return gruposArray.sort((a, b) => a.minDenom - b.minDenom);
+
   }, [inventario]);
 
-  // --- LÓGICA INTELIGENTE ---
   const updateItem = (index: number, field: string, value: any) => {
       const newItems = [...itemsDevolucion];
       // @ts-ignore
@@ -121,17 +153,11 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
         const invalidos = itemsDevolucion.filter(i => !i.id || i.cantidad <= 0);
         if (invalidos.length > 0) {
              if (itemsDevolucion.length === 1 && !itemsDevolucion[0].id && !itemsDevolucion[0].inicio) {
-                 // Permitir vacío
              } else {
-                 return Swal.fire({
+                 return AlertMixin.fire({
                     title: 'Datos Incompletos',
                     text: 'Verifique los datos de devolución.',
-                    icon: 'warning',
-                    target: 'body',
-                    didOpen: () => {
-                        const c = Swal.getContainer();
-                        if(c) c.style.setProperty('z-index', '2147483647', 'important');
-                    }
+                    icon: 'warning'
                  });
              }
         }
@@ -173,29 +199,18 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
     setProcesando(false);
 
     if (res.success) {
-        await Swal.fire({
-            title: '¡Proceso Completado!',
-            text: 'El usuario ha sido marcado como solvente.',
+        await Toast.fire({
             icon: 'success',
-            target: 'body',
-            returnFocus: false,
-            didOpen: () => {
-                const c = Swal.getContainer();
-                if(c) c.style.setProperty('z-index', '2147483647', 'important');
-            }
+            title: '¡Proceso Completado!'
         });
+        
         onSuccess();
         onClose();
     } else {
-        await Swal.fire({
+        await AlertMixin.fire({
             title: 'Error',
             text: res.error || 'No se pudo procesar.',
-            icon: 'error',
-            target: 'body',
-            didOpen: () => {
-                const c = Swal.getContainer();
-                if(c) c.style.setProperty('z-index', '2147483647', 'important');
-            }
+            icon: 'error'
         });
     }
   };
@@ -209,7 +224,6 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-full max-w-4xl bg-white dark:bg-neutral-900 border-none shadow-2xl p-0 overflow-hidden flex flex-col max-h-[90vh]">
         
-        {/* HEADER */}
         <DialogHeader className="p-5 bg-slate-900 text-white flex flex-row items-center justify-between shrink-0">
             <div className="flex items-center gap-4">
                 <div className="p-2 bg-emerald-500/20 border border-emerald-500/30 rounded-lg text-emerald-400">
@@ -222,9 +236,6 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
                     </p>
                 </div>
             </div>
-            <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors bg-white/10 hover:bg-white/20 p-1.5 rounded-full">
-                <X size={18} />
-            </button>
         </DialogHeader>
 
         <div className="flex-1 p-6 bg-gray-50/50 dark:bg-black/20 overflow-y-auto custom-scrollbar">
@@ -235,8 +246,6 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
                 </div>
             ) : liqData ? (
                 <div className="space-y-6">
-                    
-                    {/* INFO GENERAL */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div className="bg-white dark:bg-neutral-800 p-3 rounded-lg border border-gray-200 dark:border-neutral-700 shadow-sm">
                             <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Solicitud No.</span>
@@ -259,7 +268,6 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
                         </div>
                     </div>
 
-                    {/* KILOMETRAJE */}
                     <div className="bg-white dark:bg-neutral-800 rounded-xl p-5 border border-slate-200 dark:border-neutral-700 shadow-sm relative overflow-hidden">
                         <div className="absolute -right-4 -top-4 text-slate-100 dark:text-neutral-700/50">
                             <Gauge size={120} />
@@ -289,7 +297,6 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
                         </div>
                     </div>
 
-                    {/* SECCIÓN DEVOLUCIÓN */}
                     <div className="rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-100 dark:bg-neutral-900/50 overflow-hidden transition-all duration-300">
                         <div className="px-4 py-3 flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -333,7 +340,6 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
                                                     />
                                                 </div>
 
-                                                {/* --- CAMBIO: SELECT CON OPTGROUPS --- */}
                                                 <div className="col-span-4">
                                                     <select 
                                                         className="w-full bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-600 rounded px-1 py-1 text-slate-800 dark:text-white focus:border-slate-400 outline-none h-7 text-[10px]"
@@ -345,7 +351,6 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
                                                             <optgroup key={grupo.label} label={grupo.label} className="bg-white dark:bg-neutral-800 text-slate-500 font-bold uppercase text-[9px]">
                                                                 {grupo.items.map(inv => (
                                                                     <option key={inv.id} value={inv.id} className="text-slate-800 dark:text-white font-medium text-[11px]">
-                                                                        {/* TEXTO LIMPIO: SIN "STOCK" */}
                                                                         Q{inv.denominacion} - {inv.producto}
                                                                     </option>
                                                                 ))}
@@ -370,7 +375,6 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
                                         ))}
                                     </div>
 
-                                    {/* FOOTER TABLA CON BOTÓN NOTORIO */}
                                     <div className="bg-gray-50 dark:bg-neutral-700/30 p-2 flex justify-between items-center border-t border-gray-200 dark:border-neutral-700">
                                         <button 
                                             onClick={addItem} 
@@ -387,11 +391,10 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
                         )}
                     </div>
 
-                    {/* ALERTA */}
                     <div className="flex gap-3 items-center bg-orange-50 dark:bg-orange-900/10 p-3 rounded-lg border border-orange-100 dark:border-orange-900/30">
                         <AlertCircle className="text-orange-600 dark:text-orange-500 shrink-0" size={16} />
                         <div className="text-[11px] text-orange-800 dark:text-orange-200 leading-snug">
-                            <strong>Atención:</strong> Al aprobar, el usuario quedará <strong>solvente</strong> y la solicitud se cerrará. Esta acción es irreversible.
+                            <strong>Atención:</strong> Marque el botón de devolución en caso de que el usuario devuelva algún  <strong>CUPÓN</strong> 
                         </div>
                     </div>
 
@@ -408,12 +411,8 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
             )}
         </div>
 
-        {/* FOOTER */}
         {liqData && (
             <div className="p-4 bg-white dark:bg-neutral-900 border-t border-gray-100 dark:border-neutral-800 flex justify-end gap-2 shrink-0">
-                <Button variant="outline" onClick={onClose} disabled={procesando} className="h-10 px-4 text-xs font-bold">
-                    Cancelar
-                </Button>
                 <Button 
                     onClick={handleAprobar} 
                     disabled={procesando}

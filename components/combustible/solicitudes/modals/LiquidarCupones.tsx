@@ -1,11 +1,10 @@
-// features/solicitudes/modals/LiquidarCupones.tsx
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-// Agregamos CheckCircle2 para el indicador visual
-import { Search, Save, X, FileSignature, AlertCircle, Calendar, Hash, User, Briefcase, MapPin, Gauge, Lock, Edit, CheckCircle2 } from 'lucide-react'; 
+import { Search, Save, X, FileSignature, AlertCircle, Gauge, Lock, Edit, CheckCircle2, User, Briefcase, Building2 } from 'lucide-react'; 
 import Swal from 'sweetalert2';
-import { getSolicitudParaLiquidacion, saveLiquidacion, getLiquidacionBySolicitudId, updateLiquidacion } from '../actions';
+
+import { useLiquidacionData, useLiquidacionMutations } from '../hook'; 
 
 interface Props {
   isOpen: boolean;
@@ -15,78 +14,98 @@ interface Props {
   mode?: 'create' | 'view'; 
 }
 
+const Toast = Swal.mixin({
+  toast: true,
+  position: 'top-end',
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+  didOpen: (toast) => {
+    toast.addEventListener('mouseenter', Swal.stopTimer)
+    toast.addEventListener('mouseleave', Swal.resumeTimer)
+  }
+});
+
+const formatNumber = (num: number | string) => {
+    if (!num) return '';
+    const cleanNum = num.toString().replace(/,/g, '');
+    return Number(cleanNum).toLocaleString('en-US');
+};
+
 export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSolicitudId, mode = 'create' }: Props) {
-  const [searchId, setSearchId] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  
-  const [solicitudData, setSolicitudData] = useState<any>(null);
-  const [liquidacionData, setLiquidacionData] = useState<any>(null);
+  const [activeId, setActiveId] = useState<number | null>(null); 
+  const [searchId, setSearchId] = useState(''); 
 
   const [kmFinal, setKmFinal] = useState<number | ''>('');
   const [fechaComision, setFechaComision] = useState('');
-
-  const [hasExistingRecord, setHasExistingRecord] = useState(false);
   const [isEditing, setIsEditing] = useState(true);
+
+  const [kmFinalDisplay, setKmFinalDisplay] = useState('');
+
+  const { data: combinedData, isLoading, isError } = useLiquidacionData(activeId);
+  const { guardar, actualizar } = useLiquidacionMutations();
+
+  const solicitudData = combinedData?.solicitudData;
+  const liquidacionData = combinedData?.liquidacionData;
+  const hasExistingRecord = !!liquidacionData;
 
   useEffect(() => {
     if (isOpen) {
-        setLiquidacionData(null);
-        setSolicitudData(null);
-        setKmFinal('');
-        setFechaComision('');
-        setHasExistingRecord(false);
-        setIsEditing(true); 
-
+        setSearchId('');
         if (initialSolicitudId) {
+            setActiveId(initialSolicitudId);
             setSearchId(initialSolicitudId.toString());
-            cargarDatos(initialSolicitudId);
         } else {
-            setSearchId('');
+            setActiveId(null);
         }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, initialSolicitudId]); 
+  }, [isOpen, initialSolicitudId]);
 
-  const cargarDatos = async (id: number) => {
-    setLoading(true);
-    try {
-        const solData = await getSolicitudParaLiquidacion(id);
-        
-        if (!solData) {
-            Swal.fire('Error', 'Solicitud no encontrada o no aprobada.', 'error');
-            onClose();
-            return;
-        }
-        setSolicitudData(solData);
-
-        const liqData = await getLiquidacionBySolicitudId(id);
-        
-        if (liqData) {
-            setLiquidacionData(liqData);
-            setKmFinal(liqData.km_final);
-            if (liqData.fecha_comision) {
-                setFechaComision(new Date(liqData.fecha_comision).toISOString().split('T')[0]);
+  useEffect(() => {
+    if (combinedData) {
+        if (liquidacionData) {
+            setKmFinal(liquidacionData.km_final);
+            setKmFinalDisplay(formatNumber(liquidacionData.km_final)); 
+            if (liquidacionData.fecha_comision) {
+                setFechaComision(new Date(liquidacionData.fecha_comision).toISOString().split('T')[0]);
             }
-            
-            setHasExistingRecord(true); 
-            setIsEditing(false); // Por defecto bloqueado al cargar
-        } else {
-            setHasExistingRecord(false);
-            setIsEditing(true);         
-            setFechaComision('');       
+            setIsEditing(false); 
+        } 
+        else if (solicitudData) {
+            setKmFinal(solicitudData.kilometraje_inicial); 
+            setKmFinalDisplay(formatNumber(solicitudData.kilometraje_inicial)); 
+            setFechaComision('');
+            setIsEditing(true);
         }
-
-    } catch (error) {
-        console.error(error);
-        Swal.fire('Error', 'Error cargando datos.', 'error');
-    } finally {
-        setLoading(false);
+    } else {
+        setKmFinal('');
+        setKmFinalDisplay('');
+        setFechaComision('');
     }
-  };
+  }, [combinedData, solicitudData, liquidacionData]);
 
   const handleManualSearch = () => {
-      if(searchId) cargarDatos(Number(searchId));
+      if(searchId) setActiveId(Number(searchId)); 
+  };
+
+  const handleChangeKm = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const rawValue = e.target.value.replace(/,/g, '');
+      
+      if (!/^\d*$/.test(rawValue)) return;
+
+      const numValue = rawValue === '' ? '' : Number(rawValue);
+      setKmFinal(numValue);
+
+      setKmFinalDisplay(rawValue === '' ? '' : Number(rawValue).toLocaleString('en-US'));
+  };
+
+  const handleBlurKm = () => {
+      if (!solicitudData) return;
+      const val = Number(kmFinal);
+      if (kmFinal === '' || val < solicitudData.kilometraje_inicial) {
+          setKmFinal(solicitudData.kilometraje_inicial);
+          setKmFinalDisplay(formatNumber(solicitudData.kilometraje_inicial));
+      }
   };
 
   const totalRecorrido = (typeof kmFinal === 'number' && solicitudData) 
@@ -94,52 +113,46 @@ export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSol
     : 0;
 
   const isInvalidKm = totalRecorrido < 0;
-  
   const inputsDisabled = !isEditing; 
-
-  // --- LÓGICA DE BLOQUEO POR SOLVENCIA ---
-  // Si solvente es true, significa que el admin ya validó.
   const isSolvente = solicitudData?.solvente === true;
+  const isSubmitting = guardar.isPending || actualizar.isPending; 
 
   const handleSubmit = async () => {
     if (!solicitudData || typeof kmFinal !== 'number') return;
     
     if (!fechaComision) {
-        return Swal.fire('Atención', 'Debe seleccionar la fecha real de la comisión.', 'warning');
+        return Toast.fire({ icon: 'warning', title: 'Seleccione la fecha real de la comisión.' });
     }
 
-    if (isInvalidKm) return Swal.fire('Error', 'El Kilometraje Final no puede ser menor al Inicial.', 'error');
+    if (isInvalidKm) {
+        return Toast.fire({ icon: 'error', title: 'El Km Final no puede ser menor al Inicial.' });
+    }
 
-    setSubmitting(true);
     try {
         if (hasExistingRecord && liquidacionData) {
-             await updateLiquidacion(liquidacionData.id, {
-                km_final: kmFinal,
-                cupones_devueltos: 0, 
-                fecha_comision: fechaComision
+             await actualizar.mutateAsync({
+                id: liquidacionData.id,
+                data: {
+                    km_final: kmFinal,
+                    cupones_devueltos: 0, 
+                    fecha_comision: fechaComision
+                }
             });
-            await Swal.fire('Actualizado', 'La liquidación ha sido corregida.', 'success');
+            Toast.fire({ icon: 'success', title: 'Liquidación actualizada correctamente.' });
         } else {
-            await saveLiquidacion({
+            await guardar.mutateAsync({
                 id_solicitud: solicitudData.id,
                 km_final: kmFinal,
                 cupones_devueltos: 0,
                 fecha_comision: fechaComision
             });
-            await Swal.fire({
-                title: 'Registrado Correctamente',
-                text: 'Recuerde entregar la hoja física al encargado para liberar su solvencia.',
-                icon: 'success',
-                confirmButtonColor: '#3085d6',
-            });
+            Toast.fire({ icon: 'success', title: 'Liquidación registrada correctamente.' });
         }
 
         if (onSuccess) onSuccess();
         onClose();
     } catch (error: any) {
-        Swal.fire('Error', error.message, 'error');
-    } finally {
-        setSubmitting(false);
+        Toast.fire({ icon: 'error', title: error.message || 'Error al procesar la solicitud.' });
     }
   };
 
@@ -147,52 +160,44 @@ export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSol
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-screen h-screen max-w-none bg-white dark:bg-[#1a1a1a] border-none shadow-none rounded-none flex flex-col overflow-hidden p-0">
         
-        {/* HEADER */}
-        <DialogHeader className="px-8 py-5 border-b border-gray-100 dark:border-neutral-800 bg-white dark:bg-[#1a1a1a] flex flex-row items-center justify-between shrink-0 z-10">
-            <div className="flex items-center gap-4">
-                <div className="h-10 w-10 bg-slate-900 dark:bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-slate-900/20 dark:shadow-blue-600/20">
-                    <FileSignature size={20} />
+        <DialogHeader className="px-6 py-4 border-b border-gray-100 dark:border-neutral-800 bg-white dark:bg-[#1a1a1a] flex flex-row items-center justify-between shrink-0 z-10">
+            <div className="flex items-center gap-3">
+                <div className="h-8 w-8 bg-slate-900 dark:bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-md">
+                    <FileSignature size={16} />
                 </div>
                 <div>
-                    <DialogTitle className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                    <DialogTitle className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                         {hasExistingRecord ? 'Detalle de Liquidación' : 'Nueva Liquidación'}
                     </DialogTitle>
-                    <p className="text-xs text-slate-500 dark:text-gray-400 font-medium mt-0.5">
-                        {/* Mensaje dinámico según estado */}
+                    <p className="text-[10px] text-slate-500 dark:text-gray-400 font-medium">
                         {isSolvente 
-                            ? 'Liquidación finalizada y aprobada por administración' 
+                            ? 'Liquidación finalizada y aprobada' 
                             : hasExistingRecord 
                                 ? 'Registro guardado previamente' 
-                                : 'Registro oficial de cierre de solicitud'}
+                                : 'Registro oficial de cierre'}
                     </p>
                 </div>
             </div>
-            <button 
-                onClick={onClose} 
-                className="h-10 w-10 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-neutral-800 dark:hover:text-white transition-all"
-            >
-                <X size={24} />
+            <button onClick={onClose} className="h-8 w-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-neutral-800 dark:hover:text-white transition-all">
+                <X size={20} />
             </button>
         </DialogHeader>
 
-        {/* CONTENIDO */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-10 bg-gray-50/50 dark:bg-[#111111] custom-scrollbar flex justify-center">
+        <div className="flex-1 overflow-y-auto px-4 md:px-8 pt-4 md:pt-8 pb-40 bg-gray-50/50 dark:bg-[#111111] custom-scrollbar flex justify-center">
             
-            <div className="w-full max-w-5xl space-y-8">
+            <div className="w-full max-w-6xl space-y-6">
                 
-                {/* BUSCADOR INICIAL */}
-                {!initialSolicitudId && !solicitudData && (
-                    <div className="flex flex-col items-center justify-center h-[60vh] animate-in fade-in zoom-in duration-300">
-                        {/* ... (Buscador igual que antes) ... */}
-                        <div className="w-full max-w-md space-y-4 bg-white dark:bg-neutral-900 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-neutral-800">
-                            <label className="text-sm font-bold text-slate-400 uppercase tracking-widest text-center block mb-4">
+                {!activeId && !solicitudData && (
+                    <div className="flex flex-col items-center justify-center h-[50vh] animate-in fade-in zoom-in duration-300">
+                        <div className="w-full max-w-sm space-y-3 bg-white dark:bg-neutral-900 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-neutral-800">
+                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center block mb-2">
                                 Buscar Solicitud
                             </label>
                             <div className="flex gap-2 relative group">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={20} />
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={16} />
                                 <input 
                                     type="number" 
-                                    className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-lg transition-all"
+                                    className="w-full pl-10 pr-3 py-2 bg-gray-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-sm transition-all"
                                     placeholder="ID..."
                                     value={searchId}
                                     onChange={(e) => setSearchId(e.target.value)}
@@ -201,45 +206,43 @@ export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSol
                                 />
                                 <Button 
                                     onClick={handleManualSearch} 
-                                    disabled={loading || !searchId} 
-                                    className="px-6 bg-slate-900 dark:bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all"
+                                    disabled={isLoading || !searchId} 
+                                    className="px-4 bg-slate-900 dark:bg-blue-600 text-white font-bold rounded-lg shadow-md text-xs"
                                 >
-                                    {loading ? '...' : 'Buscar'}
+                                    {isLoading ? '...' : 'Buscar'}
                                 </Button>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* FORMULARIO */}
                 {solicitudData && (
-                    <div className="animate-in slide-in-from-bottom-4 fade-in duration-500 bg-white dark:bg-[#1a1a1a] p-8 md:p-12 rounded-2xl shadow-xl border border-gray-100 dark:border-neutral-800 relative">
+                    <div className="animate-in slide-in-from-bottom-4 fade-in duration-500 bg-white dark:bg-[#1a1a1a] p-6 md:p-8 rounded-xl shadow-lg border border-gray-100 dark:border-neutral-800 relative">
                         
-                        {/* --- INDICADOR DE MODO LECTURA / APROBADO --- */}
                         <div className="absolute top-4 right-4 flex gap-2">
                             {isSolvente ? (
-                                <div className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2">
-                                    <CheckCircle2 size={12} /> LIQUIDADO
+                                <div className="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1.5">
+                                    <CheckCircle2 size={10} /> LIQUIDADO
                                 </div>
                             ) : inputsDisabled ? (
-                                <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2">
-                                    <Lock size={12} /> MODO LECTURA
+                                <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-md text-[10px] font-bold flex items-center gap-1.5">
+                                    <Lock size={10} /> LECTURA
                                 </div>
                             ) : null}
                         </div>
 
-                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 md:gap-16 border-b border-gray-100 dark:border-neutral-800 pb-8 mb-8">
+                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 mb-2">
                             <div className="flex flex-col sm:flex-row sm:items-end gap-3 flex-1">
-                                <label className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap mb-1.5">
-                                    FECHA DE COMISIÓN:
+                                <label className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap mb-1.5">
+                                    Fecha Comisión:
                                 </label>
-                                <div className="flex-1 relative">
+                                <div className="w-auto">
                                     <input 
                                         type="date"
-                                        disabled={inputsDisabled} // Siempre disabled si isSolvente (porque inputsDisabled será true)
+                                        disabled={inputsDisabled}
                                         value={fechaComision}
                                         onChange={(e) => setFechaComision(e.target.value)}
-                                        className={`w-full bg-transparent border-b-2 py-1 px-2 text-lg font-bold outline-none transition-colors text-center sm:text-left
+                                        className={`w-40 bg-transparent border-b py-0.5 px-1 text-sm font-bold outline-none transition-colors text-center sm:text-left
                                             ${inputsDisabled 
                                                 ? 'border-transparent text-slate-600 dark:text-slate-400' 
                                                 : 'border-slate-300 dark:border-neutral-600 text-slate-900 dark:text-white focus:border-blue-500'
@@ -247,86 +250,83 @@ export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSol
                                     />
                                 </div>
                             </div>
-
-                            <div className="flex flex-col sm:flex-row sm:items-end gap-3 flex-1 md:justify-end">
-                                <label className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap mb-1.5">
-                                    SOLICITUD No.
+                            <div className="flex flex-col sm:flex-row sm:items-end gap-2 flex-1 md:justify-end">
+                                <label className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap mb-1">
+                                    Solicitud No.
                                 </label>
-                                <div className="border-b-2 border-slate-300 dark:border-neutral-600 py-1 px-4 text-xl font-black text-sky-600 dark:text-sky-400 font-mono min-w-[100px] text-center">
+                                <div className="border-b border-slate-300 dark:border-neutral-600 py-0.5 px-3 text-base font-black text-sky-600 dark:text-sky-400 font-mono text-center">
                                     {solicitudData.correlativo || solicitudData.id}
                                 </div>
                             </div>
                         </div>
 
-                        {/* DATOS DE USUARIO */}
-                        <div className="grid grid-cols-12 gap-y-8 gap-x-6 mb-10 opacity-90">
-                            <div className="col-span-12">
-                                <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-                                    <label className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap mb-1">
-                                        NOMBRE DE QUIEN LIQUIDA:
-                                    </label>
-                                    <div className="flex-1 border-b border-slate-200 dark:border-neutral-700 py-1 text-base font-bold text-slate-800 dark:text-gray-200 uppercase truncate">
+                        <div className="bg-slate-50 dark:bg-neutral-900/50 rounded-xl p-5 border border-slate-100 dark:border-neutral-800 mb-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="col-span-1 md:col-span-2">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <User size={12} className="text-gray-400" />
+                                        <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Responsable</label>
+                                    </div>
+                                    <div className="text-sm font-bold text-slate-800 dark:text-gray-200 uppercase tracking-tight">
                                         {solicitudData.usuario?.nombre || '---'}
                                     </div>
                                 </div>
-                            </div>
-                            {/* ... Resto de campos de usuario igual ... */}
-                            <div className="col-span-12 md:col-span-5">
-                                <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-                                    <label className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap mb-1">
-                                        CARGO:
-                                    </label>
-                                    <div className="flex-1 border-b border-slate-200 dark:border-neutral-700 py-1 text-xs font-bold text-slate-700 dark:text-gray-300 uppercase">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Briefcase size={12} className="text-gray-400" />
+                                        <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Cargo</label>
+                                    </div>
+                                    <div className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase leading-snug">
                                         {solicitudData.usuario?.cargo || '---'}
                                     </div>
                                 </div>
-                            </div>
-                            <div className="col-span-12 md:col-span-7">
-                                <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-                                    <label className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap mb-1">
-                                        UNIDAD/DIRECCIÓN:
-                                    </label>
-                                    <div className="flex-1 border-b border-slate-200 dark:border-neutral-700 py-1 text-xs font-bold text-slate-700 dark:text-gray-300 uppercase">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Building2 size={12} className="text-gray-400" />
+                                        <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Unidad / Dirección</label>
+                                    </div>
+                                    <div className="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase leading-snug">
                                         {solicitudData.usuario?.unidad || '---'}
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* TARJETA KILOMETRAJE */}
-                        <div className={`rounded-2xl p-8 border relative overflow-hidden mb-8 transition-colors
+                        <div className={`rounded-xl p-6 border relative overflow-hidden mb-8 transition-colors
                             ${inputsDisabled 
                                 ? 'bg-gray-50/50 dark:bg-neutral-900/30 border-gray-100 dark:border-neutral-800' 
                                 : 'bg-slate-50 dark:bg-neutral-900/50 border-slate-200 dark:border-neutral-800'
                             }
                         `}>
-                            <div className="absolute top-0 right-0 p-4 opacity-[0.03] dark:opacity-[0.05]">
-                                <Gauge size={180} />
+                            <div className="absolute -top-4 -right-4 p-4 opacity-[0.03] dark:opacity-[0.05]">
+                                <Gauge size={140} />
                             </div>
                             
-                            <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-widest mb-8 flex items-center gap-2 relative z-10">
-                                <span className={`w-2 h-2 rounded-full ${isSolvente ? 'bg-emerald-500' : (inputsDisabled ? 'bg-gray-400' : 'bg-blue-500')}`}></span>
+                            <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-widest mb-6 flex items-center gap-2 relative z-10">
+                                <span className={`w-1.5 h-1.5 rounded-full ${isSolvente ? 'bg-emerald-500' : (inputsDisabled ? 'bg-gray-400' : 'bg-blue-500')}`}></span>
                                 Registro de Recorrido
                             </h3>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 relative z-10 items-end">
-                                <div className="flex flex-col border-b-2 border-slate-200 dark:border-neutral-700 pb-2">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase mb-1">Kilometraje Inicial</span>
-                                    <div className="text-2xl font-mono font-bold text-slate-600 dark:text-slate-400">
-                                        {solicitudData.kilometraje_inicial.toLocaleString()}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10 items-end">
+                                <div className="flex flex-col border-b border-slate-200 dark:border-neutral-700 pb-1">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">Km Inicial</span>
+                                    <div className="text-lg font-mono font-bold text-slate-600 dark:text-slate-400">
+                                        {formatNumber(solicitudData.kilometraje_inicial)}
                                     </div>
                                 </div>
 
                                 <div className="flex flex-col">
-                                    <label className={`text-[10px] font-bold uppercase mb-2 ${inputsDisabled ? 'text-gray-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                                        Kilometraje Final
+                                    <label className={`text-[10px] font-bold uppercase mb-1 ${inputsDisabled ? 'text-gray-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                                        Km Final
                                     </label>
                                     <div className="relative">
+                                        
                                         <input 
-                                            type="number"
+                                            type="text" 
                                             placeholder="0"
                                             disabled={inputsDisabled}
-                                            className={`w-full bg-white dark:bg-neutral-900 border-b-4 rounded-t-lg px-4 py-3 text-3xl font-mono font-black outline-none transition-all shadow-sm
+                                            onBlur={handleBlurKm}
+                                            className={`w-full bg-white dark:bg-neutral-900 border-b-2 rounded-t-md px-3 py-2 text-xl font-mono font-bold outline-none transition-all shadow-sm
                                                 ${inputsDisabled 
                                                     ? 'text-gray-600 dark:text-gray-400 border-gray-300 dark:border-neutral-700 bg-gray-100 dark:bg-neutral-800 cursor-not-allowed' 
                                                     : isInvalidKm 
@@ -334,83 +334,72 @@ export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSol
                                                         : 'border-blue-500 text-slate-900 dark:text-white focus:bg-blue-50 dark:focus:bg-blue-900/10'
                                                 }
                                             `}
-                                            value={kmFinal}
-                                            onChange={(e) => setKmFinal(e.target.value === '' ? '' : Number(e.target.value))}
+                                            value={kmFinalDisplay}
+                                            onChange={handleChangeKm}
                                         />
-                                        {isInvalidKm && !inputsDisabled && <p className="absolute -bottom-6 left-0 text-[10px] text-red-500 font-bold animate-pulse">Menor al inicial</p>}
+                                        {isInvalidKm && !inputsDisabled && <p className="absolute -bottom-5 left-0 text-[9px] text-red-500 font-bold animate-pulse">Menor al inicial</p>}
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col md:items-end md:text-right border-b-2 border-slate-200 dark:border-neutral-700 pb-2">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase mb-1">Total Recorrido</span>
+                                <div className="flex flex-col md:items-end md:text-right border-b border-slate-200 dark:border-neutral-700 pb-1">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">Total</span>
                                     <div className="flex items-baseline gap-1">
-                                        <span className={`text-3xl font-black tracking-tight ${inputsDisabled ? 'text-gray-600' : 'text-slate-800 dark:text-white'}`}>
-                                            {totalRecorrido.toLocaleString()}
+                                        <span className={`text-xl font-black tracking-tight ${inputsDisabled ? 'text-gray-600' : 'text-slate-800 dark:text-white'}`}>
+                                            {formatNumber(totalRecorrido)}
                                         </span>
-                                        <span className="text-sm font-bold text-slate-400">KM</span>
+                                        <span className="text-[10px] font-bold text-slate-400">KM</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        {/* ALERTA / NOTA (Solo si NO es solvente) */}
-                        {!isSolvente && (
-                            <div className="rounded-xl bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-900/30 p-5 flex gap-4 items-center">
-                                <AlertCircle className="text-orange-600 dark:text-orange-500 shrink-0" size={24} />
-                                <div className="text-sm text-orange-800 dark:text-orange-200 leading-snug">
-                                    <strong className="font-bold uppercase block text-xs mb-0.5">Nota Importante</strong>
-                                    Al guardar, su solvencia permanecerá inactiva. Deberá entregar la <span className="font-bold underline decoration-orange-400">hoja física firmada</span> al encargado para habilitar nuevas solicitudes.
-                                </div>
-                            </div>
-                        )}
 
                     </div>
                 )}
             </div>
         </div>
 
-        {/* FOOTER ACCIONES */}
         {solicitudData && (
-            <div className="px-8 py-5 bg-white dark:bg-[#1a1a1a] border-t border-gray-100 dark:border-neutral-800 flex justify-between items-center shrink-0 z-10">
+            <div className="px-6 py-4 mb-2 bg-white dark:bg-[#1a1a1a] border-t border-gray-100 dark:border-neutral-800 flex justify-between items-center shrink-0 z-10">
                 
-                {/* Botón Editar: Se muestra SOLO si hay datos, no estamos editando y NO ES SOLVENTE */}
                 {hasExistingRecord && !isEditing && !isSolvente ? (
                     <Button 
                         onClick={() => setIsEditing(true)}
-                        className="bg-amber-100 hover:bg-amber-200 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50 border border-amber-200 dark:border-amber-800 h-12 px-6 rounded-xl font-bold transition-all"
+                        size="sm"
+                        className="bg-amber-100 hover:bg-amber-200 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50 border border-amber-200 dark:border-amber-800 px-4 rounded-lg font-bold transition-all"
                     >
-                        <Edit size={18} className="mr-2" />
-                        Editar Datos
+                        <Edit size={14} className="mr-2" />
+                        Editar
                     </Button>
                 ) : (
-                    <div></div> // Espaciador
+                    <div></div>
                 )}
 
-                <div className="flex gap-4">
+                <div className="flex gap-3">
                     <Button 
                         variant="ghost" 
+                        size="sm"
                         onClick={onClose} 
-                        disabled={submitting}
-                        className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white h-12 px-6"
+                        disabled={isSubmitting}
+                        className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white px-4"
                     >
                         {hasExistingRecord && !isEditing ? 'Cerrar' : 'Cancelar'}
                     </Button>
                     
-                    {/* Botón Guardar: Se muestra SOLO si estamos editando (y lógicamente no será solvente porque el botón de editar no habría aparecido) */}
                     {isEditing && !isSolvente && (
                         <Button 
                             onClick={handleSubmit} 
-                            disabled={submitting || isInvalidKm || kmFinal === '' || !fechaComision}
-                            className={`text-white font-bold px-8 h-12 rounded-xl shadow-xl transition-all active:scale-95 text-base
+                            size="sm"
+                            disabled={isSubmitting || isInvalidKm || kmFinal === '' || !fechaComision}
+                            className={`text-white font-bold px-6 rounded-lg shadow-md transition-all active:scale-95 text-xs
                                 ${hasExistingRecord 
                                     ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-900/10' 
                                     : 'bg-slate-900 dark:bg-emerald-600 hover:bg-slate-800 dark:hover:bg-emerald-700 shadow-emerald-900/10'
                                 }
                             `}
                         >
-                            {submitting ? 'Guardando...' : (
+                            {isSubmitting ? 'Guardando...' : (
                                 <span className="flex items-center gap-2">
-                                    <Save size={20} /> {hasExistingRecord ? 'Actualizar Liquidación' : 'Guardar Liquidación'}
+                                    <Save size={16} /> {hasExistingRecord ? 'Actualizar' : 'Guardar'}
                                 </span>
                             )}
                         </Button>

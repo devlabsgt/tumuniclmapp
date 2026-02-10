@@ -1,4 +1,3 @@
-// components/combustible/entregaCupon/ListSolicitud.tsx
 'use client'
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -6,16 +5,13 @@ import { useSolicitudes } from './lib/hooks';
 import { SolicitudEntrega } from './lib/schemas';
 import { EntregaItem } from './EntregaItem';
 import AprobacionSolicitud from './modals/AprobacionSolicitud'; 
-// IMPORTANTE: Importamos el nuevo modal de previsualización
 import InformeMensualModal from './modals/InformeMensual';
-// IMPORTANTE: Importamos el nuevo modal de validación
 import ValidarLiquidacion from './modals/ValidarLiquidacion';
 
 import { Search, Calendar as CalendarIcon, SearchX, CalendarDays, FileDown, Loader2 } from 'lucide-react'; 
 import { getDatosReporteMensual } from './lib/actions';
 import Swal from 'sweetalert2';
 
-// --- UTILIDADES DE FECHA ---
 const MESES = [ 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre' ];
 const MESES_ABREV = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const ANIO_ACTUAL = new Date().getFullYear();
@@ -61,18 +57,14 @@ export default function ListSolicitud({ initialData }: Props) {
   const [isMounted, setIsMounted] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
   
-  // Estados para modales existentes
   const [selectedSolicitud, setSelectedSolicitud] = useState<SolicitudEntrega | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
-  // NUEVO ESTADO: Para el modal de validación de liquidación
   const [validarSolicitud, setValidarSolicitud] = useState<SolicitudEntrega | null>(null);
 
-  // Estados para previsualización mensual
   const [datosReporte, setDatosReporte] = useState<any>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
-  // Filtros
   const [filtroEstado, setFiltroEstado] = useState(''); 
   const [searchTerm, setSearchTerm] = useState('');
   const [mesSeleccionado, setMesSeleccionado] = useState(0); 
@@ -288,7 +280,6 @@ export default function ListSolicitud({ initialData }: Props) {
                                 isOpen={expandedId === sol.id} 
                                 onToggle={() => handleToggle(sol.id)} 
                                 onClick={(item) => setSelectedSolicitud(item)}
-                                // --- CONECTAMOS LA VALIDACIÓN ---
                                 onValidar={(item) => setValidarSolicitud(item)}
                             />
                         ))}
@@ -313,16 +304,13 @@ export default function ListSolicitud({ initialData }: Props) {
         />
       )}
 
-      {/* RENDERIZADO DEL NUEVO MODAL DE VALIDACIÓN */}
       {validarSolicitud && (
           <ValidarLiquidacion
               isOpen={!!validarSolicitud}
               solicitud={validarSolicitud}
               onClose={() => setValidarSolicitud(null)}
               onSuccess={() => {
-                  // Actualización optimista local
                   updateLocalSolicitud(validarSolicitud.id, { solvente: true }); 
-                  // Refrescar datos reales
                   refresh(); 
                   setValidarSolicitud(null);
               }}

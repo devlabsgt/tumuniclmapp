@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { ContratoExtendido } from '@/components/combustible/contrato/types' 
 import NuevoContrato from './modals/NuevoContrato'
-import { Fuel, Hash, AlertCircle, Calendar, Layers, Beaker, TrendingDown, Filter } from 'lucide-react'
+import { Fuel, Hash, Calendar, Layers, Filter, AlertCircle } from 'lucide-react'
 
 interface Props {
   contratos: ContratoExtendido[]
@@ -13,24 +13,17 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
   
   const [listaContratos, setListaContratos] = useState<ContratoExtendido[]>(contratosIniciales || [])
   
-  // MODIFICACIÓN: Iniciar el estado con el año actual convertido a string
   const [anioFiltro, setAnioFiltro] = useState<string>(String(new Date().getFullYear()))
-
-  const [pruebaContratoId, setPruebaContratoId] = useState<string>('')
-  const [pruebaDetalleId, setPruebaDetalleId] = useState<string>('')
-  const [cantidadConsumo, setCantidadConsumo] = useState<string>('')
 
   useEffect(() => {
     setListaContratos(contratosIniciales || [])
   }, [contratosIniciales])
 
-  // Obtener años únicos para el select
   const aniosDisponibles = useMemo(() => {
     const years = new Set(listaContratos.map(c => c.anio))
     return Array.from(years).sort((a, b) => b - a)
   }, [listaContratos])
 
-  // Filtrar contratos según el año seleccionado
   const contratosFiltrados = useMemo(() => {
     if (!anioFiltro) return listaContratos
     return listaContratos.filter(c => c.anio.toString() === anioFiltro)
@@ -46,33 +39,6 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
     return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800'
   }
 
-  const handleSimularConsumo = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!pruebaContratoId || !pruebaDetalleId || !cantidadConsumo) return
-
-    const cantidad = parseInt(cantidadConsumo)
-    
-    setListaContratos(prev => prev.map(c => {
-        if (String(c.id) === pruebaContratoId && c.detalles) {
-            const nuevosDetalles = c.detalles.map(d => {
-                if (String(d.id) === pruebaDetalleId) {
-                    return { ...d, cantidad_actual: Math.max(0, d.cantidad_actual - cantidad) }
-                }
-                return d
-            })
-            return { ...c, detalles: nuevosDetalles }
-        }
-        return c
-    }))
-    
-    setCantidadConsumo('')
-  }
-
-  const contratoSeleccionadoParaPrueba = useMemo(() => 
-    listaContratos.find(c => String(c.id) === pruebaContratoId), 
-  [listaContratos, pruebaContratoId])
-
-
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       
@@ -84,7 +50,6 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
           </h2>
         </div>
         
-        {/* Sección de Acciones: Filtro y Botón Nuevo */}
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
             <div className="relative w-full sm:w-48">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -270,71 +235,6 @@ export default function ContratoList({ contratos: contratosIniciales }: Props) {
               <p className="text-base font-medium">No se encontraron contratos para el criterio seleccionado</p>
           </div>
       )}
-
-      {/* Zona de Pruebas */}
-      <div className="mt-12 p-6 border-2 border-dashed border-amber-300/50 bg-amber-50/50 dark:border-amber-900/50 dark:bg-amber-900/10 rounded-xl">
-        <h3 className="text-lg font-bold text-amber-700 dark:text-amber-500 flex items-center gap-2 mb-4">
-            <Beaker className="w-5 h-5" /> 
-            Zona de Pruebas: Consumir Cupón
-        </h3>
-        
-        <form onSubmit={handleSimularConsumo} className="flex flex-col lg:flex-row items-end gap-4">
-            <div className="w-full lg:w-1/4">
-                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">1. Contrato</label>
-                <select 
-                    value={pruebaContratoId}
-                    onChange={(e) => {
-                        setPruebaContratoId(e.target.value)
-                        setPruebaDetalleId('') 
-                    }}
-                    className="w-full rounded-lg border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-sm py-2 px-3 focus:ring-2 focus:ring-amber-500"
-                >
-                    <option value="">-- Seleccione --</option>
-                    {listaContratos.map(c => (
-                        <option key={c.id} value={c.id}>#{c.numero_contrato} - {c.estacion}</option>
-                    ))}
-                </select>
-            </div>
-
-            <div className="w-full lg:w-1/4">
-                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">2. Tipo de Cupón</label>
-                <select 
-                    value={pruebaDetalleId}
-                    onChange={(e) => setPruebaDetalleId(e.target.value)}
-                    disabled={!pruebaContratoId}
-                    className="w-full rounded-lg border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-sm py-2 px-3 focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
-                >
-                    <option value="">-- Seleccione Cupón --</option>
-                    {contratoSeleccionadoParaPrueba?.detalles?.map(d => (
-                        <option key={d.id} value={d.id}>
-                           {d.producto} (Q{d.denominacion}) - Disp: {d.cantidad_actual}
-                        </option>
-                    ))}
-                </select>
-            </div>
-
-            <div className="w-full lg:w-1/4">
-                 <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">3. Cantidad a Restar</label>
-                <input 
-                    type="number" 
-                    min="1"
-                    value={cantidadConsumo}
-                    onChange={(e) => setCantidadConsumo(e.target.value)}
-                    placeholder="Ej. 2"
-                    className="w-full rounded-lg border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-sm py-2 px-3 focus:ring-2 focus:ring-amber-500"
-                />
-            </div>
-
-            <button 
-                type="submit"
-                disabled={!pruebaContratoId || !pruebaDetalleId || !cantidadConsumo}
-                className="w-full lg:w-auto px-6 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-lg shadow-amber-200 dark:shadow-none"
-            >
-                <TrendingDown size={16} />
-                Descontar
-            </button>
-        </form>
-      </div>
 
     </div>
   )

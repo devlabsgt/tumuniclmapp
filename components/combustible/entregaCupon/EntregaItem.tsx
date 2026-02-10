@@ -1,4 +1,3 @@
-// components/combustible/entregaCupon/modals/EntregaItem.tsx
 import React from 'react';
 import { SolicitudEntrega } from './lib/schemas';
 import { 
@@ -13,7 +12,7 @@ import {
   XCircle,
   Printer,
   Calendar,
-  FileSignature // Importado para el icono de validar
+  FileSignature 
 } from 'lucide-react';
 
 interface Props {
@@ -22,15 +21,13 @@ interface Props {
   onToggle: () => void;
   onClick?: (sol: SolicitudEntrega) => void;
   onPrint?: (sol: SolicitudEntrega) => void; 
-  onValidar?: (sol: SolicitudEntrega) => void; // <--- NUEVO PROP
+  onValidar?: (sol: SolicitudEntrega) => void; 
 }
 
 export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, onPrint, onValidar }) => {
   
-  // Cálculos auxiliares
   const totalKms = sol.detalles?.reduce((acc, d) => acc + (d.kilometros_recorrer || 0), 0) || 0;
   
-  // Helpers de fecha y hora
   const getSimpleDate = (dateStr: string) => {
     if(!dateStr) return '--';
     const date = new Date(dateStr);
@@ -44,7 +41,6 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
     return new Date(dateStr).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
-  // Helper para colores de estado
   const getStatusColor = (status: string) => {
       if (status.includes('aprobado') || status.includes('aprobada')) return 'emerald';
       if (status.includes('rechazado') || status.includes('rechazada')) return 'red';
@@ -54,22 +50,17 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
   const color = getStatusColor(sol.estado);
   const isApproved = color === 'emerald'; 
 
-  // Lógica para el texto y estilo del botón según estado
   const getButtonContent = () => {
     switch (sol.estado) {
         case 'aprobado':
-            // --- CAMBIO CLAVE AQUÍ ---
-            // Si está aprobado pero NO es solvente, mostramos botón de validar
             if (sol.solvente === false) {
                  return { 
                     text: 'Validar Liquidación', 
-                    // Estilo Naranja llamativo para acción pendiente
                     style: 'bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/20 shadow-sm cursor-pointer border-none',
                     action: 'validar',
                     icon: <FileSignature size={16} />
                 };
             }
-            // Si ya es solvente (o null/true por defecto antiguo), mostramos finalizado
             return { 
                 text: 'Solicitud Finalizada', 
                 style: 'bg-emerald-100 text-emerald-700 border-emerald-200 cursor-not-allowed dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800 border',
@@ -83,7 +74,7 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
                 action: 'none',
                 icon: <XCircle size={16} />
             };
-        default: // pendiente
+        default: 
             return { 
                 text: 'Procesar Solicitud', 
                 style: 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/20 dark:bg-blue-600 dark:hover:bg-blue-500 shadow-sm',
@@ -103,14 +94,12 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
             : 'border-slate-200 dark:border-neutral-800 hover:border-blue-300 dark:hover:border-neutral-700 hover:shadow-md'
         }
     `}>
-        {/* ... (HEADER SE MANTIENE EXACTAMENTE IGUAL) ... */}
         <div 
             onClick={onToggle}
             className="p-5 cursor-pointer select-none relative z-10"
         >
             <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
                 
-                {/* IZQUIERDA: Icono + Info Principal */}
                 <div className="flex items-start gap-4 overflow-hidden">
                     <div className={`
                         w-12 h-12 shrink-0 rounded-xl flex items-center justify-center border-2 transition-colors
@@ -151,7 +140,6 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
                     </div>
                 </div>
 
-                {/* DERECHA: Botones, Etiqueta Estado & Chevron */}
                 <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto pl-16 sm:pl-0">
                     {isApproved && onPrint && (
                         <button 
@@ -174,7 +162,6 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
             </div>
         </div>
 
-        {/* --- BODY (Acordeón) --- */}
         <div className={`
             overflow-hidden transition-all duration-500 ease-in-out border-t border-dashed border-slate-200 dark:border-neutral-800
             ${isOpen ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0 border-none'}
@@ -182,11 +169,9 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
             <div className="p-5 bg-slate-50/50 dark:bg-neutral-950/30">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     
-                    {/* COLUMNA IZQ */}
                     <div className="lg:col-span-4 flex flex-col gap-4">
                         <div className="bg-white dark:bg-neutral-900 rounded-xl p-5 border border-slate-200 dark:border-neutral-800 shadow-sm space-y-5">
                             
-                            {/* KILOMETRAJE */}
                             <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-neutral-800/50 rounded-xl border border-slate-100 dark:border-neutral-700">
                                 <div className="flex-1 flex items-center gap-2 border-r border-slate-200 dark:border-neutral-700 pr-2 overflow-hidden">
                                     <Gauge size={14} className="text-slate-400 shrink-0" />
@@ -208,7 +193,6 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
                                 </div>
                             </div>
 
-                            {/* SECCIÓN VEHÍCULO (Igual que antes) */}
                             <div>
                                 <h4 className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-3 flex items-center gap-2">
                                     <Car size={12} /> Vehículo
@@ -235,7 +219,6 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
                                 </div>
                             </div>
 
-                            {/* JUSTIFICACIÓN */}
                             <div>
                                 <h4 className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-2 flex items-center gap-2">
                                     <FileText size={12} /> Justificación
@@ -245,11 +228,9 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
                                 </p>
                             </div>
 
-                            {/* --- BOTÓN DE ACCIÓN DINÁMICO --- */}
                             <button 
                                 onClick={(e) => { 
                                     e.stopPropagation(); 
-                                    // Manejo de clicks según la acción definida
                                     if (btnProps.action === 'validar' && onValidar) {
                                         onValidar(sol);
                                     } else if (btnProps.action === 'procesar' && onClick) {
@@ -265,7 +246,6 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
                         </div>
                     </div>
 
-                    {/* COLUMNA DER: ITINERARIO (Igual que antes) */}
                     <div className="lg:col-span-8">
                         <div className="flex items-center justify-between mb-4 px-1">
                             <h4 className="text-xs font-bold text-slate-400 dark:text-neutral-500 uppercase tracking-widest flex items-center gap-2">

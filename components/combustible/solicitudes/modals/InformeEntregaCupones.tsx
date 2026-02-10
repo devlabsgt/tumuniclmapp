@@ -26,7 +26,7 @@ interface DatosSolicitud {
   solicitante_dpi: string;
   unidad_direccion: string;
   aprobador: string; 
-  correlativo?: number | null; // <--- 1. AGREGADO EN LA INTERFAZ
+  correlativo?: number | null; 
   vehiculo: {
     tipo: string;
     placa: string;
@@ -142,7 +142,6 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
           </div>
         </DialogHeader>
 
-        {/* CORRECCIÓN: 'items-start' permite el scroll en PC desde el inicio. 'justify-center' centra horizontalmente. */}
         <div className="flex-1 overflow-auto p-4 md:p-8 flex items-start justify-center bg-gray-200/50 dark:bg-black/20">
             {loading ? (
                 <div className="flex flex-col items-center justify-center h-64 w-full gap-4 text-gray-500 m-auto">
@@ -150,13 +149,10 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                     <span>Cargando formato...</span>
                 </div>
             ) : datos ? (
-                // CORRECCIÓN: Quitamos 'm-auto' para evitar conflictos con items-start.
-                // 'origin-top' asegura que al escalar se mantenga arriba y centrado.
                 <div className="transform scale-[0.42] sm:scale-75 md:scale-100 origin-top h-fit mb-[-60%] sm:mb-[-20%] md:mb-0 transition-transform duration-200 shadow-2xl bg-white">
                     
                     <div ref={printRef} className="w-[816px] min-h-[1248px] bg-white text-black relative flex flex-col px-12 pb-12 box-border">
                         
-                        {/* === ENCABEZADO === */}
                         <div className="flex justify-between items-center mb-2 border-b-2 border-[#0066CC] pb-2">
                             <div className="w-1/4 flex justify-start pl-2">
                                 <img 
@@ -174,24 +170,20 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                                 </p>
                             </div>
                             
-                            {/* --- 2. MODIFICACIÓN DEL CORRELATIVO --- */}
                             <div className="w-1/4 flex justify-end items-center pr-2">
                                 <h3 className="text-lg font-black text-red-600 font-mono">
                                     No. {datos.correlativo || '---'}
                                 </h3>
                             </div>
-                            {/* -------------------------------------- */}
 
                         </div>
 
-                        {/* === TÍTULO === */}
                         <div className="w-full text-center mb-6">
                             <h1 className="text-xs font-bold uppercase text-black leading-tight">
                                 FORMULARIO DE SOLICITUD DE COMBUSTIBLE POR COMISIÓN
                             </h1>
                         </div>
 
-                        {/* LUGAR Y FECHA */}
                         <div className="flex justify-end items-end text-[11px] mb-4 gap-2 font-bold text-gray-800">
                             <span>CONCEPCIÓN LAS MINAS,</span>
                             <div className="border-b border-black min-w-[150px] text-center px-2">
@@ -199,7 +191,6 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                             </div>
                         </div>
 
-                        {/* DATOS DEL SOLICITANTE */}
                         <div className="flex flex-col gap-2 text-[10px] uppercase font-bold text-gray-700 mb-4">
                             <div className="flex items-end w-full gap-2">
                                 <span className="whitespace-nowrap">NOMBRE DEL SOLICITANTE:</span>
@@ -231,7 +222,6 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                             </div>
                         </div>
 
-                        {/* DATOS DEL VEHÍCULO */}
                         <div className="border border-black rounded-sm p-1 mb-4">
                             <div className="bg-gray-200 text-center text-[10px] font-bold uppercase border-b border-black mb-2 py-0.5">
                                 DATOS DEL VEHÍCULO:
@@ -254,7 +244,6 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                             </div>
                         </div>
 
-                        {/* TABLA COMISIÓN */}
                         <div className="mb-2">
                             <div className="text-center text-[10px] font-bold uppercase mb-1">
                                 DATOS DE LA COMISIÓN
@@ -294,7 +283,6 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                             </table>
                         </div>
 
-                        {/* JUSTIFICACIÓN */}
                         <div className="flex flex-col gap-1 mb-6">
                             <div className="flex items-end w-full gap-2 text-[10px] uppercase font-bold text-gray-700">
                                 <span className="whitespace-nowrap">JUSTIFICACIÓN:</span>
@@ -304,7 +292,6 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                             </div>
                         </div>
 
-                        {/* FIRMAS SUPERIORES */}
                         <div className="flex justify-between items-start px-4 mb-6 mt-10">
                             <div className="flex-1 text-center flex flex-col items-center">
                                 <div className="w-[80%] border-t border-black pt-1">
@@ -318,7 +305,6 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                             </div>
                         </div>
 
-                        {/* SECCIÓN USO EXCLUSIVO MUNICIPAL */}
                         <div className="border border-black bg-gray-50/50 p-2 text-[10px]">
                             <div className="text-center font-bold uppercase mb-2 text-xs">PARA USO EXCLUSIVO MUNICIPAL</div>
                             
@@ -377,7 +363,6 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                                 </tbody>
                             </table>
 
-                            {/* Footer Exclusivo */}
                             <div className="mt-4 mb-2 px-2">
                                 <div className="flex items-end gap-2"> 
                                     <span className="text-[9px] font-bold uppercase mb-6 whitespace-nowrap">ELABORADO POR (F):</span>
@@ -394,7 +379,6 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                             </div>
                         </div>
 
-                        {/* === SECCIÓN PIE DE PÁGINA (RECIBÍ CONFORME) === */}
                         <div className="mt-12 text-[10px] font-bold uppercase text-gray-700">
                             <div className="flex items-end gap-2 mb-4">
                                 <span className="whitespace-nowrap">RECIBÍ CONFORME NUMERO DE CUPON:</span>

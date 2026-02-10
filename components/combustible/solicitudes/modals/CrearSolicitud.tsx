@@ -24,7 +24,6 @@ export const CreateRequestModal: React.FC<Props> = ({
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
     
-  // --- ESTADO DE FORMULARIO ---
   const [vehiculo, setVehiculo] = useState<Vehiculo>({ 
     placa: '', modelo: '', tipo_vehiculo: '', tipo_combustible: '' 
   });
@@ -34,7 +33,6 @@ export const CreateRequestModal: React.FC<Props> = ({
   const [justificacion, setJustificacion] = useState('');
   const [comisiones, setComisiones] = useState<DetalleComision[]>([]);
 
-  // Bloqueo de scroll del body
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -90,18 +88,15 @@ export const CreateRequestModal: React.FC<Props> = ({
   const handleSubmit = async () => {
     if (loading || !user?.user_id) return;
 
-    // --- VALIDACIÓN: Verificar itinerario ---
     if (comisiones.length === 0) {
         toast.warning('Debe registrar al menos un recorrido en el itinerario.');
         return;
     }
 
-    // --- VALIDACIÓN: Verificar Justificación (NUEVO) ---
     if (!justificacion.trim()) {
         toast.warning('La justificación es obligatoria.');
         return;
     }
-    // ----------------------------------------------
 
     setLoading(true);
     
@@ -139,7 +134,6 @@ export const CreateRequestModal: React.FC<Props> = ({
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-300">
         <div className="bg-white dark:bg-neutral-900 w-full h-full sm:h-auto sm:max-h-[95vh] sm:max-w-4xl flex flex-col sm:rounded-3xl shadow-2xl border-0 sm:border border-gray-100 dark:border-neutral-800 overflow-hidden">
             
-            {/* --- HEADER --- */}
             <div className="px-6 pt-6 pb-4 sm:px-8 sm:pt-8">
                 <div className="flex items-center justify-between mb-4 sm:mb-6">
                     <div className="pr-8">
@@ -158,7 +152,6 @@ export const CreateRequestModal: React.FC<Props> = ({
                     </button>
                 </div>
 
-                {/* Progress Indicators */}
                 <div className="flex gap-2 sm:gap-3 justify-center">
                     {[1, 2, 3].map((step) => (
                         <div 
@@ -173,7 +166,6 @@ export const CreateRequestModal: React.FC<Props> = ({
                 </div>
             </div>
 
-            {/* --- BODY SCROLLABLE --- */}
             <div className="flex-1 overflow-y-auto px-6 py-4 sm:px-8 custom-scrollbar pb-24 sm:pb-6">
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                     
@@ -223,7 +215,6 @@ export const CreateRequestModal: React.FC<Props> = ({
                 </div>
             </div>
 
-            {/* --- FOOTER NAVEGACIÓN (FIJO EN MÓVIL) --- */}
             <div className="p-4 sm:p-6 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-lg flex justify-between items-center border-t border-gray-100 dark:border-neutral-800 sticky bottom-0 sm:static">
                 <button 
                     onClick={currentStep === 1 ? onClose : prevStep} 
@@ -239,13 +230,11 @@ export const CreateRequestModal: React.FC<Props> = ({
 
                 <button 
                     onClick={currentStep === totalSteps ? handleSubmit : nextStep} 
-                    // --- NUEVA LÓGICA DE DESHABILITADO (Justificación obligatoria) ---
                     disabled={
                         loading || 
                         (currentStep === 2 && !vehiculo.placa) || 
                         (currentStep === 3 && (comisiones.length === 0 || !justificacion.trim()))
                     }
-                    // -------------------------------------
                     className={`
                         px-6 sm:px-10 py-3 text-sm font-bold rounded-xl transition-all flex items-center gap-2 shadow-xl active:scale-95
                         ${currentStep === totalSteps 

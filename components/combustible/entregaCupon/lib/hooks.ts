@@ -11,7 +11,6 @@ export const useSolicitudes = (initialData: SolicitudEntrega[] = []) => {
   const { data, isLoading, refetch } = useQuery({
     queryKey: queryKey,
     queryFn: getSolicitudesParaEntrega,
-    // Si pasas data inicial (SSR), TanStack la usa como punto de partida
     initialData: initialData.length > 0 ? initialData : undefined,
   });
 
