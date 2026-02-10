@@ -2,7 +2,6 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { getListaUsuariosAction, getDetalleUsuarioAction } from "./actions";
-
 // Re-exportamos los tipos para usarlos en los componentes
 export type { InfoUsuarioData, InfoUsuario } from "./actions";
 
