@@ -37,14 +37,8 @@ export function LoginForm() {
         transition={{ duration: 0.5, delay: 0.2 }}
         className="w-full max-w-lg"
       >
-        <Image
           src="/images/logo-muni.png"
-          alt="Logo Municipalidad"
-          width={600}
-          height={200}
-          className="w-full h-auto object-contain"
-          priority
-        />
+
       </motion.div>
 
       <motion.div

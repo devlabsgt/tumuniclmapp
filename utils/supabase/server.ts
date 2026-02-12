@@ -20,6 +20,21 @@ export const createClient = async () => {
           } catch {}
         },
       },
+      global: {
+        fetch: async (url, options) => {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+          try {
+            return await fetch(url, {
+              ...options,
+              signal: controller.signal,
+            });
+          } finally {
+            clearTimeout(timeoutId);
+          }
+        },
+      },
     },
   );
 };
