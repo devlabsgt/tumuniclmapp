@@ -3,3 +3,6 @@ ignoredBuiltDependencies:
   - core-js
   - sharp
   - supabase
+
+onlyBuiltDependencies:
+  - supabase
