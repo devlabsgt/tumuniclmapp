@@ -80,12 +80,20 @@ export default function InformeDietas({ isOpen, onClose, agendas }: Props) {
 
   const [anioSeleccionado, setAnioSeleccionado] = useState<string>("");
   const [mesSeleccionado, setMesSeleccionado] = useState<string>("");
-
   const [numeroInforme, setNumeroInforme] = useState("");
   const [nombreDirectora, setNombreDirectora] = useState("");
 
   const printRef = useRef<HTMLDivElement>(null);
-
+  useEffect(() => {
+    if (mesSeleccionado !== "") {
+      const numeroSugerido = (parseInt(mesSeleccionado) + 1)
+        .toString()
+        .padStart(3, "0");
+      setNumeroInforme(numeroSugerido);
+    } else {
+      setNumeroInforme("");
+    }
+  }, [mesSeleccionado]);
   useEffect(() => {
     if (isOpen) {
       setLoading(true);
