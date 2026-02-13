@@ -1,20 +1,12 @@
-import { createClient } from '@/utils/supabase/server'
+import { getContratos } from './actions' 
 import ContratoList from '@/components/combustible/contrato/ContratoList'
 
 export default async function GestorContratos() {
-  const supabase = await createClient()
-
-  const { data: contratos } = await supabase
-    .from('ContratoCombustible')
-    .select(`
-      *,
-      detalles:DetalleContrato(*)
-    `)
-    .order('created_at', { ascending: false })
+  const contratos = await getContratos()
   
   return (
     <div className="w-full">
-      <ContratoList contratos={contratos || []} />
+      <ContratoList contratos={contratos} />
     </div>
   )
 }

@@ -1,23 +1,19 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { ContratoExtendido } from '@/components/combustible/contrato/types' 
 import NuevoContrato from './modals/NuevoContrato'
 import { Fuel, Hash, Calendar, Layers, Filter, AlertCircle } from 'lucide-react'
-
+import { useContratos } from './hook' 
 interface Props {
   contratos: ContratoExtendido[]
 }
 
 export default function ContratoList({ contratos: contratosIniciales }: Props) {
   
-  const [listaContratos, setListaContratos] = useState<ContratoExtendido[]>(contratosIniciales || [])
+  const { data: listaContratos = [] } = useContratos(contratosIniciales)
   
   const [anioFiltro, setAnioFiltro] = useState<string>(String(new Date().getFullYear()))
-
-  useEffect(() => {
-    setListaContratos(contratosIniciales || [])
-  }, [contratosIniciales])
 
   const aniosDisponibles = useMemo(() => {
     const years = new Set(listaContratos.map(c => c.anio))

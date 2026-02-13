@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useSolicitudes } from './lib/hooks'; 
+import { useSolicitudes, useReporteMutations } from './lib/hooks'; 
 import { SolicitudEntrega } from './lib/schemas';
 import { EntregaItem } from './EntregaItem';
 import AprobacionSolicitud from './modals/AprobacionSolicitud'; 
@@ -9,7 +9,6 @@ import InformeMensualModal from './modals/InformeMensual';
 import ValidarLiquidacion from './modals/ValidarLiquidacion';
 
 import { Search, Calendar as CalendarIcon, SearchX, CalendarDays, FileDown, Loader2 } from 'lucide-react'; 
-import { getDatosReporteMensual } from './lib/actions';
 import Swal from 'sweetalert2';
 
 const MESES = [ 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre' ];
@@ -54,6 +53,8 @@ interface Props {
 
 export default function ListSolicitud({ initialData }: Props) {
   const { solicitudes, loading, refresh, updateLocalSolicitud } = useSolicitudes(initialData);
+  const { obtenerReporte } = useReporteMutations(); 
+
   const [isMounted, setIsMounted] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
   
@@ -93,7 +94,7 @@ export default function ListSolicitud({ initialData }: Props) {
   const handlePrevisualizarReporte = async () => {
     try {
         setReportLoading(true);
-        const datos = await getDatosReporteMensual(mesSeleccionado, anioSeleccionado);
+        const datos = await obtenerReporte(mesSeleccionado, anioSeleccionado);
         
         if (Object.keys(datos).length === 0) {
             Swal.fire('Sin registros', 'No hay solicitudes aprobadas para las oficinas en este periodo.', 'info');
@@ -216,41 +217,48 @@ export default function ListSolicitud({ initialData }: Props) {
                         />
                     </div>
 
-                    <div className="flex flex-wrap sm:flex-nowrap gap-2 shrink-0">
+                    {/* AJUSTE DE GRID PARA MOVIL: 2 filas limpias */}
+                    <div className="grid grid-cols-12 sm:flex sm:flex-nowrap gap-2 shrink-0 w-full sm:w-auto">
+                        
+                        {/* 1. Botón Reporte: Pequeño en móvil (col-2), Normal en desktop */}
                         <button 
                             onClick={handlePrevisualizarReporte}
                             disabled={reportLoading}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-neutral-800 transition-all disabled:opacity-50 shadow-sm"
+                            className="col-span-2 sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-neutral-800 transition-all disabled:opacity-50 shadow-sm"
                             title="Previsualizar informe mensual por oficinas"
                         >
                             {reportLoading ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} className="text-blue-500" />}
                             <span className="hidden md:inline">INFORME MENSUAL</span>
                         </button>
 
-                        <div className="relative">
-                            <select value={anioSeleccionado} onChange={(e) => setAnioSeleccionado(Number(e.target.value))} className="pl-4 pr-8 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200 appearance-none">
+                        {/* 2. Selector Año: Mitad de ancho en móvil (col-5) */}
+                        <div className="col-span-5 sm:w-auto relative">
+                            <select value={anioSeleccionado} onChange={(e) => setAnioSeleccionado(Number(e.target.value))} className="w-full pl-4 pr-8 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200 appearance-none">
                                 {ANIOS.map(a => <option key={a} value={a}>{a}</option>)}
                             </select>
                         </div>
                         
-                        <div className="relative min-w-[110px]">
+                        {/* 3. Selector Mes: Mitad de ancho en móvil (col-5) */}
+                        <div className="col-span-5 sm:w-auto relative min-w-[110px]">
                             <select value={mesSeleccionado} onChange={(e) => setMesSeleccionado(Number(e.target.value))} className="w-full pl-9 pr-8 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200 appearance-none">
                                 {MESES.map((m, i) => <option key={i} value={i}>{m}</option>)}
                             </select>
                             <CalendarIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                         </div>
 
-                        <div className="relative min-w-[140px]">
+                        {/* 4. Selector Semana: Casi todo el ancho en móvil (col-10) */}
+                        <div className="col-span-10 sm:w-auto relative min-w-[140px]">
                             <select value={semanaSeleccionada} onChange={(e) => setSemanaSeleccionada(Number(e.target.value))} className="w-full pl-3 pr-8 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200 appearance-none">
                                 <option value={-1}>Todo el mes</option>
                                 {semanasDisponibles.map(sem => <option key={sem.id} value={sem.id}>{sem.label}</option>)}
                             </select>
                         </div>
                         
+                        {/* 5. Botón Refresh: Pequeño al final (col-2) */}
                         <button 
                             onClick={() => refresh()} 
                             disabled={loading}
-                            className="bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-600 dark:text-slate-300 p-2.5 rounded-xl transition-colors disabled:opacity-50"
+                            className="col-span-2 sm:w-auto bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-600 dark:text-slate-300 p-2.5 rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center"
                             title="Actualizar lista"
                         >
                             <svg className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>

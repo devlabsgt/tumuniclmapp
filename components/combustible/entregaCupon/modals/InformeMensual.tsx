@@ -6,10 +6,29 @@ import { Button } from '@/components/ui/button';
 import { Printer, X, FileText, Loader2 } from 'lucide-react';
 import { generarPdfMensualOficinas } from '../lib/ReporteMensual';
 
+interface ItemReporte {
+  fecha: string;
+  piloto: string;
+  placa: string;
+  monto: number;
+  tipo: string;
+  correlativoInicio: number;
+  correlativoFin: number;
+}
+
+interface InfoOficina {
+  informeNo: string;
+  items: ItemReporte[];
+}
+
+interface DatosReporte {
+  [oficina: string]: InfoOficina;
+}
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  datos: any; 
+  datos: DatosReporte | null; 
   mesNombre: string;
 }
 
@@ -17,10 +36,18 @@ export default function InformeMensualModal({ isOpen, onClose, datos, mesNombre 
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleDownload = async () => {
+    if (!datos) return;
     setIsGenerating(true);
-    await generarPdfMensualOficinas(datos, mesNombre);
-    setIsGenerating(false);
+    try {
+      await generarPdfMensualOficinas(datos, mesNombre);
+    } catch (error) {
+      console.error("Error generando PDF", error);
+    } finally {
+      setIsGenerating(false);
+    }
   };
+
+  if (!isOpen || !datos) return null;
 
   const oficinas = Object.keys(datos);
 
@@ -59,7 +86,6 @@ export default function InformeMensualModal({ isOpen, onClose, datos, mesNombre 
                         <div key={oficina} className="w-[816px] min-h-[1247px] bg-white shadow-2xl p-20 text-black flex flex-col relative leading-tight">
                             
                             <div className="flex justify-between items-start mb-12">
-                                
                                 <div className="flex justify-start -mt-10"> 
                                     <img 
                                         src="/images/logo-muni.png" 
@@ -111,7 +137,7 @@ export default function InformeMensualModal({ isOpen, onClose, datos, mesNombre 
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {infoOficina.items.map((d: any, i: number) => (
+                                    {infoOficina.items.map((d, i) => (
                                         <tr key={i} className="border-b border-black">
                                             <td className="border-r border-black p-2 text-center">{i + 1}</td>
                                             <td className="border-r border-black p-2 text-center font-mono font-bold">
@@ -130,7 +156,7 @@ export default function InformeMensualModal({ isOpen, onClose, datos, mesNombre 
                                     <tr>
                                         <td colSpan={2} className="border-r border-black p-2 text-left uppercase bg-gray-50">CANTIDAD TOTAL:</td>
                                         <td className="border-r border-black p-2 text-center bg-gray-50">
-                                            Q{infoOficina.items.reduce((acc: number, curr: any) => acc + curr.monto, 0).toFixed(2)}
+                                            Q{infoOficina.items.reduce((acc, curr) => acc + curr.monto, 0).toFixed(2)}
                                         </td>
                                         <td colSpan={3} className="p-2"></td>
                                     </tr>

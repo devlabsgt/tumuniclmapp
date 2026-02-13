@@ -17,14 +17,10 @@ export default async function GestorTareas({ tipoVista }: Props) {
     </div>
   );
 
-  const { tareas, usuarios, perfil } = datos;
-
   return (
     <div className="w-full max-w-7xl mx-auto px-3 py-4 sm:px-6 lg:px-8">
       <TareaList 
-        tareas={tareas} 
-        usuarios={usuarios} 
-        perfilUsuario={perfil}
+        initialData={datos} 
         tipoVista={tipoVista}
       />
     </div>

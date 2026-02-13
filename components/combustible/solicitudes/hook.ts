@@ -1,32 +1,38 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-
 import { 
-  getMySolicitudes, 
-  saveSolicitud, 
-  updateSolicitud, 
-  deleteSolicitud, 
-  searchVehiculos,
-  getSolicitudParaLiquidacion,
-  saveLiquidacion,
-  getLiquidacionBySolicitudId,
-  updateLiquidacion
+  getMySolicitudes, saveSolicitud, updateSolicitud, deleteSolicitud, 
+  searchVehiculos, getSolicitudParaLiquidacion, saveLiquidacion,
+  getLiquidacionBySolicitudId, updateLiquidacion, getCurrentUserInfo,
+  getDatosSolicitudImpresion
 } from './actions'; 
-
-import { CreateSolicitudPayload, SolicitudCombustible, Vehiculo } from './types';
+import { CreateSolicitudPayload } from './types';
 
 export const KEYS = {
   solicitudes: ['solicitudes'],
   vehiculos: (q: string) => ['vehiculos', q],
   liquidacion: (id: number) => ['liquidacion', id],
+  perfil: ['perfil'],
+  impresion: (id: number) => ['impresion', id],
 };
 
-export const useSolicitudes = () => {
+const FIVE_MINUTES = 1000 * 60 * 5;
+
+export const useUserInfo = () => {
   return useQuery({
-    queryKey: KEYS.solicitudes,
-    queryFn: () => getMySolicitudes(),
-    staleTime: 1000 * 60 * 2, // 2 minutos
+    queryKey: KEYS.perfil,
+    queryFn: () => getCurrentUserInfo(),
+    staleTime: FIVE_MINUTES, 
+  });
+};
+ 
+export const useDetalleImpresion = (id: number) => {
+  return useQuery({
+    queryKey: KEYS.impresion(id),
+    queryFn: () => getDatosSolicitudImpresion(id),
+    enabled: !!id, 
+    staleTime: FIVE_MINUTES, 
   });
 };
 
@@ -34,8 +40,16 @@ export const useSearchVehiculos = (query: string) => {
   return useQuery({
     queryKey: KEYS.vehiculos(query),
     queryFn: () => searchVehiculos(query),
-    enabled: query.length > 2, 
-    staleTime: 1000 * 60, 
+    enabled: query.length >= 1, 
+    staleTime: FIVE_MINUTES,   
+  });
+};
+
+export const useSolicitudes = () => {
+  return useQuery({
+    queryKey: KEYS.solicitudes,
+    queryFn: () => getMySolicitudes(),
+    staleTime: FIVE_MINUTES, 
   });
 };
 
@@ -51,53 +65,42 @@ export const useLiquidacionData = (solicitudId: number | null) => {
         return { solicitudData, liquidacionData };
     },
     enabled: !!solicitudId, 
-    refetchOnWindowFocus: false 
+    staleTime: FIVE_MINUTES, 
   });
 };
 
 export const useSolicitudMutations = () => {
   const queryClient = useQueryClient();
+  const invalidar = () => queryClient.invalidateQueries({ queryKey: KEYS.solicitudes });
 
-  const crear = useMutation({
-    mutationFn: (data: CreateSolicitudPayload) => saveSolicitud(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: KEYS.solicitudes });
-    },
+  const crear = useMutation({ mutationFn: saveSolicitud, onSuccess: invalidar });
+  const actualizar = useMutation({ 
+    mutationFn: ({ id, data }: { id: number; data: CreateSolicitudPayload }) => updateSolicitud(id, data), 
+    onSuccess: invalidar 
   });
-
-  const actualizar = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: CreateSolicitudPayload }) => updateSolicitud(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: KEYS.solicitudes });
-    },
-  });
-
-  const eliminar = useMutation({
-    mutationFn: (id: number) => deleteSolicitud(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: KEYS.solicitudes });
-    },
-  });
+  const eliminar = useMutation({ mutationFn: deleteSolicitud, onSuccess: invalidar });
 
   return { crear, actualizar, eliminar };
 };
 
 export const useLiquidacionMutations = () => {
     const queryClient = useQueryClient();
+    
+    const invalidar = (id: number) => {
+        queryClient.invalidateQueries({ queryKey: KEYS.liquidacion(id) });
+        queryClient.invalidateQueries({ queryKey: KEYS.solicitudes });
+    };
 
     const guardar = useMutation({
         mutationFn: saveLiquidacion,
-        onSuccess: (_, variables) => {
-            queryClient.invalidateQueries({ queryKey: KEYS.liquidacion(variables.id_solicitud) });
-            queryClient.invalidateQueries({ queryKey: KEYS.solicitudes });
-        }
+        onSuccess: (_, vars) => invalidar(vars.id_solicitud)
     });
 
     const actualizar = useMutation({
-        mutationFn: ({ id, data }: { id: string, data: any }) => updateLiquidacion(id, data),
-        onSuccess: () => {
-             queryClient.invalidateQueries({ queryKey: KEYS.solicitudes });
-        }
+        mutationFn: ({ id, data, id_solicitud }: { id: string, data: any, id_solicitud: number }) => 
+            updateLiquidacion(id, data), 
+        
+        onSuccess: (_, vars) => invalidar(vars.id_solicitud)
     });
 
     return { guardar, actualizar };

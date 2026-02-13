@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Vehiculo } from '../types'; 
-import { searchVehiculos } from '../actions'; 
+import { useSearchVehiculos } from '../hook';
 
 const TIPOS_VEHICULO = ["Sedán", "Camioneta", "Pickup", "Camión", "Maquinaria", "Motocicleta"];
 const TIPOS_COMBUSTIBLE = ["Gasolina", "Diesel"];
@@ -19,11 +19,11 @@ export const VehiculoData: React.FC<Props> = ({
 }) => {
   
   const [placaSearch, setPlacaSearch] = useState('');
-  const [searchResults, setSearchResults] = useState<Vehiculo[]>([]);
+  
+  const { data: searchResults = [], isLoading: isSearchingVeh } = useSearchVehiculos(placaSearch);
+  
   const [showDropdown, setShowDropdown] = useState(false);
-  const [isSearchingVeh, setIsSearchingVeh] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
   const [showNewVehicleModal, setShowNewVehicleModal] = useState(false);
   const [tempNewVehicle, setTempNewVehicle] = useState({ tipo_vehiculo: '', modelo: '', tipo_combustible: '' });
 
@@ -43,37 +43,31 @@ export const VehiculoData: React.FC<Props> = ({
       }
   }, [vehiculo.placa]); 
 
+  useEffect(() => {
+    if (!isSearchingVeh && placaSearch.length >= 1 && searchResults.length > 0) {
+        setShowDropdown(true);
+        setIsNewVehicle(false);
+    } 
+    else if (!isSearchingVeh && placaSearch.length > 3 && searchResults.length === 0) {
+        setShowDropdown(false);
+        setIsNewVehicle(true);
+    } 
+    else if (placaSearch.length === 0) {
+        setShowDropdown(false);
+        setIsNewVehicle(false);
+    }
+  }, [searchResults, isSearchingVeh, placaSearch]);
 
-  const handleSearchPlaca = async (val: string) => {
+  const handleSearchPlaca = (val: string) => {
     const upperVal = val.toUpperCase();
     setPlacaSearch(upperVal);
     
+    setVehiculo(prev => ({ ...prev, placa: upperVal }));
+
     if (upperVal.length === 0) {
-        setSearchResults([]);
         setShowDropdown(false);
         setIsNewVehicle(false);
         setVehiculo({ placa: '', modelo: '', tipo_vehiculo: '', tipo_combustible: '' });
-        return;
-    }
-
-    setVehiculo(prev => ({ ...prev, placa: upperVal }));
-    setIsSearchingVeh(true);
-    
-    const results = await searchVehiculos(upperVal);
-    setIsSearchingVeh(false);
-
-    if (results && results.length > 0) {
-        setSearchResults(results);
-        setShowDropdown(true);
-        setIsNewVehicle(false); 
-    } else {
-        setSearchResults([]);
-        setShowDropdown(false);
-        if (upperVal.length > 3) {
-            setIsNewVehicle(true);
-            setVehiculo(prev => ({ ...prev, placa: upperVal, modelo: '', tipo_vehiculo: '', tipo_combustible: '' }));
-            setTempNewVehicle({ tipo_vehiculo: '', modelo: '', tipo_combustible: '' });
-        }
     }
   };
 

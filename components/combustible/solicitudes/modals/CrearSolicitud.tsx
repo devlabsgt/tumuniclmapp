@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify'; 
-import { UsuarioInfo, Vehiculo, DetalleComision, SolicitudCombustible } from '../types';
-import { getCurrentUserInfo, saveSolicitud, updateSolicitud } from '../actions';
+import { useUserInfo, useSolicitudMutations } from '../hook';
+import { Vehiculo, DetalleComision, SolicitudCombustible } from '../types';
 import { CommissionTable } from '@/components/combustible/solicitudes/TablaComision';
 import { DataSolicitante } from './DataSolicitante';
 import { VehiculoData } from './VehiculoData';
@@ -19,8 +19,11 @@ export const CreateRequestModal: React.FC<Props> = ({
   onSuccess, 
   solicitudToEdit = null 
 }) => {
-  const [user, setUser] = useState<UsuarioInfo | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { data: user } = useUserInfo();
+  const { crear, actualizar } = useSolicitudMutations();
+  
+  const loading = crear.isPending || actualizar.isPending;
+
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
     
@@ -40,14 +43,6 @@ export const CreateRequestModal: React.FC<Props> = ({
       document.body.style.overflow = 'unset';
     }
     return () => { document.body.style.overflow = 'unset'; };
-  }, [isOpen]);
-
-  useEffect(() => {
-    const loadUser = async () => {
-      const data = await getCurrentUserInfo();
-      setUser(data);
-    };
-    if (isOpen) loadUser();
   }, [isOpen]);
 
   useEffect(() => {
@@ -98,8 +93,6 @@ export const CreateRequestModal: React.FC<Props> = ({
         return;
     }
 
-    setLoading(true);
-    
     try {
         const payload = {
             usuario_id: user.user_id,
@@ -113,18 +106,17 @@ export const CreateRequestModal: React.FC<Props> = ({
         };
 
         if (solicitudToEdit?.id) {
-            await updateSolicitud(solicitudToEdit.id, payload);
-            toast.info('Solicitud actualizada correctamente'); 
+          await actualizar.mutateAsync({ id: solicitudToEdit.id, data: payload });
+          toast.info('Solicitud actualizada correctamente'); 
         } else {
-            await saveSolicitud(payload);
-            toast.success('Solicitud creada correctamente'); 
+          await crear.mutateAsync(payload);
+          toast.success('Solicitud creada correctamente'); 
         }
-        onSuccess();
+        
+        onSuccess(); 
         onClose();
     } catch (error: any) {
         toast.error(error.message || 'Error al procesar la solicitud.');
-    } finally {
-        setLoading(false);
     }
   };
 
@@ -168,10 +160,9 @@ export const CreateRequestModal: React.FC<Props> = ({
 
             <div className="flex-1 overflow-y-auto px-6 py-4 sm:px-8 custom-scrollbar pb-24 sm:pb-6">
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    
                     {currentStep === 1 && (
                         <div className="space-y-6">
-                            <DataSolicitante user={user} destino={destino} setDestino={setDestino} />
+                            <DataSolicitante user={user || null} destino={destino} setDestino={setDestino} />
                         </div>
                     )}
 

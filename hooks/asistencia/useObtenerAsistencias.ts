@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { createClient } from '@/utils/supabase/client';
 
@@ -20,48 +20,59 @@ export interface AsistenciaEnriquecida {
   oficina_path_orden: string | null;
 }
 
+const FIVE_MINUTES = 1000 * 60 * 5;
+
+const KEYS = {
+  asistenciasUsuarios: (oficinaId: string | null, start: any, end: any) => 
+    ['asistencias-usuarios', oficinaId, start, end],
+};
+
 export function useObtenerAsistencias(
   oficinaId: string | null,
   fechaInicio: Date | string | null,
   fechaFinal: Date | string | null
 ) {
-  const [asistencias, setAsistencias] = useState<AsistenciaEnriquecida[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: KEYS.asistenciasUsuarios(oficinaId, fechaInicio, fechaFinal),
+    
+    queryFn: async () => {
+      const supabase = createClient();
+      let supabaseError = null;
 
-  const fetchAsistencias = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const supabase = createClient();
+      try {
+        const { data, error } = await supabase.rpc('asistencias_usuarios', { 
+          p_oficina_id: oficinaId,
+          p_fecha_inicio: fechaInicio,
+          p_fecha_final: fechaFinal
+        });
 
-    try {
-      const { data, error: rpcError } = await supabase.rpc('asistencias_usuarios', { 
-        p_oficina_id: oficinaId,
-        p_fecha_inicio: fechaInicio,
-        p_fecha_final: fechaFinal
-      });
+        supabaseError = error;
 
-      if (rpcError) {
-        console.error('Error en useObtenerAsistencias:', rpcError);
-        toast.error('Error al cargar las asistencias de la oficina.');
-        setError(rpcError.message);
-        setAsistencias([]);
-      } else {
-        setAsistencias(data as AsistenciaEnriquecida[] ?? []);
+        if (supabaseError) {
+          console.error('Error en useObtenerAsistencias:', supabaseError);
+          toast.error('Error al cargar las asistencias de la oficina.');
+          throw new Error(supabaseError.message);
+        }
+
+        return (data as AsistenciaEnriquecida[]) ?? [];
+
+      } catch (err: any) {
+        if (!supabaseError) {
+             console.error('Error inesperado en useObtenerAsistencias:', err);
+             toast.error('Error inesperado al cargar asistencias.');
+        }
+        throw err; 
       }
-    } catch (err: any) {
-      console.error('Error inesperado en useObtenerAsistencias:', err);
-      toast.error('Error inesperado al cargar asistencias.');
-      setError(err.message);
-      setAsistencias([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [oficinaId, fechaInicio, fechaFinal]);
+    },
+    
+    staleTime: FIVE_MINUTES, 
+    retry: false, 
+  });
 
-  useEffect(() => {
-    fetchAsistencias();
-  }, [fetchAsistencias]);
-
-  return { asistencias, loading, error, fetchAsistencias };
+  return { 
+    asistencias: data || [], 
+    loading: isLoading, 
+    error: error ? (error as Error).message : null, 
+    fetchAsistencias: refetch 
+  };
 }

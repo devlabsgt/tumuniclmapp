@@ -1,58 +1,67 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { Asistencia } from '@/lib/asistencia/esquemas';
 import { createClient } from '@/utils/supabase/client';
+
+const FIVE_MINUTES = 1000 * 60 * 5;
+
+const KEYS = {
+  asistenciaUsuario: (userId: string | null, start: any, end: any) => 
+    ['asistencia-usuario', userId, start, end],
+};
 
 export function useAsistenciaUsuario(
   userId: string | null,
   fechaInicio: Date | string | null,
   fechaFinal: Date | string | null
 ) {
-  const [asistencias, setAsistencias] = useState<Asistencia[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchAsistencias = useCallback(async () => {
-    if (!userId) {
-      setLoading(false);
-      setAsistencias([]);
-      return;
-    }
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: KEYS.asistenciaUsuario(userId, fechaInicio, fechaFinal),
     
-    setLoading(true);
-    setError(null);
-    const supabase = createClient();
+    queryFn: async () => {
+      if (!userId) return [];
 
-    try {
-      const { data, error: rpcError } = await supabase.rpc('asistencias_usuario', { 
-        p_user_id: userId,
-        p_fecha_inicio: fechaInicio,
-        p_fecha_final: fechaFinal
-      });
+      const supabase = createClient();
+      let supabaseError = null;
 
-      if (rpcError) {
-        console.error('Error en useAsistenciaUsuario:', rpcError);
-        toast.error('Error al cargar las asistencias del usuario.');
-        setError(rpcError.message);
-        setAsistencias([]);
-      } else {
-        setAsistencias(data ?? []);
+      try {
+        const { data, error } = await supabase.rpc('asistencias_usuario', { 
+          p_user_id: userId,
+          p_fecha_inicio: fechaInicio,
+          p_fecha_final: fechaFinal
+        });
+
+        supabaseError = error;
+
+        if (supabaseError) {
+          console.error('Error en useAsistenciaUsuario:', supabaseError);
+          toast.error('Error al cargar las asistencias del usuario.');
+          throw new Error(supabaseError.message);
+        }
+
+        return (data as Asistencia[]) ?? [];
+
+      } catch (err: any) {
+        if (!supabaseError) {
+             console.error('Error inesperado en useAsistenciaUsuario:', err);
+             toast.error('Error inesperado al cargar asistencias.');
+        }
+        throw err; 
       }
-    } catch (err: any) {
-      console.error('Error inesperado en useAsistenciaUsuario:', err);
-      toast.error('Error inesperado al cargar asistencias.');
-      setError(err.message);
-      setAsistencias([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, fechaInicio, fechaFinal]);
+    },
+    
+    enabled: !!userId,
+    
+    staleTime: FIVE_MINUTES,
+    retry: false, 
+  });
 
-  useEffect(() => {
-    fetchAsistencias();
-  }, [fetchAsistencias]);
-
-  return { asistencias, loading, error, fetchAsistencias };
+  return { 
+    asistencias: data || [], 
+    loading: isLoading, 
+    error: error ? (error as Error).message : null, 
+    fetchAsistencias: refetch 
+  };
 }

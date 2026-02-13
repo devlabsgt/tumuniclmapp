@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { createClient } from '@/utils/supabase/client';
 
 type AsistenciaEnriquecida = any; 
@@ -8,19 +8,23 @@ interface AsistenciaHookData {
   loading: boolean;
 }
 
+const FIVE_MINUTES = 1000 * 60 * 5;
+
+const KEYS = {
+  asistenciasOficina: (oficinaId: string | null, inicio: string | null, final: string | null) => 
+    ['asistencias-oficina', oficinaId, inicio, final],
+};
+
 export default function useAsistenciasOficina(
     oficinaId: string | null, 
     fechaInicio: string | null, 
     fechaFinal: string | null   
 ): AsistenciaHookData {
-    const [registros, setRegistros] = useState<AsistenciaEnriquecida[]>([]);
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchAsistencias = async () => {
-
-
-            setLoading(true);
+    const { data, isLoading } = useQuery({
+        queryKey: KEYS.asistenciasOficina(oficinaId, fechaInicio, fechaFinal),
+        
+        queryFn: async () => {
             const supabase = createClient();
             
             const p_fecha_inicio = (fechaInicio && fechaInicio !== '') ? fechaInicio : null;
@@ -32,20 +36,19 @@ export default function useAsistenciasOficina(
                 p_fecha_final: p_fecha_final
             });
 
-
             if (error) {
                 console.error("Error fetching asistencias_oficinas:", error);
-                setRegistros([]);
-            } else {
-                setRegistros(data || []);
+                return [];
             }
-            
-            setLoading(false);
-        };
 
-        fetchAsistencias();
+            return data || [];
+        },
+        
+        staleTime: FIVE_MINUTES, 
+    });
 
-    }, [oficinaId, fechaInicio, fechaFinal]);
-
-    return { registros, loading };
+    return { 
+        registros: data || [], 
+        loading: isLoading 
+    };
 }

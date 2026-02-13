@@ -1,31 +1,33 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { obtenerRegistrosAgendaUsuario } from '@/components/concejo/agenda/lib/acciones';
 
+const KEYS = {
+  asistencia: (userId?: string | null, agendaId?: string | null) => 
+    ['asistencia-agenda-usuario', userId, agendaId],
+};
+
+const FIVE_MINUTES = 1000 * 60 * 5;
+
 export function useAsistenciaAgendaUsuario(userId?: string | null, agendaId?: string | null) {
-  const [registros, setRegistros] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: KEYS.asistencia(userId, agendaId),
+    
+    queryFn: async () => {
+      const res = await obtenerRegistrosAgendaUsuario(userId!, agendaId!);
+      return res || [];
+    },
+    
+    enabled: !!userId && !!agendaId,
+    
+    staleTime: FIVE_MINUTES, 
+  });
 
-  const fetchRegistros = useCallback(async () => {
-    if (!userId || !agendaId) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    try {
-      const data = await obtenerRegistrosAgendaUsuario(userId, agendaId);
-      setRegistros(data || []);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, agendaId]);
-
-  useEffect(() => {
-    fetchRegistros();
-  }, [fetchRegistros]);
-
-  return { registros, loading, fetchRegistros };
+  return { 
+    registros: data || [], 
+    loading: isLoading,    
+    fetchRegistros: refetch 
+  };
 }

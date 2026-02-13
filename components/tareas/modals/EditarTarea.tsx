@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { Tarea } from '../types';
-import { actualizarTarea } from '../actions';
 import { X, Save, Calendar, AlignLeft, Type, Lock } from 'lucide-react'; 
 import { toast } from 'react-toastify';
+import { useTareaMutations } from '../hooks'; 
 
 interface Props {
   isOpen: boolean;
@@ -14,8 +14,8 @@ interface Props {
 }
 
 export default function EditarTarea({ isOpen, onClose, tarea, esJefe }: Props) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const { actualizar } = useTareaMutations(); 
+  
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -23,13 +23,11 @@ export default function EditarTarea({ isOpen, onClose, tarea, esJefe }: Props) {
   const formatDateForInput = (isoString: string) => {
     if (!isoString) return '';
     const date = new Date(isoString);
-    
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
-
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
@@ -43,44 +41,35 @@ export default function EditarTarea({ isOpen, onClose, tarea, esJefe }: Props) {
 
   if (!isOpen) return null;
 
+  const isSubmitting = actualizar.isPending;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
 
     try {
       const isoDate = dueDate ? new Date(dueDate).toISOString() : null;
-
-      // 1. Detectar si la fecha cambió
       const fechaOriginal = formatDateForInput(tarea.due_date);
       const fechaCambio = dueDate !== fechaOriginal;
-
-      // 2. Detectar si la tarea necesita "Revivir" (estaba completada o vencida)
       const estabaCompletada = tarea.status === 'Completado';
       const estabaVencida = new Date(tarea.due_date) < new Date();
 
-      // 3. Preparamos el objeto. Usamos 'any' para poder meter 'status'
-      // sin que TypeScript se queje de que el action no lo espera.
       const datosActualizados: any = {
         title,
         description,
         due_date: isoDate
       };
 
-      // LÓGICA CLAVE: Si cambiaste la fecha Y (estaba completada O vencida) -> Reactivar
       if (fechaCambio && (estabaCompletada || estabaVencida)) {
          datosActualizados.status = 'Asignado';
       }
 
-      // Enviamos 'datosActualizados' forzando el tipo para evitar el error rojo
-      await actualizarTarea(tarea.id, datosActualizados);
+      await actualizar.mutateAsync({ id: tarea.id, updates: datosActualizados });
 
       toast.success('Tarea actualizada correctamente');
       onClose();
     } catch (error: any) {
       console.error(error);
       toast.error('Error al actualizar la tarea');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 

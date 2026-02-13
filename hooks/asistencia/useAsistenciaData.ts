@@ -1,66 +1,61 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { obtenerTodosLosRegistros, Registro, eliminarRegistroAsistencia, obtenerRegistrosHoy } from '@/lib/asistencia/acciones';
 
+const FIVE_MINUTES = 1000 * 60 * 5;
+
+const KEYS = {
+  hoy: (userId?: string) => ['asistencia-hoy', userId],
+  todos: (userId?: string) => ['asistencia-todos', userId],
+};
+
 export default function useAsistenciaData(userId: string | undefined) {
-  const [registrosHoy, setRegistrosHoy] = useState<Registro[]>([]);
-  const [todosLosRegistros, setTodosLosRegistros] = useState<Registro[]>([]);
-  const [cargandoHoy, setCargandoHoy] = useState(true);
-  const [cargandoRegistros, setCargandoRegistros] = useState(true);
+  const queryClient = useQueryClient();
+
+  const hoyQuery = useQuery({
+    queryKey: KEYS.hoy(userId),
+    queryFn: () => obtenerRegistrosHoy(userId!),
+    enabled: !!userId,
+    refetchInterval: 60000, 
+    staleTime: FIVE_MINUTES, 
+  });
+
+  const todosQuery = useQuery({
+    queryKey: KEYS.todos(userId),
+    queryFn: () => obtenerTodosLosRegistros(userId!),
+    enabled: !!userId,
+    staleTime: FIVE_MINUTES, 
+  });
+
+  const eliminarMutation = useMutation({
+    mutationFn: eliminarRegistroAsistencia,
+  });
+
+  const setRegistrosHoy = (updater: any) => {
+    queryClient.setQueryData(KEYS.hoy(userId), updater);
+  };
+
+  const setTodosLosRegistros = (updater: any) => {
+    queryClient.setQueryData(KEYS.todos(userId), updater);
+  };
 
   const handleEliminarRegistro = async (registro: Registro) => {
     if (!registro.id) return;
-    const exito = await eliminarRegistroAsistencia(registro.id);
+    
+    const exito = await eliminarMutation.mutateAsync(registro.id);
 
     if (exito) {
-      setRegistrosHoy((prev) => prev.filter((r) => r.id !== registro.id));
-      setTodosLosRegistros((prev) => prev.filter((r) => r.id !== registro.id));
+      setRegistrosHoy((prev: Registro[] = []) => prev.filter((r) => r.id !== registro.id));
+      setTodosLosRegistros((prev: Registro[] = []) => prev.filter((r) => r.id !== registro.id));
     }
   };
 
-  useEffect(() => {
-    if (!userId) {
-      setCargandoHoy(false);
-      setRegistrosHoy([]);
-      return;
-    }
-
-    const verificarAsistenciaHoy = async () => {
-      setCargandoHoy(true);
-      const data = await obtenerRegistrosHoy(userId);
-      setRegistrosHoy(data);
-      setCargandoHoy(false);
-    };
-
-    verificarAsistenciaHoy();
-
-    const intervalId = setInterval(verificarAsistenciaHoy, 60000);
-
-    return () => clearInterval(intervalId);
-  }, [userId]);
-
-  useEffect(() => {
-    if (!userId) {
-      setCargandoRegistros(false);
-      setTodosLosRegistros([]);
-      return;
-    }
-    
-    const consultarTodosLosRegistros = async () => {
-      setCargandoRegistros(true);
-      const data = await obtenerTodosLosRegistros(userId);
-      setTodosLosRegistros(data);
-      setCargandoRegistros(false);
-    };
-    consultarTodosLosRegistros();
-  }, [userId]);
-
   return {
-    registrosHoy,
-    todosLosRegistros,
-    cargandoHoy,
-    cargandoRegistros,
+    registrosHoy: hoyQuery.data || [],
+    todosLosRegistros: todosQuery.data || [],
+    cargandoHoy: hoyQuery.isLoading,
+    cargandoRegistros: todosQuery.isLoading,
     setRegistrosHoy,
     setTodosLosRegistros,
     handleEliminarRegistro

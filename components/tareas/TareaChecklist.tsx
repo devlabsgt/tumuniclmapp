@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { ChecklistItem } from './types';
-import { updateChecklist } from './actions'; 
 import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
-import { Check, Edit2, Trash2, Plus, Loader2, CheckSquare, Square } from 'lucide-react';
+import { Check, Edit2, Trash2, Plus, Loader2, CheckSquare, Square, X } from 'lucide-react';
+import { useTareaMutations } from './hooks'; 
 
 interface Props {
   tareaId: string;
@@ -14,6 +14,8 @@ interface Props {
 }
 
 export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props) {
+  const { actualizarChecklist } = useTareaMutations(); 
+
   const [newItemText, setNewItemText] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [editingStepIndex, setEditingStepIndex] = useState<number | null>(null);
@@ -51,7 +53,7 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
     const newChecklist = checklist.map(item => ({ ...item, is_completed: newState }));
 
     try {
-        await updateChecklist(tareaId, newChecklist);
+        await actualizarChecklist.mutateAsync({ id: tareaId, items: newChecklist });
         toast.success(newState ? 'Todos completados' : 'Todos desmarcados');
     } catch (error) {
         toast.error('Error al actualizar todos');
@@ -69,7 +71,7 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
     newChecklist[idx].is_completed = !newChecklist[idx].is_completed;
 
     try { 
-        await updateChecklist(tareaId, newChecklist); 
+        await actualizarChecklist.mutateAsync({ id: tareaId, items: newChecklist });
     } catch (error) { 
         toast.error('Error al actualizar'); 
     } finally {
@@ -83,7 +85,7 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
     const newItem: ChecklistItem = { title: newItemText, is_completed: false };
     const newChecklist = [...checklist, newItem];
     try {
-        await updateChecklist(tareaId, newChecklist);
+        await actualizarChecklist.mutateAsync({ id: tareaId, items: newChecklist });
         setNewItemText('');
         toast.success('Paso agregado');
     } catch (error) { toast.error('Error'); } finally { setIsAdding(false); }
@@ -105,7 +107,7 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
     if (result.isConfirmed) {
         const newChecklist = checklist.filter((_, index) => index !== idx);
         try { 
-            await updateChecklist(tareaId, newChecklist); 
+            await actualizarChecklist.mutateAsync({ id: tareaId, items: newChecklist });
             toast.info('Paso eliminado'); 
         } catch (error) { toast.error('Error al eliminar paso'); }
     }
@@ -122,7 +124,7 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
     const newChecklist = [...checklist];
     newChecklist[idx].title = editingStepText;
     try {
-        await updateChecklist(tareaId, newChecklist);
+        await actualizarChecklist.mutateAsync({ id: tareaId, items: newChecklist });
         setEditingStepIndex(null);
         setEditingStepText('');
         toast.success('Paso modificado');

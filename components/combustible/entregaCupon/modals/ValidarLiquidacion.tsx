@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, AlertCircle, Gauge, Calendar, FileSignature, Undo2, Trash2, Plus } from 'lucide-react';
 import Swal from 'sweetalert2';
-import { getLiquidacionAdmin, aprobarLiquidacionFinal, getInventarioPorTipo, getEntregasRealizadas } from '../lib/actions';
+import { useLiquidacionAdminData, useInventario, useHistorialEntregas, useEntregaMutations } from '../lib/hooks'; 
 import { SolicitudEntrega, InventarioCupon } from '../lib/schemas';
 
 interface Props {
@@ -49,14 +49,20 @@ const Toast = Swal.mixin({
 });
 
 export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicitud }: Props) {
-  const [loading, setLoading] = useState(true);
-  const [procesando, setProcesando] = useState(false);
-  const [liqData, setLiqData] = useState<any>(null);
+  const { data: liqData, isLoading: loadLiq } = useLiquidacionAdminData(solicitud.id);
+  
+  const tipoCombustible = solicitud.vehiculo?.tipo_combustible === 'Diesel' ? 'Diesel' : 'Gasolina';
+  const { data: inventario = [], isLoading: loadInv } = useInventario(tipoCombustible);
+  
+  const { data: historialEntregas = [], isLoading: loadHist } = useHistorialEntregas(solicitud.id);
+  
+  const { aprobarFinal } = useEntregaMutations();
+  
+  const loading = loadLiq || loadInv || loadHist;
+  const procesando = aprobarFinal.isPending;
 
   const [devolverCupones, setDevolverCupones] = useState(false);
-  const [inventario, setInventario] = useState<InventarioCupon[]>([]);
-  const [historialEntregas, setHistorialEntregas] = useState<any[]>([]);
-
+  
   const [itemsDevolucion, setItemsDevolucion] = useState<{ 
       id: string; 
       cantidad: number; 
@@ -65,45 +71,18 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
       fin: string; 
   }[]>([{ id: '', cantidad: 0, denominacion: 0, inicio: '', fin: '' }]);
 
-  useEffect(() => {
-    if (isOpen && solicitud.id) {
-        setLoading(true);
-        Promise.all([
-            getLiquidacionAdmin(solicitud.id),
-            getInventarioPorTipo(solicitud.vehiculo?.tipo_combustible === 'Diesel' ? 'Diesel' : 'Gasolina'),
-            getEntregasRealizadas(solicitud.id)
-        ])
-        .then(([liq, inv, entregas]) => {
-            setLiqData(liq);
-            setInventario(inv);
-            setHistorialEntregas(entregas);
-        })
-        .catch(err => console.error("Error cargando datos:", err))
-        .finally(() => setLoading(false));
-    }
-  }, [isOpen, solicitud.id, solicitud.vehiculo?.tipo_combustible]);
-
   const inventarioAgrupado = useMemo(() => {
       const grupos: Record<number, InventarioCupon[]> = {};
-      
       inventario.forEach(item => {
           const cantidad = item.cantidad_actual;
           if (!grupos[cantidad]) grupos[cantidad] = [];
           grupos[cantidad].push(item);
       });
-
       const gruposArray = Object.entries(grupos).map(([cantidad, items]) => {
           items.sort((a, b) => a.denominacion - b.denominacion);
-          
-          return {
-              label: `${cantidad} DISPONIBLES`,
-              items: items,
-              minDenom: items[0].denominacion
-          };
+          return { label: `${cantidad} DISPONIBLES`, items: items, minDenom: items[0].denominacion };
       });
-
       return gruposArray.sort((a, b) => a.minDenom - b.minDenom);
-
   }, [inventario]);
 
   const updateItem = (index: number, field: string, value: any) => {
@@ -113,7 +92,7 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
 
       if (field === 'inicio' && value) {
           const numInicio = parseInt(value);
-          const encontrado = historialEntregas.find(e => numInicio >= e.inicio && numInicio <= e.fin);
+          const encontrado = historialEntregas.find((e: any) => numInicio >= e.inicio && numInicio <= e.fin);
           if (encontrado) {
               newItems[index].id = encontrado.id; 
               newItems[index].denominacion = encontrado.denominacion;
@@ -154,11 +133,7 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
         if (invalidos.length > 0) {
              if (itemsDevolucion.length === 1 && !itemsDevolucion[0].id && !itemsDevolucion[0].inicio) {
              } else {
-                 return AlertMixin.fire({
-                    title: 'Datos Incompletos',
-                    text: 'Verifique los datos de devolución.',
-                    icon: 'warning'
-                 });
+                 return AlertMixin.fire({ title: 'Datos Incompletos', text: 'Verifique los datos de devolución.', icon: 'warning' });
              }
         }
     }
@@ -194,24 +169,21 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
 
     if (!result.isConfirmed) return;
 
-    setProcesando(true);
-    const res = await aprobarLiquidacionFinal(solicitud.id, itemsProcesados);
-    setProcesando(false);
+    try {
+        const res = await aprobarFinal.mutateAsync({ 
+            id: solicitud.id, 
+            devolucion: itemsProcesados 
+        });
 
-    if (res.success) {
-        await Toast.fire({
-            icon: 'success',
-            title: '¡Proceso Completado!'
-        });
-        
-        onSuccess();
-        onClose();
-    } else {
-        await AlertMixin.fire({
-            title: 'Error',
-            text: res.error || 'No se pudo procesar.',
-            icon: 'error'
-        });
+        if (res.success) {
+            await Toast.fire({ icon: 'success', title: '¡Proceso Completado!' });
+            onSuccess();
+            onClose();
+        } else {
+            await AlertMixin.fire({ title: 'Error', text: res.error || 'No se pudo procesar.', icon: 'error' });
+        }
+    } catch (error) {
+        await AlertMixin.fire({ title: 'Error', text: 'Error de comunicación con el servidor', icon: 'error' });
     }
   };
 

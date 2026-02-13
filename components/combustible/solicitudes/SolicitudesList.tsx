@@ -231,12 +231,6 @@ export const RequestList: React.FC<Props> = ({ solicitudes, onRefresh, onEdit })
             <SearchX size={32} className="text-slate-300 mb-4" />
             <h3 className="text-slate-900 dark:text-white font-bold">No se encontraron solicitudes</h3>
             <p className="text-slate-500 text-sm mt-1">Intente cambiar los filtros de fecha o estado.</p>
-            <button 
-                onClick={() => { setFiltroEstado('Todos'); setSemanaSeleccionada('all'); }}
-                className="mt-4 px-4 py-2 bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-lg text-sm font-bold hover:bg-slate-50 transition-colors"
-            >
-                Restablecer todo
-            </button>
         </div>
       ) : (
         <div className="flex flex-col gap-6 w-full animate-in fade-in duration-500">

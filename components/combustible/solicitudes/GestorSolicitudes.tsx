@@ -4,30 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { CreateRequestModal } from './modals/CrearSolicitud';
 import { RequestList } from './SolicitudesList';
 import { SolicitudCombustible } from './types';
-import { getMySolicitudes } from './actions'; 
 import { AlertCircle, Lock, Plus } from 'lucide-react'; 
+import { useSolicitudes } from './hook';
 
 export default function RequestManager() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [solicitudes, setSolicitudes] = useState<SolicitudCombustible[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const [editingSolicitud, setEditingSolicitud] = useState<SolicitudCombustible | null>(null);
-
-  const fetchSolicitudes = async () => {
-    try {
-      const data = await getMySolicitudes();
-      setSolicitudes(data);
-    } catch (error) {
-      console.error("Error al cargar solicitudes:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSolicitudes();
-  }, []);
+  const { data: solicitudes = [], isLoading: loading, refetch } = useSolicitudes();
 
   const hasPendingLiquidation = solicitudes.some(s => s.solvente === false);
 
@@ -53,7 +37,7 @@ export default function RequestManager() {
               Mis Solicitudes
             </h1>
             <p className="text-sm md:text-base text-gray-500 dark:text-neutral-400 font-medium">
-              Administre sus solicitudes de combustible y comisiones.
+              Administre sus solicitudes de combustible.
             </p>
           </div>
           
@@ -97,7 +81,7 @@ export default function RequestManager() {
           <div className="w-full">
             <RequestList 
                 solicitudes={solicitudes} 
-                onRefresh={fetchSolicitudes} 
+                onRefresh={refetch} 
                 onEdit={handleEdit} 
             />
           </div>
@@ -108,7 +92,7 @@ export default function RequestManager() {
             isOpen={isModalOpen} 
             onClose={() => setIsModalOpen(false)}
             onSuccess={() => {
-               fetchSolicitudes();
+               refetch();
             }}
             solicitudToEdit={editingSolicitud} 
           />

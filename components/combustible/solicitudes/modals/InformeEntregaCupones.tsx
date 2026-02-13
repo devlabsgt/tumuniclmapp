@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Printer, Loader2, X, FileText } from 'lucide-react';
 import jsPDF from 'jspdf';
 import * as htmlToImage from 'html-to-image';
-import { getDatosSolicitudImpresion } from '../actions'; 
+import { useDetalleImpresion } from '../hook'; 
 import Swal from 'sweetalert2';
 
 interface Props {
@@ -50,33 +50,15 @@ interface DatosSolicitud {
 }
 
 export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Props) {
-  const [datos, setDatos] = useState<DatosSolicitud | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { data: datos, isLoading: loading } = useDetalleImpresion(solicitudId || 0);
+  
   const [isPrinting, setIsPrinting] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (isOpen && solicitudId) {
-      setLoading(true);
-      getDatosSolicitudImpresion(solicitudId)
-        .then((data: any) => {
-          if (data) setDatos(data);
-          else {
-            Swal.fire('Error', 'No se encontraron datos para esta solicitud.', 'warning');
-            onClose();
-          }
-        })
-        .catch((err) => {
-          console.error(err);
-          Swal.fire('Error', 'Error al cargar los datos.', 'error');
-          onClose();
-        })
-        .finally(() => setLoading(false));
-    }
-  }, [isOpen, solicitudId]);
 
   const generatePdf = async () => {
     if (!printRef.current || !datos) return;
+    
     setIsPrinting(true);
     try {
       const element = printRef.current;
@@ -111,9 +93,11 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
       return { direccion: parts[0], cargo: '' };
   };
 
-  const { direccion, cargo } = datos ? getCargoYDireccion(datos.unidad_direccion) : { direccion: '', cargo: '' };
-  const totalKm = datos?.detalles.reduce((acc, curr) => acc + (curr.kilometros_recorrer || 0), 0) || 0;
-  const valorTotalCupones = datos?.cupones.reduce((acc, curr) => acc + curr.subtotal, 0) || 0;
+  const safeDatos = datos as unknown as DatosSolicitud; 
+
+  const { direccion, cargo } = safeDatos ? getCargoYDireccion(safeDatos.unidad_direccion) : { direccion: '', cargo: '' };
+  const totalKm = safeDatos?.detalles.reduce((acc, curr) => acc + (curr.kilometros_recorrer || 0), 0) || 0;
+  const valorTotalCupones = safeDatos?.cupones.reduce((acc, curr) => acc + curr.subtotal, 0) || 0;
 
   if (!isOpen) return null;
 
@@ -128,14 +112,14 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
              </div>
              <div className="flex flex-col text-left">
                 <DialogTitle className="text-lg font-bold text-gray-900 dark:text-white">Formulario de Solicitud</DialogTitle>
-                <p className="text-xs text-gray-500 dark:text-gray-400">#{datos?.id || '---'} — Vista previa</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">#{safeDatos?.id || '---'} — Vista previa</p>
              </div>
           </div>
           <div className="flex gap-2">
              <Button variant="outline" onClick={onClose} disabled={isPrinting} className="dark:text-white dark:border-neutral-600 dark:hover:bg-neutral-700">
                 <X size={18} />
              </Button>
-             <Button onClick={generatePdf} disabled={loading || isPrinting || !datos} className="bg-slate-900 text-white hover:bg-slate-800 gap-2">
+             <Button onClick={generatePdf} disabled={loading || isPrinting || !safeDatos} className="bg-slate-900 text-white hover:bg-slate-800 gap-2">
                 {isPrinting ? <Loader2 className="animate-spin" size={18} /> : <Printer size={18} />}
                 <span className="hidden sm:inline">Descargar PDF</span>
              </Button>
@@ -148,7 +132,7 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                     <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
                     <span>Cargando formato...</span>
                 </div>
-            ) : datos ? (
+            ) : safeDatos ? (
                 <div className="transform scale-[0.42] sm:scale-75 md:scale-100 origin-top h-fit mb-[-60%] sm:mb-[-20%] md:mb-0 transition-transform duration-200 shadow-2xl bg-white">
                     
                     <div ref={printRef} className="w-[816px] min-h-[1248px] bg-white text-black relative flex flex-col px-12 pb-12 box-border">
@@ -172,10 +156,9 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                             
                             <div className="w-1/4 flex justify-end items-center pr-2">
                                 <h3 className="text-lg font-black text-red-600 font-mono">
-                                    No. {datos.correlativo || '---'}
+                                    No. {safeDatos.correlativo || '---'}
                                 </h3>
                             </div>
-
                         </div>
 
                         <div className="w-full text-center mb-6">
@@ -187,7 +170,7 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                         <div className="flex justify-end items-end text-[11px] mb-4 gap-2 font-bold text-gray-800">
                             <span>CONCEPCIÓN LAS MINAS,</span>
                             <div className="border-b border-black min-w-[150px] text-center px-2">
-                                {new Date(datos.created_at).toLocaleDateString('es-GT', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                {new Date(safeDatos.created_at).toLocaleDateString('es-GT', { day: 'numeric', month: 'long', year: 'numeric' })}
                             </div>
                         </div>
 
@@ -195,7 +178,7 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                             <div className="flex items-end w-full gap-2">
                                 <span className="whitespace-nowrap">NOMBRE DEL SOLICITANTE:</span>
                                 <div className="flex-1 border-b border-black px-2 text-black whitespace-nowrap overflow-hidden text-ellipsis">
-                                    {datos.solicitante_nombre}
+                                    {safeDatos.solicitante_nombre}
                                 </div>
                             </div>
                             
@@ -213,11 +196,11 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                             <div className="flex items-end w-full gap-2">
                                 <span className="whitespace-nowrap">PARA CUMPLIMIENTO DE COMISIÓN EN: MUNICIPIO:</span>
                                 <div className="flex-1 border-b border-black px-2 text-black whitespace-nowrap overflow-hidden text-ellipsis">
-                                    {datos.municipio_destino}
+                                    {safeDatos.municipio_destino}
                                 </div>
                                 <span className="whitespace-nowrap">DEPTO:</span>
                                 <div className="flex-[0.6] border-b border-black px-2 text-black whitespace-nowrap overflow-hidden text-ellipsis">
-                                    {datos.departamento_destino}
+                                    {safeDatos.departamento_destino}
                                 </div>
                             </div>
                         </div>
@@ -229,17 +212,17 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                             <div className="grid grid-cols-1 gap-2 px-2 pb-2 text-[10px] font-bold uppercase text-gray-700">
                                 <div className="flex items-end gap-2">
                                     <span className="whitespace-nowrap">TIPO DE VEHÍCULO ASIGNADO:</span>
-                                    <div className="flex-1 border-b border-black px-2 text-black text-center whitespace-nowrap">{datos.vehiculo.tipo}</div>
+                                    <div className="flex-1 border-b border-black px-2 text-black text-center whitespace-nowrap">{safeDatos.vehiculo.tipo}</div>
                                     <span className="whitespace-nowrap">No. DE PLACA:</span>
-                                    <div className="flex-1 border-b border-black px-2 text-black text-center whitespace-nowrap">{datos.vehiculo.placa}</div>
+                                    <div className="flex-1 border-b border-black px-2 text-black text-center whitespace-nowrap">{safeDatos.vehiculo.placa}</div>
                                     <span className="whitespace-nowrap">MODELO:</span>
-                                    <div className="flex-1 border-b border-black px-2 text-black text-center whitespace-nowrap">{datos.vehiculo.modelo}</div>
+                                    <div className="flex-1 border-b border-black px-2 text-black text-center whitespace-nowrap">{safeDatos.vehiculo.modelo}</div>
                                 </div>
                                 <div className="flex items-end gap-2 mt-1">
                                     <span className="whitespace-nowrap">KILOMETRAJE INICIAL:</span>
-                                    <div className="flex-1 border-b border-black px-2 text-black text-center whitespace-nowrap">{datos.kilometraje_inicial}</div>
+                                    <div className="flex-1 border-b border-black px-2 text-black text-center whitespace-nowrap">{safeDatos.kilometraje_inicial}</div>
                                     <span className="whitespace-nowrap ml-8">TIPO DE COMBUSTIBLE:</span>
-                                    <div className="flex-1 border-b border-black px-2 text-black text-center whitespace-nowrap">{datos.vehiculo.combustible}</div>
+                                    <div className="flex-1 border-b border-black px-2 text-black text-center whitespace-nowrap">{safeDatos.vehiculo.combustible}</div>
                                 </div>
                             </div>
                         </div>
@@ -261,7 +244,7 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {datos.detalles.map((det, idx) => (
+                                    {safeDatos.detalles.map((det, idx) => (
                                         <tr key={idx} className="text-center h-8">
                                             <td className="border border-black px-1">{formatDate(det.fecha_inicio)}</td>
                                             <td className="border border-black px-1">{formatDate(det.fecha_fin)}</td>
@@ -287,7 +270,7 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                             <div className="flex items-end w-full gap-2 text-[10px] uppercase font-bold text-gray-700">
                                 <span className="whitespace-nowrap">JUSTIFICACIÓN:</span>
                                 <div className="flex-1 border-b border-black px-2 text-black italic normal-case text-xs leading-tight pb-1">
-                                    {datos.justificacion}
+                                    {safeDatos.justificacion}
                                 </div>
                             </div>
                         </div>
@@ -312,7 +295,7 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                                 <div className="flex items-end gap-2 w-1/2">
                                     <span className="font-bold uppercase whitespace-nowrap">KMS AUTORIZADOS:</span>
                                     <div className="flex-1 border-b border-black text-center font-mono">
-                                    {datos.cupones.length > 0 ? totalKm : ''}
+                                    {safeDatos.cupones.length > 0 ? totalKm : ''}
                                     </div>
                                 </div>
                                 <div className="flex items-end gap-2 w-1/2">
@@ -320,7 +303,7 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                                         TIPO DE COMBUSTIBLE:
                                     </span>
                                     <div className="flex-1 border-b border-black text-center font-mono">
-                                        {datos.vehiculo.combustible ? datos.vehiculo.combustible.toUpperCase() : ''}
+                                        {safeDatos.vehiculo.combustible ? safeDatos.vehiculo.combustible.toUpperCase() : ''}
                                     </div>
                                 </div>
                             </div>
@@ -339,8 +322,8 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {datos.cupones.length > 0 ? (
-                                        datos.cupones.map((c, idx) => (
+                                    {safeDatos.cupones.length > 0 ? (
+                                        safeDatos.cupones.map((c, idx) => (
                                             <tr key={idx} className="text-center font-mono text-[9px] h-6">
                                                 <td className="border border-black">Q.{c.denominacion}</td>
                                                 <td className="border border-black">{c.cantidad}</td>
@@ -369,7 +352,7 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                                     <div className="flex flex-col items-start w-48"> 
                                         <div className="w-full border-b border-black"></div>
                                         <span className="text-[9px] font-bold uppercase mt-1 text-left">
-                                            {datos.aprobador}
+                                            {safeDatos.aprobador}
                                         </span>
                                         <span className="text-[9px] font-bold uppercase text-left text-gray-600">
                                             ENCARGADO DE ENTREGA DE CUPONES
@@ -393,7 +376,7 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                             <div className="flex items-end gap-2 mb-4">
                                 <span className="whitespace-nowrap w-16">NOMBRE:</span>
                                 <div className="flex-1 border-b border-black px-2 text-black pb-2">
-                                    {datos.solicitante_nombre}
+                                    {safeDatos.solicitante_nombre}
                                 </div>
                                 
                                 <span className="whitespace-nowrap w-12 ml-4">FIRMA:</span>
@@ -403,12 +386,12 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                             <div className="flex items-end gap-2">
                                 <span className="whitespace-nowrap w-16">DPI:</span>
                                 <div className="flex-1 border-b border-black px-2 text-black pb-2">
-                                    {datos.solicitante_dpi}
+                                    {safeDatos.solicitante_dpi}
                                 </div>
                                 
                                 <span className="whitespace-nowrap w-12 ml-4">FECHA:</span>
                                 <div className="flex-1 border-b border-black px-2 text-black text-center pb-2">
-                                    {new Date(datos.created_at).toLocaleDateString('es-GT')}
+                                    {new Date(safeDatos.created_at).toLocaleDateString('es-GT')}
                                 </div>
                             </div>
                         </div>

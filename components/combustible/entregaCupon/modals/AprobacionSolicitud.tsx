@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { SolicitudEntrega, InventarioCupon, ItemEntrega } from '../lib/schemas';
-import { getInventarioPorTipo, entregarCupones, rechazarSolicitud } from '../lib/actions'; 
+import { useInventario, useEntregaMutations } from '../lib/hooks'; 
 import Swal from 'sweetalert2';
 
 interface Props {
@@ -26,6 +26,7 @@ interface CouponSelectProps {
     onChange: (val: string) => void;
     options: InventarioCupon[];
 }
+
 const CouponSelect: React.FC<CouponSelectProps> = ({ value, onChange, options }) => {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -40,13 +41,11 @@ const CouponSelect: React.FC<CouponSelectProps> = ({ value, onChange, options })
 
     const groupedOptions = useMemo(() => {
         const groups: Record<number, InventarioCupon[]> = {};
-        
         options.forEach(opt => {
             const qty = opt.cantidad_actual;
             if (!groups[qty]) groups[qty] = [];
             groups[qty].push(opt);
         });
-
         return Object.entries(groups)
             .map(([qty, items]) => {
                 items.sort((a, b) => a.denominacion - b.denominacion);
@@ -95,14 +94,17 @@ const CouponSelect: React.FC<CouponSelectProps> = ({ value, onChange, options })
 };
 
 export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solicitud }: Props) {
-  const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'menu' | 'aprobar'>('menu');
-
   const [tipoCombustible, setTipoCombustible] = useState<'Gasolina' | 'Diesel'>(
     solicitud.vehiculo?.tipo_combustible === 'Diesel' ? 'Diesel' : 'Gasolina'
   );
   
-  const [inventario, setInventario] = useState<InventarioCupon[]>([]);
+  const { data: inventario = [] } = useInventario(tipoCombustible);
+  
+  const { entregar, rechazar } = useEntregaMutations();
+  
+  const loading = entregar.isPending || rechazar.isPending;
+
   const [items, setItems] = useState<ItemEntrega[]>([{ ...EMPTY_ITEM }]);
 
   const kmsSolicitados = useMemo(() => {
@@ -120,14 +122,9 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
 
   useEffect(() => {
     if (step === 'aprobar') {
-        const loadInventario = async () => {
-            const data = await getInventarioPorTipo(tipoCombustible);
-            setInventario(data);
-            setItems([{ ...EMPTY_ITEM }]);
-        };
-        loadInventario();
+        setItems([{ ...EMPTY_ITEM }]);
     }
-  }, [tipoCombustible, step, isOpen]);
+  }, [step]);
 
   const addItem = () => setItems([...items, { ...EMPTY_ITEM }]);
   
@@ -162,19 +159,21 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
     const itemsValidos = items.filter(i => i.detalle_contrato_id && i.cantidad_asignada > 0);
     if (itemsValidos.length === 0) return Swal.fire('Error', 'Debe registrar al menos un cupón válido', 'warning');
 
-    setLoading(true);
-    const res = await entregarCupones({
-        solicitud_id: solicitud.id,
-        tipo_combustible: tipoCombustible,
-        items: itemsValidos
-    });
-    setLoading(false);
+    try {
+        const res = await entregar.mutateAsync({
+            solicitud_id: solicitud.id,
+            tipo_combustible: tipoCombustible,
+            items: itemsValidos
+        });
 
-    if (res.success) {
-        Swal.fire({ title: '¡Aprobada!', text: 'Cupones asignados correctamente.', icon: 'success', timer: 1500, showConfirmButton: false });
-        onSuccess('aprobado'); 
-    } else {
-        Swal.fire('Error', res.error || 'No se pudo guardar', 'error');
+        if (res.success) {
+            Swal.fire({ title: '¡Aprobada!', text: 'Cupones asignados correctamente.', icon: 'success', timer: 1500, showConfirmButton: false });
+            onSuccess('aprobado'); 
+        } else {
+            Swal.fire('Error', res.error || 'No se pudo guardar', 'error');
+        }
+    } catch (error: any) {
+        Swal.fire('Error', error.message || 'Error de red o servidor', 'error');
     }
   };
 
@@ -192,15 +191,17 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
 
       if (!result.isConfirmed) return;
       
-      setLoading(true);
-      const res = await rechazarSolicitud(solicitud.id, ''); 
-      setLoading(false);
-
-      if (res.success) {
-          Swal.fire({ title: 'Rechazada', text: 'La solicitud ha sido rechazada.', icon: 'info', timer: 1500, showConfirmButton: false });
-          onSuccess('rechazado'); 
-      } else {
-          Swal.fire('Error', res.error || 'No se pudo rechazar', 'error');
+      try {
+          const res = await rechazar.mutateAsync({ id: solicitud.id, motivo: '' }); 
+          
+          if (res.success) {
+              Swal.fire({ title: 'Rechazada', text: 'La solicitud ha sido rechazada.', icon: 'info', timer: 1500, showConfirmButton: false });
+              onSuccess('rechazado'); 
+          } else {
+              Swal.fire('Error', res.error || 'No se pudo rechazar', 'error');
+          }
+      } catch (error: any) {
+          Swal.fire('Error', error.message || 'Error al rechazar', 'error');
       }
   };
 

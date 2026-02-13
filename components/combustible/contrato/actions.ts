@@ -2,6 +2,26 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { ContratoExtendido, DetalleContrato } from './types' 
+
+export async function getContratos(): Promise<ContratoExtendido[]> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('ContratoCombustible')
+    .select(`
+      *,
+      detalles:DetalleContrato(*)
+    `)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error(error)
+    return []
+  }
+
+  return data as unknown as ContratoExtendido[]
+}
 
 export interface DetalleItem {
   producto: string

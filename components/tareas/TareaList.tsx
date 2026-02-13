@@ -1,16 +1,19 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect, Fragment } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Tarea, Usuario, PerfilUsuario, TipoVistaTareas } from './types'; 
 import TareaItem from './TareaItem';
 import NewTarea from './modals/NewTarea'; 
 import { Plus, SearchX, ArrowLeft, Search, Calendar as CalendarIcon, Building2, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useGestorData } from './hooks';
 
 interface Props {
-  tareas: Tarea[];
-  usuarios: Usuario[];
-  perfilUsuario: PerfilUsuario;
+  initialData: {
+      tareas: Tarea[];
+      usuarios: Usuario[];
+      perfil: PerfilUsuario;
+  };
   tipoVista: TipoVistaTareas;
 }
 
@@ -52,7 +55,13 @@ const TAB_STYLES: Record<string, { active: string, inactive: string, badge: stri
   'Vencido': { active: 'bg-red-600 text-white', inactive: 'text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400', badge: 'bg-red-100 text-red-700' }
 };
 
-export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }: Props) {
+export default function TareaList({ initialData, tipoVista }: Props) {
+  const { data } = useGestorData(tipoVista, initialData);
+  
+  const tareas = (data?.tareas || []) as Tarea[];
+  const usuarios = (data?.usuarios || []) as Usuario[];
+  const perfilUsuario = (data?.perfil || initialData.perfil) as PerfilUsuario;
+
   const [isMounted, setIsMounted] = useState(false);
   const [filtroEstado, setFiltroEstado] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -100,7 +109,7 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
   const tareasFiltradas = useMemo(() => {
     if (!isMounted) return [];
 
-    return tareas.filter(t => {
+    return tareas.filter((t: Tarea) => {
       if (!t.due_date) return false;
       const [tYear, tMonth, tDay] = t.due_date.split('T')[0].split('-').map(Number);
       const tDate = new Date(tYear, tMonth - 1, tDay);
@@ -120,16 +129,16 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
       const coincideUsuario = (t.assignee?.nombre || '').toLowerCase().includes(termino);
       
       return coincideFecha && (coincideTitulo || coincideUsuario);
-    }).map(t => {
+    }).map((t: Tarea) => {
       const esVencida = new Date() > new Date(t.due_date) && t.status !== 'Completado';
       return { ...t, estadoFiltro: esVencida ? 'Vencido' : t.status };
     });
   }, [tareas, mesSeleccionado, anioSeleccionado, semanaSeleccionada, semanasDisponibles, busqueda, isMounted]);
 
   const conteos = useMemo(() => ({
-      Asignado: tareasFiltradas.filter(t => t.estadoFiltro === 'Asignado' || t.estadoFiltro === 'En Proceso').length,
-      'Completado': tareasFiltradas.filter(t => t.estadoFiltro === 'Completado').length,
-      'Vencido': tareasFiltradas.filter(t => t.estadoFiltro === 'Vencido').length,
+      Asignado: tareasFiltradas.filter((t: Tarea) => t.estadoFiltro === 'Asignado' || t.estadoFiltro === 'En Proceso').length,
+      'Completado': tareasFiltradas.filter((t: Tarea) => t.estadoFiltro === 'Completado').length,
+      'Vencido': tareasFiltradas.filter((t: Tarea) => t.estadoFiltro === 'Vencido').length,
   }), [tareasFiltradas]);
 
   const pestañas = useMemo(() => ['Asignado', 'Completado', 'Vencido'].filter(t => conteos[t as keyof typeof conteos] > 0), [conteos]);
@@ -141,11 +150,11 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
   }, [pestañas, filtroEstado, isMounted]);
 
   const listaVisual = useMemo(() => {
-      return tareasFiltradas.filter(t => filtroEstado === '' ? true : (filtroEstado === 'Asignado' ? (t.estadoFiltro === 'Asignado' || t.estadoFiltro === 'En Proceso') : t.estadoFiltro === filtroEstado));
+      return tareasFiltradas.filter((t: Tarea) => filtroEstado === '' ? true : (filtroEstado === 'Asignado' ? (t.estadoFiltro === 'Asignado' || t.estadoFiltro === 'En Proceso') : t.estadoFiltro === filtroEstado));
   }, [tareasFiltradas, filtroEstado]);
   
   const tareasRenderizadas = useMemo(() => {
-      return expandedId ? listaVisual.filter(t => t.id === expandedId) : listaVisual;
+      return expandedId ? listaVisual.filter((t: Tarea) => t.id === expandedId) : listaVisual;
   }, [expandedId, listaVisual]);
 
   const tareasAgrupadas = useMemo(() => {
@@ -154,7 +163,7 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
 
       if (tipoVista === 'mis_actividades') {
           const grupos: any[] = [];
-          tareasRenderizadas.forEach(t => {
+          tareasRenderizadas.forEach((t: Tarea) => {
               const fechaKey = t.due_date.split('T')[0];
               let g = grupos.find(x => x.key === fechaKey);
               if (!g) { g = { key: fechaKey, titulo: getFechaCabecera(fechaKey), tareas: [] }; grupos.push(g); }
@@ -170,7 +179,7 @@ export default function TareaList({ tareas, usuarios, perfilUsuario, tipoVista }
               });
           }
 
-          tareasRenderizadas.forEach(t => {
+          tareasRenderizadas.forEach((t: Tarea) => {
               const ofName = t.assignee?.oficina_nombre || 'Sin Oficina';
               if (!grupos[ofName]) grupos[ofName] = { key: ofName, titulo: ofName, tareas: [] };
               grupos[ofName].tareas.push(t);

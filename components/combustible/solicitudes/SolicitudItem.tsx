@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { SolicitudCombustible } from './types';
-import { deleteSolicitud } from './actions';
+import { useSolicitudMutations } from './hook'; 
 import SolicitudPrintModal from './modals/InformeEntregaCupones'; 
 import LiquidarCupones from './modals/LiquidarCupones'; 
 import Swal from 'sweetalert2';
@@ -31,7 +31,9 @@ interface Props {
 }
 
 export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand, onRefresh, onEdit }) => {
-  const [isDeleting, setIsDeleting] = useState(false);
+  const { eliminar } = useSolicitudMutations();
+  const isDeleting = eliminar.isPending; 
+
   const [showPrintModal, setShowPrintModal] = useState(false); 
   const [showLiquidarModal, setShowLiquidarModal] = useState(false); 
 
@@ -90,8 +92,7 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
 
     if (result.isConfirmed) {
       try {
-        setIsDeleting(true);
-        await deleteSolicitud(sol.id);
+        await eliminar.mutateAsync(sol.id);
         
         Swal.fire({
           title: 'Eliminado',
@@ -113,8 +114,6 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
           background: isDark ? '#171717' : '#ffffff',
           color: isDark ? '#ffffff' : '#000000',
         });
-      } finally {
-        setIsDeleting(false);
       }
     }
   };

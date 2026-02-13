@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { X, Copy, Calendar, User, AlignLeft, CheckSquare, Plus, Trash2, Edit2, Check } from 'lucide-react';
 import { toast } from 'react-toastify';
-import Swal from 'sweetalert2'; // <--- 1. IMPORTANTE: Importar SweetAlert2
+import Swal from 'sweetalert2'; 
 import { Tarea, Usuario, ChecklistItem } from '../types'; 
-import { duplicarTarea } from '../actions'; 
+import { useTareaMutations } from '../hooks'; 
 
 interface Props {
   isOpen: boolean;
@@ -16,24 +16,22 @@ interface Props {
 }
 
 export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuarios, esJefe }: Props) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const { duplicar } = useTareaMutations(); 
+  
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   
-  // Estados para añadir nuevo item
   const [newItemText, setNewItemText] = useState('');
-  
-  // Estados para editar item existente
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingText, setEditingText] = useState('');
 
-  // Dropdown de usuarios
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
+
+  const isSubmitting = duplicar.isPending;
 
   useEffect(() => {
     if (!isOpen || !tareaOriginal) return;
@@ -49,9 +47,7 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
             const offset = d.getTimezoneOffset() * 60000;
             const localDate = new Date(d.getTime() - offset);
             fechaInput = localDate.toISOString().slice(0, 16);
-        } catch(e) { 
-           // Fallback silencioso
-        }
+        } catch(e) { }
     }
     setDueDate(fechaInput);
 
@@ -60,52 +56,40 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
         : [];
     setChecklist(chk);
     
-    // Resetear estados de edición al abrir
     setEditingIndex(null);
     setEditingText('');
     setNewItemText('');
 
   }, [isOpen, tareaOriginal]);
 
-  // --- LOGICA ITEMS ---
   const handleAddItem = () => {
     if (!newItemText.trim()) return;
     setChecklist([...checklist, { title: newItemText, is_completed: false }]);
     setNewItemText('');
   };
 
-  // 2. MODIFICACIÓN: Función actualizada con SweetAlert2
   const handleRemoveItem = (index: number) => {
     Swal.fire({
       title: '¿Estás seguro?',
       text: "Este ítem se eliminará de la lista",
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#ef4444', // Rojo (Tailwind red-500)
-      cancelButtonColor: '#6b7280', // Gris (Tailwind gray-500)
+      confirmButtonColor: '#ef4444', 
+      cancelButtonColor: '#6b7280', 
       confirmButtonText: 'Sí, eliminar',
       cancelButtonText: 'Cancelar',
-      background: '#fff', // Puedes ajustar esto si quieres soporte Dark Mode en el modal
-      customClass: {
-        popup: 'rounded-2xl' // Para que combine con tu diseño redondeado
-      }
+      background: '#fff', 
+      customClass: { popup: 'rounded-2xl' }
     }).then((result) => {
       if (result.isConfirmed) {
-        // Solo borramos si el usuario confirma
         setChecklist(checklist.filter((_, i) => i !== index));
-        
-        // Si borramos el que se estaba editando, cancelamos edición
         if (editingIndex === index) {
             cancelEditing();
         }
-        
-        // Opcional: Feedback visual rápido
-        // toast.success('Ítem eliminado'); 
       }
     });
   };
 
-  // Funciones de Edición
   const startEditing = (index: number, currentTitle: string) => {
     setEditingIndex(index);
     setEditingText(currentTitle);
@@ -113,11 +97,9 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
 
   const saveEditing = () => {
     if (editingIndex === null || !editingText.trim()) return;
-    
     const updatedChecklist = [...checklist];
     updatedChecklist[editingIndex].title = editingText.trim();
     setChecklist(updatedChecklist);
-    
     cancelEditing();
   };
 
@@ -126,35 +108,28 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
     setEditingText('');
   };
 
-  // --- SUBMIT ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!title.trim()) { toast.warning('Falta el título'); return; }
     if (!dueDate) { toast.warning('Falta la fecha'); return; }
 
-    setIsSubmitting(true);
-    
     try {
         const fechaISO = new Date(dueDate).toISOString();
         
-        const datosAEnviar = {
+        await duplicar.mutateAsync({
             title: title.trim(),
             description: description.trim(),
             due_date: fechaISO,
             assigned_to: assignedTo,
             checklist: checklist
-        };
-
-        await duplicarTarea(datosAEnviar);
+        });
 
         toast.success('¡Tarea duplicada correctamente!');
         onClose();
 
     } catch (error: any) {
         toast.error(`Error: ${error.message}`);
-    } finally {
-        setIsSubmitting(false);
     }
   };
 
@@ -168,7 +143,6 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="bg-white dark:bg-[#1e1e1e] w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
         
-        {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 dark:border-neutral-800 flex justify-between items-center bg-gray-50 dark:bg-neutral-900/50">
             <div className="flex items-center gap-3">
                 <div className="bg-indigo-100 dark:bg-indigo-900/30 p-2 rounded-lg text-indigo-600 dark:text-indigo-400">
@@ -181,10 +155,8 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
             </button>
         </div>
 
-        {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
             
-            {/* Título */}
             <div>
                 <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Título</label>
                 <input 
@@ -197,7 +169,6 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                {/* Fecha */}
                 <div>
                     <label className=" text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
                         <Calendar size={14} /> Fecha
@@ -210,7 +181,6 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
                     />
                 </div>
 
-                {/* Asignado */}
                 <div>
                       <label className=" text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
                         <User size={14} /> Asignado
@@ -254,7 +224,6 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
                 </div>
             </div>
 
-            {/* Descripción */}
             <div>
                 <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
                     <AlignLeft size={14} /> Descripción
@@ -268,7 +237,6 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
                 />
             </div>
 
-             {/* Checklist */}
              <div>
                 <label className=" text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
                     <CheckSquare size={14} /> Pendientes ({checklist.length})
@@ -280,7 +248,6 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
                                 <div key={idx} className="flex gap-3 items-center p-3 hover:bg-white dark:hover:bg-neutral-800 transition-colors group">
                                     <span className="text-gray-400 dark:text-gray-600 self-center">•</span>
                                     
-                                    {/* MODO EDICIÓN vs MODO VISUALIZACIÓN */}
                                     {editingIndex === idx ? (
                                         <div className="flex-1 flex gap-2 items-center animate-in fade-in duration-200">
                                             <input 
@@ -294,53 +261,15 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
                                                     if(e.key === 'Escape') cancelEditing();
                                                 }}
                                             />
-                                            <button 
-                                                type="button"
-                                                onClick={saveEditing}
-                                                className="p-1.5 text-green-600 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-900/30 rounded-lg"
-                                                title="Guardar"
-                                            >
-                                                <Check size={16}/>
-                                            </button>
-                                            <button 
-                                                type="button"
-                                                onClick={cancelEditing}
-                                                className="p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg"
-                                                title="Cancelar"
-                                            >
-                                                <X size={16}/>
-                                            </button>
+                                            <button type="button" onClick={saveEditing} className="p-1.5 text-green-600 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-900/30 rounded-lg"><Check size={16}/></button>
+                                            <button type="button" onClick={cancelEditing} className="p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg"><X size={16}/></button>
                                         </div>
                                     ) : (
                                         <>
-                                            <span 
-                                                className="flex-1 text-sm text-gray-700 dark:text-gray-200 cursor-pointer"
-                                                onClick={() => startEditing(idx, item.title)}
-                                                title="Clic para editar"
-                                            >
-                                                {item.title}
-                                            </span>
-                                            
+                                            <span className="flex-1 text-sm text-gray-700 dark:text-gray-200 cursor-pointer" onClick={() => startEditing(idx, item.title)}>{item.title}</span>
                                             <div className="flex items-center gap-1">
-                                                {/* Botón Editar */}
-                                                <button 
-                                                    type="button" 
-                                                    onClick={() => startEditing(idx, item.title)}
-                                                    className="text-gray-400 hover:text-indigo-600 p-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
-                                                    title="Editar item"
-                                                >
-                                                    <Edit2 size={16}/>
-                                                </button>
-                                                
-                                                {/* Botón Eliminar con SweetAlert */}
-                                                <button 
-                                                    type="button" 
-                                                    onClick={() => handleRemoveItem(idx)}
-                                                    className="text-gray-400 hover:text-red-500 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                                    title="Eliminar item"
-                                                >
-                                                    <Trash2 size={16}/>
-                                                </button>
+                                                <button type="button" onClick={() => startEditing(idx, item.title)} className="text-gray-400 hover:text-indigo-600 p-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"><Edit2 size={16}/></button>
+                                                <button type="button" onClick={() => handleRemoveItem(idx)} className="text-gray-400 hover:text-red-500 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"><Trash2 size={16}/></button>
                                             </div>
                                         </>
                                     )}
@@ -352,40 +281,17 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
                     )}
                     
                     <div className="p-2 flex gap-2 border-t border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800">
-                        <input 
-                            className="flex-1 px-3 py-2 bg-transparent text-sm text-gray-700 dark:text-white outline-none placeholder:text-gray-400"
-                            placeholder="Añadir..."
-                            value={newItemText} 
-                            onChange={e => setNewItemText(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddItem())}
-                        />
-                        <button 
-                            type="button" 
-                            onClick={handleAddItem} 
-                            disabled={!newItemText.trim()}
-                            className="p-2 bg-gray-100 dark:bg-neutral-700 text-gray-500 dark:text-gray-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors disabled:opacity-50"
-                        >
-                            <Plus size={18}/>
-                        </button>
+                        <input className="flex-1 px-3 py-2 bg-transparent text-sm text-gray-700 dark:text-white outline-none placeholder:text-gray-400" placeholder="Añadir..." value={newItemText} onChange={e => setNewItemText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddItem())} />
+                        <button type="button" onClick={handleAddItem} disabled={!newItemText.trim()} className="p-2 bg-gray-100 dark:bg-neutral-700 text-gray-500 dark:text-gray-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors disabled:opacity-50"><Plus size={18}/></button>
                     </div>
                 </div>
             </div>
 
         </form>
 
-        {/* Footer */}
         <div className="px-6 py-4 border-t border-gray-100 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 flex justify-end gap-3">
-            <button 
-                onClick={onClose} 
-                className="px-5 py-2.5 rounded-xl font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-neutral-800 transition-colors text-sm"
-            >
-                Cancelar
-            </button>
-            <button 
-                onClick={handleSubmit} 
-                disabled={isSubmitting} 
-                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed text-sm"
-            >
+            <button onClick={onClose} className="px-5 py-2.5 rounded-xl font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-neutral-800 transition-colors text-sm">Cancelar</button>
+            <button onClick={handleSubmit} disabled={isSubmitting} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed text-sm">
                 {isSubmitting ? 'Duplicando...' : 'Crear Duplicado'}
             </button>
         </div>

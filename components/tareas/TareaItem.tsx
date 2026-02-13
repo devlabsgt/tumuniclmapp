@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Tarea, ChecklistItem, Usuario } from './types'; 
-import { cambiarEstado, eliminarTarea } from './actions';
 import EditarTarea from './modals/EditarTarea';
 import DuplicateTarea from './modals/DuplicateTarea'; 
 import TareaChecklist from './TareaChecklist'; 
@@ -12,6 +11,7 @@ import {
   Edit2, Trash2, ChevronDown, MoreHorizontal, Calendar, 
   User, Clock, AlertCircle, Copy, ArrowRight
 } from 'lucide-react';
+import { useTareaMutations } from './hooks'; 
 
 interface Props {
   tarea: Tarea;
@@ -45,7 +45,8 @@ const getNombreCorto = (nombreCompleto: string | undefined | null) => {
 };
 
 export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe, usuarioActual, usuarios }: Props) { 
-  const [loading, setLoading] = useState(false);
+  const { cambiarStatus, eliminar } = useTareaMutations(); 
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false); 
 
@@ -87,32 +88,33 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
   const isReadOnly = esVencida || tarea.status === 'Completado';
   const puedeEditar = isJefe || (!isReadOnly && (esAsignadoAMi || esCreadoPorMi));
 
+  const loading = cambiarStatus.isPending || eliminar.isPending;
+
   const handleTerminar = async () => {
     if (checklist.some(i => !i.is_completed)) {
         Swal.fire({ icon: 'warning', title: 'Falta poco...', text: 'Completa el checklist primero.', confirmButtonColor: '#4f46e5' });
         return;
     }
-    setLoading(true);
     try {
-      await cambiarEstado(tarea.id, 'Completado');
+      await cambiarStatus.mutateAsync({ id: tarea.id, estado: 'Completado' });
       Swal.fire({ icon: 'success', title: '¡Completada!', timer: 1500, showConfirmButton: false });
       if (isExpanded && onToggle) { onToggle(); }
-    } catch (error: any) { toast.error(error.message); } finally { setLoading(false); }
+    } catch (error: any) { toast.error(error.message); }
   };
 
   const handleEliminar = async (e?: React.MouseEvent) => {
     if(e) { e.preventDefault(); e.stopPropagation(); }
     const result = await Swal.fire({ title: '¿Eliminar?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'Sí, borrar', cancelButtonText: 'Cancelar' });
     if (result.isConfirmed) {
-        setLoading(true);
-        try { await eliminarTarea(tarea.id); toast.info('Tarea eliminada'); } 
-        catch { toast.error('Error al eliminar'); } finally { setLoading(false); }
+        try { 
+            await eliminar.mutateAsync(tarea.id); 
+            toast.info('Tarea eliminada'); 
+        } 
+        catch { toast.error('Error al eliminar'); }
     }
   };
 
-  // --- CORRECCIÓN DE COLORES PARA DARK MODE ---
   const getStatusStyles = () => {
-      // Agregamos 'dark:border-l-*' explícitamente para que gane a 'dark:border-neutral-800'
       if (tarea.status === 'Completado') {
           return {
               badge: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800',
@@ -127,7 +129,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
               label: 'Vencido'
           };
       }
-      
       return {
           badge: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
           border: 'border-l-purple-500 dark:border-l-purple-500', 
@@ -156,9 +157,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
         overflow-hidden 
         ${isExpanded ? 'ring-2 ring-blue-400/50 dark:ring-blue-900/40 shadow-xl z-10' : 'hover:-translate-y-0.5'}
     `}>
-      
       <div onClick={onToggle} className="p-4 sm:p-5 cursor-pointer flex flex-col gap-1 sm:gap-0">
-        
         <div className="flex justify-between items-start gap-3 sm:gap-4 w-full">
             <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -167,50 +166,28 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                         {label}
                     </span>
                 </div>
-                
                 <h3 className="font-bold text-base text-slate-800 dark:text-gray-100 leading-snug break-words">
                     {tarea.title}
                 </h3>
             </div>
-
-            <div className="flex items-center gap-0 sm:gap-1 shrink-0" 
-                 onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                 }}>
-                
+            <div className="flex items-center gap-0 sm:gap-1 shrink-0" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                 {isJefe && (
-                    <button 
-                    onClick={(e) => { e.stopPropagation(); setIsDuplicateModalOpen(true); }}
-                    className="p-2 text-slate-400 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all"
-                    title="Duplicar Tarea"
-                    >
+                    <button onClick={(e) => { e.stopPropagation(); setIsDuplicateModalOpen(true); }} className="p-2 text-slate-400 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all" title="Duplicar Tarea">
                         <Copy size={18} />
                     </button>
                 )}
-
                 {puedeEditar && (
-                    <button 
-                    onClick={(e) => { e.stopPropagation(); setIsEditModalOpen(true); }}
-                    className="p-2 text-slate-400 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-slate-100 dark:hover:bg-blue-900/30 transition-all"
-                    title="Editar Tarea"
-                    >
-                    <Edit2 size={18} />
+                    <button onClick={(e) => { e.stopPropagation(); setIsEditModalOpen(true); }} className="p-2 text-slate-400 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-slate-100 dark:hover:bg-blue-900/30 transition-all" title="Editar Tarea">
+                        <Edit2 size={18} />
                     </button>
                 )}
-                
                 {isJefe && (
-                    <button 
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (e.nativeEvent) e.nativeEvent.stopImmediatePropagation(); handleEliminar(e); }}
-                    className="p-2 text-slate-400 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-slate-100 dark:hover:bg-red-900/30 transition-all"
-                    title="Eliminar tarea (Solo Jefe)"
-                    >
-                    <Trash2 size={18} />
+                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (e.nativeEvent) e.nativeEvent.stopImmediatePropagation(); handleEliminar(e); }} className="p-2 text-slate-400 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-slate-100 dark:hover:bg-red-900/30 transition-all" title="Eliminar tarea (Solo Jefe)">
+                        <Trash2 size={18} />
                     </button>
                 )}
-
                 <div className={`p-2 text-slate-400 dark:text-gray-500 transition-transform duration-300 ${isExpanded ? 'rotate-180 text-blue-500 dark:text-blue-400' : ''}`}>
-                <ChevronDown size={20} />
+                    <ChevronDown size={20} />
                 </div>
             </div>
         </div>
@@ -218,10 +195,8 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
         {!isExpanded && (
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 dark:text-gray-400 font-medium w-full border-t pt-3 sm:border-t-0 sm:pt-0 border-slate-100 dark:border-neutral-800 sm:mt-2">
                 <span className="flex items-center gap-1.5 shrink-0 text-slate-600 dark:text-gray-300">
-                    <Clock size={13} className="text-slate-400 dark:text-gray-500"/> 
-                    {formatearHora(tarea.due_date)}
+                    <Clock size={13} className="text-slate-400 dark:text-gray-500"/> {formatearHora(tarea.due_date)}
                 </span>
-                
                 {total > 0 && (
                     <>
                         <span className="text-slate-300 dark:text-gray-600 hidden sm:inline">•</span>
@@ -233,9 +208,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                         </div>
                     </>
                 )}
-
                 <span className="text-slate-300 dark:text-gray-600 hidden sm:inline">•</span>
-                
                 <div className="w-full mt-2 pt-2 border-t border-dashed border-slate-200 dark:border-neutral-700 sm:w-auto sm:mt-0 sm:pt-0 sm:border-t-0 sm:border-none sm:flex-1">
                     {esAutoAsignado ? (
                         <div className="flex items-center gap-1.5 text-xs">

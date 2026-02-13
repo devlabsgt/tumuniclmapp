@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react"; // 1. Importamos useState
 import { motion, AnimatePresence } from "framer-motion";
+import GeneradorFicha from "./GeneradorFicha"; 
 import {
   User,
   Shield,
@@ -21,6 +23,7 @@ import {
   Lock,
   Building2,
   Landmark,
+  Download, // 2. Importamos el icono Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Cargando from "@/components/ui/animations/Cargando";
@@ -121,6 +124,9 @@ export default function TarjetaEmpleado({
     useInfoUsuario(userId);
 
   const { rol } = useUserData();
+  
+  // 3. Estado para controlar el modal de exportación
+  const [showExportModal, setShowExportModal] = useState(false);
 
   if (!isOpen) return null;
 
@@ -134,22 +140,6 @@ export default function TarjetaEmpleado({
     if (amount === null || amount === undefined) return "--";
     const formatted = `Q ${Math.abs(amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     return options.sign === "negative" ? `- ${formatted}` : formatted;
-  };
-
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) return "--";
-    try {
-      const date = new Date(dateString);
-      const userTimezoneOffset = date.getTimezoneOffset() * 60000;
-      const correctedDate = new Date(date.getTime() + userTimezoneOffset);
-      return new Intl.DateTimeFormat("es-GT", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).format(correctedDate);
-    } catch (e) {
-      return dateString;
-    }
   };
 
   const formatTime = (timeString: string | null | undefined) => {
@@ -244,14 +234,28 @@ export default function TarjetaEmpleado({
             exit={{ scale: 0.9 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-2 right-2"
-              onClick={onClose}
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            {/* 4. Botones de Cabecera (Exportar y Cerrar) */}
+            <div className="absolute top-2 right-2 flex gap-2">
+              {!isGlobalLoading && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  title="Exportar Ficha (Imagen/PDF)"
+                  onClick={() => setShowExportModal(true)}
+                  className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 border-blue-200 dark:border-blue-800"
+                >
+                  <Download className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </Button>
+              )}
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
 
             {isGlobalLoading ? (
               <div className="p-8 h-64">
@@ -268,9 +272,6 @@ export default function TarjetaEmpleado({
                     <h2 className="text-xl font-bold">
                       {datosCompletos?.nombre || "N/A"}
                     </h2>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {datosCompletos?.email || "N/A"}
-                    </p>
                     {pathItems.length > 0 && (
                       <div className="mt-4 w-full border-t border-gray-200 dark:border-gray-700 pt-3">
                         <h4 className="flex items-center text-xs font-semibold text-gray-800 dark:text-gray-200 mb-2">
@@ -476,6 +477,13 @@ export default function TarjetaEmpleado({
                 </div>
               </div>
             )}
+            
+            {/* 5. Inserción del componente GeneradorFicha */}
+            <GeneradorFicha
+              isOpen={showExportModal}
+              onClose={() => setShowExportModal(false)}
+              userId={userId}
+            />
           </motion.div>
         </motion.div>
       )}

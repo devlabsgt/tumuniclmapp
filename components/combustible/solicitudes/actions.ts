@@ -1,8 +1,7 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server';
-import { UsuarioInfo, Vehiculo, DetalleComision, SolicitudCombustible, CreateSolicitudPayload } from './types';
-
+import { UsuarioInfo, Vehiculo, SolicitudCombustible, CreateSolicitudPayload } from './types';
 
 const convertToUTC = (dateInput: string | Date | null | undefined) => {
   if (!dateInput) return new Date().toISOString();
@@ -110,26 +109,16 @@ export const saveSolicitud = async (input: CreateSolicitudPayload) => {
 
 export const deleteSolicitud = async (id: number) => {
   const supabase = await createClient();
-
   const { data, error } = await supabase
     .from('solicitud_combustible')
     .delete()
     .eq('id', id)
     .select(); 
 
-  if (error) {
-    throw new Error(`Error al eliminar solicitud: ${error.message}`);
-  }
+  if (error) throw new Error(`Error al eliminar solicitud: ${error.message}`);
+  if (!data || data.length === 0) throw new Error("No tienes permisos o ya no existe.");
 
-  if (!data || data.length === 0) {
-    throw new Error("No tienes permisos para eliminar esta solicitud o ya no existe.");
-  }
-
-  await supabase
-    .from('datos_comision_combustible')
-    .delete()
-    .eq('solicitud_id', id);
-
+  await supabase.from('datos_comision_combustible').delete().eq('solicitud_id', id);
   return { success: true };
 };
 
@@ -150,7 +139,6 @@ export const getMySolicitudes = async (): Promise<SolicitudCombustible[]> => {
     .order('created_at', { ascending: false });
 
   if (error) return [];
-  
   return (data || []).map((item: any) => ({
     ...item,
     vehiculo: Array.isArray(item.vehiculo) ? item.vehiculo[0] : item.vehiculo,
@@ -179,7 +167,6 @@ export const updateSolicitud = async (idSolicitud: number, payload: CreateSolici
     .eq('id', idSolicitud);
 
   if (errUpdate) throw new Error(errUpdate.message);
-
   await supabase.from('datos_comision_combustible').delete().eq('solicitud_id', idSolicitud);
 
   if (payload.detalles.length > 0) {
@@ -198,34 +185,26 @@ export const updateSolicitud = async (idSolicitud: number, payload: CreateSolici
 
 export const getDatosSolicitudImpresion = async (id: number) => {
   const supabase = await createClient();
-
   const { data: solicitud, error: solError } = await supabase
     .from('solicitud_combustible')
-    .select(`
-      *,
-      vehiculo:vehiculos ( * ),
-      detalles:datos_comision_combustible ( * )
-    `)
+    .select(`*, vehiculo:vehiculos ( * ), detalles:datos_comision_combustible ( * )`)
     .eq('id', id)
     .single();
 
   if (solError || !solicitud) return null;
 
-  let nombreSolicitante = '---';
-  let dpiSolicitante = ''; 
-  let unidadDireccion = '---';
+  let nombreSolicitante = '---', dpiSolicitante = '', unidadDireccion = '---';
 
   if (solicitud.user_id) {
-    const { data: usuario, error: userError } = await supabase
+    const { data: usuario } = await supabase
       .from('info_usuario')
       .select('nombre, dpi, dependencia_id')
       .eq('user_id', solicitud.user_id)
       .single();
 
-    if (!userError && usuario) {
+    if (usuario) {
       nombreSolicitante = usuario.nombre;
       dpiSolicitante = usuario.dpi || ''; 
-      
       if (usuario.dependencia_id) {
         const { data: dep } = await supabase
           .from('dependencias')
@@ -234,10 +213,8 @@ export const getDatosSolicitudImpresion = async (id: number) => {
           .single();
 
         if (dep) {
-          const nombreDep = dep.nombre;
           const padreObj = Array.isArray(dep.padre) ? dep.padre[0] : dep.padre;
-          const nombrePadre = padreObj?.nombre;
-          unidadDireccion = nombrePadre ? `${nombrePadre} / ${nombreDep}` : nombreDep;
+          unidadDireccion = padreObj?.nombre ? `${padreObj.nombre} / ${dep.nombre}` : dep.nombre;
         }
       }
     }
@@ -245,29 +222,13 @@ export const getDatosSolicitudImpresion = async (id: number) => {
 
   const { data: entregas } = await supabase
     .from('entrega_cupones')
-    .select(`
-      cantidad_entregada,
-      correlativo_inicio,
-      correlativo_fin,
-      encargado, 
-      detalle:detalle_contrato_id ( producto, denominacion ) 
-    `) 
+    .select(`cantidad_entregada, correlativo_inicio, correlativo_fin, encargado, detalle:detalle_contrato_id ( producto, denominacion )`) 
     .eq('solicitud_id', id);
 
   let nombreAprobador = ''; 
-  if (entregas && entregas.length > 0) {
-    const encargadoId = entregas[0].encargado; 
-    if (encargadoId) {
-      const { data: datosEncargado } = await supabase
-        .from('info_usuario')
-        .select('nombre')
-        .eq('user_id', encargadoId)
-        .single();
-      
-      if (datosEncargado?.nombre) {
-        nombreAprobador = datosEncargado.nombre;
-      }
-    }
+  if (entregas && entregas.length > 0 && entregas[0].encargado) {
+    const { data: datosEncargado } = await supabase.from('info_usuario').select('nombre').eq('user_id', entregas[0].encargado).single();
+    if (datosEncargado) nombreAprobador = datosEncargado.nombre;
   }
 
   const itemsCupones = (entregas || []).map((e: any) => {
@@ -285,199 +246,67 @@ export const getDatosSolicitudImpresion = async (id: number) => {
   const vehiculoData = Array.isArray(solicitud.vehiculo) ? solicitud.vehiculo[0] : solicitud.vehiculo;
 
   return {
-    id: solicitud.id,
-    created_at: solicitud.created_at,
-    municipio_destino: solicitud.municipio_destino,
-    departamento_destino: solicitud.departamento_destino,
-    kilometraje_inicial: solicitud.kilometraje_inicial,
-    justificacion: solicitud.justificacion,
+    ...solicitud,
     solicitante_nombre: nombreSolicitante,
     solicitante_dpi: dpiSolicitante,
     unidad_direccion: unidadDireccion,
     aprobador: nombreAprobador,
-    correlativo: solicitud.correlativo, 
     vehiculo: {
       tipo: vehiculoData?.tipo_vehiculo || '---',
       placa: vehiculoData?.placa || '---',
       modelo: vehiculoData?.modelo || '---',
       combustible: vehiculoData?.tipo_combustible || '---'
     },
-    detalles: solicitud.detalles || [],
     cupones: itemsCupones
   };
 };
 
-export const approveSolicitud = async (id: number) => {
-  const supabase = await createClient();
-
-  const { data: currentSolicitud, error: fetchError } = await supabase
-    .from('solicitud_combustible')
-    .select('estado')
-    .eq('id', id)
-    .single();
-
-  if (fetchError || !currentSolicitud) {
-    throw new Error("No se encontró la solicitud.");
-  }
-
-  if (currentSolicitud.estado !== 'pendiente') {
-    throw new Error(`No se puede aprobar. Estado actual: ${currentSolicitud.estado}`);
-  }
-
-  const { data: maxRecord } = await supabase
-    .from('solicitud_combustible')
-    .select('correlativo')
-    .not('correlativo', 'is', null)
-    .order('correlativo', { ascending: false })
-    .limit(1)
-    .single();
-
-  const currentMax = maxRecord?.correlativo || 0;
-  const nuevoCorrelativo = currentMax + 1;
-
-  const { error: updateError } = await supabase
-    .from('solicitud_combustible')
-    .update({ 
-      estado: 'aprobado',
-      correlativo: nuevoCorrelativo,
-      solvente: false 
-    })
-    .eq('id', id);
-
-  if (updateError) {
-    throw new Error(`Error al aprobar solicitud: ${updateError.message}`);
-  }
-
-  return { success: true, correlativo: nuevoCorrelativo };
-};
-
 export const getSolicitudParaLiquidacion = async (id: number) => {
   const supabase = await createClient();
-
   const { data: solicitud, error } = await supabase
     .from('solicitud_combustible')
-    .select(`
-      id, created_at, kilometraje_inicial, municipio_destino, departamento_destino,
-      placa, correlativo, estado, user_id, solvente,
-      vehiculo:vehiculos ( modelo, tipo_vehiculo )
-    `)
-    .eq('id', id)
-    .eq('estado', 'aprobado')
-    .single();
+    .select(`id, created_at, kilometraje_inicial, municipio_destino, departamento_destino, placa, correlativo, estado, user_id, solvente, vehiculo:vehiculos ( modelo, tipo_vehiculo )`)
+    .eq('id', id).eq('estado', 'aprobado').single();
 
   if (error || !solicitud) return null;
 
-  let nombreUsuario = '---';
-  let cargoUsuario = '---';  
-  let unidadUsuario = '---'; 
-  
+  let nombreUsuario = '---', cargoUsuario = '---', unidadUsuario = '---'; 
   if (solicitud.user_id) {
-    const { data: usr } = await supabase
-        .from('info_usuario')
-        .select('nombre, dependencia_id')
-        .eq('user_id', solicitud.user_id)
-        .single();
-    
+    const { data: usr } = await supabase.from('info_usuario').select('nombre, dependencia_id').eq('user_id', solicitud.user_id).single();
     if (usr) {
         nombreUsuario = usr.nombre;
-
         if (usr.dependencia_id) {
-             const { data: dep } = await supabase
-                .from('dependencias')
-                .select(`
-                    nombre, 
-                    padre:parent_id ( nombre )
-                `)
-                .eq('id', usr.dependencia_id)
-                .single();
-             
+             const { data: dep } = await supabase.from('dependencias').select(`nombre, padre:parent_id ( nombre )`).eq('id', usr.dependencia_id).single();
              if(dep) {
                  cargoUsuario = dep.nombre;
-
                  const padreObj = Array.isArray(dep.padre) ? dep.padre[0] : dep.padre;
-                 if (padreObj?.nombre) {
-                     unidadUsuario = padreObj.nombre;
-                 }
+                 if (padreObj?.nombre) unidadUsuario = padreObj.nombre;
              }
         }
     }
   }
-
-  return {
-    ...solicitud,
-    usuario: {
-        nombre: nombreUsuario,
-        cargo: cargoUsuario,
-        unidad: unidadUsuario
-    }
-  };
+  return { ...solicitud, usuario: { nombre: nombreUsuario, cargo: cargoUsuario, unidad: unidadUsuario } };
 };
 
-export const saveLiquidacion = async (payload: {
-  id_solicitud: number;
-  km_final: number;
-  cupones_devueltos: number;
-  fecha_comision: string;
-}) => {
+export const saveLiquidacion = async (payload: { id_solicitud: number; km_final: number; cupones_devueltos: number; fecha_comision: string; }) => {
   const supabase = await createClient();
+  const { data: existingRecord } = await supabase.from('liquidacion').select('id').eq('id_solicitud', payload.id_solicitud).single();
+  if (existingRecord) return await updateLiquidacion(existingRecord.id, payload);
 
-  // 1. PRIMERO VERIFICAMOS SI YA EXISTE
-  const { data: existingRecord } = await supabase
-    .from('liquidacion')
-    .select('id')
-    .eq('id_solicitud', payload.id_solicitud)
-    .single();
-
-  if (existingRecord) {
-    // 2. SI EXISTE, ACTUALIZAMOS EN LUGAR DE DUPLICAR
-    return await updateLiquidacion(existingRecord.id, {
-        km_final: payload.km_final,
-        cupones_devueltos: payload.cupones_devueltos, // Ahora sí lo aceptará
-        fecha_comision: payload.fecha_comision
-    });
-  }
-
-  // 3. SI NO EXISTE, INSERTAMOS
-  const { error } = await supabase
-    .from('liquidacion')
-    .insert({
-      id_solicitud: payload.id_solicitud,
-      km_final: payload.km_final,
-      cupones_devueltos: payload.cupones_devueltos,
-      fecha_comision: payload.fecha_comision,
-      estado_liquidacion: 'liquidado' 
-    });
-
+  const { error } = await supabase.from('liquidacion').insert({ ...payload, estado_liquidacion: 'liquidado' });
   if (error) throw new Error(error.message);
   return { success: true };
 };
+
 export const getLiquidacionBySolicitudId = async (idSolicitud: number) => {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('liquidacion')
-    .select('*')
-    .eq('id_solicitud', idSolicitud)
-    .single();
-
-  if (error) return null;
-  return data;
+  const { data, error } = await supabase.from('liquidacion').select('*').eq('id_solicitud', idSolicitud).single();
+  return error ? null : data;
 };
 
-export const updateLiquidacion = async (idLiquidacion: string, payload: {
-  km_final: number;
-  cupones_devueltos: number; 
-  fecha_comision: string;
-}) => {
+export const updateLiquidacion = async (idLiquidacion: string, payload: any) => {
   const supabase = await createClient();
-  const { error } = await supabase
-    .from('liquidacion')
-    .update({
-      km_final: payload.km_final,
-      cupones_devueltos: payload.cupones_devueltos, 
-      fecha_comision: payload.fecha_comision
-    })
-    .eq('id', idLiquidacion);
-
+  const { error } = await supabase.from('liquidacion').update(payload).eq('id', idLiquidacion);
   if (error) throw new Error(error.message);
   return { success: true };
 };

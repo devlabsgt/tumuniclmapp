@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { crearTarea } from '../actions';
 import { Usuario, ChecklistItem } from '../types';
 import { X, Plus, Trash2, Calendar, User, AlignLeft, CheckSquare } from 'lucide-react';
 import { toast } from 'react-toastify'; 
+import { useTareaMutations } from '../hooks'; 
 
 interface NewTareaProps {
   isOpen: boolean;
@@ -15,9 +15,9 @@ interface NewTareaProps {
 }
 
 export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJefe }: NewTareaProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { crear } = useTareaMutations(); 
+  
   const [error, setError] = useState('');
-
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -31,6 +31,8 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
 
   if (!isOpen) return null;
 
+  const isSubmitting = crear.isPending; 
+
   const filteredUsuarios = usuarios.filter(u => 
     u.nombre.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -39,8 +41,6 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
     const value = e.target.value;
     setSearchTerm(value);
     setShowDropdown(true);
-
-    
     if (value.trim() === '') {
       setAssignedTo(usuarioActual);
     }
@@ -55,13 +55,7 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
   const addChecklistItem = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!checklistInput.trim()) return;
-
-    const newItem: ChecklistItem = {
-      title: checklistInput.trim(),
-      is_completed: false
-    };
-
-    setChecklist([...checklist, newItem]);
+    setChecklist([...checklist, { title: checklistInput.trim(), is_completed: false }]);
     setChecklistInput('');
   };
 
@@ -72,17 +66,15 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setIsSubmitting(true);
 
     if (!title.trim() || !dueDate) {
       setError('Por favor completa el título y la fecha.');
       toast.warning('Faltan datos obligatorios'); 
-      setIsSubmitting(false);
       return;
     }
 
     try {
-      await crearTarea({
+      await crear.mutateAsync({
         title,
         description,
         due_date: new Date(dueDate).toISOString(),
@@ -104,8 +96,6 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
       console.error(err);
       setError(err.message || 'Error al crear la tarea');
       toast.error(err.message || 'Error al guardar'); 
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -135,7 +125,6 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 <Calendar size={14} /> Fecha Límite
@@ -171,7 +160,6 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
 
                 {esJefe && showDropdown && (
                   <div className="absolute z-50 w-full mt-1 bg-white dark:bg-neutral-800 border border-gray-100 dark:border-neutral-700 rounded-xl shadow-xl max-h-48 overflow-y-auto">
-                    
                     <button
                       type="button"
                       onClick={() => handleSelectUser(usuarioActual, '(A mí mismo)')}
@@ -179,11 +167,8 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
                     >
                       Asignarme a mí
                     </button>
-
                     {filteredUsuarios.length > 0 ? (
-                      filteredUsuarios
-                        .filter(u => u.user_id !== usuarioActual)
-                        .map((user) => (
+                      filteredUsuarios.filter(u => u.user_id !== usuarioActual).map((user) => (
                         <button
                           key={user.user_id}
                           type="button"
@@ -194,19 +179,14 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
                         </button>
                       ))
                     ) : (
-                      <div className="p-3 text-center text-gray-400 text-xs italic">
-                        No se encontraron empleados
-                      </div>
+                      <div className="p-3 text-center text-gray-400 text-xs italic">No se encontraron empleados</div>
                     )}
                   </div>
                 )}
               </div>
-
               {esJefe && (
                 <p className="text-[10px] text-gray-400 dark:text-gray-500 ml-1">
-                  {searchTerm.trim() === '' 
-                    ? '* Vacío = Se te asigna a ti.' 
-                    : 'Selecciona de la lista.'}
+                  {searchTerm.trim() === '' ? '* Vacío = Se te asigna a ti.' : 'Selecciona de la lista.'}
                 </p>
               )}
             </div>
@@ -229,7 +209,6 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
             <label className="flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
               <CheckSquare size={14} /> Lista de pendientes
             </label>
-            
             <div className="flex gap-2">
               <input
                 type="text"
@@ -239,25 +218,16 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
                 placeholder="Escribe aquí..."
                 className="flex-1 p-3 bg-white dark:bg-neutral-900 border border-blue-100 dark:border-blue-900 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none text-base text-gray-700 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
               />
-              <button
-                type="button"
-                onClick={() => addChecklistItem()}
-                className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-colors flex items-center justify-center shrink-0"
-              >
+              <button type="button" onClick={() => addChecklistItem()} className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-colors flex items-center justify-center shrink-0">
                 <Plus size={20} />
               </button>
             </div>
-
             {checklist.length > 0 ? (
               <div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
                 {checklist.map((item, idx) => (
                   <div key={idx} className="flex items-center justify-between bg-white dark:bg-neutral-900 p-3 rounded-lg border border-gray-100 dark:border-neutral-800 shadow-sm animate-in fade-in slide-in-from-bottom-2">
                     <span className="text-sm text-gray-600 dark:text-gray-300 truncate flex-1 mr-2">• {item.title}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeChecklistItem(idx)}
-                      className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                    >
+                    <button type="button" onClick={() => removeChecklistItem(idx)} className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors">
                       <Trash2 size={18} />
                     </button>
                   </div>

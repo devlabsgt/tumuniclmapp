@@ -2,10 +2,10 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { createContrato, updateContrato, deleteContrato, getSiguienteCorrelativo } from '@/components/combustible/contrato/actions'
 import { ContratoExtendido } from '@/components/combustible/contrato/types'
 import { Plus, X, Loader2, Pencil, Trash2, Save, FileText, AlertCircle, Fuel, RefreshCw } from 'lucide-react'
 import Swal from 'sweetalert2'
+import { useContratoMutations } from '../hook' 
 
 interface ItemContrato {
   id: string
@@ -20,9 +20,11 @@ interface Props {
 }
 
 export default function NuevoContrato({ contrato }: Props) {
+  const { crear, actualizar, eliminar, generarCorrelativo } = useContratoMutations()
+  const isLoading = crear.isPending || actualizar.isPending || eliminar.isPending
+  const isGenerating = generarCorrelativo.isPending
+
   const [isOpen, setIsOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isGenerating, setIsGenerating] = useState(false) 
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
 
@@ -40,9 +42,8 @@ export default function NuevoContrato({ contrato }: Props) {
   const generateContractNumber = async (year: number) => {
     if (isEditing && contrato) return
 
-    setIsGenerating(true)
     try {
-      const res = await getSiguienteCorrelativo(year)
+      const res = await generarCorrelativo.mutateAsync(year)
       
       if (res && res.success) {
         if (res.formatted) {
@@ -56,8 +57,6 @@ export default function NuevoContrato({ contrato }: Props) {
     } catch (err) {
       console.error("Error generando correlativo", err)
       setError("Error al conectar con el servidor para generar el correlativo.")
-    } finally {
-      setIsGenerating(false)
     }
   }
 
@@ -191,7 +190,6 @@ export default function NuevoContrato({ contrato }: Props) {
         return
     }
 
-    setIsLoading(true)
     setError(null)
 
     const data: any = {
@@ -205,26 +203,29 @@ export default function NuevoContrato({ contrato }: Props) {
       }))
     }
     
-    let res
-    if (isEditing && contrato) {
-       res = await updateContrato(contrato.id, data)
-    } else {
-       res = await createContrato(data)
-    }
+    try {
+        let res
+        if (isEditing && contrato) {
+           res = await actualizar.mutateAsync({ id: contrato.id, data })
+        } else {
+           res = await crear.mutateAsync(data)
+        }
 
-    if (res?.success) {
-      setIsOpen(false)
-      if (!isEditing) setItems([]) 
-      Swal.fire({
-          toast: true, position: 'top-end', icon: 'success', 
-          title: isEditing ? 'Actualizado correctamente' : 'Contrato creado',
-          showConfirmButton: false, timer: 3000, background: isEditing ? '#3b82f6' : '#22c55e', color: '#fff',
-          customClass: { container: 'z-[99999]' }
-      })
-    } else {
-      setError(res?.error || 'Error desconocido')
+        if (res?.success) {
+          setIsOpen(false)
+          if (!isEditing) setItems([]) 
+          Swal.fire({
+              toast: true, position: 'top-end', icon: 'success', 
+              title: isEditing ? 'Actualizado correctamente' : 'Contrato creado',
+              showConfirmButton: false, timer: 3000, background: isEditing ? '#3b82f6' : '#22c55e', color: '#fff',
+              customClass: { container: 'z-[99999]' }
+          })
+        } else {
+          setError(res?.error || 'Error desconocido')
+        }
+    } catch (err: any) {
+        setError(err.message || 'Error al guardar')
     }
-    setIsLoading(false)
   }
 
   async function handleDelete() {
@@ -244,20 +245,22 @@ export default function NuevoContrato({ contrato }: Props) {
 
     if (!result.isConfirmed) return
 
-    setIsLoading(true)
-    const res = await deleteContrato(contrato.id)
+    try {
+        const res = await eliminar.mutateAsync(contrato.id)
 
-    if (res?.success) {
-        setIsOpen(false)
-        Swal.fire({
-            toast: true, position: 'top-end', icon: 'success', 
-            title: 'Contrato eliminado',
-            showConfirmButton: false, timer: 3000, background: '#ef4444', color: '#fff',
-            customClass: { container: 'z-[99999]' }
-        })
-    } else {
-        setError(res?.error || "Error al eliminar")
-        setIsLoading(false)
+        if (res?.success) {
+            setIsOpen(false)
+            Swal.fire({
+                toast: true, position: 'top-end', icon: 'success', 
+                title: 'Contrato eliminado',
+                showConfirmButton: false, timer: 3000, background: '#ef4444', color: '#fff',
+                customClass: { container: 'z-[99999]' }
+            })
+        } else {
+            setError(res?.error || "Error al eliminar")
+        }
+    } catch (err: any) {
+        setError(err.message || "Error al eliminar")
     }
   }
 

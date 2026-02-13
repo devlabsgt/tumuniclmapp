@@ -132,6 +132,7 @@ export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSol
         if (hasExistingRecord && liquidacionData) {
              await actualizar.mutateAsync({
                 id: liquidacionData.id,
+                id_solicitud: solicitudData.id, 
                 data: {
                     km_final: kmFinal,
                     cupones_devueltos: 0, 
@@ -139,7 +140,7 @@ export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSol
                 }
             });
             Toast.fire({ icon: 'success', title: 'Liquidación actualizada correctamente.' });
-        } else {
+        }else {
             await guardar.mutateAsync({
                 id_solicitud: solicitudData.id,
                 km_final: kmFinal,
