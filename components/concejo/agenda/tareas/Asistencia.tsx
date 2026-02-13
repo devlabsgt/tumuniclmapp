@@ -4,16 +4,24 @@ import { useState, useEffect, useMemo } from "react";
 import {
   fetchAsistenciaGlobalAgenda,
   fetchAgendaConcejoPorId,
-} from "@/components/concejo/agenda/lib/acciones";
+  actualizarRemunerado,
+} from "./acciones";
 import { format, differenceInMinutes } from "date-fns";
 import { es } from "date-fns/locale";
-import { User, MapPin, Clock, CalendarClock } from "lucide-react";
+import {
+  User,
+  MapPin,
+  Clock,
+  CalendarClock,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 import CargandoAnimacion from "@/components/ui/animations/Cargando";
 import { AnimatePresence } from "framer-motion";
 import Mapa from "@/components/ui/modals/Mapa";
 import { createClient } from "@/utils/supabase/client";
+import { toast } from "react-toastify";
 
-// --- INTERFACES ---
 interface RegistroRaw {
   id: string;
   created_at: string;
@@ -25,6 +33,7 @@ interface RegistroRaw {
     lng?: number;
   } | null;
   notas?: string;
+  remunerado?: boolean;
   usuarios: {
     id: string;
     nombre: string;
@@ -42,6 +51,7 @@ interface UsuarioAsistencia {
   coordsSalida: { lat: number; lng: number } | null;
   duracion: string;
   estado: "Presente" | "Finalizado" | "Sin Salida";
+  remunerado: boolean;
   registroEntradaCompleto?: any;
   registroSalidaCompleto?: any;
 }
@@ -54,7 +64,6 @@ interface AgendaConcejoData {
   fecha_reunion: string;
 }
 
-// --- FUNCIONES HELPER ---
 const parsearHora = (horaStr: string | null, fechaBaseStr: string) => {
   if (!horaStr) return null;
   if (horaStr.includes("T")) return new Date(horaStr);
@@ -62,12 +71,10 @@ const parsearHora = (horaStr: string | null, fechaBaseStr: string) => {
     const fechaISO = `${fechaBaseStr.split("T")[0]}T${horaStr}`;
     return new Date(fechaISO);
   } catch (e) {
-    console.error("Error parseando hora:", e);
     return null;
   }
 };
 
-// Función de peso para ordenar jerárquicamente
 const obtenerPesoCargo = (cargo: string): number => {
   const c = (cargo || "").toUpperCase().trim();
 
@@ -112,10 +119,12 @@ const obtenerPesoCargo = (cargo: string): number => {
   return 100;
 };
 
-export default function ListaAsistenciaGlobal({
+export default function Asistencia({
   agendaId,
+  rol,
 }: {
   agendaId: string;
+  rol: string;
 }) {
   const supabase = createClient();
 
@@ -127,6 +136,10 @@ export default function ListaAsistenciaGlobal({
   const [usuarioSeleccionado, setUsuarioSeleccionado] =
     useState<UsuarioAsistencia | null>(null);
 
+  const permisoEdicion = ["SECRETARIO", "ADMIN", "SUPER"].some((r) =>
+    rol.toUpperCase().includes(r),
+  );
+
   const cargarDatos = async () => {
     try {
       const [dataAsistencia, dataAgenda] = await Promise.all([
@@ -137,7 +150,7 @@ export default function ListaAsistenciaGlobal({
       setRegistros(dataAsistencia as any);
       setAgendaData(dataAgenda as any);
     } catch (error) {
-      console.error("Error cargando datos:", error);
+      console.error(error);
     } finally {
       setCargando(false);
     }
@@ -146,11 +159,8 @@ export default function ListaAsistenciaGlobal({
   useEffect(() => {
     cargarDatos();
 
-    // --- CONFIGURACIÓN DE REALTIME ---
     const channel = supabase
       .channel(`vista_asistencia_global_${agendaId}`)
-
-      // 1. Escuchar cambios en la ASISTENCIA (registros_agenda)
       .on(
         "postgres_changes",
         {
@@ -159,25 +169,17 @@ export default function ListaAsistenciaGlobal({
           table: "registros_agenda",
           filter: `agenda_id=eq.${agendaId}`,
         },
-        () => {
-          // Si alguien marca entrada/salida, recargamos la lista
-          cargarDatos();
-        },
+        () => cargarDatos(),
       )
-
-      // 2. Escuchar cambios en la AGENDA (agenda_concejo) para la DURACIÓN
       .on(
         "postgres_changes",
         {
-          event: "UPDATE", // Solo nos interesa si se actualiza (inicio/fin/estado)
+          event: "UPDATE",
           schema: "public",
           table: "agenda_concejo",
           filter: `id=eq.${agendaId}`,
         },
-        (payload) => {
-          // Si cambia el estado (ej: Finalizada), recargamos para actualizar hora fin y duración
-          cargarDatos();
-        },
+        () => cargarDatos(),
       )
       .subscribe();
 
@@ -185,8 +187,6 @@ export default function ListaAsistenciaGlobal({
       supabase.removeChannel(channel);
     };
   }, [agendaId]);
-
-  // --- CÁLCULOS (useMemo) ---
 
   const infoSesion = useMemo(() => {
     if (!agendaData || !agendaData.fecha_reunion)
@@ -241,6 +241,7 @@ export default function ListaAsistenciaGlobal({
           coordsSalida: null,
           duracion: "--",
           estado: "Sin Salida",
+          remunerado: reg.remunerado ?? true,
           registroEntradaCompleto: null,
           registroSalidaCompleto: null,
         });
@@ -271,11 +272,12 @@ export default function ListaAsistenciaGlobal({
         usuario.coordsSalida = coords;
         usuario.registroSalidaCompleto = registroNormalizado;
       }
+
+      usuario.remunerado = reg.remunerado ?? true;
     });
 
     const lista = Array.from(mapa.values());
 
-    // Procesar estados y duración
     lista.forEach((u) => {
       if (u.entrada && u.salida) {
         const diff = differenceInMinutes(
@@ -291,7 +293,6 @@ export default function ListaAsistenciaGlobal({
       }
     });
 
-    // Ordenar por jerarquía de cargo
     return lista.sort((a, b) => {
       const pesoA = obtenerPesoCargo(a.puesto);
       const pesoB = obtenerPesoCargo(b.puesto);
@@ -304,14 +305,43 @@ export default function ListaAsistenciaGlobal({
     setModalMapaOpen(true);
   };
 
+  const handleToggleRemunerado = async (
+    userId: string,
+    currentVal: boolean,
+    e: React.MouseEvent,
+  ) => {
+    e.stopPropagation();
+    if (!permisoEdicion) return;
+
+    const newVal = !currentVal;
+
+    setRegistros((prev) =>
+      prev.map((r) =>
+        r.usuarios.id === userId ? { ...r, remunerado: newVal } : r,
+      ),
+    );
+
+    const success = await actualizarRemunerado(agendaId, userId, newVal);
+
+    if (success) {
+      toast.success(
+        newVal ? "Marcado como remunerado" : "Marcado como no remunerado",
+      );
+    } else {
+      setRegistros((prev) =>
+        prev.map((r) =>
+          r.usuarios.id === userId ? { ...r, remunerado: currentVal } : r,
+        ),
+      );
+    }
+  };
+
   if (cargando)
     return <CargandoAnimacion texto="Cargando lista de asistencia..." />;
 
-  // --- RENDER ---
   return (
     <>
       <div className="space-y-4">
-        {/* CABECERA CON DATOS DE SESIÓN (Sin botón actualizar) */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3 bg-white dark:bg-neutral-900 p-3 rounded-lg border border-gray-100 dark:border-neutral-800 shadow-sm">
           <div className="flex flex-col w-full md:w-auto">
             <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
@@ -334,8 +364,6 @@ export default function ListaAsistenciaGlobal({
               </div>
             </div>
           </div>
-
-          {/* Aquí estaba el botón Refresh, eliminado */}
         </div>
 
         {asistenciaProcesada.length === 0 ? (
@@ -344,11 +372,9 @@ export default function ListaAsistenciaGlobal({
             <p className="text-gray-500 dark:text-gray-400 font-medium">
               Aún no hay registros de asistencia.
             </p>
-            {/* Botón de actualizar en estado vacío eliminado también */}
           </div>
         ) : (
           <>
-            {/* VISTA MÓVIL (CARDS) */}
             <div className="grid grid-cols-1 gap-3 md:hidden">
               {asistenciaProcesada.map((usuario) => (
                 <div
@@ -356,13 +382,34 @@ export default function ListaAsistenciaGlobal({
                   onClick={() => handleRowClick(usuario)}
                   className="bg-white dark:bg-neutral-900 rounded-lg shadow-sm border border-gray-200 dark:border-neutral-800 overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
                 >
-                  <div className="px-4 pt-3 pb-2">
-                    <p className="font-bold text-gray-800 dark:text-gray-100 text-sm">
-                      {usuario.nombre}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium tracking-wide">
-                      {usuario.puesto}
-                    </p>
+                  <div className="px-4 pt-3 pb-2 flex justify-between items-start">
+                    <div>
+                      <p className="font-bold text-gray-800 dark:text-gray-100 text-sm">
+                        {usuario.nombre}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium tracking-wide">
+                        {usuario.puesto}
+                      </p>
+                    </div>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      {permisoEdicion ? (
+                        <label className="inline-flex items-center cursor-pointer relative">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={usuario.remunerado}
+                            onChange={(e) =>
+                              handleToggleRemunerado(
+                                usuario.userId,
+                                usuario.remunerado,
+                                e as any,
+                              )
+                            }
+                          />
+                          <div className="w-9 h-5 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
+                        </label>
+                      ) : null}
+                    </div>
                   </div>
 
                   <div className="px-4 pb-3">
@@ -398,7 +445,6 @@ export default function ListaAsistenciaGlobal({
               ))}
             </div>
 
-            {/* VISTA ESCRITORIO (TABLA) */}
             <div className="hidden md:block overflow-hidden rounded-lg border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
@@ -408,6 +454,9 @@ export default function ListaAsistenciaGlobal({
                       <th className="px-4 py-3 text-center">Entrada</th>
                       <th className="px-4 py-3 text-center">Salida</th>
                       <th className="px-4 py-3 text-center">Duración</th>
+                      {permisoEdicion && (
+                        <th className="px-4 py-3 text-center">Remunerado</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
@@ -462,6 +511,31 @@ export default function ListaAsistenciaGlobal({
                             {usuario.duracion}
                           </span>
                         </td>
+
+                        {permisoEdicion && (
+                          <td
+                            className="px-4 py-3 text-center"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex justify-center">
+                              <label className="inline-flex items-center cursor-pointer relative">
+                                <input
+                                  type="checkbox"
+                                  className="sr-only peer"
+                                  checked={usuario.remunerado}
+                                  onChange={(e) =>
+                                    handleToggleRemunerado(
+                                      usuario.userId,
+                                      usuario.remunerado,
+                                      e as any,
+                                    )
+                                  }
+                                />
+                                <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                              </label>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>

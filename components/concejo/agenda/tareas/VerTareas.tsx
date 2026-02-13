@@ -447,7 +447,7 @@ export default function VerTareas() {
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.2 }}
                 >
-                    <Asistencia agendaId={agendaId} />
+                    <Asistencia agendaId={agendaId} rol={rol}/>
                 </motion.div>
             )}
         </AnimatePresence>
