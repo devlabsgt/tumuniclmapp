@@ -689,7 +689,6 @@ export const verificarPermisoSecretario = async (): Promise<boolean> => {
 
   return cargo.includes("SECRETARIO");
 };
-
 export const obtenerNombreDirectorDAFIM = async (): Promise<string> => {
   const { data, error } = await supabase
     .from("info_usuario")
@@ -701,8 +700,9 @@ export const obtenerNombreDirectorDAFIM = async (): Promise<string> => {
       )
     `,
     )
-    .ilike("dependencias.nombre", "%Financiera Integrada Municipal%")
+    .ilike("dependencias.nombre", "%Financiera%Municipal%")
     .eq("activo", true)
+    .limit(1)
     .maybeSingle();
 
   if (error || !data) {
