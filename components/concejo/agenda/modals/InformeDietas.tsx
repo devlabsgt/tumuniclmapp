@@ -114,7 +114,7 @@ export default function InformeDietas({ isOpen, onClose, agendas }: Props) {
       const mesActual = getMonth(hoy).toString();
       if (aniosDisponibles.includes(anioActual)) {
         setAnioSeleccionado(anioActual);
-        setMesSeleccionado(mesActual);
+        setMesSeleccionado(mesActual.toString());
       } else {
         setAnioSeleccionado(aniosDisponibles[0]);
         setMesSeleccionado("0");
@@ -236,46 +236,55 @@ export default function InformeDietas({ isOpen, onClose, agendas }: Props) {
 
   const generatePdf = async () => {
     setIsPrinting(true);
+    await new Promise((r) => setTimeout(r, 100)); // Pequeña espera para renderizado
+
     const element = printRef.current;
     if (!element) {
       toast.error("Error: Elemento no encontrado.");
       setIsPrinting(false);
       return;
     }
+
     try {
+      // Configuramos html-to-image para capturar exactamente el ancho del contenedor (816px)
       const dataUrl = await htmlToImage.toJpeg(element, {
-        quality: 1.0,
+        quality: 1.0, // Máxima calidad
         backgroundColor: "#ffffff",
-        pixelRatio: 3,
-        width: 816,
+        pixelRatio: 3, // Alta resolución para nitidez
+        width: 816, // Ancho exacto carta a 96dpi
+        style: { margin: "0", transform: "none" }, // Evitar transformaciones que muevan la imagen
       });
+
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "in",
         format: "letter",
       });
-      const marginTop = 0.5;
-      const marginLeft = 0.5;
+
+      // Obtenemos el ancho de la página PDF (8.5 pulgadas)
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const usableWidth = pdfWidth - marginLeft * 2;
+
+      // Creamos una imagen para obtener sus proporciones reales
       const img = new Image();
       img.src = dataUrl;
+
       img.onload = () => {
-        const imgWidth = img.width;
-        const imgHeight = img.height;
-        const ratio = usableWidth / imgWidth;
-        const newHeight = imgHeight * ratio;
-        pdf.addImage(
-          img,
-          "JPEG",
-          marginLeft,
-          marginTop,
-          usableWidth,
-          newHeight,
-        );
+        // Calculamos la altura proporcional
+        const imgProps = pdf.getImageProperties(img);
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+        // Renderizamos en 0,0 para usar los márgenes internos del HTML (padding)
+        // No agregamos márgenes extra (marginLeft/marginTop) para evitar el doble margen
+        pdf.addImage(img, "JPEG", 0, 0, pdfWidth, pdfHeight);
+
         const nombreArchivo = `Informe_Dietas_${anioSeleccionado}_${mesesDisponibles.find((m) => m.value === mesSeleccionado)?.label}.pdf`;
-        if (window.innerWidth < 768) pdf.save(nombreArchivo);
-        else window.open(pdf.output("bloburl"), "_blank");
+
+        // Guardar o abrir
+        if (window.innerWidth < 768) {
+          pdf.save(nombreArchivo);
+        } else {
+          window.open(pdf.output("bloburl"), "_blank");
+        }
         setIsPrinting(false);
       };
     } catch (err) {
@@ -417,9 +426,9 @@ export default function InformeDietas({ isOpen, onClose, agendas }: Props) {
                   </span>
                 </div>
                 <img
-                  src="/images/logo-muni-azul.png"
+                  src="/images/logo-muni.png"
                   alt="Logo"
-                  className="h-16 object-contain"
+                  className="h-24 object-contain"
                 />
               </div>
 
