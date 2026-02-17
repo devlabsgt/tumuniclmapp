@@ -1,6 +1,7 @@
 export const camposFormulario = [
   { label: 'Dirección', name: 'direccion' },
   { label: 'Teléfono', name: 'telefono' },
+  { label: 'Fecha de Nacimiento', name: 'nacimiento', type: 'date' }, 
   { label: 'DPI', name: 'dpi' },
   { label: 'NIT', name: 'nit' },
   { label: 'IGSS', name: 'igss' },

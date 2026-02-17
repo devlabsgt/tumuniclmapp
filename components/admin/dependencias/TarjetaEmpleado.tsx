@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react"; // 1. Importamos useState
+import { useState } from "react"; 
 import { motion, AnimatePresence } from "framer-motion";
 import GeneradorFicha from "./GeneradorFicha"; 
 import {
@@ -22,8 +22,7 @@ import {
   Clock,
   Lock,
   Building2,
-  Landmark,
-  Download, // 2. Importamos el icono Download
+  Download, 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Cargando from "@/components/ui/animations/Cargando";
@@ -125,7 +124,6 @@ export default function TarjetaEmpleado({
 
   const { rol } = useUserData();
   
-  // 3. Estado para controlar el modal de exportación
   const [showExportModal, setShowExportModal] = useState(false);
 
   if (!isOpen) return null;
@@ -189,13 +187,13 @@ export default function TarjetaEmpleado({
   const deduccionPlan = aplicaPlanPrestaciones
     ? salarioBase * PORCENTAJE_PLAN_PRESTACIONES
     : 0;
-  const deduccionISR = datosCompletos?.isr || 0;
+  
   const deduccionPrimaFianza = aplicaPrimaFianza
     ? calcularPrimaFianza(salarioBase)
     : 0;
 
   const totalDeducciones =
-    deduccionIGSS + deduccionPlan + deduccionISR + deduccionPrimaFianza;
+    deduccionIGSS + deduccionPlan + deduccionPrimaFianza;
   const liquidoARecibir = totalDevengado - totalDeducciones;
 
   const pathItems = datosCompletos?.puesto_path_jerarquico
@@ -234,7 +232,6 @@ export default function TarjetaEmpleado({
             exit={{ scale: 0.9 }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 4. Botones de Cabecera (Exportar y Cerrar) */}
             <div className="absolute top-2 right-2 flex gap-2">
               {!isGlobalLoading && (
                 <Button
@@ -259,8 +256,7 @@ export default function TarjetaEmpleado({
 
             {isGlobalLoading ? (
               <div className="p-8 h-64">
-                {" "}
-                <Cargando texto="Cargando perfil..." />{" "}
+                <Cargando texto="Cargando perfil..." />
               </div>
             ) : (
               <div className="p-8">
@@ -278,13 +274,12 @@ export default function TarjetaEmpleado({
                           <Briefcase
                             size={14}
                             className="mr-2 text-blue-500 flex-shrink-0"
-                          />{" "}
+                          />
                           Ubicación Organizacional
                         </h4>
                         <div className="flex flex-wrap items-center gap-1.5">
                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {" "}
-                            {pathItems.join(" / ")}{" "}
+                            {pathItems.join(" / ")}
                           </p>
                         </div>
                       </div>
@@ -295,37 +290,33 @@ export default function TarjetaEmpleado({
                           <Clock
                             size={14}
                             className="mr-2 text-blue-500 flex-shrink-0"
-                          />{" "}
+                          />
                           Información de Horario
                         </h4>
                         <div className="flex flex-col lg:flex-row lg:items-center lg:gap-4">
                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {" "}
                             <span className="font-medium text-gray-700 dark:text-gray-300">
                               Horario:
                             </span>{" "}
-                            {horario.nombre}{" "}
+                            {horario.nombre}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 lg:border-l lg:pl-4">
-                            {" "}
                             <span className="font-medium text-gray-700 dark:text-gray-300">
                               Días:
                             </span>{" "}
-                            {horario.dias}{" "}
+                            {horario.dias}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 lg:border-l lg:pl-4">
-                            {" "}
                             <span className="font-medium text-gray-700 dark:text-gray-300">
                               Entrada:
                             </span>{" "}
-                            {horario.entrada}{" "}
+                            {horario.entrada}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 lg:border-l lg:pl-4">
-                            {" "}
                             <span className="font-medium text-gray-700 dark:text-gray-300">
                               Salida:
                             </span>{" "}
-                            {horario.salida}{" "}
+                            {horario.salida}
                           </p>
                         </div>
                       </div>
@@ -430,16 +421,6 @@ export default function TarjetaEmpleado({
                             isDeduction={true}
                           />
                         )}
-                        {deduccionISR > 0 && (
-                          <InfoItem
-                            icon={<Landmark size={18} />}
-                            label="ISR (Retención Mensual)"
-                            value={formatCurrency(deduccionISR, {
-                              sign: "negative",
-                            })}
-                            isDeduction={true}
-                          />
-                        )}
                         {aplicaPrimaFianza && (
                           <InfoItem
                             icon={<Lock size={18} />}
@@ -478,7 +459,6 @@ export default function TarjetaEmpleado({
               </div>
             )}
             
-            {/* 5. Inserción del componente GeneradorFicha */}
             <GeneradorFicha
               isOpen={showExportModal}
               onClose={() => setShowExportModal(false)}

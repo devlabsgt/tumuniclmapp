@@ -31,7 +31,14 @@ export function CrearEmpleado() {
     const cargarDatos = async () => {
       const { data: usuarios } = await supabase.rpc('obtener_usuarios');
       const usuario = usuarios?.find((u: any) => u.id === userId);
-      if (usuario) setNombreUsuario(usuario.nombre);
+      
+      if (usuario) {
+        setNombreUsuario(usuario.nombre);
+        setFormulario((prev: any) => ({
+          ...prev,
+          nacimiento: usuario.nacimiento || ''
+        }));
+      }
 
       const { data: empleados } = await supabase
         .from('empleados_municipales')
@@ -45,7 +52,7 @@ export function CrearEmpleado() {
     };
 
     cargarDatos();
-  }, [userId]);
+  }, [userId, supabase]);
 
   const copiarDatosContrato = async () => {
     const contrato = contratos.find((c) => c.id === contratoSeleccionadoId);
@@ -72,11 +79,10 @@ export function CrearEmpleado() {
     }
   };
 
-const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-  const { name, value } = e.target;
-  setFormulario((prev: any) => ({ ...prev, [name]: value }));
-};
-
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormulario((prev: any) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,47 +150,48 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
         <Button
           variant="ghost"
           onClick={() => router.push(`/protected/admin/users/ver?id=${userId}`)}
-          className="text-blue-600 text-base underline"
+          className="text-blue-600 dark:text-blue-400 text-base underline"
         >
           Volver
         </Button>
       </div>
 
-      <div className="max-w-2xl mx-auto p-8 bg-white shadow-md rounded">
-        <h1 className="text-2xl mb-6 text-center">
-          Ingresar datos para: <br/><strong>{nombreUsuario || '...'}</strong>
+      <div className="max-w-2xl mx-auto p-8 bg-white dark:bg-zinc-900 shadow-md dark:shadow-zinc-950/50 rounded border dark:border-zinc-800">
+        <h1 className="text-2xl mb-6 text-center text-gray-900 dark:text-gray-100">
+          Ingresar datos para: <br/><strong className="text-blue-600 dark:text-blue-400">{nombreUsuario || '...'}</strong>
         </h1>
 
-        {/* Selector de contratos existentes */}
         <div className="mb-6">
-          <label className="font-semibold block mb-2">Copiar datos de contrato existente (opcional)</label>
+          <label className="font-semibold block mb-2 text-gray-700 dark:text-gray-300">
+            Copiar datos de contrato existente (opcional)
+          </label>
           <div className="flex gap-2">
             <select
-              className="border rounded p-2 flex-1"
+              className="border dark:border-zinc-700 rounded p-2 flex-1 bg-white dark:bg-zinc-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 outline-none"
               value={contratoSeleccionadoId}
               onChange={(e) => setContratoSeleccionadoId(e.target.value)}
             >
               {contratos.length > 0 ? (
                 <>
-                  <option value="">Seleccione un contrato...</option>
+                  <option value="" className="dark:bg-zinc-800">Seleccione un contrato...</option>
                   {contratos.map((contrato) => {
                     const fechaIni = new Date(contrato.fecha_ini);
                     const fechaFin = new Date(contrato.fecha_fin);
                     return (
-                      <option key={contrato.id} value={contrato.id}>
+                      <option key={contrato.id} value={contrato.id} className="dark:bg-zinc-800">
                         {fechaIni.toLocaleDateString()} - {fechaFin.toLocaleDateString()}
                       </option>
                     );
                   })}
                 </>
               ) : (
-                <option value="">No hay contratos previos ingresados</option>
+                <option value="" className="dark:bg-zinc-800">No hay contratos previos ingresados</option>
               )}
             </select>
 
             <Button
               type="button"
-              className="bg-green-600 hover:bg-green-700 text-white"
+              className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white disabled:opacity-50"
               onClick={copiarDatosContrato}
               disabled={!contratoSeleccionadoId}
             >
@@ -193,11 +200,10 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
           </div>
         </div>
 
-        {/* Formulario de ingreso */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <EmpleadoForm formulario={formulario} handleChange={handleChange} />
 
-          <Button type="submit" className="mt-6 h-12 text-lg">
+          <Button type="submit" className="mt-6 h-12 text-lg bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600">
             Crear Empleado
           </Button>
         </form>
