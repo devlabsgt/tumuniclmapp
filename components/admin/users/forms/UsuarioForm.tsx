@@ -13,7 +13,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { z } from 'zod';
 
-// Importamos el nuevo formulario
 import InfoForm from './InfoForm';
 
 interface Rol {
@@ -21,7 +20,6 @@ interface Rol {
   nombre: string;
 }
 
-// Actualizamos los tipos de pestañas
 type TabState = 'informacion' | 'personal';
 
 interface UserFormProps {
@@ -176,7 +174,6 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Sistema de Pestañas */}
       <div className="flex p-1 bg-gray-100 dark:bg-zinc-800 rounded-lg w-full max-w-md mx-auto">
         <button
           onClick={() => setActiveTab('informacion')}
@@ -209,7 +206,6 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
             exit={{ opacity: 0, y: -10 }}
             className="flex flex-col gap-4"
           >
-            {/* Código Original - Pestaña Información */}
             <div className="flex items-center gap-2">
               <Label htmlFor="nombre" className="text-xs w-20">Nombre</Label>
               <div className="flex flex-col w-full">
@@ -299,7 +295,6 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
           >
-            {/* Nueva sección - Pestaña Información Personal */}
             <InfoForm userData={usuario} />
           </motion.div>
         )}

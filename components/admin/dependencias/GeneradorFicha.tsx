@@ -29,7 +29,6 @@ import useUserData from "@/hooks/sesion/useUserData";
 import Cargando from "@/components/ui/animations/Cargando";
 import { useFirmante, useNacimientoUsuario } from "@/components/admin/dependencias/hook";
 
-// --- Configuración de Renglones ---
 type RenglonConfig = {
   salarioLabel: string;
   bonoLabel?: string;
@@ -90,7 +89,6 @@ const TableRow = ({
   );
 };
 
-// --- Funciones auxiliares ---
 const calcularEdad = (fechaString: string | null | undefined): string => {
   if (!fechaString) return "--";
   const hoy = new Date();
@@ -122,7 +120,6 @@ export default function GeneradorFicha({ isOpen, onClose, userId }: GeneradorFic
   const printRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // --- USAMOS EL NUEVO HOOK ---
   const { nacimiento } = useNacimientoUsuario(userId);
 
   const ROLES_PERMITIDOS = ["SUPER", "RRHH", "SECRETARIO", "DAFIM"];
@@ -151,7 +148,6 @@ export default function GeneradorFicha({ isOpen, onClose, userId }: GeneradorFic
   
   const ubicacionTexto = pathItems.length > 0 ? pathItems.join(" / ") : "--";
 
-  // --- CALCULOS SEGUROS USANDO EL HOOK ---
   const fechaNacimiento = formatearFecha(nacimiento);
   const edad = calcularEdad(nacimiento);
 
@@ -253,7 +249,6 @@ export default function GeneradorFicha({ isOpen, onClose, userId }: GeneradorFic
                                         <TableRow label="Información Personal" isHeader />
                                     </thead>
                                     <tbody>
-                                        {/* --- TELÉFONO COMO PRIMER VALOR --- */}
                                         <TableRow icon={<Phone />} label="Teléfono" value={datos?.telefono} />
 
                                         <TableRow icon={<Calendar />} label="Fecha de Nacimiento" value={fechaNacimiento} />

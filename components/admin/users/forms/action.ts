@@ -27,7 +27,6 @@ export async function actualizarInfoPersonal(userId: string, formData: any) {
   return { success: true };
 }
 
-// NUEVA FUNCIÓN: Obtener datos frescos de info_usuario
 export async function obtenerInfoUsuario(userId: string) {
   const supabase = await createClient();
   

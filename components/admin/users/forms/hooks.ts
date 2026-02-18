@@ -10,25 +10,21 @@ export function useInfoForm(userId: string) {
   const router = useRouter();
   const queryKey = ['info_usuario', userId];
 
-  // 1. QUERY: Obtener los datos con caché de 6 minutos
   const { data: usuarioData, isLoading: isLoadingData } = useQuery({
     queryKey: queryKey,
     queryFn: () => obtenerInfoUsuario(userId),
     enabled: !!userId,
     
-    // --- AQUÍ ESTÁ LA MAGIA DEL CACHÉ ---
-    staleTime: 1000 * 60 * 6, // 6 minutos: Los datos se consideran frescos por este tiempo (no recarga auto)
-    gcTime: 1000 * 60 * 10,   // 10 minutos: Tiempo que permanecen en memoria si no se usan (Garbage Collection)
-    refetchOnWindowFocus: false, // No recargar al cambiar de pestaña
+   
+    staleTime: 1000 * 60 * 6, 
+    gcTime: 1000 * 60 * 10,   
+    refetchOnWindowFocus: false, 
   });
 
-  // 2. MUTATION: Guardar los datos
   const mutation = useMutation({
     mutationFn: (formData: any) => actualizarInfoPersonal(userId, formData),
     onSuccess: (result) => {
       if (result.success) {
-        // Al guardar, invalidamos el caché para forzar una recarga inmediata
-        // ignorando los 6 minutos, para que el usuario vea sus cambios nuevos.
         queryClient.invalidateQueries({ queryKey: queryKey });
         
         router.refresh();

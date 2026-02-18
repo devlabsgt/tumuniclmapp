@@ -229,17 +229,14 @@ export default function TarjetaEmpleado({
             ) : (
               <div className="p-8">
                 <div className="flex flex-col items-center mb-8 lg:flex-row lg:items-center lg:gap-4">
-                  <div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-full mb-4 lg:mb-0">
-                    <User className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                  </div>
+                  
                   <div className="flex flex-col items-start w-full">
-                    {/* --- TITULO Y EDAD --- */}
-                    <div className="flex items-center gap-3 w-full pr-12"> {/* pr-12 evita solapamiento con botones absolutos */}
-                        <h2 className="text-xl font-bold truncate">
+                    
+                    <div className="flex flex-col items-start gap-1 lg:flex-row lg:items-center lg:gap-3 w-full pr-12">
+                        <h2 className="text-base font-bold truncate w-full lg:w-auto">
                             {datosCompletos?.nombre || "N/A"}
                         </h2>
                         
-                        {/* Etiqueta de edad minimalista */}
                         <div className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/40 border border-blue-100 dark:border-blue-800 px-2 py-0.5 rounded text-xs shrink-0">
                             <Cake className="h-3 w-3 text-blue-500" />
                             <span className="font-semibold text-blue-700 dark:text-blue-300">
