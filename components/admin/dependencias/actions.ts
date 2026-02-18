@@ -60,3 +60,25 @@ export const getDatosFirmante = async (): Promise<DatosFirmante> => {
     return { nombre: "Error de Datos", cargo: "---" };
   }
 };
+
+// --- NUEVA FUNCIÓN PARA OBTENER NACIMIENTO ---
+export const getNacimientoUsuario = async (userId: string): Promise<string | null> => {
+  if (!userId) return null;
+  
+  const supabase = await createClient();
+  
+  try {
+    const { data, error } = await supabase
+      .from('info_usuario')
+      .select('nacimiento')
+      .eq('user_id', userId)
+      .single();
+
+    if (error) return null;
+    
+    return data?.nacimiento || null;
+  } catch (error) {
+    console.error("Error al obtener nacimiento:", error);
+    return null;
+  }
+};

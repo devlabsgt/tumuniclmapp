@@ -41,6 +41,7 @@ export default function EditarEmpleadoForm() {
       const datos = inicializarFormulario();
       camposFormulario.forEach((campo) => {
         if (campo.type === 'date' && data[campo.name]) {
+          // Esto ahora manejará automáticamente 'nacimiento', 'fecha_ini' y 'fecha_fin'
           datos[campo.name] = data[campo.name].split('T')[0]; // "YYYY-MM-DD"
         } else {
           datos[campo.name] = data[campo.name]?.toString() || '';
@@ -53,98 +54,93 @@ export default function EditarEmpleadoForm() {
     cargarContrato();
   }, [contratoId]);
 
-const handleChange = (
-  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-) => {
-  const { name, value } = e.target;
-  setFormulario((prev: Record<string, string>) => ({ ...prev, [name]: value }));
-};
-
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormulario((prev: Record<string, string>) => ({ ...prev, [name]: value }));
+  };
 
   const hayCambios = useMemo(() => {
     return JSON.stringify(formulario) !== JSON.stringify(original);
   }, [formulario, original]);
-const actualizarEmpleado = async () => {
-  if (!contratoId || !hayCambios) {
-    Swal.fire({ icon: 'info', title: 'Sin cambios', text: 'No hiciste ninguna modificación.' });
-    return;
-  }
 
-  setCargando(true);
+  const actualizarEmpleado = async () => {
+    if (!contratoId || !hayCambios) {
+      Swal.fire({ icon: 'info', title: 'Sin cambios', text: 'No hiciste ninguna modificación.' });
+      return;
+    }
 
-  const supabase = createClient();
+    setCargando(true);
 
-  // Primero traemos el contrato actual para sacar user_id
-  const { data: contratoActual, error: errorContrato } = await supabase
-    .from('empleados_municipales')
-    .select('user_id')
-    .eq('id', contratoId)
-    .single();
+    const supabase = createClient();
 
-  if (errorContrato || !contratoActual) {
+    const { data: contratoActual, error: errorContrato } = await supabase
+      .from('empleados_municipales')
+      .select('user_id')
+      .eq('id', contratoId)
+      .single();
+
+    if (errorContrato || !contratoActual) {
+      setCargando(false);
+      Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo verificar contrato actual.' });
+      return;
+    }
+
+    const userId = contratoActual.user_id;
+
+    const { data: contratos, error: errorContratos } = await supabase
+      .from('empleados_municipales')
+      .select('id, fecha_ini, fecha_fin')
+      .eq('user_id', userId);
+
+    if (errorContratos) {
+      setCargando(false);
+      Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo verificar contratos existentes.' });
+      return;
+    }
+
+    const nuevaFechaIni = new Date(formulario.fecha_ini);
+    const nuevaFechaFin = new Date(formulario.fecha_fin);
+
+    const seCruzan = contratos?.some((contrato: any) => {
+      if (contrato.id === contratoId) return false;
+      const ini = new Date(contrato.fecha_ini);
+      const fin = new Date(contrato.fecha_fin);
+      return nuevaFechaIni <= fin && nuevaFechaFin >= ini;
+    });
+
+    if (seCruzan) {
+      setCargando(false);
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Las nuevas fechas se cruzan con otro contrato.' });
+      return;
+    }
+
+    const res = await fetch('/api/empleados/editar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: contratoId,
+        data: {
+          ...formulario,
+          salario: formulario.salario ? parseFloat(formulario.salario) : null,
+          bonificación: formulario.bonificación ? parseFloat(formulario.bonificación) : null,
+        },
+      }),
+    });
+
+    const json = await res.json();
     setCargando(false);
-    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo verificar contrato actual.' });
-    return;
-  }
 
-  const userId = contratoActual.user_id;
+    if (!res.ok) {
+      Swal.fire({ icon: 'error', title: 'Error', text: json.error || 'No se pudo actualizar el contrato.' });
+      return;
+    }
 
-  // Ahora traemos todos los contratos del usuario
-  const { data: contratos, error: errorContratos } = await supabase
-    .from('empleados_municipales')
-    .select('id, fecha_ini, fecha_fin')
-    .eq('user_id', userId);
-
-  if (errorContratos) {
-    setCargando(false);
-    Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo verificar contratos existentes.' });
-    return;
-  }
-
-  // Convertimos fechas
-  const nuevaFechaIni = new Date(formulario.fecha_ini);
-  const nuevaFechaFin = new Date(formulario.fecha_fin);
-
-  const seCruzan = contratos?.some((contrato: any) => {
-    if (contrato.id === contratoId) return false; // Ignorar el mismo contrato que editamos
-    const ini = new Date(contrato.fecha_ini);
-    const fin = new Date(contrato.fecha_fin);
-    return nuevaFechaIni <= fin && nuevaFechaFin >= ini;
-  });
-
-  if (seCruzan) {
-    setCargando(false);
-    Swal.fire({ icon: 'error', title: 'Error', text: 'Las nuevas fechas se cruzan con otro contrato.' });
-    return;
-  }
-
-  // Si todo bien, actualizamos
-  const res = await fetch('/api/empleados/editar', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      id: contratoId,
-      data: {
-        ...formulario,
-        salario: formulario.salario ? parseFloat(formulario.salario) : null,
-        bonificación: formulario.bonificación ? parseFloat(formulario.bonificación) : null,
-      },
-    }),
-  });
-
-  const json = await res.json();
-  setCargando(false);
-
-  if (!res.ok) {
-    Swal.fire({ icon: 'error', title: 'Error', text: json.error || 'No se pudo actualizar el contrato.' });
-    return;
-  }
-
-  Swal.fire({ icon: 'success', title: 'Contrato actualizado' }).then(() => {
-    router.back();
-  });
-};
-
+    Swal.fire({ icon: 'success', title: 'Contrato actualizado' }).then(() => {
+      router.back();
+    });
+  };
 
   if (!contratoId) return <p className="p-4 text-center">ID de contrato no proporcionado.</p>;
 

@@ -1,11 +1,12 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query';
-import { getDatosFirmante } from './actions';
+import { getDatosFirmante, getNacimientoUsuario } from './actions';
 
-// Agregamos la key al objeto KEYS existente (asumiendo que este objeto crece)
+// Corrección: Agregamos la definición de 'nacimiento' aquí
 export const KEYS_FIRMANTE = {
   firmante: ['firmante-sesion'],
+  nacimiento: (id: string) => ['nacimiento-usuario', id], // <--- ESTO FALTABA
 };
 
 export const useFirmante = () => {
@@ -19,8 +20,20 @@ export const useFirmante = () => {
   return {
     nombre: data?.nombre || "", 
     cargo: data?.cargo || "",
-    // Si hay error o está cargando, podemos devolver un estado de carga visual
     loading: isLoading,
     error: isError
   };
+};
+
+// Hook para obtener nacimiento
+export const useNacimientoUsuario = (userId: string | null) => {
+  const { data } = useQuery({
+    // Ahora sí existe KEYS_FIRMANTE.nacimiento
+    queryKey: KEYS_FIRMANTE.nacimiento(userId || ''),
+    queryFn: () => getNacimientoUsuario(userId!),
+    enabled: !!userId, // Solo ejecuta si hay ID
+    staleTime: 1000 * 60 * 10, // Cache de 10 minutos
+  });
+
+  return { nacimiento: data };
 };

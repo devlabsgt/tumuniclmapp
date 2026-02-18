@@ -22,12 +22,15 @@ import {
   Clock,
   Lock,
   Building2,
-  Download, 
+  Download,
+  Calendar,
+  Cake,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Cargando from "@/components/ui/animations/Cargando";
 import { useInfoUsuario } from "@/hooks/usuarios/useInfoUsuario";
 import useUserData from "@/hooks/sesion/useUserData";
+import { useNacimientoUsuario } from "@/components/admin/dependencias/hook"; 
 
 type RenglonConfig = {
   salarioLabel: string;
@@ -36,23 +39,11 @@ type RenglonConfig = {
 };
 
 const renglonConfig: Record<string, RenglonConfig> = {
-  "011": {
-    salarioLabel: "Salario Base (011)",
-    bonoLabel: "Bonificación (015)",
-    tieneBono: true,
-  },
+  "011": { salarioLabel: "Salario Base (011)", bonoLabel: "Bonificación (015)", tieneBono: true },
   "061": { salarioLabel: "Dietas (061)", tieneBono: false },
-  "022": {
-    salarioLabel: "Salario Base (022)",
-    bonoLabel: "Bonificación (027)",
-    tieneBono: true,
-  },
+  "022": { salarioLabel: "Salario Base (022)", bonoLabel: "Bonificación (027)", tieneBono: true },
   "029": { salarioLabel: "Honorarios (029)", tieneBono: false },
-  "031": {
-    salarioLabel: "Jornal (031)",
-    bonoLabel: "Bonificación (033)",
-    tieneBono: true,
-  },
+  "031": { salarioLabel: "Jornal (031)", bonoLabel: "Bonificación (033)", tieneBono: true },
   "035": { salarioLabel: "Retribución a destajo (035)", tieneBono: false },
   "036": { salarioLabel: "Retribución por servicios (036)", tieneBono: false },
 };
@@ -73,9 +64,7 @@ const InfoItem = ({
   isTotal?: boolean;
 }) => (
   <div className="flex items-start gap-4 py-1">
-    <div
-      className={`mt-1 ${isDeduction ? "text-red-500" : "text-blue-500 dark:text-blue-400"} ${isTotal ? "text-green-600 dark:text-green-500" : ""}`}
-    >
+    <div className={`mt-1 ${isDeduction ? "text-red-500" : "text-blue-500 dark:text-blue-400"} ${isTotal ? "text-green-600 dark:text-green-500" : ""}`}>
       {icon}
     </div>
     <div className="flex flex-col">
@@ -83,15 +72,31 @@ const InfoItem = ({
       {isLoading ? (
         <Loader2 className="h-4 w-4 animate-spin text-gray-400 mt-1" />
       ) : (
-        <h3
-          className={`text-xs font-semibold ${isDeduction ? "text-red-700 dark:text-red-400" : "text-gray-800 dark:text-gray-100"} ${isTotal ? "text-lg text-green-700 dark:text-green-500" : ""}`}
-        >
+        <h3 className={`text-xs font-semibold ${isDeduction ? "text-red-700 dark:text-red-400" : "text-gray-800 dark:text-gray-100"} ${isTotal ? "text-lg text-green-700 dark:text-green-500" : ""}`}>
           {value || "--"}
         </h3>
       )}
     </div>
   </div>
 );
+
+const calcularEdad = (fechaString: string | null | undefined): string => {
+  if (!fechaString) return "--";
+  const hoy = new Date();
+  const nacimiento = new Date(fechaString);
+  let edad = hoy.getFullYear() - nacimiento.getFullYear();
+  const mes = hoy.getMonth() - nacimiento.getMonth();
+  if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+    edad--;
+  }
+  return `${edad} años`;
+};
+
+const formatearFecha = (fechaString: string | null | undefined): string => {
+  if (!fechaString) return "--";
+  const fecha = new Date(fechaString);
+  return new Intl.DateTimeFormat('es-GT', { timeZone: 'UTC' }).format(fecha);
+};
 
 interface TarjetaEmpleadoProps {
   isOpen: boolean;
@@ -101,7 +106,6 @@ interface TarjetaEmpleadoProps {
 
 const PORCENTAJE_IGSS = 0.0483;
 const PORCENTAJE_PLAN_PRESTACIONES = 0.07;
-
 const FIANZA_FACTOR_ASEGURADA = 24;
 const FIANZA_PORCENTAJE = 0.0005;
 const IVA_PORCENTAJE = 0.12;
@@ -119,22 +123,18 @@ export default function TarjetaEmpleado({
   onClose,
   userId,
 }: TarjetaEmpleadoProps) {
-  const { usuario: datosCompletos, cargando: cargandoDatos } =
-    useInfoUsuario(userId);
-
+  const { usuario: datosCompletos, cargando: cargandoDatos } = useInfoUsuario(userId);
   const { rol } = useUserData();
-  
   const [showExportModal, setShowExportModal] = useState(false);
+
+  const { nacimiento } = useNacimientoUsuario(userId);
 
   if (!isOpen) return null;
 
   const ROLES_PERMITIDOS = ["SUPER", "RRHH", "SECRETARIO", "DAFIM"];
   const mostrarFinanciera = ROLES_PERMITIDOS.includes(rol);
 
-  const formatCurrency = (
-    amount: number | null | undefined,
-    options: { sign?: "default" | "negative" } = {},
-  ) => {
+  const formatCurrency = (amount: number | null | undefined, options: { sign?: "default" | "negative" } = {}) => {
     if (amount === null || amount === undefined) return "--";
     const formatted = `Q ${Math.abs(amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     return options.sign === "negative" ? `- ${formatted}` : formatted;
@@ -146,11 +146,7 @@ export default function TarjetaEmpleado({
       const [hours, minutes, seconds] = timeString.split(":");
       const date = new Date();
       date.setHours(parseInt(hours), parseInt(minutes), parseInt(seconds));
-      return new Intl.DateTimeFormat("es-GT", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      }).format(date);
+      return new Intl.DateTimeFormat("es-GT", { hour: "2-digit", minute: "2-digit", hour12: true }).format(date);
     } catch (e) {
       return timeString;
     }
@@ -159,10 +155,7 @@ export default function TarjetaEmpleado({
   const formatDays = (days: number[] | null | undefined) => {
     if (!days || days.length === 0) return "--";
     const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-    return days
-      .sort((a, b) => a - b)
-      .map((d) => dayNames[d] || "?")
-      .join(", ");
+    return days.sort((a, b) => a - b).map((d) => dayNames[d] || "?").join(", ");
   };
 
   const isGlobalLoading = cargandoDatos;
@@ -172,39 +165,22 @@ export default function TarjetaEmpleado({
 
   const configActual = renglon ? renglonConfig[renglon] : null;
   const tieneBono = configActual?.tieneBono || false;
-
   const salarioLabel = configActual ? configActual.salarioLabel : "Salario";
-  const bonoLabel =
-    configActual && configActual.bonoLabel
-      ? configActual.bonoLabel
-      : "Bonificación";
+  const bonoLabel = configActual && configActual.bonoLabel ? configActual.bonoLabel : "Bonificación";
 
   const totalDevengado = salarioBase + bonificacion;
   const aplicaPrimaFianza = datosCompletos?.prima || false;
   const aplicaPlanPrestaciones = datosCompletos?.plan_prestaciones || false;
 
   const deduccionIGSS = salarioBase * PORCENTAJE_IGSS;
-  const deduccionPlan = aplicaPlanPrestaciones
-    ? salarioBase * PORCENTAJE_PLAN_PRESTACIONES
-    : 0;
-  
-  const deduccionPrimaFianza = aplicaPrimaFianza
-    ? calcularPrimaFianza(salarioBase)
-    : 0;
+  const deduccionPlan = aplicaPlanPrestaciones ? salarioBase * PORCENTAJE_PLAN_PRESTACIONES : 0;
+  const deduccionPrimaFianza = aplicaPrimaFianza ? calcularPrimaFianza(salarioBase) : 0;
 
-  const totalDeducciones =
-    deduccionIGSS + deduccionPlan + deduccionPrimaFianza;
+  const totalDeducciones = deduccionIGSS + deduccionPlan + deduccionPrimaFianza;
   const liquidoARecibir = totalDevengado - totalDeducciones;
 
   const pathItems = datosCompletos?.puesto_path_jerarquico
-    ? datosCompletos.puesto_path_jerarquico
-        .split(" > ")
-        .filter(
-          (item) =>
-            item.toUpperCase() !== "SIN DIRECCIÓN" &&
-            item.toUpperCase() !== "SIN DIRECCION",
-        )
-        .slice(1)
+    ? datosCompletos.puesto_path_jerarquico.split(" > ").filter((item) => item.toUpperCase() !== "SIN DIRECCIÓN" && item.toUpperCase() !== "SIN DIRECCION").slice(1)
     : [];
 
   const horario = datosCompletos?.horario_nombre
@@ -215,6 +191,9 @@ export default function TarjetaEmpleado({
         salida: formatTime(datosCompletos.horario_salida),
       }
     : null;
+
+  const fechaNacimiento = formatearFecha(nacimiento);
+  const edad = calcularEdad(nacimiento);
 
   return (
     <AnimatePresence>
@@ -234,22 +213,11 @@ export default function TarjetaEmpleado({
           >
             <div className="absolute top-2 right-2 flex gap-2">
               {!isGlobalLoading && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  title="Exportar Ficha (Imagen/PDF)"
-                  onClick={() => setShowExportModal(true)}
-                  className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 border-blue-200 dark:border-blue-800"
-                >
+                <Button variant="outline" size="icon" title="Exportar Ficha (Imagen/PDF)" onClick={() => setShowExportModal(true)} className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 border-blue-200 dark:border-blue-800">
                   <Download className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 </Button>
               )}
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onClose}
-              >
+              <Button variant="ghost" size="icon" onClick={onClose}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -265,16 +233,25 @@ export default function TarjetaEmpleado({
                     <User className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div className="flex flex-col items-start w-full">
-                    <h2 className="text-xl font-bold">
-                      {datosCompletos?.nombre || "N/A"}
-                    </h2>
+                    {/* --- TITULO Y EDAD --- */}
+                    <div className="flex items-center gap-3 w-full pr-12"> {/* pr-12 evita solapamiento con botones absolutos */}
+                        <h2 className="text-xl font-bold truncate">
+                            {datosCompletos?.nombre || "N/A"}
+                        </h2>
+                        
+                        {/* Etiqueta de edad minimalista */}
+                        <div className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/40 border border-blue-100 dark:border-blue-800 px-2 py-0.5 rounded text-xs shrink-0">
+                            <Cake className="h-3 w-3 text-blue-500" />
+                            <span className="font-semibold text-blue-700 dark:text-blue-300">
+                                {edad}
+                            </span>
+                        </div>
+                    </div>
+
                     {pathItems.length > 0 && (
                       <div className="mt-4 w-full border-t border-gray-200 dark:border-gray-700 pt-3">
                         <h4 className="flex items-center text-xs font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                          <Briefcase
-                            size={14}
-                            className="mr-2 text-blue-500 flex-shrink-0"
-                          />
+                          <Briefcase size={14} className="mr-2 text-blue-500 flex-shrink-0" />
                           Ubicación Organizacional
                         </h4>
                         <div className="flex flex-wrap items-center gap-1.5">
@@ -287,36 +264,21 @@ export default function TarjetaEmpleado({
                     {horario && (
                       <div className="mt-4 w-full border-t border-gray-200 dark:border-gray-700 pt-3">
                         <h4 className="flex items-center text-xs font-semibold text-gray-800 dark:text-gray-200 mb-2">
-                          <Clock
-                            size={14}
-                            className="mr-2 text-blue-500 flex-shrink-0"
-                          />
+                          <Clock size={14} className="mr-2 text-blue-500 flex-shrink-0" />
                           Información de Horario
                         </h4>
                         <div className="flex flex-col lg:flex-row lg:items-center lg:gap-4">
                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                            <span className="font-medium text-gray-700 dark:text-gray-300">
-                              Horario:
-                            </span>{" "}
-                            {horario.nombre}
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Horario:</span> {horario.nombre}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 lg:border-l lg:pl-4">
-                            <span className="font-medium text-gray-700 dark:text-gray-300">
-                              Días:
-                            </span>{" "}
-                            {horario.dias}
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Días:</span> {horario.dias}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 lg:border-l lg:pl-4">
-                            <span className="font-medium text-gray-700 dark:text-gray-300">
-                              Entrada:
-                            </span>{" "}
-                            {horario.entrada}
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Entrada:</span> {horario.entrada}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 lg:border-l lg:pl-4">
-                            <span className="font-medium text-gray-700 dark:text-gray-300">
-                              Salida:
-                            </span>{" "}
-                            {horario.salida}
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Salida:</span> {horario.salida}
                           </p>
                         </div>
                       </div>
@@ -329,126 +291,43 @@ export default function TarjetaEmpleado({
                     <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300 border-b pb-2 mb-2">
                       Información Personal
                     </h3>
-                    <InfoItem
-                      icon={<User size={18} />}
-                      label="Nombre Completo"
-                      value={datosCompletos?.nombre}
-                    />
-                    <InfoItem
-                      icon={<Phone size={18} />}
-                      label="Teléfono"
-                      value={datosCompletos?.telefono}
-                    />
-                    <InfoItem
-                      icon={<Fingerprint size={18} />}
-                      label="DPI"
-                      value={datosCompletos?.dpi}
-                    />
-                    <InfoItem
-                      icon={<Shield size={18} />}
-                      label="IGSS"
-                      value={datosCompletos?.igss}
-                    />
-                    <InfoItem
-                      icon={<Hash size={18} />}
-                      label="NIT"
-                      value={datosCompletos?.nit}
-                    />
-                    <InfoItem
-                      icon={<CircleDollarSign size={18} />}
-                      label="No. Cuenta"
-                      value={datosCompletos?.cuenta_no}
-                    />
-                    <InfoItem
-                      icon={<MapPin size={18} />}
-                      label="Dirección"
-                      value={datosCompletos?.direccion}
-                    />
+                    <InfoItem icon={<User size={18} />} label="Nombre Completo" value={datosCompletos?.nombre} />
+                    
+                    {/* Solo queda la fecha de nacimiento en la lista */}
+                    <InfoItem icon={<Calendar size={18} />} label="Fecha de Nacimiento" value={fechaNacimiento} />
+
+                    <InfoItem icon={<Phone size={18} />} label="Teléfono" value={datosCompletos?.telefono} />
+                    <InfoItem icon={<Fingerprint size={18} />} label="DPI" value={datosCompletos?.dpi} />
+                    <InfoItem icon={<Shield size={18} />} label="IGSS" value={datosCompletos?.igss} />
+                    <InfoItem icon={<Hash size={18} />} label="NIT" value={datosCompletos?.nit} />
+                    <InfoItem icon={<CircleDollarSign size={18} />} label="No. Cuenta" value={datosCompletos?.cuenta_no} />
+                    <InfoItem icon={<MapPin size={18} />} label="Dirección" value={datosCompletos?.direccion} />
                   </div>
 
                   <div className="flex flex-col mt-6 md:mt-0">
                     <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300 border-b pb-2 mb-2">
                       Información de Contrato
                     </h3>
-                    <InfoItem
-                      icon={<Briefcase size={18} />}
-                      label="Cargo"
-                      value={datosCompletos?.puesto_nombre}
-                    />
-                    <InfoItem
-                      icon={<FileText size={18} />}
-                      label="Renglón"
-                      value={renglon}
-                    />
+                    <InfoItem icon={<Briefcase size={18} />} label="Cargo" value={datosCompletos?.puesto_nombre} />
+                    <InfoItem icon={<FileText size={18} />} label="Renglón" value={renglon} />
 
                     {mostrarFinanciera ? (
                       <>
-                        <InfoItem
-                          icon={<CircleDollarSign size={18} />}
-                          label={salarioLabel}
-                          value={formatCurrency(salarioBase)}
-                        />
+                        <InfoItem icon={<CircleDollarSign size={18} />} label={salarioLabel} value={formatCurrency(salarioBase)} />
                         {tieneBono && (
-                          <InfoItem
-                            icon={<BadgeDollarSign size={18} />}
-                            label={bonoLabel}
-                            value={formatCurrency(bonificacion)}
-                          />
+                          <InfoItem icon={<BadgeDollarSign size={18} />} label={bonoLabel} value={formatCurrency(bonificacion)} />
                         )}
-
-                        <InfoItem
-                          icon={<Wallet size={18} />}
-                          label="Total Devengado"
-                          value={formatCurrency(totalDevengado)}
-                          isTotal={true}
-                        />
-
-                        <InfoItem
-                          icon={<Shield size={18} />}
-                          label={`IGSS (${(PORCENTAJE_IGSS * 100).toFixed(2)}%)`}
-                          value={formatCurrency(deduccionIGSS, {
-                            sign: "negative",
-                          })}
-                          isDeduction={true}
-                        />
+                        <InfoItem icon={<Wallet size={18} />} label="Total Devengado" value={formatCurrency(totalDevengado)} isTotal={true} />
+                        <InfoItem icon={<Shield size={18} />} label={`IGSS (${(PORCENTAJE_IGSS * 100).toFixed(2)}%)`} value={formatCurrency(deduccionIGSS, { sign: "negative" })} isDeduction={true} />
                         {aplicaPlanPrestaciones && (
-                          <InfoItem
-                            icon={<Building2 size={18} />}
-                            label={`Plan de Prestaciones (${(PORCENTAJE_PLAN_PRESTACIONES * 100).toFixed(0)}%)`}
-                            value={formatCurrency(deduccionPlan, {
-                              sign: "negative",
-                            })}
-                            isDeduction={true}
-                          />
+                          <InfoItem icon={<Building2 size={18} />} label={`Plan de Prestaciones (${(PORCENTAJE_PLAN_PRESTACIONES * 100).toFixed(0)}%)`} value={formatCurrency(deduccionPlan, { sign: "negative" })} isDeduction={true} />
                         )}
                         {aplicaPrimaFianza && (
-                          <InfoItem
-                            icon={<Lock size={18} />}
-                            label="Prima de Fianza"
-                            value={formatCurrency(deduccionPrimaFianza, {
-                              sign: "negative",
-                            })}
-                            isDeduction={true}
-                          />
+                          <InfoItem icon={<Lock size={18} />} label="Prima de Fianza" value={formatCurrency(deduccionPrimaFianza, { sign: "negative" })} isDeduction={true} />
                         )}
-
-                        <InfoItem
-                          icon={<TrendingDown size={18} />}
-                          label="Total Deducciones"
-                          value={formatCurrency(totalDeducciones, {
-                            sign: "negative",
-                          })}
-                          isDeduction={true}
-                          isTotal={true}
-                        />
-
+                        <InfoItem icon={<TrendingDown size={18} />} label="Total Deducciones" value={formatCurrency(totalDeducciones, { sign: "negative" })} isDeduction={true} isTotal={true} />
                         <div className="border-t border-gray-200 ">
-                          <InfoItem
-                            icon={<Banknote size={20} />}
-                            label="Líquido a Recibir"
-                            value={formatCurrency(liquidoARecibir)}
-                            isTotal={true}
-                          />
+                          <InfoItem icon={<Banknote size={20} />} label="Líquido a Recibir" value={formatCurrency(liquidoARecibir)} isTotal={true} />
                         </div>
                       </>
                     ) : (
