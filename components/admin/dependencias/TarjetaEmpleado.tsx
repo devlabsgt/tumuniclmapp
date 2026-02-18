@@ -131,8 +131,11 @@ export default function TarjetaEmpleado({
 
   if (!isOpen) return null;
 
-  const ROLES_PERMITIDOS = ["SUPER", "RRHH", "SECRETARIO", "DAFIM"];
-  const mostrarFinanciera = ROLES_PERMITIDOS.includes(rol);
+  const ROLES_FINANCIERA = ["SUPER", "RRHH", "SECRETARIO", "DAFIM"];
+  const mostrarFinanciera = ROLES_FINANCIERA.includes(rol);
+
+  const ROLES_DESCARGA = ["SUPER", "RRHH", "SECRETARIO", "DAFIM"];
+  const puedeDescargar = ROLES_DESCARGA.includes(rol);
 
   const formatCurrency = (amount: number | null | undefined, options: { sign?: "default" | "negative" } = {}) => {
     if (amount === null || amount === undefined) return "--";
@@ -212,7 +215,7 @@ export default function TarjetaEmpleado({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="absolute top-2 right-2 flex gap-2">
-              {!isGlobalLoading && (
+              {!isGlobalLoading && puedeDescargar && (
                 <Button variant="outline" size="icon" title="Exportar Ficha (Imagen/PDF)" onClick={() => setShowExportModal(true)} className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 border-blue-200 dark:border-blue-800">
                   <Download className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 </Button>
@@ -229,11 +232,13 @@ export default function TarjetaEmpleado({
             ) : (
               <div className="p-8">
                 <div className="flex flex-col items-center mb-8 lg:flex-row lg:items-center lg:gap-4">
-                  
+                  <div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-full mb-4 lg:mb-0">
+                    <User className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                  </div>
                   <div className="flex flex-col items-start w-full">
                     
                     <div className="flex flex-col items-start gap-1 lg:flex-row lg:items-center lg:gap-3 w-full pr-12">
-                        <h2 className="text-base font-bold truncate w-full lg:w-auto">
+                        <h2 className="text-xl font-bold truncate w-full lg:w-auto">
                             {datosCompletos?.nombre || "N/A"}
                         </h2>
                         
@@ -290,7 +295,6 @@ export default function TarjetaEmpleado({
                     </h3>
                     <InfoItem icon={<User size={18} />} label="Nombre Completo" value={datosCompletos?.nombre} />
                     
-                    {/* Solo queda la fecha de nacimiento en la lista */}
                     <InfoItem icon={<Calendar size={18} />} label="Fecha de Nacimiento" value={fechaNacimiento} />
 
                     <InfoItem icon={<Phone size={18} />} label="Teléfono" value={datosCompletos?.telefono} />

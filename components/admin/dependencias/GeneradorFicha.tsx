@@ -266,7 +266,7 @@ export default function GeneradorFicha({ isOpen, onClose, userId }: GeneradorFic
                                     </thead>
                                     <tbody>
                                         <TableRow icon={<Briefcase />} label="Puesto" value={datos?.puesto_nombre} />
-                                        <TableRow icon={<Building2 />} label="Ubicación" value={ubicacionTexto} />
+                                        <TableRow icon={<Building2 />} label="Ubicación Organizacional" value={ubicacionTexto} />
                                         <TableRow icon={<FileText />} label="Renglón" value={renglon} />
                                         
                                         {mostrarFinanciera ? (
@@ -286,7 +286,10 @@ export default function GeneradorFicha({ isOpen, onClose, userId }: GeneradorFic
                         <div className="mt-8 mb-4 flex flex-col items-center justify-center">
                             <div className="w-64 border-b border-slate-900 mb-2"></div>
                             <p className="text-[10px] font-bold text-slate-900 uppercase text-center">
-                                {firmante.loading ? "Validando..." : (firmante.nombre || "Firma Autorizada")}
+                                {firmante.loading 
+                                  ? "Validando..." 
+                                  : (firmante.nombre ? `Licda. ${firmante.nombre}` : "Firma Autorizada")
+                                }
                             </p>
                             <p className="text-[9px] font-semibold text-slate-500 uppercase text-center">
                                 {!firmante.loading && (firmante.cargo || "ADMINISTRACIÓN MUNICIPAL")}
