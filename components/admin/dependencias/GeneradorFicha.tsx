@@ -20,14 +20,15 @@ import {
   FileText as FilePdf,
   Loader2,
   Building2,
+  Calendar, 
+  Cake,     
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useInfoUsuario } from "@/hooks/usuarios/useInfoUsuario";
 import useUserData from "@/hooks/sesion/useUserData";
 import Cargando from "@/components/ui/animations/Cargando";
-import { useFirmante } from "@/components/admin/dependencias/hook";
+import { useFirmante, useNacimientoUsuario } from "@/components/admin/dependencias/hook";
 
-// --- Configuración de Renglones ---
 type RenglonConfig = {
   salarioLabel: string;
   bonoLabel?: string;
@@ -44,7 +45,6 @@ const renglonConfig: Record<string, RenglonConfig> = {
   "036": { salarioLabel: "Retribución por servicios (036)", tieneBono: false },
 };
 
-// --- Componente de Fila de Tabla (ACTUALIZADO: Sin negrita y letra más pequeña) ---
 const TableRow = ({
   icon,
   label,
@@ -61,10 +61,7 @@ const TableRow = ({
   if (isHeader) {
     return (
       <tr>
-        <td
-          colSpan={2}
-          className="bg-slate-900 text-white p-1.5 text-[10px] font-bold uppercase tracking-wider text-center border border-slate-900"
-        >
+        <td colSpan={2} className="bg-slate-900 text-white p-1.5 text-[10px] font-bold uppercase tracking-wider text-center border border-slate-900">
           {label}
         </td>
       </tr>
@@ -76,32 +73,38 @@ const TableRow = ({
       <td className="p-1.5 border-r border-gray-300 bg-gray-50 w-[30%] align-middle">
         <div className="flex items-center gap-2">
           <span className={isTotal ? "text-emerald-600" : "text-slate-400"}>
-            {React.isValidElement(icon)
-              ? React.cloneElement(icon as React.ReactElement<any>, { size: 12 })
-              : icon}
+            {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, { size: 12 }) : icon}
           </span>
-          <span
-            className={`text-[9px] font-bold uppercase leading-tight ${
-              isTotal ? "text-emerald-800" : "text-slate-700"
-            }`}
-          >
+          <span className={`text-[9px] font-bold uppercase leading-tight ${isTotal ? "text-emerald-800" : "text-slate-700"}`}>
             {label}
           </span>
         </div>
       </td>
       <td className="p-1.5 align-middle">
-        <span
-          className={`block leading-tight ${
-            isTotal 
-              ? "text-[10px] font-bold text-emerald-700" 
-              : "text-[9px] font-medium text-slate-900" // Reducido a text-[9px] y quitado font-bold
-          }`}
-        >
+        <span className={`block leading-tight ${isTotal ? "text-[10px] font-bold text-emerald-700" : "text-[9px] font-medium text-slate-900"}`}>
           {value || "--"}
         </span>
       </td>
     </tr>
   );
+};
+
+const calcularEdad = (fechaString: string | null | undefined): string => {
+  if (!fechaString) return "--";
+  const hoy = new Date();
+  const nacimiento = new Date(fechaString);
+  let edad = hoy.getFullYear() - nacimiento.getFullYear();
+  const mes = hoy.getMonth() - nacimiento.getMonth();
+  if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+    edad--;
+  }
+  return `${edad} años`;
+};
+
+const formatearFecha = (fechaString: string | null | undefined): string => {
+  if (!fechaString) return "--";
+  const fecha = new Date(fechaString);
+  return new Intl.DateTimeFormat('es-GT', { timeZone: 'UTC' }).format(fecha);
 };
 
 interface GeneradorFichaProps {
@@ -114,9 +117,10 @@ export default function GeneradorFicha({ isOpen, onClose, userId }: GeneradorFic
   const { usuario: datos, cargando } = useInfoUsuario(userId);
   const { rol } = useUserData();
   const firmante = useFirmante();
-  
   const printRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const { nacimiento } = useNacimientoUsuario(userId);
 
   const ROLES_PERMITIDOS = ["SUPER", "RRHH", "SECRETARIO", "DAFIM"];
   const mostrarFinanciera = ROLES_PERMITIDOS.includes(rol);
@@ -143,6 +147,9 @@ export default function GeneradorFicha({ isOpen, onClose, userId }: GeneradorFic
     : [];
   
   const ubicacionTexto = pathItems.length > 0 ? pathItems.join(" / ") : "--";
+
+  const fechaNacimiento = formatearFecha(nacimiento);
+  const edad = calcularEdad(nacimiento);
 
   const handleDownloadImage = async () => {
     if (!printRef.current) return;
@@ -243,6 +250,10 @@ export default function GeneradorFicha({ isOpen, onClose, userId }: GeneradorFic
                                     </thead>
                                     <tbody>
                                         <TableRow icon={<Phone />} label="Teléfono" value={datos?.telefono} />
+
+                                        <TableRow icon={<Calendar />} label="Fecha de Nacimiento" value={fechaNacimiento} />
+                                        <TableRow icon={<Cake />} label="Edad" value={edad} />
+
                                         <TableRow icon={<Fingerprint />} label="DPI" value={datos?.dpi} />
                                         <TableRow icon={<Hash />} label="NIT" value={datos?.nit} />
                                         <TableRow icon={<Shield />} label="Afiliación IGSS" value={datos?.igss} />
@@ -255,7 +266,7 @@ export default function GeneradorFicha({ isOpen, onClose, userId }: GeneradorFic
                                     </thead>
                                     <tbody>
                                         <TableRow icon={<Briefcase />} label="Puesto" value={datos?.puesto_nombre} />
-                                        <TableRow icon={<Building2 />} label="Ubicación" value={ubicacionTexto} />
+                                        <TableRow icon={<Building2 />} label="Ubicación Organizacional" value={ubicacionTexto} />
                                         <TableRow icon={<FileText />} label="Renglón" value={renglon} />
                                         
                                         {mostrarFinanciera ? (
@@ -275,7 +286,10 @@ export default function GeneradorFicha({ isOpen, onClose, userId }: GeneradorFic
                         <div className="mt-8 mb-4 flex flex-col items-center justify-center">
                             <div className="w-64 border-b border-slate-900 mb-2"></div>
                             <p className="text-[10px] font-bold text-slate-900 uppercase text-center">
-                                {firmante.loading ? "Validando..." : (firmante.nombre || "Firma Autorizada")}
+                                {firmante.loading 
+                                  ? "Validando..." 
+                                  : (firmante.nombre ? `Licda. ${firmante.nombre}` : "Firma Autorizada")
+                                }
                             </p>
                             <p className="text-[9px] font-semibold text-slate-500 uppercase text-center">
                                 {!firmante.loading && (firmante.cargo || "ADMINISTRACIÓN MUNICIPAL")}
