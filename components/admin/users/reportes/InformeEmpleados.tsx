@@ -18,9 +18,9 @@ import {
   FileText,
   Edit,
   Eye,
-  RotateCcw, // Undo
-  RotateCw, // Redo
-  Eraser, // Reset
+  RotateCcw,
+  RotateCw,
+  Eraser,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import * as htmlToImage from "html-to-image";
@@ -33,6 +33,7 @@ import {
 } from "./lib/actions";
 import { NominaIngreso } from "./NominaIngreso";
 import NominaImpresion from "./NominaImpresion";
+import DirectorioEmpleados from "./DirectorioEmpleados";
 
 interface Props {
   isOpen: boolean;
@@ -41,7 +42,6 @@ interface Props {
 
 const ITEMS_POR_PAGINA = 28;
 
-// Tipo de acción para el historial unificado
 type ActionType = "col" | "oficina" | "emp";
 type HistoryItem = { type: ActionType; value: string };
 
@@ -50,23 +50,24 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
   const [cantidadesManuales, setCantidadesManuales] = useState<
     Record<string, string>
   >({});
-  const [vista, setVista] = useState<"ingreso" | "impresion">("impresion");
+  const [vista, setVista] = useState<"ingreso" | "impresion" | "directorio">(
+    "impresion",
+  );
   const [loading, setLoading] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [anio, setAnio] = useState(new Date().getFullYear().toString());
   const [mes, setMes] = useState((new Date().getMonth() + 1).toString());
   const [firmas, setFirmas] = useState({ coordinator: "", dafim: "" });
 
-  // ESTADOS DE FILTROS
   const [columnasOcultas, setColumnasOcultas] = useState<string[]>([]);
   const [oficinasOcultas, setOficinasOcultas] = useState<string[]>([]);
   const [empleadosOcultos, setEmpleadosOcultos] = useState<string[]>([]);
 
-  // HISTORIAL UNIFICADO (Undo / Redo)
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [future, setFuture] = useState<HistoryItem[]>([]);
 
   const pagesContainerRef = useRef<HTMLDivElement>(null);
+  const directorioRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -97,24 +98,48 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
       const renglonLower = (fila.renglon || "").toLowerCase();
       const esVariable =
         renglonLower.includes("031") || renglonLower.includes("035");
-      let salarioFinal = fila.salario_unitario;
+
+      let montoBase = fila.salario_unitario;
       let bonifFinal = fila.bonificacion_unitaria;
       const valorInput = cantidadesManuales[fila.id];
       const cantidadNum =
         valorInput && valorInput !== "" ? parseFloat(valorInput) : 0;
 
       if (esVariable) {
-        salarioFinal = fila.salario_unitario * cantidadNum;
+        montoBase = fila.salario_unitario * cantidadNum;
         bonifFinal = fila.bonificacion_unitaria * cantidadNum;
       }
 
-      const totalDevengado = salarioFinal + bonifFinal;
-      const igss = salarioFinal * 0.0483;
-      const plan = fila.plan_prestaciones ? salarioFinal * 0.07 : 0;
+      const esSalario = ["011", "022", "031"].includes(renglonLower);
+      const esDieta = renglonLower.includes("061");
+      const salarioFinal = esSalario ? montoBase : 0;
+      let dietaFinal = esDieta ? montoBase : 0;
+      const honorarioFinal = !esSalario && !esDieta ? montoBase : 0;
+      let gastosRepFinal = 0;
+
+      const puestoLower = (fila.puesto || "").toLowerCase().trim();
+      if (
+        puestoLower === "secretario municipal" ||
+        puestoLower === "alcalde municipal"
+      ) {
+        dietaFinal += 10000;
+      }
+      if (puestoLower === "alcalde municipal") {
+        gastosRepFinal = 7000;
+      }
+
+      const totalDevengado =
+        salarioFinal +
+        honorarioFinal +
+        dietaFinal +
+        bonifFinal +
+        gastosRepFinal;
+      const igss = montoBase * 0.0483;
+      const plan = fila.plan_prestaciones ? montoBase * 0.07 : 0;
       const isr = fila.isr;
       let fianza = 0;
-      if (fila.prima && salarioFinal > 0) {
-        fianza = salarioFinal * 24 * 0.0005 + salarioFinal * 24 * 0.0005 * 0.12;
+      if (fila.prima && montoBase > 0) {
+        fianza = montoBase * 24 * 0.0005 + montoBase * 24 * 0.0005 * 0.12;
       }
       const totalDescuentos = igss + plan + isr + fianza;
       const liquido = totalDevengado - totalDescuentos;
@@ -124,6 +149,9 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
         cantidadDisplay: esVariable ? (cantidadesManuales[fila.id] ?? "") : "",
         esVariable,
         salarioFinal,
+        honorarioFinal,
+        dietaFinal,
+        gastosRepFinal,
         bonifFinal,
         totalDevengado,
         igss,
@@ -147,17 +175,33 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
     [empleadosParaEditar],
   );
 
+  useEffect(() => {
+    const guardadas = localStorage.getItem("nomina_cantidades");
+    if (guardadas) {
+      try {
+        setCantidadesManuales(JSON.parse(guardadas));
+      } catch (e) {}
+    }
+  }, []);
+
   const handleCantidadChange = (id: string, valor: string) => {
     if (/^\d*\.?\d*$/.test(valor)) {
-      setCantidadesManuales((prev) => ({ ...prev, [id]: valor }));
+      setCantidadesManuales((prev) => {
+        const nuevas = { ...prev, [id]: valor };
+        localStorage.setItem("nomina_cantidades", JSON.stringify(nuevas));
+        return nuevas;
+      });
     }
   };
 
-  // --- LÓGICA DE HISTORIAL UNIFICADO ---
+  const handleLimpiarCantidades = () => {
+    setCantidadesManuales({});
+    localStorage.removeItem("nomina_cantidades");
+  };
 
   const addToHistory = (type: ActionType, value: string) => {
     setHistory((prev) => [...prev, { type, value }]);
-    setFuture([]); // Al hacer una nueva acción, borramos el futuro (Redo)
+    setFuture([]);
   };
 
   const handleOcultarColumna = (col: string) => {
@@ -175,16 +219,14 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
     addToHistory("emp", id);
   };
 
-  // 1. UNDO (Deshacer)
   const handleUndo = () => {
     if (history.length === 0) return;
 
     const newHistory = [...history];
-    const lastAction = newHistory.pop(); // Sacamos la última acción
+    const lastAction = newHistory.pop();
     setHistory(newHistory);
 
     if (lastAction) {
-      // Revertimos el estado
       if (lastAction.type === "col") {
         setColumnasOcultas((prev) =>
           prev.filter((c) => c !== lastAction.value),
@@ -198,21 +240,18 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
           prev.filter((e) => e !== lastAction.value),
         );
       }
-      // La guardamos en future para poder hacer Redo
       setFuture((prev) => [...prev, lastAction]);
     }
   };
 
-  // 2. REDO (Rehacer)
   const handleRedo = () => {
     if (future.length === 0) return;
 
     const newFuture = [...future];
-    const nextAction = newFuture.pop(); // Sacamos la acción a rehacer
+    const nextAction = newFuture.pop();
     setFuture(newFuture);
 
     if (nextAction) {
-      // Aplicamos de nuevo el estado
       if (nextAction.type === "col") {
         setColumnasOcultas((prev) => [...prev, nextAction.value]);
       } else if (nextAction.type === "oficina") {
@@ -220,12 +259,10 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
       } else if (nextAction.type === "emp") {
         setEmpleadosOcultos((prev) => [...prev, nextAction.value]);
       }
-      // La devolvemos al historial
       setHistory((prev) => [...prev, nextAction]);
     }
   };
 
-  // 3. RESET (Reiniciar Todo)
   const handleReset = () => {
     setColumnasOcultas([]);
     setOficinasOcultas([]);
@@ -236,10 +273,21 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
   };
 
   const generatePdf = async () => {
-    setVista("impresion");
+    let printVista = vista;
+
+    if (vista === "ingreso") {
+      setVista("impresion");
+      printVista = "impresion";
+    }
+
     setIsPrinting(true);
     await new Promise((resolve) => setTimeout(resolve, 500));
-    const container = pagesContainerRef.current;
+
+    const container =
+      printVista === "directorio"
+        ? directorioRef.current
+        : pagesContainerRef.current;
+
     if (!container) {
       toast.error("Error visualizando.");
       setIsPrinting(false);
@@ -255,9 +303,9 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
       for (let i = 0; i < pages.length; i++) {
         const page = pages[i];
         const dataUrl = await htmlToImage.toJpeg(page, {
-          quality: 1.0,
+          quality: 0.75,
           backgroundColor: "#ffffff",
-          pixelRatio: 2,
+          pixelRatio: 1.5,
         });
         const imgProps = pdf.getImageProperties(dataUrl);
         const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -265,7 +313,8 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
         pdf.addImage(dataUrl, "JPEG", 0, 0, pdfWidth, pdfHeight);
         if (i < pages.length - 1) pdf.addPage();
       }
-      const nombreArchivo = `Nomina_${mes}_${anio}.pdf`;
+      const prefijo = printVista === "directorio" ? "Directorio" : "Nomina";
+      const nombreArchivo = `${prefijo}_${mes}_${anio}.pdf`;
       window.open(pdf.output("bloburl"), "_blank");
       setIsPrinting(false);
     } catch (err) {
@@ -292,7 +341,10 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
 
   const totales = {
     salarios: datosCalculados.reduce((a, c) => a + c.salarioFinal, 0),
+    honorarios: datosCalculados.reduce((a, c) => a + c.honorarioFinal, 0),
+    dietas: datosCalculados.reduce((a, c) => a + c.dietaFinal, 0),
     bonis: datosCalculados.reduce((a, c) => a + c.bonifFinal, 0),
+    gastosRep: datosCalculados.reduce((a, c) => a + c.gastosRepFinal, 0),
     devengado: datosCalculados.reduce((a, c) => a + c.totalDevengado, 0),
     liquido: datosCalculados.reduce((a, c) => a + c.liquido, 0),
     descuentos: datosCalculados.reduce((a, c) => a + c.totalDescuentos, 0),
@@ -309,7 +361,7 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
               <FileText className="h-5 w-5 text-green-600 dark:text-green-400" />
             </div>
             <DialogTitle className="text-lg font-bold dark:text-white truncate">
-              Generar Nómina
+              Generar Reportes
             </DialogTitle>
           </div>
 
@@ -333,43 +385,45 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
                 <span className="ml-1 text-green-600 text-[10px]">✓</span>
               )}
             </button>
+            <button
+              onClick={() => setVista("directorio")}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-all ${vista === "directorio" ? "bg-white shadow text-green-600" : "text-gray-500 hover:text-gray-700"}`}
+            >
+              <FileText className="w-3.5 h-3.5" /> Ver Directorio
+            </button>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
-            {/* --- CONTROLES DE UNDO / RESET / REDO --- */}
             <div className="flex items-center gap-1 mr-4 bg-gray-50 p-1 rounded-md border border-gray-200">
-              {/* 1. UNDO */}
               <Button
                 onClick={handleUndo}
                 disabled={history.length === 0}
                 variant="ghost"
                 size="icon"
                 className={`h-8 w-8 ${history.length > 0 ? "text-gray-700 hover:bg-gray-200" : "text-gray-300"}`}
-                title="Deshacer (Undo)"
+                title="Deshacer"
               >
                 <RotateCcw className="h-4 w-4" />
               </Button>
 
-              {/* 2. RESET */}
               <Button
                 onClick={handleReset}
                 disabled={!hayCambios}
                 variant="ghost"
                 size="icon"
                 className={`h-8 w-8 ${hayCambios ? "text-red-600 hover:bg-red-50" : "text-gray-300"}`}
-                title="Reiniciar vista (Reset)"
+                title="Reiniciar vista"
               >
                 <Eraser className="h-4 w-4" />
               </Button>
 
-              {/* 3. REDO */}
               <Button
                 onClick={handleRedo}
                 disabled={future.length === 0}
                 variant="ghost"
                 size="icon"
                 className={`h-8 w-8 ${future.length > 0 ? "text-gray-700 hover:bg-gray-200" : "text-gray-300"}`}
-                title="Rehacer (Redo)"
+                title="Rehacer"
               >
                 <RotateCw className="h-4 w-4" />
               </Button>
@@ -440,6 +494,7 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
                   <NominaIngreso
                     empleados={empleadosParaEditar}
                     onChange={handleCantidadChange}
+                    onClearAll={handleLimpiarCantidades}
                     formatQ={formatQ}
                   />
                   <div className="mt-8 flex justify-end">
@@ -454,7 +509,7 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
                 </div>
               )}
 
-              <div className={`${vista === "ingreso" ? "hidden" : "block"}`}>
+              <div className={`${vista === "impresion" ? "block" : "hidden"}`}>
                 <NominaImpresion
                   ref={pagesContainerRef}
                   datos={datosCalculados}
@@ -472,6 +527,18 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
                   onOcultarColumna={handleOcultarColumna}
                   onOcultarOficina={handleOcultarOficina}
                   onOcultarEmpleado={handleOcultarEmpleado}
+                />
+              </div>
+
+              <div className={`${vista === "directorio" ? "block" : "hidden"}`}>
+                <DirectorioEmpleados
+                  ref={directorioRef}
+                  datos={datosCalculados}
+                  anio={anio}
+                  nombreMes={nombreMes}
+                  numeroInforme={numeroInforme}
+                  fechaHoyTexto={fechaHoyTexto}
+                  firmas={firmas}
                 />
               </div>
             </>

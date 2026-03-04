@@ -1,7 +1,7 @@
 import React, { forwardRef, useMemo } from "react";
 
-const FILAS_PAGINA_1 = 26;
-const FILAS_PAGINA_X = 28;
+const FILAS_PAGINA_1 = 25;
+const FILAS_PAGINA_X = 27;
 const ALTO_FILA = "h-6";
 
 interface Props {
@@ -15,7 +15,10 @@ interface Props {
   formatQ: (val: number) => string;
   totales: {
     salarios: number;
+    honorarios: number;
+    dietas: number;
     bonis: number;
+    gastosRep: number;
     devengado: number;
     liquido: number;
     descuentos: number;
@@ -107,20 +110,29 @@ const NominaImpresion = forwardRef<HTMLDivElement, Props>(
     const colSpanTable = [
       visible("no"),
       visible("nombre"),
-      visible("puesto"),
+      visible("cargo"),
       visible("renglon"),
+      visible("dietas"),
       visible("salario"),
+      visible("honorarios"),
       visible("bonif"),
+      visible("gastos_rep"),
       visible("total_dev"),
       visible("igss"),
-      visible("isr"),
       visible("plan"),
+      visible("isr"),
       visible("total_desc"),
       visible("liquido"),
     ].filter(Boolean).length;
 
     const thClass =
       "border border-gray-400 h-6 px-0.5 text-center uppercase align-middle cursor-pointer hover:bg-red-100 hover:text-red-900 transition-colors";
+
+    const getDependenciaCorta = (dep: string) => {
+      if (!dep) return "";
+      const parts = dep.split(">");
+      return parts[parts.length - 1].trim();
+    };
 
     return (
       <div ref={ref} className="flex flex-col gap-8">
@@ -148,7 +160,7 @@ const NominaImpresion = forwardRef<HTMLDivElement, Props>(
                       </span>
                       <br />
                       <span className="font-normal normal-case text-[10px]">
-                        Departamento de Recursos Humanos
+                        Departamento Municipal de Recursos Humanos
                       </span>
                     </div>
                     <div className="w-1/3 text-center">
@@ -160,7 +172,7 @@ const NominaImpresion = forwardRef<HTMLDivElement, Props>(
                         <span className="font-bold">
                           {nombreMes} {anio}
                         </span>{" "}
-                        | INFORME No. {numeroInforme}
+                        | INFORME No. N-{numeroInforme}
                       </p>
                     </div>
                     <div className="w-1/3 flex justify-end">
@@ -203,13 +215,13 @@ const NominaImpresion = forwardRef<HTMLDivElement, Props>(
                           Nombre Completo
                         </th>
                       )}
-                      {visible("puesto") && (
+                      {visible("cargo") && (
                         <th
-                          className={`text-left w-64 ${thClass}`}
-                          onClick={handleHideCol("puesto")}
-                          title="Ocultar columna Puesto"
+                          className={`text-left w-44 ${thClass}`}
+                          onClick={handleHideCol("cargo")}
+                          title="Ocultar columna Cargo"
                         >
-                          Puesto
+                          Cargo
                         </th>
                       )}
                       {visible("renglon") && (
@@ -221,6 +233,15 @@ const NominaImpresion = forwardRef<HTMLDivElement, Props>(
                           Reng.
                         </th>
                       )}
+                      {visible("dietas") && (
+                        <th
+                          className={`w-16 ${thClass}`}
+                          onClick={handleHideCol("dietas")}
+                          title="Ocultar columna Dietas"
+                        >
+                          Dietas
+                        </th>
+                      )}
                       {visible("salario") && (
                         <th
                           className={`w-16 ${thClass}`}
@@ -230,6 +251,15 @@ const NominaImpresion = forwardRef<HTMLDivElement, Props>(
                           Salario
                         </th>
                       )}
+                      {visible("honorarios") && (
+                        <th
+                          className={`w-16 ${thClass}`}
+                          onClick={handleHideCol("honorarios")}
+                          title="Ocultar columna Honorarios"
+                        >
+                          Honorarios
+                        </th>
+                      )}
                       {visible("bonif") && (
                         <th
                           className={`w-16 ${thClass}`}
@@ -237,6 +267,15 @@ const NominaImpresion = forwardRef<HTMLDivElement, Props>(
                           title="Ocultar columna Bonif."
                         >
                           Bonif.
+                        </th>
+                      )}
+                      {visible("gastos_rep") && (
+                        <th
+                          className={`w-16 ${thClass}`}
+                          onClick={handleHideCol("gastos_rep")}
+                          title="Ocultar columna Gastos Rep."
+                        >
+                          Gastos Rep.
                         </th>
                       )}
                       {visible("total_dev") && (
@@ -257,15 +296,6 @@ const NominaImpresion = forwardRef<HTMLDivElement, Props>(
                           IGSS
                         </th>
                       )}
-                      {visible("isr") && (
-                        <th
-                          className={`w-11 text-red-700 ${thClass}`}
-                          onClick={handleHideCol("isr")}
-                          title="Ocultar columna ISR"
-                        >
-                          ISR
-                        </th>
-                      )}
                       {visible("plan") && (
                         <th
                           className={`w-11 text-red-700 ${thClass}`}
@@ -273,6 +303,15 @@ const NominaImpresion = forwardRef<HTMLDivElement, Props>(
                           title="Ocultar columna Plan"
                         >
                           Plan
+                        </th>
+                      )}
+                      {visible("isr") && (
+                        <th
+                          className={`w-11 text-red-700 ${thClass}`}
+                          onClick={handleHideCol("isr")}
+                          title="Ocultar columna ISR"
+                        >
+                          ISR
                         </th>
                       )}
                       {visible("total_desc") && (
@@ -315,7 +354,10 @@ const NominaImpresion = forwardRef<HTMLDivElement, Props>(
                                 colSpan={colSpanTable}
                                 className={`px-2 font-bold text-[8px] uppercase text-gray-800 border-b border-gray-300 align-middle leading-tight ${ALTO_FILA}`}
                               >
-                                {fila.dependencia_nombre}
+                                <span className="text-blue-600">
+                                  Dependencia:
+                                </span>{" "}
+                                {getDependenciaCorta(fila.dependencia_nombre)}
                               </td>
                             </tr>
                           )}
@@ -338,7 +380,7 @@ const NominaImpresion = forwardRef<HTMLDivElement, Props>(
                                 </div>
                               </td>
                             )}
-                            {visible("puesto") && (
+                            {visible("cargo") && (
                               <td
                                 className={`px-1 text-[8px] overflow-hidden ${ALTO_FILA}`}
                               >
@@ -349,59 +391,100 @@ const NominaImpresion = forwardRef<HTMLDivElement, Props>(
                             )}
                             {visible("renglon") && (
                               <td className={`text-center ${ALTO_FILA}`}>
-                                {fila.renglon}
+                                {fila.renglon ? fila.renglon.split("-")[0] : ""}
+                              </td>
+                            )}
+                            {visible("dietas") && (
+                              <td
+                                className={`px-1 ${ALTO_FILA} ${fila.dietaFinal > 0 ? "text-right" : "text-center"}`}
+                              >
+                                {fila.dietaFinal > 0
+                                  ? `Q ${formatQ(fila.dietaFinal)}`
+                                  : "---"}
                               </td>
                             )}
                             {visible("salario") && (
-                              <td className={`text-right px-1 ${ALTO_FILA}`}>
-                                Q {formatQ(fila.salarioFinal)}
+                              <td
+                                className={`px-1 ${ALTO_FILA} ${fila.salarioFinal > 0 ? "text-right" : "text-center"}`}
+                              >
+                                {fila.salarioFinal > 0
+                                  ? `Q ${formatQ(fila.salarioFinal)}`
+                                  : "---"}
+                              </td>
+                            )}
+                            {visible("honorarios") && (
+                              <td
+                                className={`px-1 ${ALTO_FILA} ${fila.honorarioFinal > 0 ? "text-right" : "text-center"}`}
+                              >
+                                {fila.honorarioFinal > 0
+                                  ? `Q ${formatQ(fila.honorarioFinal)}`
+                                  : "---"}
                               </td>
                             )}
                             {visible("bonif") && (
-                              <td className={`text-right px-1 ${ALTO_FILA}`}>
-                                Q {formatQ(fila.bonifFinal)}
+                              <td
+                                className={`px-1 ${ALTO_FILA} ${fila.bonifFinal > 0 ? "text-right" : "text-center"}`}
+                              >
+                                {fila.bonifFinal > 0
+                                  ? `Q ${formatQ(fila.bonifFinal)}`
+                                  : "---"}
+                              </td>
+                            )}
+                            {visible("gastos_rep") && (
+                              <td
+                                className={`px-1 ${ALTO_FILA} ${fila.gastosRepFinal > 0 ? "text-right" : "text-center"}`}
+                              >
+                                {fila.gastosRepFinal > 0
+                                  ? `Q ${formatQ(fila.gastosRepFinal)}`
+                                  : "---"}
                               </td>
                             )}
                             {visible("total_dev") && (
                               <td
-                                className={`text-right font-bold bg-gray-100 px-1 ${ALTO_FILA}`}
+                                className={`px-1 font-bold bg-gray-100 ${ALTO_FILA} ${fila.totalDevengado > 0 ? "text-right" : "text-center"}`}
                               >
-                                Q {formatQ(fila.totalDevengado)}
+                                {fila.totalDevengado > 0
+                                  ? `Q ${formatQ(fila.totalDevengado)}`
+                                  : "---"}
                               </td>
                             )}
                             {visible("igss") && (
                               <td
-                                className={`text-right text-red-800 px-1 ${ALTO_FILA}`}
+                                className={`px-1 text-red-800 ${ALTO_FILA} ${fila.igss > 0 ? "text-right" : "text-center"}`}
                               >
-                                {fila.igss > 0 ? formatQ(fila.igss) : "-"}
-                              </td>
-                            )}
-                            {visible("isr") && (
-                              <td
-                                className={`text-right text-red-800 px-1 ${ALTO_FILA}`}
-                              >
-                                {fila.isr > 0 ? formatQ(fila.isr) : "-"}
+                                {fila.igss > 0 ? formatQ(fila.igss) : "---"}
                               </td>
                             )}
                             {visible("plan") && (
                               <td
-                                className={`text-right text-red-800 px-1 ${ALTO_FILA}`}
+                                className={`px-1 text-red-800 ${ALTO_FILA} ${fila.plan > 0 ? "text-right" : "text-center"}`}
                               >
-                                {fila.plan > 0 ? formatQ(fila.plan) : "-"}
+                                {fila.plan > 0 ? formatQ(fila.plan) : "---"}
+                              </td>
+                            )}
+                            {visible("isr") && (
+                              <td
+                                className={`px-1 text-red-800 ${ALTO_FILA} ${fila.isr > 0 ? "text-right" : "text-center"}`}
+                              >
+                                {fila.isr > 0 ? formatQ(fila.isr) : "---"}
                               </td>
                             )}
                             {visible("total_desc") && (
                               <td
-                                className={`text-right font-semibold text-red-800 bg-red-50 px-1 ${ALTO_FILA}`}
+                                className={`px-1 font-semibold text-red-800 bg-red-50 ${ALTO_FILA} ${fila.totalDescuentos > 0 ? "text-right" : "text-center"}`}
                               >
-                                Q {formatQ(fila.totalDescuentos)}
+                                {fila.totalDescuentos > 0
+                                  ? `Q ${formatQ(fila.totalDescuentos)}`
+                                  : "---"}
                               </td>
                             )}
                             {visible("liquido") && (
                               <td
-                                className={`text-right font-bold text-green-800 bg-green-50 px-1 ${ALTO_FILA}`}
+                                className={`px-1 font-bold text-green-800 bg-green-50 ${ALTO_FILA} ${fila.liquido > 0 ? "text-right" : "text-center"}`}
                               >
-                                Q {formatQ(fila.liquido)}
+                                {fila.liquido > 0
+                                  ? `Q ${formatQ(fila.liquido)}`
+                                  : "---"}
                               </td>
                             )}
                           </tr>

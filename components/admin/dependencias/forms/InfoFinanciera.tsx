@@ -64,6 +64,13 @@ const contratoRenglones = {
   "036": "Retribuciones por servicios",
 };
 
+const serviciosRenglones = {
+  "183": "Servicios Jurídicos",
+  "184": "Servicios economicos, financieros, contables y de auditoria",
+  "188": "Servicios de ingeniería, arquitectura y supervisión de obras",
+  "189": "Otros estudios y/o servicios",
+};
+
 type RenglonConfig = {
   salarioLabel: string;
   bonoLabel?: string;
@@ -131,6 +138,26 @@ const renglonConfig: Record<string, RenglonConfig> = {
   "036": {
     salarioLabel: "Retribución por servicios (036)",
     placeholder: "Importe",
+    tieneBono: false,
+  },
+  "183": {
+    salarioLabel: "Honorarios (183)",
+    placeholder: "Honorarios",
+    tieneBono: false,
+  },
+  "184": {
+    salarioLabel: "Honorarios (184)",
+    placeholder: "Honorarios",
+    tieneBono: false,
+  },
+  "188": {
+    salarioLabel: "Honorarios (188)",
+    placeholder: "Honorarios",
+    tieneBono: false,
+  },
+  "189": {
+    salarioLabel: "Honorarios (189)",
+    placeholder: "Honorarios",
     tieneBono: false,
   },
 };
@@ -390,6 +417,22 @@ export default function InfoFinancieraForm({
                                 className="dark:bg-slate-800"
                               >
                                 {Object.entries(contratoRenglones).map(
+                                  ([k, v]) => (
+                                    <option
+                                      key={k}
+                                      value={k}
+                                      className="dark:bg-slate-800"
+                                    >
+                                      {k} - {v}
+                                    </option>
+                                  ),
+                                )}
+                              </optgroup>
+                              <optgroup
+                                label="SERVICIOS PROFESIONALES"
+                                className="dark:bg-slate-800"
+                              >
+                                {Object.entries(serviciosRenglones).map(
                                   ([k, v]) => (
                                     <option
                                       key={k}
