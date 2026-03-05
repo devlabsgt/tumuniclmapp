@@ -1,7 +1,7 @@
 import React, { forwardRef, useMemo } from "react";
 
-const FILAS_PAGINA_1 = 25;
-const FILAS_PAGINA_X = 27;
+const FILAS_PAGINA_1 = 26;
+const FILAS_PAGINA_X = 25;
 const ALTO_FILA = "h-6";
 
 interface Props {
@@ -138,7 +138,6 @@ const NominaImpresion = forwardRef<HTMLDivElement, Props>(
       <div ref={ref} className="flex flex-col gap-8">
         {paginasProcesadas.map((datosPagina, indexPagina) => {
           const esPrimeraPagina = indexPagina === 0;
-          const esUltimaPagina = indexPagina === paginasProcesadas.length - 1;
           const indiceInicial = paginasProcesadas
             .slice(0, indexPagina)
             .reduce((acc, curr) => acc + curr.length, 0);
@@ -162,10 +161,17 @@ const NominaImpresion = forwardRef<HTMLDivElement, Props>(
                       <span className="font-normal normal-case text-[10px]">
                         Departamento Municipal de Recursos Humanos
                       </span>
+                      <br />
+                      <span className="font-normal normal-case text-[10px]">
+                        Encargado(a) de actualización de datos:{" "}
+                        <span className="font-bold">
+                          {firmas.coordinator || "No asignado"}
+                        </span>
+                      </span>
                     </div>
                     <div className="w-1/3 text-center">
                       <h1 className="text-sm font-bold uppercase text-black leading-tight">
-                        REPORTE DE PERSONAL
+                        REMUNERACIONES DE EMPLEADOS Y SERVIDORES PÚBLICOS
                       </h1>
                       <p className="text-[10px] text-gray-600 mt-1">
                         MES:{" "}
@@ -391,7 +397,7 @@ const NominaImpresion = forwardRef<HTMLDivElement, Props>(
                             )}
                             {visible("renglon") && (
                               <td className={`text-center ${ALTO_FILA}`}>
-                                {fila.renglon ? fila.renglon.split("-")[0] : ""}
+                                {fila.renglon}
                               </td>
                             )}
                             {visible("dietas") && (
@@ -494,22 +500,6 @@ const NominaImpresion = forwardRef<HTMLDivElement, Props>(
                   </tbody>
                 </table>
               </div>
-
-              {esUltimaPagina && (
-                <div className="mt-auto w-full pt-4 pb-8">
-                  <div className="flex justify-center">
-                    <div className="text-center">
-                      <div className="border-t border-black w-64 mx-auto mb-1"></div>
-                      <div className="font-bold text-[10px] uppercase">
-                        {firmas.coordinator || "__________________________"}
-                      </div>
-                      <div className="text-[9px] uppercase tracking-wider">
-                        Coordinador(a) de Recursos Humanos
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               <div className="absolute bottom-4 left-0 w-full text-center text-[8px] text-gray-400 border-t mx-10 pt-1">
                 Generado el {fechaHoyTexto} | Página {indexPagina + 1} de{" "}

@@ -106,15 +106,23 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
         valorInput && valorInput !== "" ? parseFloat(valorInput) : 0;
 
       if (esVariable) {
-        montoBase = fila.salario_unitario * cantidadNum;
-        bonifFinal = fila.bonificacion_unitaria * cantidadNum;
+        if (cantidadNum > 0) {
+          montoBase = fila.salario_unitario * cantidadNum;
+          bonifFinal = fila.bonificacion_unitaria * cantidadNum;
+        } else {
+          montoBase = fila.salario_unitario;
+          bonifFinal = fila.bonificacion_unitaria;
+        }
       }
 
-      const esSalario = ["011", "022", "031"].includes(renglonLower);
       const esDieta = renglonLower.includes("061");
+      const esSalario = renglonLower.startsWith("0") && !esDieta;
+      const esHonorario =
+        renglonLower.startsWith("1") || (!esSalario && !esDieta);
+
       const salarioFinal = esSalario ? montoBase : 0;
       let dietaFinal = esDieta ? montoBase : 0;
-      const honorarioFinal = !esSalario && !esDieta ? montoBase : 0;
+      const honorarioFinal = esHonorario ? montoBase : 0;
       let gastosRepFinal = 0;
 
       const puestoLower = (fila.puesto || "").toLowerCase().trim();
@@ -134,9 +142,11 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
         dietaFinal +
         bonifFinal +
         gastosRepFinal;
-      const igss = montoBase * 0.0483;
-      const plan = fila.plan_prestaciones ? montoBase * 0.07 : 0;
+
+      const igss = esDieta ? 0 : montoBase * 0.0483;
+      const plan = esDieta ? 0 : fila.plan_prestaciones ? montoBase * 0.07 : 0;
       const isr = fila.isr;
+
       let fianza = 0;
       if (fila.prima && montoBase > 0) {
         fianza = montoBase * 24 * 0.0005 + montoBase * 24 * 0.0005 * 0.12;
@@ -355,7 +365,7 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[98vw] h-[95vh] flex flex-col p-0 bg-white dark:bg-neutral-900 text-black [&>button]:hidden">
-        <DialogHeader className="p-4 border-b flex flex-col lg:flex-row items-center justify-between gap-4 shrink-0 bg-white dark:bg-neutral-900 z-10">
+        <DialogHeader className="p-4 border-b dark:border-neutral-800 flex flex-col lg:flex-row items-center justify-between gap-4 shrink-0 bg-white dark:bg-neutral-900 z-10">
           <div className="flex items-center gap-3 w-full lg:w-auto">
             <div className="p-2.5 bg-green-100 dark:bg-green-900/30 rounded-xl shrink-0">
               <FileText className="h-5 w-5 text-green-600 dark:text-green-400" />
@@ -368,39 +378,57 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
           <div className="flex bg-gray-100 dark:bg-neutral-800 p-1 rounded-lg">
             <button
               onClick={() => setVista("impresion")}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-all ${vista === "impresion" ? "bg-white shadow text-purple-600" : "text-gray-500 hover:text-gray-700"}`}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                vista === "impresion"
+                  ? "bg-white dark:bg-neutral-700 shadow text-purple-600 dark:text-purple-400"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              }`}
             >
               <Eye className="w-3.5 h-3.5" /> Ver Nómina
             </button>
             <button
               onClick={() => setVista("ingreso")}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-all ${vista === "ingreso" ? "bg-white shadow text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                vista === "ingreso"
+                  ? "bg-white dark:bg-neutral-700 shadow text-blue-600 dark:text-blue-400"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              }`}
             >
               <Edit className="w-3.5 h-3.5" /> Ingresar Datos
               {faltantesPorIngresar > 0 ? (
-                <span className="ml-1 bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full text-[10px] border border-red-200">
+                <span className="ml-1 bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 px-1.5 py-0.5 rounded-full text-[10px] border border-red-200 dark:border-red-800/50">
                   {faltantesPorIngresar}
                 </span>
               ) : (
-                <span className="ml-1 text-green-600 text-[10px]">✓</span>
+                <span className="ml-1 text-green-600 dark:text-green-400 text-[10px]">
+                  ✓
+                </span>
               )}
             </button>
             <button
               onClick={() => setVista("directorio")}
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-all ${vista === "directorio" ? "bg-white shadow text-green-600" : "text-gray-500 hover:text-gray-700"}`}
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                vista === "directorio"
+                  ? "bg-white dark:bg-neutral-700 shadow text-green-600 dark:text-green-400"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              }`}
             >
               <FileText className="w-3.5 h-3.5" /> Ver Directorio
             </button>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
-            <div className="flex items-center gap-1 mr-4 bg-gray-50 p-1 rounded-md border border-gray-200">
+            <div className="flex items-center gap-1 mr-4 bg-gray-50 dark:bg-neutral-800 p-1 rounded-md border border-gray-200 dark:border-neutral-700">
               <Button
                 onClick={handleUndo}
                 disabled={history.length === 0}
                 variant="ghost"
                 size="icon"
-                className={`h-8 w-8 ${history.length > 0 ? "text-gray-700 hover:bg-gray-200" : "text-gray-300"}`}
+                className={`h-8 w-8 ${
+                  history.length > 0
+                    ? "text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-neutral-700"
+                    : "text-gray-300 dark:text-gray-600"
+                }`}
                 title="Deshacer"
               >
                 <RotateCcw className="h-4 w-4" />
@@ -411,7 +439,11 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
                 disabled={!hayCambios}
                 variant="ghost"
                 size="icon"
-                className={`h-8 w-8 ${hayCambios ? "text-red-600 hover:bg-red-50" : "text-gray-300"}`}
+                className={`h-8 w-8 ${
+                  hayCambios
+                    ? "text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                    : "text-gray-300 dark:text-gray-600"
+                }`}
                 title="Reiniciar vista"
               >
                 <Eraser className="h-4 w-4" />
@@ -422,7 +454,11 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
                 disabled={future.length === 0}
                 variant="ghost"
                 size="icon"
-                className={`h-8 w-8 ${future.length > 0 ? "text-gray-700 hover:bg-gray-200" : "text-gray-300"}`}
+                className={`h-8 w-8 ${
+                  future.length > 0
+                    ? "text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-neutral-700"
+                    : "text-gray-300 dark:text-gray-600"
+                }`}
                 title="Rehacer"
               >
                 <RotateCw className="h-4 w-4" />
@@ -440,7 +476,7 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
             <div className="flex gap-2 items-center">
               <Input
                 type="number"
-                className="w-20 h-10 text-sm font-semibold"
+                className="w-20 h-10 text-sm font-semibold dark:bg-neutral-800 dark:text-white dark:border-neutral-700 focus:dark:ring-blue-500"
                 value={anio}
                 onChange={(e) => setAnio(e.target.value)}
               />
@@ -471,7 +507,11 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
                 )}{" "}
                 PDF
               </Button>
-              <Button onClick={onClose} variant="outline" className="h-10 px-3">
+              <Button
+                onClick={onClose}
+                variant="outline"
+                className="h-10 px-3 dark:border-neutral-700 dark:text-gray-300 dark:hover:bg-neutral-800"
+              >
                 <X className="h-5 w-5" />
               </Button>
             </div>
