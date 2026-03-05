@@ -143,7 +143,7 @@ export default function InformeEmpleados({ isOpen, onClose }: Props) {
         bonifFinal +
         gastosRepFinal;
 
-      const igss = esDieta ? 0 : montoBase * 0.0483;
+      const igss = esSalario ? montoBase * 0.0483 : 0;
       const plan = esDieta ? 0 : fila.plan_prestaciones ? montoBase * 0.07 : 0;
       const isr = fila.isr;
 
