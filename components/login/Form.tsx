@@ -40,9 +40,9 @@ export function LoginForm() {
         <Image
           src="/images/logo-muni.png"
           alt="Logo Municipalidad de Concepción Las Minas"
-          height={100}
-          width={100}
-          className="block w-[200px] lg:w-60 drop-shadow-md"
+          height={400}
+          width={400}
+          className="block w-full h-auto object-contain drop-shadow-md"
         />
       </motion.div>
 
@@ -58,8 +58,6 @@ export function LoginForm() {
               iconKey="yaxbmvvh"
               className="w-[100px] h-[100px]"
               trigger="loop"
-              // Nota: Los iconos animados suelen tener colores internos.
-              // Si AnimatedIcon soporta stroke/fill via props, podrías necesitar ajustarlo aquí.
             />
           </div>
           <div className="flex flex-col text-left">
