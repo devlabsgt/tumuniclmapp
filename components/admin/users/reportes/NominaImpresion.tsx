@@ -178,7 +178,7 @@ const NominaImpresion = forwardRef<HTMLDivElement, Props>(
                         <span className="font-bold">
                           {nombreMes} {anio}
                         </span>{" "}
-                        | INFORME No. N-{numeroInforme}
+                        | INFORME No. N4-{numeroInforme}
                       </p>
                     </div>
                     <div className="w-1/3 flex justify-end">
