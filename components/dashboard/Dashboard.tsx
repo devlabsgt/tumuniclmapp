@@ -5,8 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import useUserData from "@/hooks/sesion/useUserData";
 
-import Asistencia from "@/components/asistencia/Asistencia";
-import MisComisiones from "@/components/comisiones/asistencia/MisComisiones";
 import HorarioSistema from "@/components/admin/sistema/HorarioSistema";
 import TarjetaEmpleado from "@/components/admin/dependencias/TarjetaEmpleado";
 import BroadcastButton from "@/components/push/BroadcastButton";
@@ -15,14 +13,12 @@ import Config from "./buttons/Config";
 import ViewSwitcher from "./buttons/ViewSwitcher";
 import Profile from "./buttons/Profile";
 import ModulesView from "./views/ModulesView";
-import { Vistas } from "./constants";
 
 export default function Dashboard() {
   const { rol, modulos = [], permisos = [], userId, esjefe } = useUserData();
 
   const [mostrarTarjetaModal, setMostrarTarjetaModal] = useState(false);
   const [mostrarHorarioModal, setMostrarHorarioModal] = useState(false);
-  const [vistaActiva, setVistaActiva] = useState<Vistas>("modulos");
 
   useEffect(() => {
     if (mostrarTarjetaModal) {
@@ -34,20 +30,6 @@ export default function Dashboard() {
       document.body.style.overflow = "";
     };
   }, [mostrarTarjetaModal]);
-
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        setVistaActiva("modulos");
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, []);
 
   const isSuper = rol === "SUPER";
 
@@ -64,11 +46,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        <ViewSwitcher
-          vistaActiva={vistaActiva}
-          setVistaActiva={setVistaActiva}
-          isSuper={isSuper}
-        />
+        <ViewSwitcher isSuper={isSuper} />
 
         <Profile
           userId={userId}
@@ -83,40 +61,15 @@ export default function Dashboard() {
         userId={userId}
       />
 
-      <AnimatePresence mode="wait">
-        {vistaActiva === "modulos" ? (
-          <motion.div
-            key="modulos"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <ModulesView rol={rol} modulos={modulos} esjefe={esjefe} />
-          </motion.div>
-        ) : vistaActiva === "asistencia" ? (
-          <motion.div
-            key="asistencia"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            {/* Recuerda mantener el prop onFinalizar que agregamos antes */}
-            <Asistencia onFinalizar={() => setVistaActiva("modulos")} />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="comisiones"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <MisComisiones />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <motion.div
+        key="modulos"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.3 }}
+      >
+        <ModulesView rol={rol} modulos={modulos} esjefe={esjefe} />
+      </motion.div>
 
       <AnimatePresence>
         {mostrarHorarioModal && (
