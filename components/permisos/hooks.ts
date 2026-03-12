@@ -169,9 +169,14 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
     return permisosVisibles.filter(r => {
       const nombreEmpleado = r.usuario?.nombre?.toLowerCase() || '';
       const nombreOficina = r.usuario?.oficina_nombre?.toLowerCase() || '';
+      const codigoPermiso = r.id.substring(0, 6).toLowerCase();
       const termino = searchTerm.toLowerCase();
       
-      const matchBusqueda = nombreEmpleado.includes(termino) || nombreOficina.includes(termino);
+      const matchBusqueda = 
+        nombreEmpleado.includes(termino) || 
+        nombreOficina.includes(termino) ||
+        codigoPermiso.includes(termino);
+      
       const matchEstado = filtroEstado === 'todos' || r.estado === filtroEstado;
       
       return matchBusqueda && matchEstado;

@@ -185,7 +185,7 @@ const NominaImpresion = forwardRef<HTMLDivElement, Props>(
                       <img
                         src="/images/logo-muni.png"
                         alt="Logo"
-                        className="h-[72px] object-contain"
+                        className="h-28 object-contain"
                       />
                     </div>
                   </div>

@@ -14,7 +14,10 @@ import {
   FileText,
   User,
   Briefcase,
+  Eye,
 } from "lucide-react";
+import PreviewPermiso from "./modals/PreviewPermiso";
+import { PermisoEmpleado } from "./types";
 import { Button } from "@/components/ui/button";
 import Cargando from "@/components/ui/animations/Cargando";
 import CrearEditarPermiso from "./modals/CrearEditarPermiso";
@@ -68,6 +71,15 @@ export default function VerPermisos({ tipoVista }: Props) {
     handleClickFila,
     handleEliminarPermiso,
   } = actions;
+
+  const [modalPreviewAbierto, setModalPreviewAbierto] = React.useState(false);
+  const [permisoParaImagen, setPermisoParaImagen] = React.useState<PermisoEmpleado | null>(null);
+
+  const handleVerPreview = (e: React.MouseEvent, permiso: PermisoEmpleado) => {
+    e.stopPropagation();
+    setPermisoParaImagen(permiso);
+    setModalPreviewAbierto(true);
+  };
 
   // FILTRO VISUAL
   const gruposConDatos = useMemo(() => {
@@ -198,7 +210,7 @@ export default function VerPermisos({ tipoVista }: Props) {
                 <Search className="absolute left-2 top-2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Buscar..."
+                  placeholder="Buscar por nombre, código o puesto..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-8 pr-3 py-1.5 text-xs rounded border border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:text-gray-200"
@@ -354,18 +366,13 @@ export default function VerPermisos({ tipoVista }: Props) {
                                   fechaInicio,
                                   fechaFin,
                                 );
-                                let textoFecha = "";
-                                if (esMismoDia) {
-                                  textoFecha = format(
-                                    fechaInicio,
-                                    "d 'de' MMMM",
-                                    { locale: es },
-                                  );
-                                } else if (esMismoMes) {
-                                  textoFecha = `Del ${format(fechaInicio, "d")} al ${format(fechaFin, "d 'de' MMMM", { locale: es })}`;
-                                } else {
-                                  textoFecha = `Del ${format(fechaInicio, "d 'de' MMM", { locale: es })} al ${format(fechaFin, "d 'de' MMM", { locale: es })}`;
-                                }
+                                 let textoFecha = "";
+                                 const f = "eee d MMM, yy";
+                                 if (esMismoDia) {
+                                   textoFecha = format(fechaInicio, f, { locale: es });
+                                 } else {
+                                   textoFecha = `Del ${format(fechaInicio, f, { locale: es })} al ${format(fechaFin, f, { locale: es })}`;
+                                 }
                                 const textoHora = `${format(fechaInicio, "h:mm a", { locale: es })} - ${format(fechaFin, "h:mm a", { locale: es })}`;
                                 const leftBorderClass = getLeftBorderClass(
                                   permiso.estado,
@@ -401,14 +408,14 @@ export default function VerPermisos({ tipoVista }: Props) {
                                           </span>
                                         </div>
                                       </div>
-                                      <span className="text-[10px] text-gray-400 bg-gray-50 dark:bg-neutral-800 px-2 py-1 rounded-md font-medium">
-                                        Solicitado:{" "}
-                                        {format(
-                                          parseISO(permiso.created_at),
-                                          "d MMM",
-                                          { locale: es },
-                                        )}
-                                      </span>
+                                      <div className="flex flex-col items-end gap-1">
+                                        <span className="text-[10px] text-neutral-500 bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded font-mono font-bold tracking-wider">
+                                          Código: {permiso.id.substring(0, 6).toUpperCase()}
+                                        </span>
+                                        <span className="text-[9px] text-gray-400 font-medium whitespace-nowrap">
+                                          Fecha de Solicitud: {format(parseISO(permiso.created_at), "eee, d MMM, yy", { locale: es })}
+                                        </span>
+                                      </div>
                                     </div>
                                     <div className="space-y-3 mb-4">
                                       <div className="bg-slate-50 dark:bg-neutral-800/50 p-3 rounded-md">
@@ -472,6 +479,13 @@ export default function VerPermisos({ tipoVista }: Props) {
                                           <Trash2 className="w-4 h-4" />
                                         </button>
                                       )}
+                                      <button
+                                        onClick={(e) => handleVerPreview(e, permiso)}
+                                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+                                        title="Ver constancia del permiso"
+                                      >
+                                        <Eye className="w-4 h-4" />
+                                      </button>
                                     </div>
                                   </div>
                                 );
@@ -488,6 +502,12 @@ export default function VerPermisos({ tipoVista }: Props) {
           </div>
         </div>
       </div>
+
+      <PreviewPermiso 
+        isOpen={modalPreviewAbierto}
+        onClose={() => setModalPreviewAbierto(false)}
+        permiso={permisoParaImagen}
+      />
 
       <CrearEditarPermiso
         isOpen={modalAbierto}
