@@ -6,6 +6,7 @@ import { PermisoEmpleado } from "../types";
 import PermisoTemplate from "../PermisoTemplate";
 import { toPng } from "html-to-image";
 import { format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
 import { toast } from "react-toastify";
 import { Button } from "@/components/ui/button";
 
@@ -16,53 +17,35 @@ interface Props {
 }
 
 export default function PreviewPermiso({ permiso, isOpen, onClose }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
   const templateRef = useRef<HTMLDivElement>(null);
   const [descargando, setDescargando] = useState(false);
-  const [scale, setScale] = useState(1);
-
-  React.useEffect(() => {
-    if (isOpen) {
-      const updateScale = () => {
-        if (containerRef.current) {
-          const containerWidth = containerRef.current.clientWidth - 40; // Margen de seguridad
-          const templateWidth = 850; // El ancho fijo configurado en PermisoTemplate
-          if (containerWidth < templateWidth) {
-            setScale(containerWidth / templateWidth);
-          } else {
-            setScale(1);
-          }
-        }
-      };
-      
-      // Pequeño delay para asegurar que el modal ya se renderizó y tiene dimensiones
-      const timer = setTimeout(updateScale, 100);
-      window.addEventListener("resize", updateScale);
-      return () => {
-        window.removeEventListener("resize", updateScale);
-        clearTimeout(timer);
-      };
-    }
-  }, [isOpen]);
 
   if (!isOpen || !permiso) return null;
+
+  const fechaInicio = parseISO(permiso.inicio);
+  const fechaFin = parseISO(permiso.fin);
+  const codigo = permiso.id.substring(0, 6).toUpperCase();
+
+  const estadoColor =
+    permiso.estado === "aprobado"
+      ? "bg-emerald-600 text-white"
+      : permiso.estado.includes("rechazado")
+      ? "bg-red-600 text-white"
+      : "bg-amber-500 text-white";
 
   const handleDescargar = async () => {
     if (!templateRef.current) return;
     setDescargando(true);
     try {
-      // Pequeña pausa para asegurar carga
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
+      await new Promise((resolve) => setTimeout(resolve, 300));
       const dataUrl = await toPng(templateRef.current, {
         quality: 1,
         pixelRatio: 2,
         cacheBust: true,
         backgroundColor: "#ffffff",
       });
-
       const link = document.createElement("a");
-      link.download = `Permiso_${permiso.usuario?.nombre?.replace(/\s+/g, "_") || "Solicitud"}_${format(parseISO(permiso.inicio), "dd-MM-yyyy")}.png`;
+      link.download = `Permiso_${permiso.usuario?.nombre?.replace(/\s+/g, "_") || "Solicitud"}_${format(fechaInicio, "dd-MM-yyyy")}.png`;
       link.href = dataUrl;
       link.click();
       toast.success("Imagen descargada");
@@ -76,49 +59,145 @@ export default function PreviewPermiso({ permiso, isOpen, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-[900px] flex flex-col max-h-[95vh] overflow-hidden">
-        {/* Header con Título y Cerrar */}
-        <div className="px-5 py-4 border-b border-gray-100 dark:border-neutral-800 flex justify-between items-center bg-white dark:bg-neutral-900 z-10">
-          <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">Ver permiso</h3>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-gray-50 dark:bg-neutral-800 rounded-xl transition-colors shadow-sm"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+      {/* PermisoTemplate oculto — solo para generar la imagen al descargar */}
+      <div style={{ position: "absolute", left: "-9999px", top: 0, opacity: 0, pointerEvents: "none" }}>
+        <PermisoTemplate ref={templateRef} permiso={permiso} />
+      </div>
 
-        {/* Scrollable Content */}
-        <div 
-          ref={containerRef}
-          className="flex-1 overflow-auto p-4 pt-10 flex justify-center bg-gray-100 dark:bg-neutral-950 min-h-[300px]"
-        >
-          <div 
-            style={{ 
-              transform: `scale(${scale})`,
-              transformOrigin: 'top center',
-              width: '850px',
-              height: `${850 * scale}px`
-            }}
-            className="transition-transform duration-200"
-          >
-             <PermisoTemplate ref={templateRef} permiso={permiso} />
+      <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden">
+        {/* ── HEADER: Logo + Título (igual que la imagen) ── */}
+        <div className="flex items-center justify-between px-5 py-4 border-b-2 border-blue-600">
+          <div className="flex items-center gap-3">
+            <img
+              src="/images/logo-muni.png"
+              alt="Logo"
+              className="h-12 object-contain"
+              crossOrigin="anonymous"
+            />
+            <div>
+              <p className="text-[10px] font-bold text-neutral-500 tracking-wider uppercase leading-tight">
+                Municipalidad de Concepción Las Minas
+              </p>
+              <p className="text-[9px] text-neutral-400">Chiquimula, Guatemala</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+
+            <button
+              onClick={onClose}
+              className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-gray-100 dark:bg-neutral-800 rounded-xl transition-colors ml-2"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
-        {/* Footer with Download */}
-        <div className="p-4 bg-white dark:bg-neutral-900 border-t border-gray-100 dark:border-neutral-800 flex justify-center">
+        {/* ── BODY ── */}
+        <div className="p-5 flex flex-col gap-4 overflow-y-auto max-h-[65vh]">
+
+          {/* Fila 1: Datos empleado + Tipo permiso */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-0.5">
+
+              <p className="text-[10px] font-bold text-neutral-800 dark:text-neutral-100 uppercase leading-snug">
+                {permiso.usuario?.nombre || "—"}
+              </p>
+              <p className="text-[9px] font-semibold text-blue-600 uppercase">
+                {permiso.usuario?.puesto_nombre || "Sin puesto asignado"}
+              </p>
+              <p className="text-[9px] text-neutral-500 italic">
+                {permiso.usuario?.oficina_nombre || "General"}
+              </p>
+            </div>
+            <div className="flex flex-col justify-center items-center bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-900/30 px-2 py-2 text-center">
+              <label className="text-[9px] font-bold text-blue-400 uppercase tracking-widest mb-0.5">Permiso</label>
+              <p className="text-[9px] font-black text-blue-800 dark:text-blue-200 capitalize leading-snug">
+                {permiso.tipo.replace(/_/g, " ")}
+              </p>
+            </div>
+          </div>
+
+          {/* Fila 2: Fechas inicio / fin */}
+          <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-neutral-800/50 rounded-xl border border-slate-100 dark:border-neutral-700">
+            <div className="pl-3 border-l-4 border-emerald-500">
+              <label className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest mb-1 block">
+                Fecha y Hora de Inicio
+              </label>
+              <p className="text-sm font-bold text-neutral-800 dark:text-neutral-100 capitalize">
+                {format(fechaInicio, "EEEE d 'de' MMMM", { locale: es })}
+              </p>
+              <p className="text-xs text-neutral-500">
+                Año {format(fechaInicio, "yyyy")} • {format(fechaInicio, "h:mm a")}
+              </p>
+            </div>
+            <div className="pl-3 border-l-4 border-orange-500">
+              <label className="text-[9px] font-bold text-orange-600 uppercase tracking-widest mb-1 block">
+                Fecha y Hora de Finalización
+              </label>
+              <p className="text-sm font-bold text-neutral-800 dark:text-neutral-100 capitalize">
+                {format(fechaFin, "EEEE d 'de' MMMM", { locale: es })}
+              </p>
+              <p className="text-xs text-neutral-500">
+                Año {format(fechaFin, "yyyy")} • {format(fechaFin, "h:mm a")}
+              </p>
+            </div>
+          </div>
+
+          {/* Descripción */}
+          {permiso.descripcion && (
+            <div>
+              <label className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest mb-1 block text-center">
+                Motivo de la Solicitud
+              </label>
+              <div className="px-3 py-2 bg-neutral-50 dark:bg-neutral-800/50 rounded-xl text-neutral-600 dark:text-neutral-300 text-[9px] leading-relaxed text-center italic border border-neutral-100 dark:border-neutral-700">
+                "{permiso.descripcion}"
+              </div>
+            </div>
+          )}
+
+          {/* Footer doc: Estado + Código */}
+          <div className="flex justify-between items-end border-t border-neutral-100 dark:border-neutral-800 pt-3">
+            <div className="flex flex-col gap-2">
+              <label className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Estado</label>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${estadoColor}`}>
+                  {permiso.estado.replace(/_/g, " ")}
+                </span>
+                {permiso.remunerado !== null && (
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                    permiso.remunerado
+                      ? "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800"
+                      : "bg-neutral-50 text-neutral-500 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700"
+                  }`}>
+                    {permiso.remunerado ? "REMUNERADO" : "SIN GOCE"}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <p className="text-[9px] font-bold text-neutral-400 tracking-wider">CÓDIGO</p>
+              <p className="text-[9px] font-mono font-black text-neutral-500 tracking-widest">{codigo}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── CINTILLO DE COLORES (igual que la imagen) ── */}
+        <div className="flex h-2 w-full">
+          <div className="flex-1 bg-blue-900" />
+          <div className="flex-1 bg-blue-600" />
+          <div className="flex-1 bg-blue-400" />
+          <div className="flex-1 bg-blue-200" />
+        </div>
+
+        {/* ── Botón descargar ── */}
+        <div className="px-5 py-3 bg-white dark:bg-neutral-900 flex justify-end border-t border-gray-100 dark:border-neutral-800">
           <Button
             onClick={handleDescargar}
             disabled={descargando}
-            className="bg-blue-600 hover:bg-blue-700 text-white gap-2 h-11 px-8 rounded-xl font-bold shadow-lg transition-all"
+            className="bg-blue-600 hover:bg-blue-700 text-white gap-2 h-9 px-5 rounded-xl font-bold text-sm shadow-sm"
           >
-            {descargando ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Download className="w-5 h-5" />
-            )}
-            Descargar Imagen del Permiso
+            {descargando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Descargar
           </Button>
         </div>
       </div>
