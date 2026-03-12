@@ -16,8 +16,34 @@ interface Props {
 }
 
 export default function PreviewPermiso({ permiso, isOpen, onClose }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const templateRef = useRef<HTMLDivElement>(null);
   const [descargando, setDescargando] = useState(false);
+  const [scale, setScale] = useState(1);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      const updateScale = () => {
+        if (containerRef.current) {
+          const containerWidth = containerRef.current.clientWidth - 40; // Margen de seguridad
+          const templateWidth = 850; // El ancho fijo configurado en PermisoTemplate
+          if (containerWidth < templateWidth) {
+            setScale(containerWidth / templateWidth);
+          } else {
+            setScale(1);
+          }
+        }
+      };
+      
+      // Pequeño delay para asegurar que el modal ya se renderizó y tiene dimensiones
+      const timer = setTimeout(updateScale, 100);
+      window.addEventListener("resize", updateScale);
+      return () => {
+        window.removeEventListener("resize", updateScale);
+        clearTimeout(timer);
+      };
+    }
+  }, [isOpen]);
 
   if (!isOpen || !permiso) return null;
 
@@ -50,18 +76,32 @@ export default function PreviewPermiso({ permiso, isOpen, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-[900px] flex flex-col max-h-[95vh] relative overflow-hidden">
-        {/* Header Close Only */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-white/80 dark:bg-neutral-800/80 rounded-full transition-colors shadow-sm"
-        >
-          <X className="w-5 h-5" />
-        </button>
+      <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-[900px] flex flex-col max-h-[95vh] overflow-hidden">
+        {/* Header con Título y Cerrar */}
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-neutral-800 flex justify-between items-center bg-white dark:bg-neutral-900 z-10">
+          <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">Ver permiso</h3>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-gray-50 dark:bg-neutral-800 rounded-xl transition-colors shadow-sm"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-auto p-8 flex justify-center bg-gray-100 dark:bg-neutral-950">
-          <div className="origin-top scale-[0.6] sm:scale-[0.8] md:scale-100 transition-transform">
+        <div 
+          ref={containerRef}
+          className="flex-1 overflow-auto p-4 pt-10 flex justify-center bg-gray-100 dark:bg-neutral-950 min-h-[300px]"
+        >
+          <div 
+            style={{ 
+              transform: `scale(${scale})`,
+              transformOrigin: 'top center',
+              width: '850px',
+              height: `${850 * scale}px`
+            }}
+            className="transition-transform duration-200"
+          >
              <PermisoTemplate ref={templateRef} permiso={permiso} />
           </div>
         </div>
@@ -71,7 +111,7 @@ export default function PreviewPermiso({ permiso, isOpen, onClose }: Props) {
           <Button
             onClick={handleDescargar}
             disabled={descargando}
-            className="bg-blue-600 hover:bg-blue-700 text-white gap-2 h-11 px-8 rounded-full font-bold shadow-lg transition-all"
+            className="bg-blue-600 hover:bg-blue-700 text-white gap-2 h-11 px-8 rounded-xl font-bold shadow-lg transition-all"
           >
             {descargando ? (
               <Loader2 className="w-5 h-5 animate-spin" />

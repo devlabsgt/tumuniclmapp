@@ -13,24 +13,25 @@ import {
   getYear, 
   getMonth, 
   isSameDay, 
-  isWithinInterval, 
-  startOfDay, 
-  endOfDay, 
-  isBefore, 
+  startOfDay,
+  endOfDay,
   isAfter,
   parseISO,
   startOfToday,
   isValid
 } from 'date-fns';
-import { ChevronsLeft, ChevronsRight, List } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, List, FileCheck } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { PermisoEmpleado } from '@/components/permisos/types';
+import PreviewPermiso from '@/components/permisos/modals/PreviewPermiso';
 
 interface CalendarioProps {
   todosLosRegistros: any[];
   onAbrirMapa: (registro: any) => void;
   fechaHoraGt: Date;
   esHorarioMultiple?: boolean;
+  permisosEmpleado?: PermisoEmpleado[];
 }
 
 const getWeekDays = (date: Date) => eachDayOfInterval({
@@ -62,16 +63,16 @@ const sortUsuarios = (usuarios: AsistenciaRegistro[]) => {
   });
 };
 
-export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaHoraGt, esHorarioMultiple = false }: CalendarioProps) {
+export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaHoraGt, esHorarioMultiple = false, permisosEmpleado = [] }: CalendarioProps) {
   const [fechaDeReferencia, setFechaDeReferencia] = useState(new Date());
   const [diaSeleccionado, setDiaSeleccionado] = useState<Date | undefined>(undefined);
   const [filtroTipo, setFiltroTipo] = useState<'semanal' | 'rango'>('semanal');
   const [fechaInicialRango, setFechaInicialRango] = useState('');
   const [fechaFinalRango, setFechaFinalRango] = useState('');
+  const [permisoPreview, setPermisoPreview] = useState<PermisoEmpleado | null>(null);
 
   const diasDeLaSemana = useMemo(() => getWeekDays(fechaDeReferencia), [fechaDeReferencia]);
 
-  // 1. Agrupar registros por Día y Usuario
   const registrosAgrupados = useMemo(() => {
     const agrupados: Record<string, Record<string, AsistenciaRegistro>> = {};
 
@@ -116,7 +117,6 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
     return agrupados;
   }, [todosLosRegistros]);
 
-  // 2. Calcular los días a mostrar (Rango Completo)
   const diasParaTabla = useMemo(() => {
     let start: Date;
     let end: Date;
@@ -167,6 +167,14 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
 
   const esVistaIndividual = uniqueUserIds <= 1;
   const colSpanCount = esVistaIndividual ? 2 : 4;
+
+  const getPermisoParaDia = (diaString: string): PermisoEmpleado | null => {
+    return permisosEmpleado.find(p => {
+      const inicioDia = p.inicio.substring(0, 10);
+      const finDia = p.fin.substring(0, 10);
+      return diaString >= inicioDia && diaString <= finDia;
+    }) || null;
+  };
 
   return (
     <div className="p-1 bg-white dark:bg-neutral-950 rounded-lg shadow-md space-y-4 w-full transition-colors duration-200">
@@ -239,24 +247,27 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
         <div className="flex justify-around items-center pt-2">
           {diasDeLaSemana.map((dia) => {
             const esDiaSeleccionado = diaSeleccionado ? isSameDay(dia, diaSeleccionado) : false;
+            const tienePermiso = getPermisoParaDia(format(dia, 'yyyy-MM-dd')) !== null;
             return (
               <div 
                 key={dia.toString()} 
                 onClick={() => handleSeleccionDia(dia)} 
-                className={`flex flex-col items-center justify-center w-10 h-10 rounded-md transition-all cursor-pointer 
+                className={`flex flex-col items-center justify-center w-10 h-10 rounded-md transition-all cursor-pointer relative
                   ${isToday(dia) && !esDiaSeleccionado ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' : ''} 
                   ${isSameDay(dia, new Date(fechaHoraGt)) ? 'border border-blue-400 dark:border-blue-500' : ''} 
                   ${esDiaSeleccionado ? 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white font-bold shadow-lg scale-105' : 'hover:bg-slate-100 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400'}`}
               >
                 <span className="text-[10px] uppercase">{format(dia, 'eee', { locale: es })}</span>
                 <span className="text-xs">{format(dia, 'd')}</span>
+                {tienePermiso && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-indigo-500 border border-white dark:border-neutral-950" />
+                )}
               </div>
             );
           })}
         </div>
       )}
 
-      {/* --- Tabla de Asistencia --- */}
       <div className="border-t dark:border-neutral-800 pt-1 transition-colors">
         <p className="text-xs text-blue-600 dark:text-blue-400 text-center my-1">Haz click un registro para ver más información 🔍</p>
         
@@ -266,17 +277,14 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
           <table className="w-full text-xs">
             <thead className="bg-gray-50 dark:bg-neutral-900 text-left text-gray-700 dark:text-gray-300">
               <tr>
-                {!esVistaIndividual && <th className="px-4 py-2 text-xs w-1/4">Empleado</th>}
-                {!esVistaIndividual && <th className="px-4 py-2 text-xs w-1/4">Puesto</th>}
-
-                {esHorarioMultiple ? (
-                  <th className="px-4 py-2 text-xs w-2/4 text-center" colSpan={2}>Marcajes</th>
-                ) : (
-                  <>
-                    <th className="px-4 py-2 text-xs w-1/4">Entrada</th>
-                    <th className="px-4 py-2 text-xs w-1/4">Salida</th>
-                  </>
-                )}
+                {!esVistaIndividual && <th className="px-3 py-2 text-xs w-1/4">Empleado</th>}
+                {!esVistaIndividual && <th className="px-3 py-2 text-xs w-1/4">Puesto</th>}
+                <th className="px-3 py-2 text-xs" colSpan={2}>
+                  <div className="flex items-center">
+                    <span className="w-3/4">{esHorarioMultiple ? 'Marcajes' : 'Entrada / Salida'}</span>
+                    <span className="w-1/4 text-center text-indigo-500 dark:text-indigo-400">Permiso</span>
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -284,14 +292,23 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
                 const datosDelDia = registrosAgrupados[diaString];
                 const usuariosDelDia = datosDelDia ? sortUsuarios(Object.values(datosDelDia)) : [];
                 
-                // Detectar si el día es FUTURO (Mañana en adelante)
                 const fechaDia = parseISO(diaString + 'T00:00:00');
                 const esFuturo = isAfter(fechaDia, startOfToday());
+                const permisoDelDia = getPermisoParaDia(diaString);
 
-                // Si es futuro y no hay datos, NO RENDERIZAR NADA
-                if (esFuturo && usuariosDelDia.length === 0) {
+                if (esFuturo && usuariosDelDia.length === 0 && !permisoDelDia) {
                   return null;
                 }
+
+                const PermisoBtn = () => permisoDelDia ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setPermisoPreview(permisoDelDia); }}
+                    className="w-full py-1 px-1.5 rounded bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300 font-bold flex flex-col justify-center items-center gap-0.5 transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-[9px] leading-tight"
+                  >
+                    <FileCheck size={12} />
+                    <span className="text-center">Permiso</span>
+                  </button>
+                ) : null;
 
                 return (
                   <Fragment key={diaString}>
@@ -304,45 +321,69 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
                     {usuariosDelDia.length > 0 ? (
                       usuariosDelDia.map((usuario, index) => {
                         const sinRegistros = !usuario.entrada && !usuario.salida && !usuario.tieneMultiple;
-                        
+
                         return (
                           <tr 
-                            key={index} 
-                            onClick={() => !sinRegistros && onAbrirMapa(usuario.entrada || usuario.salida || usuario.representante)} 
-                            className={`border-b dark:border-neutral-800 transition-colors ${sinRegistros ? '' : 'cursor-pointer hover:bg-gray-100 dark:hover:bg-neutral-900/50'}`}
+                            key={index}
+                            className="border-b dark:border-neutral-800 transition-colors"
                           >
-                            {!esVistaIndividual && (<td className="px-4 py-2 text-xs text-gray-800 dark:text-gray-200 font-bold">{usuario.nombre}</td>)}
-                            {!esVistaIndividual && (<td className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">{usuario.puesto_nombre}</td>)}
+                            {!esVistaIndividual && (<td className="px-3 py-2 text-xs text-gray-800 dark:text-gray-200 font-bold">{usuario.nombre}</td>)}
+                            {!esVistaIndividual && (<td className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">{usuario.puesto_nombre}</td>)}
 
-                            {sinRegistros ? (
-                                <td colSpan={2} className="px-4 py-2 text-center text-red-500 dark:text-red-400 font-medium text-xs">
-                                    Sin registros de asistencia
-                                </td>
-                            ) : (esHorarioMultiple || usuario.tieneMultiple) ? (
-                              <td colSpan={2} className="px-4 py-2">
-                                <div className="w-full p-2 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold flex justify-center items-center gap-2 transition-colors">
-                                  <List size={14} /> Ver Asistencia ({usuario.cantidad})
+                            <td colSpan={2} className="px-3 py-2">
+                              <div className="flex items-center gap-1">
+                                {/* Columna 3/4: Asistencia */}
+                                <div
+                                  className={`w-3/4 ${!sinRegistros ? 'cursor-pointer' : ''}`}
+                                  onClick={() => !sinRegistros && onAbrirMapa(usuario.entrada || usuario.salida || usuario.representante)}
+                                >
+                                  {sinRegistros ? (
+                                    <span className="text-[9px] text-red-500 dark:text-red-400 font-medium">Sin registros</span>
+                                  ) : (esHorarioMultiple || usuario.tieneMultiple) ? (
+                                    <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold flex items-center gap-1.5 transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[9px]">
+                                      <List size={12} /> Ver Asistencia ({usuario.cantidad})
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center justify-left">
+                                      <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                        <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
+                                        {usuario.entrada 
+                                          ? format(new Date(usuario.entrada.created_at), 'hh:mm aa', { locale: es }) 
+                                          : <span className="text-red-400">--:--</span>}
+                                      </span>
+                                      <span className="text-gray-300 dark:text-neutral-700">|</span>
+                                      <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                        <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
+                                        {usuario.salida 
+                                          ? format(new Date(usuario.salida.created_at), 'hh:mm aa', { locale: es }) 
+                                          : <span className="text-red-400">--:--</span>}
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
-                              </td>
-                            ) : (
-                              <>
-                                <td className="px-4 py-2 text-xs font-mono font-bold text-gray-800 dark:text-gray-200">
-                                  {usuario.entrada ? format(new Date(usuario.entrada.created_at), 'hh:mm aa', { locale: es }) : <span className="text-red-500 dark:text-red-400">--:--</span>}
-                                </td>
-                                <td className="px-4 py-2 text-xs font-mono font-bold text-gray-800 dark:text-gray-200">
-                                  {usuario.salida ? format(new Date(usuario.salida.created_at), 'hh:mm aa', { locale: es }) : <span className="text-red-500 dark:text-red-400">--:--</span>}
-                                </td>
-                              </>
-                            )}
-
+                                {/* Columna 1/4: Permiso */}
+                                <div className="w-1/4 flex-shrink-0">
+                                  <PermisoBtn />
+                                </div>
+                              </div>
+                            </td>
                           </tr>
                         );
                       })
                     ) : (
-                    
                       <tr>
-                        <td colSpan={colSpanCount} className="px-4 py-2 text-center text-red-500 dark:text-red-400 text-xs font-medium bg-red-50/50 dark:bg-red-900/10">
-                          Sin registros de asistencia
+                        <td colSpan={colSpanCount} className="px-3 py-2">
+                          <div className="flex items-center gap-1">
+                            <div className="w-3/4">
+                              {permisoDelDia
+                                ? <span className="text-[9px] text-gray-400 dark:text-gray-500">Sin asistencia registrada</span>
+                                : <span className="text-[9px] text-red-500 dark:text-red-400 font-medium">Sin registros de asistencia</span>
+                              }
+                            </div>
+                            <div className="w-1/4 flex-shrink-0">
+                              <PermisoBtn />
+                            </div>
+                          </div>
                         </td>
                       </tr>
                     )}
@@ -353,6 +394,12 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
           </table>
         )}
       </div>
+
+      <PreviewPermiso
+        isOpen={!!permisoPreview}
+        onClose={() => setPermisoPreview(null)}
+        permiso={permisoPreview}
+      />
     </div>
   );
 }

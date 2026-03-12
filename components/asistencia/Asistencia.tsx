@@ -21,16 +21,20 @@ import {
   List,
   MapPin,
   AlertCircle,
+  FileCheck,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Calendario from "./Calendario";
 import Mapa from "../ui/modals/Mapa";
+import PreviewPermiso from "@/components/permisos/modals/PreviewPermiso";
+import { PermisoEmpleado } from "@/components/permisos/types";
 import Cargando from "@/components/ui/animations/Cargando";
 import Swal, { SweetAlertOptions } from "sweetalert2";
 
 import { marcarNuevaAsistencia } from "@/lib/asistencia/acciones";
 import useFechaHora from "@/hooks/utility/useFechaHora";
 import { useAsistenciaUsuario } from "@/hooks/asistencia/useAsistenciaUsuario";
+import { usePermisosUsuario } from "@/hooks/asistencia/usePermisosUsuario";
 import { useObtenerUbicacion } from "@/hooks/ubicacion/useObtenerUbicacion";
 
 const formatScheduleTime = (timeString: string | null | undefined) => {
@@ -105,6 +109,7 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
     loading: cargandoRegistros,
     fetchAsistencias,
   } = useAsistenciaUsuario(userId, null, null);
+  const { permisos: permisosEmpleado } = usePermisosUsuario(userId);
   const fechaHoraGt = useFechaHora();
 
   const {
@@ -127,6 +132,8 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
   const [tipoRegistroPendiente, setTipoRegistroPendiente] = useState<
     "Entrada" | "Salida" | "Marca" | null
   >(null);
+  const [permisoSeleccionadoParaMapa, setPermisoSeleccionadoParaMapa] = useState<PermisoEmpleado | null>(null);
+  const [permisoParaPreview, setPermisoParaPreview] = useState<PermisoEmpleado | null>(null);
   const [notasPendientes, setNotasPendientes] = useState("");
 
   const {
@@ -231,6 +238,16 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
       isSameDay(parseISO(r.created_at), fechaHoraGt),
     );
   }, [todosLosRegistros, fechaHoraGt]);
+
+  const permisoHoy = useMemo(() => {
+    if (!permisosEmpleado) return null;
+    const hoyStr = format(fechaHoraGt, 'yyyy-MM-dd');
+    return permisosEmpleado.find(p => {
+      const inicioDia = p.inicio.substring(0, 10);
+      const finDia = p.fin.substring(0, 10);
+      return hoyStr >= inicioDia && hoyStr <= finDia;
+    }) || null;
+  }, [permisosEmpleado, fechaHoraGt]);
 
   useEffect(() => {
     if (modalMapaAbierto) {
@@ -391,6 +408,16 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
     const registrosDeEseDia = todosLosRegistros.filter((r: any) =>
       isSameDay(new Date(r.created_at), fechaRegistro),
     );
+    
+    // Buscar permiso para este día
+    const diaString = format(fechaRegistro, 'yyyy-MM-dd');
+    const permiso = permisosEmpleado.find(p => {
+      const inicioDia = p.inicio.substring(0, 10);
+      const finDia = p.fin.substring(0, 10);
+      return diaString >= inicioDia && diaString <= finDia;
+    }) || null;
+
+    setPermisoSeleccionadoParaMapa(permiso);
     setRegistrosSeleccionadosParaMapa({
       entrada:
         registrosDeEseDia.find((r) => r.tipo_registro === "Entrada") || null,
@@ -402,6 +429,7 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
   };
 
   const handleAbrirMapaHoy = () => {
+    setPermisoSeleccionadoParaMapa(permisoHoy);
     setRegistrosSeleccionadosParaMapa({
       entrada: null,
       salida: null,
@@ -596,12 +624,52 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                           Haga clic para ver detalles de ubicación.
                         </p>
-                        <div
-                          onClick={handleAbrirMapaHoy}
-                          className="p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors flex justify-center items-center gap-2 text-blue-700 dark:text-blue-300 font-semibold"
-                        >
-                          <List className="h-4 w-4" />
-                          Ver Asistencia de hoy ({registrosHoyMultiple.length})
+                        <div className="flex items-center gap-1">
+                          {/* Columna 3/4: Asistencia de Hoy (Estilo Calendario) */}
+                          <div 
+                            onClick={handleAbrirMapaHoy}
+                            className="w-3/4 cursor-pointer"
+                          >
+                            {(esHorarioMultiple || registrosHoyMultiple.length > 2) ? (
+                              <div className="p-2 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold flex justify-center items-center gap-2 transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[11px] md:text-sm">
+                                <List className="h-4 w-4" />
+                                <span>Ver Asistencia ({registrosHoyMultiple.length})</span>
+                              </div>
+                            ) : (
+                              <div className="flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center justify-left">
+                                <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                  <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
+                                  {registroEntradaHoy 
+                                    ? format(new Date(registroEntradaHoy.created_at), 'hh:mm aa', { locale: es }) 
+                                    : <span className="text-red-400">--:--</span>}
+                                </span>
+                                <span className="text-gray-300 dark:text-neutral-700">|</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                  <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
+                                  {registroSalidaHoy 
+                                    ? format(new Date(registroSalidaHoy.created_at), 'hh:mm aa', { locale: es }) 
+                                    : <span className="text-red-400">--:--</span>}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Columna 1/4: Permiso de Hoy (Estilo Calendario) */}
+                          <div className="w-1/4">
+                            {permisoHoy ? (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setPermisoParaPreview(permisoHoy); }}
+                                className="w-full py-1.5 px-1 rounded bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300 font-bold flex flex-col justify-center items-center gap-0.5 transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-[9px] leading-tight border border-indigo-100 dark:border-indigo-900/30 shadow-sm"
+                              >
+                                <FileCheck size={14} />
+                                <span className="text-center">Permiso</span>
+                              </button>
+                            ) : (
+                              <div className="w-full py-1.5 px-1 rounded bg-gray-50 dark:bg-neutral-800/50 text-gray-400 dark:text-gray-500 flex flex-col justify-center items-center gap-0.5 text-[9px] leading-tight border border-gray-100 dark:border-neutral-800 opacity-50 cursor-default">
+                                <span className="text-center italic font-medium">N/A</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </>
                     ) : (
@@ -627,6 +695,7 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
                 todosLosRegistros={todosLosRegistros}
                 onAbrirMapa={handleAbrirMapa}
                 fechaHoraGt={fechaHoraGt}
+                permisosEmpleado={permisosEmpleado}
               />
             </motion.div>
           )}
@@ -642,10 +711,18 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
               registros={registrosSeleccionadosParaMapa}
               nombreUsuario={nombre}
               titulo="Asistencia"
+              permiso={permisoSeleccionadoParaMapa}
+              onVerPermiso={setPermisoParaPreview}
             />
           </div>
         )}
       </AnimatePresence>
+
+      <PreviewPermiso
+        isOpen={!!permisoParaPreview}
+        onClose={() => setPermisoParaPreview(null)}
+        permiso={permisoParaPreview}
+      />
     </>
   );
 }

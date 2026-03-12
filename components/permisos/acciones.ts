@@ -161,3 +161,58 @@ export async function eliminarPermiso(id: string) {
   await supabase.from("permisos_empleado").delete().eq("id", id);
   revalidatePath("/protected/permisos");
 }
+
+export async function obtenerPermisosDelUsuario(userId: string): Promise<PermisoEmpleado[]> {
+  const supabase = await createClient();
+  
+  const [{ data, error }, { data: infoUsuario }] = await Promise.all([
+    supabase
+      .from("permisos_empleado")
+      .select("*")
+      .eq("user_id", userId)
+      .order("inicio", { ascending: false }),
+    supabase
+      .from("info_usuario")
+      .select("nombre, dependencia_id")
+      .eq("user_id", userId)
+      .single(),
+  ]);
+
+  if (error || !data) return [];
+
+  // Si tenemos info del usuario, obtener el nombre de su dependencia (puesto)
+  let puestoNombre: string | null = null;
+  let oficinaNombre: string | null = null;
+  if (infoUsuario?.dependencia_id) {
+    const { data: dep } = await supabase
+      .from("dependencias")
+      .select("nombre, parent_id")
+      .eq("id", infoUsuario.dependencia_id)
+      .single();
+    if (dep) {
+      puestoNombre = dep.nombre;
+      // Obtener la oficina (parent de la dependencia)
+      if (dep.parent_id) {
+        const { data: parent } = await supabase
+          .from("dependencias")
+          .select("nombre")
+          .eq("id", dep.parent_id)
+          .single();
+        oficinaNombre = parent?.nombre || dep.nombre;
+      } else {
+        oficinaNombre = dep.nombre;
+      }
+    }
+  }
+
+  const usuarioInfo = infoUsuario ? {
+    id: userId,
+    nombre: infoUsuario.nombre,
+    puesto_nombre: puestoNombre,
+    oficina_nombre: oficinaNombre,
+    dependencia_id: infoUsuario.dependencia_id,
+    oficina_path_orden: null,
+  } : undefined;
+
+  return data.map(p => ({ ...p, usuario: usuarioInfo })) as unknown as PermisoEmpleado[];
+}

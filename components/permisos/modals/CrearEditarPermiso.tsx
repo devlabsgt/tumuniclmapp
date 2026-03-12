@@ -183,6 +183,26 @@ export default function CrearEditarPermiso({
     if (selectedTipo === "Otros" && !otroTipoManual.trim())
       return toast.error("Especifique el tipo.");
 
+    const form = e.currentTarget;
+    const inicioVal = (form.querySelector('input[name="inicio"]') as HTMLInputElement).value;
+    const finVal = (form.querySelector('input[name="fin"]') as HTMLInputElement).value;
+
+    if (!inicioVal || !finVal) {
+      return toast.error("Debe ingresar ambas fechas.");
+    }
+
+    const inicioDate = new Date(inicioVal);
+    const finDate = new Date(finVal);
+    const ahora = new Date();
+
+    if (finDate <= inicioDate) {
+      return toast.error("La fecha de fin debe ser posterior a la de inicio.");
+    }
+
+    if (finDate < ahora && !permisoAEditar) {
+      return toast.error("La fecha de fin no puede ser en el pasado.");
+    }
+
     setLoading(true);
     const formData = new FormData(e.currentTarget);
     formData.set("user_id", userId);
@@ -372,7 +392,7 @@ export default function CrearEditarPermiso({
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-gray-600 dark:text-gray-400">
                 Inicio

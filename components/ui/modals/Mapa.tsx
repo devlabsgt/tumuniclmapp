@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, MapPin, ArrowUpDown, Eye, EyeOff } from 'lucide-react';
+import { X, MapPin, ArrowUpDown, Eye, EyeOff, FileCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -20,11 +20,13 @@ interface MapaModalProps {
   registros: { entrada: Registro | null, salida: Registro | null, multiple?: Registro[] };
   nombreUsuario: string;
   titulo?: string;
+  permiso?: any | null;
+  onVerPermiso?: (permiso: any) => void;
 }
 
 type SortOrder = 'asc' | 'desc';
 
-export default function Mapa({ isOpen, onClose, registros, nombreUsuario, titulo }: MapaModalProps) {
+export default function Mapa({ isOpen, onClose, registros, nombreUsuario, titulo, permiso, onVerPermiso }: MapaModalProps) {
   const [rawRegistros, setRawRegistros] = useState<Registro[]>([]);
   const [registroActivo, setRegistroActivo] = useState<Registro | null>(null);
   const [mapaVisible, setMapaVisible] = useState(true);
@@ -140,6 +142,31 @@ export default function Mapa({ isOpen, onClose, registros, nombreUsuario, titulo
                     {mapaVisible ? 'Ocultar Mapa' : 'Mostrar Mapa'}
                   </button>
               </div>
+              
+              {/* Sección de Permiso si existe */}
+              {permiso && (
+                <div className="p-2 border-b border-gray-200 dark:border-neutral-800 bg-indigo-50/50 dark:bg-indigo-900/10">
+                  <button
+                    onClick={() => onVerPermiso?.(permiso)}
+                    className="w-full p-3 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-all flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-indigo-600 rounded-lg text-white shadow-sm">
+                        <FileCheck size={16} />
+                      </div>
+                      <div className="text-left">
+                        <span className="block text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Permiso del día</span>
+                        <span className="block text-sm font-semibold text-indigo-900 dark:text-indigo-200 capitalize">
+                          {permiso.tipo.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                      VER DETALLE
+                    </div>
+                  </button>
+                </div>
+              )}
               
               {/* Lista de registros */}
               <div className="flex-grow overflow-y-auto p-2 space-y-2 scrollbar-thin dark:scrollbar-track-neutral-900 dark:scrollbar-thumb-neutral-700">
