@@ -31,8 +31,11 @@ export default function OficinaAccordion({
 
   let diaActual = "";
 
-  const formatTime = (iso: string | null | undefined, hasPermiso: boolean) => {
-    if (!iso) return <span className={`${hasPermiso ? 'text-blue-500' : 'text-red-500'} font-bold`}>--:--</span>;
+  const formatTime = (iso: string | null | undefined, permiso: PermisoEmpleado | null) => {
+    if (!iso) {
+      const isVacaciones = permiso?.tipo.toLowerCase().includes('vacaciones');
+      return <span className={`${permiso ? (isVacaciones ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-500'} font-bold`}>--:--</span>;
+    }
     return format(parseISO(iso), 'hh:mm aa', { locale: es });
   };
 
@@ -47,12 +50,17 @@ export default function OficinaAccordion({
 
   const JustificacionBtn = ({ permiso, totalRegistros, fechaStr }: { permiso: PermisoEmpleado | null, totalRegistros: number, fechaStr: string }) => {
     if (permiso) {
+      const esVacaciones = permiso.tipo.toLowerCase().includes('vacaciones');
       return (
         <button
           onClick={(e) => { e.stopPropagation(); onVerPermiso?.(permiso); }}
-          className="w-full py-1 px-1 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 font-bold flex items-center justify-center text-center text-[9px] leading-tight border border-blue-100 dark:border-blue-900/30 transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/40 shadow-sm"
+          className={`w-full py-1 px-1 rounded font-bold flex items-center justify-center text-center text-[9px] leading-tight transition-colors shadow-sm border cursor-pointer ${
+            esVacaciones
+              ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 border-purple-100 dark:border-purple-900/30'
+              : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 border-blue-100 dark:border-blue-900/30'
+          }`}
         >
-          Permiso
+          {esVacaciones ? 'Vacaciones' : 'Permiso'}
         </button>
       );
     }
@@ -164,7 +172,7 @@ export default function OficinaAccordion({
                                       </div>
                                     ) : esVacio ? (
                                       <div className="flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center">
-                                        <span className={`text-[9px] md:text-sm font-medium italic whitespace-nowrap ${permiso ? 'text-blue-500 dark:text-blue-400' : 'text-red-500 dark:text-red-400'}`}>
+                                        <span className={`text-[9px] md:text-sm font-medium italic whitespace-nowrap ${permiso ? (permiso.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-500 dark:text-red-400'}`}>
                                           Sin registros de asistencia
                                         </span>
                                       </div>
@@ -172,17 +180,17 @@ export default function OficinaAccordion({
                                       <div className="flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center">
                                         <span className="text-[9px] md:text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                           <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
-                                          {formatTime(registro.entrada?.created_at || registro.entrada?.fecha_hora, !!permiso)}
+                                          {formatTime(registro.entrada?.created_at || registro.entrada?.fecha_hora, permiso)}
                                         </span>
                                         <span className="text-gray-300 dark:text-neutral-700">|</span>
                                         <span className="text-[9px] md:text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                           <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
-                                          {formatTime(registro.salida?.created_at || registro.salida?.fecha_hora, !!permiso)}
+                                          {formatTime(registro.salida?.created_at || registro.salida?.fecha_hora, permiso)}
                                         </span>
                                       </div>
                                     )}
                                   </div>
-                                  <div className="w-1/4 flex-shrink-0">
+                                  <div className="w-1/4 flex-shrink-0 cursor-pointer">
                                     <JustificacionBtn permiso={permiso} totalRegistros={totalRegistros} fechaStr={registro.diaString} />
                                   </div>
                                 </div>
@@ -271,17 +279,17 @@ export default function OficinaAccordion({
                                         <div className="flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center">
                                           <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                             <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
-                                            {formatTime(asistencia.entrada?.created_at || asistencia.entrada?.fecha_hora, !!permiso)}
+                                            {formatTime(asistencia.entrada?.created_at || asistencia.entrada?.fecha_hora, permiso)}
                                           </span>
                                           <span className="text-gray-300 dark:text-neutral-700">|</span>
                                           <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                             <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
-                                            {formatTime(asistencia.salida?.created_at || asistencia.salida?.fecha_hora, !!permiso)}
+                                            {formatTime(asistencia.salida?.created_at || asistencia.salida?.fecha_hora, permiso)}
                                           </span>
                                         </div>
                                       )}
                                     </div>
-                                    <div className="w-1/4 flex-shrink-0">
+                                    <div className="w-1/4 flex-shrink-0 cursor-pointer">
                                       <JustificacionBtn permiso={permiso} totalRegistros={totalRegistros} fechaStr={asistencia.diaString} />
                                     </div>
                                   </div>

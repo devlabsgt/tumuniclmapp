@@ -47,13 +47,18 @@ const ListaAsistencias: React.FC<ListaAsistenciasProps> = ({
 
     const JustificacionBtn = ({ permiso, totalRegistros, fechaStr }: { permiso: PermisoEmpleado | null, totalRegistros: number, fechaStr: string }) => {
         if (permiso) {
+            const esVacaciones = permiso.tipo.toLowerCase().includes('vacaciones');
             return (
                 <button
                     onClick={(e) => { e.stopPropagation(); onVerPermiso?.(permiso); }}
-                    className="w-full py-1.5 px-1.5 rounded bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300 font-bold flex flex-row items-center justify-center gap-1 transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-[9px] leading-tight border border-indigo-100 dark:border-indigo-900/30 shadow-sm"
+                    className={`w-full py-1.5 px-1.5 rounded font-bold flex flex-row items-center justify-center gap-1 transition-colors text-[9px] leading-tight border shadow-sm cursor-pointer ${
+                        esVacaciones
+                            ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 border-purple-100 dark:border-purple-900/30'
+                            : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 border-blue-100 dark:border-blue-900/30'
+                    }`}
                 >
                     <FileCheck size={12} />
-                    <span className="text-center">Permiso</span>
+                    <span className="text-center">{esVacaciones ? 'Vacaciones' : 'Permiso'}</span>
                 </button>
             );
         }
@@ -157,8 +162,8 @@ const ListaAsistencias: React.FC<ListaAsistenciasProps> = ({
                                                                     multiple: esMultiple ? asistencia.multiple : undefined
                                                                 }, usuario.nombre)}
                                                             >
-                                                                {sinRegistros ? (
-                                                                    <span className={`text-[9px] font-medium ${permiso ? 'text-blue-500 dark:text-blue-400' : 'text-red-400 dark:text-red-400'}`}>Sin registros</span>
+                                                                 {sinRegistros ? (
+                                                                    <span className={`text-[9px] font-medium ${permiso ? (permiso.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-400 dark:text-red-400'}`}>Sin registros</span>
                                                                 ) : esMultiple || totalRegistros > 2 ? (
                                                                     <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold flex items-center gap-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[9px]">
                                                                         <List size={12} /> Ver Asistencia ({totalRegistros})
@@ -169,20 +174,20 @@ const ListaAsistencias: React.FC<ListaAsistenciasProps> = ({
                                                                             <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
                                                                             {asistencia.entrada
                                                                                 ? format(parseISO(asistencia.entrada.created_at), 'hh:mm aa', { locale: es })
-                                                                                : <span className={`${permiso ? 'text-blue-500' : 'text-red-400'} font-bold`}>--:--</span>}
+                                                                                : <span className={`${permiso ? (permiso.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-400'} font-bold`}>--:--</span>}
                                                                         </span>
                                                                         <span className="text-gray-300 dark:text-neutral-700">|</span>
                                                                         <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                                                             <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
                                                                             {asistencia.salida
                                                                                 ? format(parseISO(asistencia.salida.created_at), 'hh:mm aa', { locale: es })
-                                                                                : <span className={`${permiso ? 'text-blue-500' : 'text-red-400'} font-bold`}>--:--</span>}
+                                                                                : <span className={`${permiso ? (permiso.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-400'} font-bold`}>--:--</span>}
                                                                         </span>
                                                                     </div>
                                                                 )}
                                                             </div>
                                                             {/* 1/4: Permiso */}
-                                                            <div className="w-1/4 flex-shrink-0">
+                                                            <div className="w-1/4 flex-shrink-0 cursor-pointer">
                                                                 <JustificacionBtn permiso={permiso} totalRegistros={totalRegistros} fechaStr={asistencia.diaString} />
                                                             </div>
                                                         </div>
@@ -247,7 +252,7 @@ const ListaAsistencias: React.FC<ListaAsistenciasProps> = ({
                                                         }, registro.nombre)}
                                                     >
                                                         {sinRegistros ? (
-                                                            <span className={`text-[9px] font-medium ${permiso ? 'text-blue-500 dark:text-blue-400' : 'text-red-400'}`}>Sin registros</span>
+                                                            <span className={`text-[9px] font-medium ${permiso ? (permiso.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-400'}`}>Sin registros</span>
                                                         ) : esMultiple || totalRegistros > 2 ? (
                                                             <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold flex items-center gap-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[9px]">
                                                                 <List size={12} /> Ver Asistencia ({totalRegistros})
@@ -258,20 +263,20 @@ const ListaAsistencias: React.FC<ListaAsistenciasProps> = ({
                                                                     <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
                                                                     {registro.entrada
                                                                         ? format(parseISO(registro.entrada.created_at), 'hh:mm aa', { locale: es })
-                                                                        : <span className={`${permiso ? 'text-blue-500' : 'text-red-400'} font-bold`}>--:--</span>}
+                                                                        : <span className={`${permiso ? (permiso.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-400'} font-bold`}>--:--</span>}
                                                                 </span>
                                                                 <span className="text-gray-300 dark:text-neutral-700">|</span>
                                                                 <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                                                     <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
                                                                     {registro.salida
                                                                         ? format(parseISO(registro.salida.created_at), 'hh:mm aa', { locale: es })
-                                                                        : <span className={`${permiso ? 'text-blue-500' : 'text-red-400'} font-bold`}>--:--</span>}
+                                                                        : <span className={`${permiso ? (permiso.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-400'} font-bold`}>--:--</span>}
                                                                 </span>
                                                             </div>
                                                         )}
                                                     </div>
                                                     {/* 1/4: Permiso */}
-                                                    <div className="w-1/4 flex-shrink-0">
+                                                    <div className="w-1/4 flex-shrink-0 cursor-pointer">
                                                         <JustificacionBtn permiso={permiso} totalRegistros={totalRegistros} fechaStr={registro.diaString} />
                                                     </div>
                                                 </div>

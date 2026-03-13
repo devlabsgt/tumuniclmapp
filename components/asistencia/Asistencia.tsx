@@ -641,27 +641,30 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
                                   <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
                                   {registroEntradaHoy 
                                     ? format(new Date(registroEntradaHoy.created_at), 'hh:mm aa', { locale: es }) 
-                                    : <span className={`${permisoHoy ? 'text-blue-500' : 'text-red-400'} font-bold`}>--:--</span>}
+                                    : <span className={`${permisoHoy ? (permisoHoy.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-400'} font-bold`}>--:--</span>}
                                 </span>
                                 <span className="text-gray-300 dark:text-neutral-700">|</span>
                                 <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                   <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
                                   {registroSalidaHoy 
                                     ? format(new Date(registroSalidaHoy.created_at), 'hh:mm aa', { locale: es }) 
-                                    : <span className={`${permisoHoy ? 'text-blue-500' : 'text-red-400'} font-bold`}>--:--</span>}
+                                    : <span className={`${permisoHoy ? (permisoHoy.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-400'} font-bold`}>--:--</span>}
                                 </span>
                               </div>
                             )}
                           </div>
 
-                          {/* Columna 1/4: Permiso de Hoy (Estilo Calendario) */}
-                          <div className="w-1/4">
+                          <div className="w-1/4 cursor-pointer">
                             {permisoHoy ? (
                               <button
                                 onClick={(e) => { e.stopPropagation(); setPermisoParaPreview(permisoHoy); }}
-                                className="w-full py-1.5 px-1 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 font-bold flex items-center justify-center text-center transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[9px] leading-tight border border-blue-100 dark:border-blue-900/30 shadow-sm"
+                                className={`w-full py-1.5 px-1 rounded font-bold flex items-center justify-center text-center transition-colors text-[9px] leading-tight border shadow-sm cursor-pointer ${
+                                  permisoHoy.tipo.toLowerCase().includes('vacaciones')
+                                    ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 border-purple-100 dark:border-purple-900/30'
+                                    : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 border-blue-100 dark:border-blue-900/30'
+                                }`}
                               >
-                                Permiso
+                                {permisoHoy.tipo.toLowerCase().includes('vacaciones') ? 'Vacaciones' : 'Permiso'}
                               </button>
                             ) : registrosHoyMultiple.length >= 2 ? (
                               <div className="w-full py-1.5 px-1 rounded bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400 font-bold flex items-center justify-center text-center text-[9px] leading-tight border border-green-100 dark:border-green-900/30 cursor-default transition-colors shadow-sm">
@@ -688,21 +691,25 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
                           <div className="w-3/4 flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center justify-left px-2">
                              <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
-                               <span className={`${permisoHoy ? 'text-blue-500' : 'text-red-400'} font-bold`}>--:--</span>
+                               <span className={`${permisoHoy ? (permisoHoy.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-400'} font-bold`}>--:--</span>
                              </span>
                              <span className="text-gray-300 dark:text-neutral-700">|</span>
                              <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
-                               <span className={`${permisoHoy ? 'text-blue-500' : 'text-red-400'} font-bold`}>--:--</span>
+                               <span className={`${permisoHoy ? (permisoHoy.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-400'} font-bold`}>--:--</span>
                              </span>
                           </div>
-                          <div className="w-1/4">
+                          <div className="w-1/4 cursor-pointer">
                             {permisoHoy ? (
                               <button
                                 onClick={(e) => { e.stopPropagation(); setPermisoParaPreview(permisoHoy); }}
-                                className="w-full py-1.5 px-1 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 font-bold flex items-center justify-center text-center transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[9px] leading-tight border border-blue-100 dark:border-blue-900/30 shadow-sm"
+                                className={`w-full py-1.5 px-1 rounded font-bold flex items-center justify-center text-center transition-colors text-[9px] leading-tight border shadow-sm cursor-pointer ${
+                                  permisoHoy.tipo.toLowerCase().includes('vacaciones')
+                                    ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 border-purple-100 dark:border-purple-900/30'
+                                    : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 border-blue-100 dark:border-blue-900/30'
+                                }`}
                               >
-                                Permiso
+                                {permisoHoy.tipo.toLowerCase().includes('vacaciones') ? 'Vacaciones' : 'Permiso'}
                               </button>
                             ) : registrosHoyMultiple.length >= 2 ? (
                               <div className="w-full py-1.5 px-1 rounded bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400 font-bold flex items-center justify-center text-center text-[9px] leading-tight border border-green-100 dark:border-green-900/30 cursor-default transition-colors shadow-sm">

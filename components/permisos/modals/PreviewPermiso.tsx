@@ -110,7 +110,7 @@ export default function PreviewPermiso({ permiso, isOpen, onClose }: Props) {
               </p>
             </div>
             <div className="flex flex-col justify-center items-center bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-900/30 px-2 py-2 text-center">
-              <label className="text-[9px] font-bold text-blue-400 uppercase tracking-widest mb-0.5">Permiso</label>
+              <label className="text-[9px] font-bold text-blue-400 uppercase tracking-widest mb-0.5">Justificación</label>
               <p className="text-[9px] font-black text-blue-800 dark:text-blue-200 capitalize leading-snug">
                 {permiso.tipo.replace(/_/g, " ")}
               </p>
