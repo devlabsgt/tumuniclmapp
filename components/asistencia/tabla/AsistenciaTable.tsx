@@ -104,12 +104,26 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
       const map: Record<string, PermisoEmpleado[]> = {};
       data.forEach((p: any) => {
         if (!map[p.user_id]) map[p.user_id] = [];
-        map[p.user_id].push(p as PermisoEmpleado);
+        
+        const user = todosLosUsuarios.find((u: any) => u.id === p.user_id) as any;
+        const permisoE: PermisoEmpleado = {
+          ...p,
+          usuario: user ? {
+            id: user.id,
+            nombre: user.nombre,
+            puesto_nombre: user.puesto_nombre,
+            oficina_nombre: user.oficina_nombre,
+            dependencia_id: user.dependencia_id || null,
+            oficina_path_orden: user.oficina_path_orden || null,
+          } : undefined
+        };
+        
+        map[p.user_id].push(permisoE);
       });
       setPermisosMap(map);
     };
     fetchPermisos();
-  }, [fechaInicialRango, fechaFinalRango]);
+  }, [fechaInicialRango, fechaFinalRango, todosLosUsuarios]);
 
   const oficinasNivel2 = useMemo(() => {
     const rootIds = new Set(dependencias.filter(d => d.parent_id === null).map(d => d.id));
