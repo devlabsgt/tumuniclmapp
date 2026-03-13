@@ -305,36 +305,38 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
                     return (
                       <button
                         onClick={(e) => { e.stopPropagation(); setPermisoPreview(permiso); }}
-                        className="w-full py-1 px-1.5 rounded bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300 font-bold flex flex-row items-center justify-center gap-1 transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-[9px] leading-tight border border-indigo-100 dark:border-indigo-900/30 shadow-sm"
+                        className="w-full py-1 px-1.5 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 font-bold flex items-center justify-center text-center transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[9px] leading-tight border border-blue-100 dark:border-blue-900/30 shadow-sm"
                       >
-                        <FileCheck size={12} />
-                        <span className="text-center">Permiso</span>
+                        Permiso
                       </button>
                     );
                   }
                   
-                  // Futuro: ocultar si no hay nada
                   const fechaDia = parseISO(fechaStr + 'T00:00:00');
-                  const esFuturo = isAfter(fechaDia, startOfToday());
-                  if (esFuturo && totalRegistros === 0) {
+                  const esHoyOFuturo = isToday(fechaDia) || isAfter(fechaDia, startOfToday());
+                  
+                  if (esHoyOFuturo && totalRegistros === 0) {
                     return null;
                   }
 
-                  // 0 o 1 registros = Sin Permiso
                   if (totalRegistros < 2) {
+                    if (esHoyOFuturo) {
+                      return (
+                        <div className="w-full py-1 px-1.5 rounded bg-gray-100 dark:bg-neutral-800 text-gray-400 dark:text-gray-500 font-bold flex items-center justify-center text-center text-[9px] leading-tight border border-gray-200 dark:border-neutral-700 cursor-default transition-colors shadow-sm">
+                          Esperando Asistencia
+                        </div>
+                      );
+                    }
                     return (
-                      <div className="w-full py-1 px-1.5 rounded bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold flex flex-row items-center justify-center gap-1 text-[9px] leading-tight border border-red-100 dark:border-red-900/30 cursor-default transition-colors shadow-sm">
-                        <AlertCircle size={12} />
-                        <span className="text-center">Sin Permiso</span>
+                      <div className="w-full py-1 px-1.5 rounded bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold flex items-center justify-center text-center text-[9px] leading-tight border border-red-100 dark:border-red-900/30 cursor-default transition-colors shadow-sm">
+                        Sin Permiso
                       </div>
                     );
                   }
 
-                  // 2 o más registros = Asistencia Correcta
                   return (
-                    <div className="w-full py-1 px-1.5 rounded bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400 font-bold flex flex-row items-center justify-center gap-1 text-[9px] leading-tight border border-green-100 dark:border-green-900/30 cursor-default transition-colors shadow-sm">
-                      <FileCheck size={12} className="opacity-70" />
-                      <span className="text-center">Asist. Correcta</span>
+                    <div className="w-full py-1 px-1.5 rounded bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400 font-bold flex items-center justify-center text-center text-[9px] leading-tight border border-green-100 dark:border-green-900/30 cursor-default transition-colors shadow-sm">
+                      Correcto
                     </div>
                   );
                 };
@@ -369,8 +371,8 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
                                   {sinRegistros ? (
                                     <span className={`text-[9px] font-medium ${permisoDelDia ? 'text-blue-500 dark:text-blue-400' : 'text-red-500 dark:text-red-400'}`}>Sin registros</span>
                                   ) : (esHorarioMultiple || usuario.tieneMultiple) ? (
-                                    <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold flex items-center gap-1.5 transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[9px]">
-                                      <List size={12} /> Ver Asistencia ({usuario.cantidad})
+                                    <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold flex items-center justify-center text-center transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[9px]">
+                                      Ver Asistencia ({usuario.cantidad})
                                     </div>
                                   ) : (
                                     <div className="flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center justify-left">
@@ -405,8 +407,10 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
                           <div className="flex items-center gap-1">
                             <div className="w-3/4">
                                 {permisoDelDia
-                                  ? <span className="text-[9px] text-blue-500 font-medium italic">Ent. --:-- | Sal. --:-- (Con Permiso)</span>
-                                  : <span className="text-[9px] text-red-500 dark:text-red-400 font-medium">Sin registros de asistencia</span>
+                                  ? <span className="text-xs text-blue-500 font-medium">Sin registros de asistencia</span>
+                                  : !isToday(fechaDia) && !isAfter(fechaDia, startOfToday())
+                                    ? <span className="text-xs text-red-500 dark:text-red-400 font-medium">Sin registros de asistencia</span>
+                                    : null
                                 }
                               </div>
                               <div className="w-1/4 flex-shrink-0">

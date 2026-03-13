@@ -12,6 +12,7 @@ import {
   addMinutes,
   isBefore,
   isAfter,
+  isToday,
   parseISO,
 } from "date-fns";
 import {
@@ -631,9 +632,8 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
                             className="w-3/4 cursor-pointer"
                           >
                             {(esHorarioMultiple || registrosHoyMultiple.length > 2) ? (
-                              <div className="p-2 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold flex justify-center items-center gap-2 transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[11px] md:text-sm">
-                                <List className="h-4 w-4" />
-                                <span>Ver Asistencia ({registrosHoyMultiple.length})</span>
+                              <div className="p-2 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold flex justify-center items-center text-center transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[11px] md:text-sm">
+                                Ver Asistencia ({registrosHoyMultiple.length})
                               </div>
                             ) : (
                               <div className="flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center justify-left">
@@ -659,20 +659,17 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
                             {permisoHoy ? (
                               <button
                                 onClick={(e) => { e.stopPropagation(); setPermisoParaPreview(permisoHoy); }}
-                                className="w-full py-1.5 px-1 rounded bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300 font-bold flex flex-row items-center justify-center gap-1 transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-[9px] leading-tight border border-indigo-100 dark:border-indigo-900/30 shadow-sm"
+                                className="w-full py-1.5 px-1 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 font-bold flex items-center justify-center text-center transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[9px] leading-tight border border-blue-100 dark:border-blue-900/30 shadow-sm"
                               >
-                                <FileCheck size={14} />
-                                <span className="text-center">Permiso</span>
+                                Permiso
                               </button>
-                            ) : registrosHoyMultiple.length < 2 ? (
-                              <div className="w-full py-1.5 px-1 rounded bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 font-bold flex flex-row items-center justify-center gap-1 text-[9px] leading-tight border border-red-100 dark:border-red-900/30 cursor-default transition-colors shadow-sm">
-                                <AlertCircle size={14} />
-                                <span className="text-center">Sin Permiso</span>
+                            ) : registrosHoyMultiple.length >= 2 ? (
+                              <div className="w-full py-1.5 px-1 rounded bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400 font-bold flex items-center justify-center text-center text-[9px] leading-tight border border-green-100 dark:border-green-900/30 cursor-default transition-colors shadow-sm">
+                                Correcto
                               </div>
                             ) : (
-                              <div className="w-full py-1.5 px-1 rounded bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400 font-bold flex flex-row items-center justify-center gap-1 text-[9px] leading-tight border border-green-100 dark:border-green-900/30 cursor-default transition-colors shadow-sm">
-                                <FileCheck size={14} className="opacity-70" />
-                                <span className="text-center">Asist. Correcta</span>
+                              <div className="w-full py-1.5 px-1 rounded bg-gray-100 dark:bg-neutral-800 text-gray-400 dark:text-gray-500 font-bold flex items-center justify-center text-center text-[9px] leading-tight border border-gray-200 dark:border-neutral-700 cursor-default transition-colors shadow-sm">
+                                Esperando Asistencia
                               </div>
                             )}
                           </div>
@@ -703,20 +700,17 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
                             {permisoHoy ? (
                               <button
                                 onClick={(e) => { e.stopPropagation(); setPermisoParaPreview(permisoHoy); }}
-                                className="w-full py-1.5 px-1 rounded bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300 font-bold flex flex-row items-center justify-center gap-1 transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-[9px] leading-tight border border-indigo-100 dark:border-indigo-900/30 shadow-sm"
+                                className="w-full py-1.5 px-1 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 font-bold flex items-center justify-center text-center transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[9px] leading-tight border border-blue-100 dark:border-blue-900/30 shadow-sm"
                               >
-                                <FileCheck size={14} />
-                                <span className="text-center">Permiso</span>
+                                Permiso
                               </button>
-                            ) : registrosHoyMultiple.length < 2 ? (
-                              <div className="w-full py-1.5 px-1 rounded bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 font-bold flex flex-row items-center justify-center gap-1 text-[9px] leading-tight border border-red-100 dark:border-red-900/30 cursor-default transition-colors shadow-sm">
-                                <AlertCircle size={14} />
-                                <span className="text-center">Sin Permiso</span>
+                            ) : registrosHoyMultiple.length >= 2 ? (
+                              <div className="w-full py-1.5 px-1 rounded bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400 font-bold flex items-center justify-center text-center text-[9px] leading-tight border border-green-100 dark:border-green-900/30 cursor-default transition-colors shadow-sm">
+                                Correcto
                               </div>
                             ) : (
-                              <div className="w-full py-1.5 px-1 rounded bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400 font-bold flex flex-row items-center justify-center gap-1 text-[9px] leading-tight border border-green-100 dark:border-green-900/30 cursor-default transition-colors shadow-sm">
-                                <FileCheck size={14} className="opacity-70" />
-                                <span className="text-center">Asist. Correcta</span>
+                              <div className="w-full py-1.5 px-1 rounded bg-gray-100 dark:bg-neutral-800 text-gray-400 dark:text-gray-500 font-bold flex items-center justify-center text-center text-[9px] leading-tight border border-gray-200 dark:border-neutral-700 cursor-default transition-colors shadow-sm">
+                                Esperando Asistencia
                               </div>
                             )}
                           </div>
