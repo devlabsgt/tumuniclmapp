@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   format, 
   startOfWeek, 
@@ -16,9 +16,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Mapa from '@/components/ui/modals/Mapa'; 
 import ListaAsistencias from './ListaAsistencias';
+import PreviewPermiso from '@/components/permisos/modals/PreviewPermiso';
 import { RegistrosAgrupadosPorUsuario, RegistrosAgrupadosDiarios, AsistenciaDiaria, AsistenciaEnriquecida } from './types';
+import { PermisoEmpleado } from '@/components/permisos/types';
 import { AnimatePresence } from 'framer-motion';
 import useAsistenciasOficina from '@/hooks/asistencia/useAsistenciasOficina';
+import { createClient } from '@/utils/supabase/client';
 
 interface AsistenciasOficinasProps {
   oficinaId?: string;
@@ -29,14 +32,50 @@ export default function AsistenciasOficinas({ oficinaId }: AsistenciasOficinasPr
   const [fechaInicio, setFechaInicio] = useState(format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'));
   const [fechaFin, setFechaFin] = useState(format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'));
   const [busqueda, setBusqueda] = useState('');
-  
+
   const [modalMapaAbierto, setModalMapaAbierto] = useState(false);
   const [datosModal, setDatosModal] = useState<{ 
     registros: { entrada: any | null, salida: any | null, multiple?: any[] }, 
     titulo: string 
   } | null>(null);
+  const [permisoPreview, setPermisoPreview] = useState<PermisoEmpleado | null>(null);
+
+  // Permisos de los usuarios de la oficina en el rango de fechas
+  const [permisosMap, setPermisosMap] = useState<Record<string, PermisoEmpleado[]>>({});
 
   const { registros: todosLosRegistros, loading } = useAsistenciasOficina(oficinaId || null, fechaInicio, fechaFin);
+
+  // Obtener permisos de todos los usuarios de la oficina en el rango
+  useEffect(() => {
+    const fetchPermisos = async () => {
+      if (!todosLosRegistros || todosLosRegistros.length === 0) {
+        setPermisosMap({});
+        return;
+      }
+
+      const userIds = [...new Set(todosLosRegistros.map((r: any) => r.user_id as string))];
+      if (userIds.length === 0) return;
+
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('permisos_empleado')
+        .select('*')
+        .in('user_id', userIds)
+        .gte('fin', fechaInicio)
+        .lte('inicio', fechaFin + 'T23:59:59');
+
+      if (error || !data) return;
+
+      const map: Record<string, PermisoEmpleado[]> = {};
+      data.forEach((p: any) => {
+        if (!map[p.user_id]) map[p.user_id] = [];
+        map[p.user_id].push(p as PermisoEmpleado);
+      });
+      setPermisosMap(map);
+    };
+
+    fetchPermisos();
+  }, [todosLosRegistros, fechaInicio, fechaFin]);
 
   const diasDelRango = useMemo(() => {
     const start = parseISO(fechaInicio);
@@ -89,18 +128,10 @@ export default function AsistenciasOficinas({ oficinaId }: AsistenciasOficinasPr
             }
         });
 
-        return {
-          diaString: diaStr,
-          entrada,
-          salida,
-          multiple
-        };
+        return { diaString: diaStr, entrada, salida, multiple };
       });
 
-      return {
-        ...usuario,
-        asistencias: asistenciasUsuario
-      };
+      return { ...usuario, asistencias: asistenciasUsuario };
     });
 
     const dataPorFecha: RegistrosAgrupadosDiarios[] = [];
@@ -146,16 +177,14 @@ export default function AsistenciasOficinas({ oficinaId }: AsistenciasOficinasPr
   }, [todosLosRegistros, diasDelRango, busqueda]);
 
   const handleAbrirModal = (asistencia: { entrada: any, salida: any, multiple?: any[] }, nombreUsuario: string) => {
-    setDatosModal({
-      registros: asistencia,
-      titulo: nombreUsuario
-    });
+    setDatosModal({ registros: asistencia, titulo: nombreUsuario });
     setModalMapaAbierto(true);
   };
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-4">
       
+      {/* Controles */}
       <div className="flex flex-col xl:flex-row gap-4 justify-between items-end xl:items-center bg-white dark:bg-neutral-900 p-4 rounded-lg border border-gray-100 dark:border-neutral-800 shadow-sm">
         
         <div className="flex bg-gray-100 dark:bg-neutral-800 p-1 rounded-md">
@@ -206,19 +235,25 @@ export default function AsistenciasOficinas({ oficinaId }: AsistenciasOficinasPr
         </div>
       </div>
 
+      {/* Tabla */}
       <div className="bg-white dark:bg-neutral-900 rounded-lg shadow-sm border border-gray-100 dark:border-neutral-800 overflow-hidden">
         {loading ? (
-            <div className="p-8 text-center text-gray-500 animate-pulse">Cargando registros...</div>
+            <div className="p-8 text-center text-gray-500 dark:text-gray-400 animate-pulse text-sm">
+              Cargando registros...
+            </div>
         ) : (
             <ListaAsistencias 
                 vista={vista}
                 registrosPorUsuario={registrosProcesados.porUsuario}
                 registrosPorFecha={registrosProcesados.porFecha}
                 onAbrirModal={handleAbrirModal}
+                permisosMap={permisosMap}
+                onVerPermiso={setPermisoPreview}
             />
         )}
       </div>
 
+      {/* Modal Mapa */}
       <AnimatePresence>
         {modalMapaAbierto && datosModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -232,6 +267,13 @@ export default function AsistenciasOficinas({ oficinaId }: AsistenciasOficinasPr
           </div>
         )}
       </AnimatePresence>
+
+      {/* Modal Preview Permiso */}
+      <PreviewPermiso
+        isOpen={!!permisoPreview}
+        onClose={() => setPermisoPreview(null)}
+        permiso={permisoPreview}
+      />
     </div>
   );
 }

@@ -12,6 +12,10 @@ import Cargando from '@/components/ui/animations/Cargando';
 import { AsistenciaEnriquecida } from '@/hooks/asistencia/useObtenerAsistencias';
 import AsistenciaControls from './AsistenciaControls';
 import OficinaAccordion from './OficinaAccordion';
+import PreviewPermiso from '@/components/permisos/modals/PreviewPermiso';
+import { PermisoEmpleado } from '@/components/permisos/types';
+import { createClient } from '@/utils/supabase/client';
+import { useListaUsuarios } from '@/hooks/usuarios/useListarUsuarios';
 
 type Props = {
   registros: AsistenciaEnriquecida[];
@@ -51,10 +55,13 @@ const getWeekLabel = (startDate: Date) => {
 
 export default function AsistenciaTable({ registros, loading, setOficinaId, setFechaInicio, setFechaFinal }: Props) {
   const { dependencias, loading: loadingDependencias } = useDependencias();
+  const { usuarios: todosLosUsuarios } = useListaUsuarios();
 
   const [modalMapaAbierto, setModalMapaAbierto] = useState(false);
   const [registrosSeleccionadosParaMapa, setRegistrosSeleccionadosParaMapa] = useState<{ entrada: any | null, salida: any | null, multiple?: any[] }>({ entrada: null, salida: null });
   const [nombreUsuarioModal, setNombreUsuarioModal] = useState<string>('');
+  const [permisoPreview, setPermisoPreview] = useState<PermisoEmpleado | null>(null);
+  const [permisosMap, setPermisosMap] = useState<Record<string, PermisoEmpleado[]>>({});
   
   const [fechaInicialRango, setFechaInicialRango] = useState(() => format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'));
   const [fechaFinalRango, setFechaFinalRango] = useState(() => format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'));
@@ -71,7 +78,7 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
   const [isNextWeekFuture, setIsNextWeekFuture] = useState(true);
 
   const [incluirFinesSemana, setIncluirFinesSemana] = useState(false);
-  const [ordenDescendente, setOrdenDescendente] = useState(true); 
+  const [ordenDescendente, setOrdenDescendente] = useState(false); 
   const [filtroRapido, setFiltroRapido] = useState<'todos' | 'inasistencia' | 'sin_entrada' | 'sin_salida'>('todos');
 
   useEffect(() => {
@@ -82,6 +89,27 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
     document.body.style.overflow = modalMapaAbierto ? 'hidden' : 'unset';
     return () => { document.body.style.overflow = 'unset'; };
   }, [modalMapaAbierto]);
+
+  // Cargar permisos del rango actual para todos los usuarios
+  useEffect(() => {
+    const fetchPermisos = async () => {
+      if (!fechaInicialRango || !fechaFinalRango) return;
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('permisos_empleado')
+        .select('*')
+        .gte('fin', fechaInicialRango)
+        .lte('inicio', fechaFinalRango + 'T23:59:59');
+      if (!data) return;
+      const map: Record<string, PermisoEmpleado[]> = {};
+      data.forEach((p: any) => {
+        if (!map[p.user_id]) map[p.user_id] = [];
+        map[p.user_id].push(p as PermisoEmpleado);
+      });
+      setPermisosMap(map);
+    };
+    fetchPermisos();
+  }, [fechaInicialRango, fechaFinalRango]);
 
   const oficinasNivel2 = useMemo(() => {
     const rootIds = new Set(dependencias.filter(d => d.parent_id === null).map(d => d.id));
@@ -167,32 +195,94 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
     return registrosTemp;
   }, [registrosFiltrados]);
 
+  // Usuarios agrupados por oficina a partir de la lista completa de usuarios
+  // Esto permite mostrar empleados que no tienen registros en el rango
+  const usuariosPorOficina = useMemo(() => {
+    const map: Record<string, { userId: string; nombre: string; puesto: string; path: string }[]> = {};
+
+    // Primero tomamos los usuarios que SÍ tienen registros (ya los conocemos)
+    Object.entries(registrosDiariosBase).forEach(([oficinaNombre, registrosMap]) => {
+      if (!map[oficinaNombre]) map[oficinaNombre] = [];
+      const ids = new Set<string>();
+      Object.values(registrosMap).forEach(r => {
+        if (!ids.has(r.userId)) {
+          ids.add(r.userId);
+          map[oficinaNombre].push({ userId: r.userId, nombre: r.nombre, puesto: r.puesto_nombre, path: r.oficina_path_orden });
+        }
+      });
+    });
+
+    // Ahora añadimos los usuarios SIN registros usando la lista global
+    todosLosUsuarios.forEach((u: any) => {
+      const oficinaNombre = u.oficina_nombre || 'Sin Oficina';
+      if (!map[oficinaNombre]) return; // Solo oficinas que ya tienen algún registro
+      const yaExiste = map[oficinaNombre].some(x => x.userId === u.id);
+      if (!yaExiste) {
+        // Filtrar por búsqueda
+        if (searchTerm && !u.nombre?.toLowerCase().includes(searchTerm.toLowerCase())) return;
+        map[oficinaNombre].push({
+          userId: u.id,
+          nombre: u.nombre || '',
+          puesto: u.puesto_nombre || '',
+          path: u.oficina_path_orden || ''
+        });
+      }
+    });
+
+    return map;
+  }, [registrosDiariosBase, todosLosUsuarios, searchTerm]);
+
   const datosCompletosFecha = useMemo(() => {
     const agrupadosPorOficina: Record<string, RegistrosAgrupados[]> = {};
     
-    Object.keys(registrosDiariosBase).forEach(oficina => {
+    Object.keys(usuariosPorOficina).forEach(oficina => {
       agrupadosPorOficina[oficina] = [];
       diasIntervalo.forEach(dia => {
         const diaString = format(dia, 'yyyy-MM-dd');
-        const registrosDelDia = Object.values(registrosDiariosBase[oficina])
+        const registrosBase = registrosDiariosBase[oficina] || {};
+        const registrosDelDia = Object.values(registrosBase)
           .filter(r => r.diaString === diaString)
           .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
         if (registrosDelDia.length > 0) {
-            agrupadosPorOficina[oficina].push(...registrosDelDia);
+          // Agregar los que tienen registros
+          agrupadosPorOficina[oficina].push(...registrosDelDia);
+          // Agregar los que NO tienen registros ese día (de la lista completa)
+          const idsConRegistro = new Set(registrosDelDia.map(r => r.userId));
+          usuariosPorOficina[oficina].forEach(u => {
+            if (!idsConRegistro.has(u.userId)) {
+              agrupadosPorOficina[oficina].push({
+                diaString, esAusencia: true, nombre: u.nombre,
+                puesto_nombre: u.puesto, oficina_nombre: oficina,
+                oficina_path_orden: u.path, userId: u.userId,
+                entrada: null, salida: null, multiple: []
+              });
+            }
+          });
+          // Ordenar por nombre dentro del día
+          const startIdx = agrupadosPorOficina[oficina].length - (registrosDelDia.length + (usuariosPorOficina[oficina].length - registrosDelDia.length));
+          agrupadosPorOficina[oficina].sort((a, b) => {
+            if (a.diaString !== b.diaString) return 0;
+            return a.nombre.localeCompare(b.nombre);
+          });
         } else {
+          // Todos ausentes ese día
+          usuariosPorOficina[oficina].forEach(u => {
             agrupadosPorOficina[oficina].push({
-                diaString: diaString,
-                esDiaVacio: true,
-                nombre: '',
-                puesto_nombre: '',
-                oficina_nombre: oficina,
-                oficina_path_orden: '',
-                userId: `vacio-${diaString}`,
-                entrada: null,
-                salida: null,
-                multiple: []
+              diaString, esAusencia: true, nombre: u.nombre,
+              puesto_nombre: u.puesto, oficina_nombre: oficina,
+              oficina_path_orden: u.path, userId: u.userId,
+              entrada: null, salida: null, multiple: []
             });
+          });
+          // Si no hay ningún usuario con registros en esta oficina, solo marcamos día vacío
+          if (usuariosPorOficina[oficina].length === 0) {
+            agrupadosPorOficina[oficina].push({
+              diaString, esDiaVacio: true, nombre: '', puesto_nombre: '',
+              oficina_nombre: oficina, oficina_path_orden: '',
+              userId: `vacio-${diaString}`, entrada: null, salida: null, multiple: []
+            });
+          }
         }
       });
       agrupadosPorOficina[oficina].sort((a, b) => {
@@ -201,59 +291,41 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
       });
     });
     return agrupadosPorOficina;
-  }, [registrosDiariosBase, diasIntervalo, ordenDescendente]);
+  }, [usuariosPorOficina, registrosDiariosBase, diasIntervalo, ordenDescendente]);
 
   const datosCompletosUsuario = useMemo(() => {
     const agrupadosPorOficina: Record<string, UsuarioAgrupado[]> = {};
     
-    Object.entries(registrosDiariosBase).forEach(([oficinaNombre, registrosMap]) => {
-      const usuariosUnicos = new Map<string, { nombre: string, puesto: string, path: string }>();
-      Object.values(registrosMap).forEach(r => {
-        if (!usuariosUnicos.has(r.userId)) {
-            usuariosUnicos.set(r.userId, { nombre: r.nombre, puesto: r.puesto_nombre, path: r.oficina_path_orden });
-        }
-      });
+    Object.entries(usuariosPorOficina).forEach(([oficinaNombre, usuarios]) => {
+      const registrosBase = registrosDiariosBase[oficinaNombre] || {};
 
-      const usuariosDelGrupo: UsuarioAgrupado[] = [];
-      usuariosUnicos.forEach((datosUsuario, userId) => {
-        const asistenciasUsuario: RegistrosAgrupados[] = [];
-        diasIntervalo.forEach(dia => {
-            const diaString = format(dia, 'yyyy-MM-dd');
-            const clave = `${diaString}-${userId}`;
-            if (registrosMap[clave]) {
-                asistenciasUsuario.push(registrosMap[clave]);
-            } else {
-                asistenciasUsuario.push({
-                    diaString: diaString,
-                    esAusencia: true,
-                    nombre: datosUsuario.nombre,
-                    puesto_nombre: datosUsuario.puesto,
-                    oficina_nombre: oficinaNombre,
-                    oficina_path_orden: datosUsuario.path,
-                    userId: userId,
-                    entrada: null,
-                    salida: null,
-                    multiple: []
-                });
-            }
-        });
-        asistenciasUsuario.sort((a, b) => {
-            const compare = a.diaString.localeCompare(b.diaString);
-            return ordenDescendente ? -compare : compare;
-        });
-        usuariosDelGrupo.push({
+      const usuariosDelGrupo: UsuarioAgrupado[] = usuarios.map(datosUsuario => {
+        const { userId } = datosUsuario;
+        const asistenciasUsuario: RegistrosAgrupados[] = diasIntervalo.map(dia => {
+          const diaString = format(dia, 'yyyy-MM-dd');
+          const clave = `${diaString}-${userId}`;
+          if (registrosBase[clave]) return registrosBase[clave];
+          return {
+            diaString, esAusencia: true,
             nombre: datosUsuario.nombre,
             puesto_nombre: datosUsuario.puesto,
+            oficina_nombre: oficinaNombre,
             oficina_path_orden: datosUsuario.path,
-            userId: userId,
-            asistencias: asistenciasUsuario
+            userId, entrada: null, salida: null, multiple: []
+          };
         });
+        asistenciasUsuario.sort((a, b) => {
+          const compare = a.diaString.localeCompare(b.diaString);
+          return ordenDescendente ? -compare : compare;
+        });
+        return { nombre: datosUsuario.nombre, puesto_nombre: datosUsuario.puesto, oficina_path_orden: datosUsuario.path, userId, asistencias: asistenciasUsuario };
       });
+
       usuariosDelGrupo.sort((a, b) => a.nombre.localeCompare(b.nombre));
       agrupadosPorOficina[oficinaNombre] = usuariosDelGrupo;
     });
     return agrupadosPorOficina;
-  }, [registrosDiariosBase, diasIntervalo, ordenDescendente]);
+  }, [usuariosPorOficina, registrosDiariosBase, diasIntervalo, ordenDescendente]);
 
   const estadisticas = useMemo(() => {
     let inasistencias = 0;
@@ -532,13 +604,15 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
                   <table className="w-full table-fixed text-xs">
                     <thead className="bg-slate-50 dark:bg-neutral-900 text-left">
                       <tr>
-                        <th className="py-3 px-4 text-[10px] xl:text-xs w-[40%] font-semibold text-slate-600 dark:text-slate-300">
-                          <div className="flex items-center gap-2">
-                            {vistaAgrupada === 'fecha' ? 'Usuario' : 'Fecha'}
+                        <th className="py-3 px-3 text-[10px] xl:text-xs w-[35%] font-semibold text-slate-600 dark:text-slate-300">
+                          {vistaAgrupada === 'fecha' ? 'Usuario' : 'Fecha'}
+                        </th>
+                        <th className="py-3 px-3 text-[10px] xl:text-xs" colSpan={2}>
+                          <div className="flex items-center">
+                            <span className="w-3/4 font-semibold text-slate-600 dark:text-slate-300">Marcaje</span>
+                            <span className="w-1/4 text-center text-indigo-500 dark:text-indigo-400 font-semibold">Justificación</span>
                           </div>
                         </th>
-                        <th className="py-3 px-2 text-[10px] xl:text-xs w-[30%] text-center font-semibold text-slate-600 dark:text-slate-300">Entrada</th>
-                        <th className="py-3 px-2 text-[10px] xl:text-xs w-[30%] text-center font-semibold text-slate-600 dark:text-slate-300">Salida</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -554,6 +628,8 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
                           estaAbierta={oficinasAbiertas[nombreOficina] || false}
                           onToggle={() => toggleOficina(nombreOficina)}
                           onAbrirModal={handleAbrirModalMapa}
+                          permisosMap={permisosMap}
+                          onVerPermiso={setPermisoPreview}
                         />
                       ))}
                       {oficinasOrdenadas.length === 0 && (
@@ -581,6 +657,12 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
           />
         )}
       </AnimatePresence>
+
+      <PreviewPermiso
+        isOpen={!!permisoPreview}
+        onClose={() => setPermisoPreview(null)}
+        permiso={permisoPreview}
+      />
     </>
   );
 }

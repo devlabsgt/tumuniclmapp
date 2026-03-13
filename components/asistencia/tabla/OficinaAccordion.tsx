@@ -2,17 +2,21 @@
 
 import React, { Fragment } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, List, AlertCircle, LogIn, LogOut } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { ChevronDown, List, AlertCircle, LogIn, LogOut, FileCheck } from 'lucide-react';
+import { format, parseISO, isAfter, startOfToday } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { PermisoEmpleado } from '@/components/permisos/types';
 
 interface OficinaAccordionProps {
   nombreOficina: string;
-  registros: any[]; 
+  registros: any[];
   vistaAgrupada: 'nombre' | 'fecha';
   estaAbierta: boolean;
   onToggle: () => void;
   onAbrirModal: (reg: any, nombre?: string) => void;
+  // Permisos indexados por userId -> lista
+  permisosMap?: Record<string, PermisoEmpleado[]>;
+  onVerPermiso?: (permiso: PermisoEmpleado) => void;
 }
 
 export default function OficinaAccordion({
@@ -21,21 +25,70 @@ export default function OficinaAccordion({
   vistaAgrupada,
   estaAbierta,
   onToggle,
-  onAbrirModal
+  onAbrirModal,
+  permisosMap = {},
+  onVerPermiso,
 }: OficinaAccordionProps) {
-  
+
   let diaActual = "";
 
-  const formatTime = (iso: string | null | undefined) => {
-    if (!iso) return <span className="text-red-500 font-bold tracking-wider">--:--</span>;
-    return format(parseISO(iso), 'hh:mm a', { locale: es });
+  const formatTime = (iso: string | null | undefined, hasPermiso: boolean) => {
+    if (!iso) return <span className={`${hasPermiso ? 'text-blue-500' : 'text-red-500'} font-bold`}>--:--</span>;
+    return format(parseISO(iso), 'hh:mm aa', { locale: es });
+  };
+
+  const getPermisoParaDia = (userId: string, diaString: string): PermisoEmpleado | null => {
+    const permisos = permisosMap[userId] || [];
+    return permisos.find(p => {
+      const ini = p.inicio.substring(0, 10);
+      const fin = p.fin.substring(0, 10);
+      return diaString >= ini && diaString <= fin;
+    }) || null;
+  };
+
+  const JustificacionBtn = ({ permiso, totalRegistros, fechaStr }: { permiso: PermisoEmpleado | null, totalRegistros: number, fechaStr: string }) => {
+    if (permiso) {
+      return (
+        <button
+          onClick={(e) => { e.stopPropagation(); onVerPermiso?.(permiso); }}
+          className="w-full py-1 px-1 rounded bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300 font-bold flex flex-row items-center justify-center gap-1 transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-[9px] leading-tight border border-indigo-100 dark:border-indigo-900/30 shadow-sm"
+        >
+          <FileCheck size={11} />
+          <span>Permiso</span>
+        </button>
+      );
+    }
+    
+    // Si la fecha es futura, no mostramos nada si no hay registros ni permiso
+    const fechaDia = parseISO(fechaStr + 'T00:00:00');
+    const esFuturo = isAfter(fechaDia, startOfToday());
+    
+    if (esFuturo && totalRegistros === 0) {
+      return null;
+    }
+
+    // Si hay menos de 2 registros (0 o 1), es Sin Permiso (a menos que tenga permiso arriba)
+    if (totalRegistros < 2) {
+      return (
+        <div className="w-full py-1 px-1 rounded bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold flex flex-row items-center justify-center gap-1 text-[9px] leading-tight border border-red-100 dark:border-red-900/30 cursor-default transition-colors shadow-sm">
+          <AlertCircle size={11} />
+          <span>Sin Permiso</span>
+        </div>
+      );
+    }
+
+    // 2 o más registros = Asistencia Correcta
+    return (
+      <div className="w-full py-1 px-1 rounded bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400 font-bold flex flex-row items-center justify-center gap-1 text-[9px] leading-tight border border-green-100 dark:border-green-900/30 cursor-default transition-colors shadow-sm">
+        <FileCheck size={11} className="opacity-70" />
+        <span className="text-center">Asist. Correcta</span>
+      </div>
+    );
   };
 
   const contarRegistrosReales = () => {
-    if (vistaAgrupada === 'fecha') {
-      return registros.filter(r => !r.esDiaVacio).length;
-    }
-    return registros.length; 
+    if (vistaAgrupada === 'fecha') return registros.filter(r => !r.esDiaVacio).length;
+    return registros.length;
   };
 
   return (
@@ -74,52 +127,68 @@ export default function OficinaAccordion({
                     registros.map((registro: any, index: number) => {
                       const mostrarEncabezadoDia = registro.diaString !== diaActual;
                       if (mostrarEncabezadoDia) diaActual = registro.diaString;
-                      
-                      const esDiaVacio = registro.esDiaVacio;
+
+                      const esVacio = registro.esDiaVacio || registro.esAusencia;
+                      const permiso = getPermisoParaDia(registro.userId, registro.diaString);
                       const esMultiple = registro.multiple && registro.multiple.length > 0;
+                      const totalRegistros = (registro.entrada ? 1 : 0) + (registro.salida ? 1 : 0) + (registro.multiple?.length || 0);
+                      // Fecha futura sin datos: no mostrar
+                      if (isAfter(parseISO(registro.diaString + 'T00:00:00'), startOfToday()) && totalRegistros === 0 && !permiso) return null;
 
                       return (
                         <Fragment key={`${registro.userId}-${registro.diaString}-${index}`}>
                           {mostrarEncabezadoDia && (
                             <tr>
-                              <td colSpan={3} className="bg-slate-50 dark:bg-neutral-900 py-1.5 px-4 font-medium text-slate-500 dark:text-slate-400 text-[11px] border-y border-slate-100 dark:border-neutral-800 uppercase tracking-wide">
-                                {format(parseISO(registro.diaString + 'T00:00:00'), 'EEEE, d \'de\' LLLL', { locale: es })}
+                              <td colSpan={3} className="bg-slate-100 dark:bg-neutral-800 px-4 py-2 font-bold text-slate-700 dark:text-slate-200 border-t border-b border-slate-200 dark:border-neutral-700 capitalize text-xs">
+                                {format(parseISO(registro.diaString + 'T00:00:00'), "eeee, d 'de' LLLL", { locale: es })}
                               </td>
                             </tr>
                           )}
-                          
-                          {esDiaVacio ? (
-                             <tr className="border-b border-slate-100 dark:border-neutral-800">
-                               <td colSpan={3} className="py-3 px-4 text-[11px] xl:text-xs text-red-500 font-medium italic pl-8">
-                                 Sin registros de asistencia
-                               </td>
-                             </tr>
-                          ) : (
-                            <tr
-                              className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 group cursor-pointer"
-                              onClick={() => onAbrirModal(registro)}
-                            >
-                              <td className="py-3 px-4 text-[11px] xl:text-xs text-slate-700 dark:text-slate-300 w-[40%]">
+
+                          <tr
+                            className="border-b border-slate-100 dark:border-neutral-800 transition-colors"
+                          >
+                              {/* Nombre */}
+                              <td className="py-2 px-3 text-xs text-slate-700 dark:text-slate-300 w-[35%]">
                                 {registro.nombre}
                               </td>
-                              {esMultiple ? (
-                                <td colSpan={2} className="py-2 px-2 text-center w-[60%]">
-                                  <div className="inline-flex items-center gap-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-sm font-medium text-[10px]">
-                                    <List size={12} /> Ver Asistencia ({registro.multiple.length})
+                              {/* Asistencia + Permiso */}
+                              <td colSpan={2} className="py-2 px-3">
+                                <div className="flex items-center gap-1">
+                                  <div
+                                    className={`w-3/4 ${!esVacio ? 'cursor-pointer' : ''}`}
+                                    onClick={() => !esVacio && onAbrirModal(registro)}
+                                  >
+                                    {esMultiple || totalRegistros > 2 ? (
+                                      <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold flex items-center gap-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[9px]">
+                                        <List size={12} /> Ver Asistencia ({totalRegistros})
+                                      </div>
+                                    ) : esVacio ? (
+                                      <div className="flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center">
+                                        <span className={`text-sm font-medium italic whitespace-nowrap ${permiso ? 'text-blue-500 dark:text-blue-400' : 'text-red-500 dark:text-red-400'}`}>
+                                          Sin registros de asistencia
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <div className="flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center">
+                                        <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                          <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
+                                          {formatTime(registro.entrada?.created_at || registro.entrada?.fecha_hora, !!permiso)}
+                                        </span>
+                                        <span className="text-gray-300 dark:text-neutral-700">|</span>
+                                        <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                          <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
+                                          {formatTime(registro.salida?.created_at || registro.salida?.fecha_hora, !!permiso)}
+                                        </span>
+                                      </div>
+                                    )}
                                   </div>
-                                </td>
-                              ) : (
-                                <>
-                                  <td className="py-2 px-2 text-[11px] xl:text-xs font-mono text-center w-[30%] text-slate-600 dark:text-slate-400">
-                                    {formatTime(registro.entrada?.created_at || registro.entrada?.fecha_hora)}
-                                  </td>
-                                  <td className="py-2 px-2 text-[11px] xl:text-xs font-mono text-center w-[30%] text-slate-600 dark:text-slate-400">
-                                    {formatTime(registro.salida?.created_at || registro.salida?.fecha_hora)}
-                                  </td>
-                                </>
-                              )}
+                                  <div className="w-1/4 flex-shrink-0">
+                                    <JustificacionBtn permiso={permiso} totalRegistros={totalRegistros} fechaStr={registro.diaString} />
+                                  </div>
+                                </div>
+                              </td>
                             </tr>
-                          )}
                         </Fragment>
                       );
                     })
@@ -131,6 +200,7 @@ export default function OficinaAccordion({
 
                       return (
                         <Fragment key={usuario.userId}>
+                          {/* Encabezado usuario */}
                           <tr>
                             <td colSpan={3} className="bg-slate-50 dark:bg-neutral-900 py-1.5 px-4 font-medium text-slate-500 dark:text-slate-400 text-[11px] border-y border-slate-100 dark:border-neutral-800 tracking-wide">
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -155,44 +225,68 @@ export default function OficinaAccordion({
                               </div>
                             </td>
                           </tr>
+                          {/* Filas de asistencia */}
                           {usuario.asistencias.map((asistencia: any, idx: number) => {
-                            const esMultiple = asistencia.multiple && asistencia.multiple.length > 0;
-                            const esAusencia = asistencia.esAusencia;
+                             const esMultiple = asistencia.multiple && asistencia.multiple.length > 0;
+                             const esAusencia = asistencia.esAusencia;
+                             const totalRegistros = (asistencia.entrada ? 1 : 0) + (asistencia.salida ? 1 : 0) + (asistencia.multiple?.length || 0);
+                             const permiso = getPermisoParaDia(usuario.userId, asistencia.diaString);
+                             // Fecha futura sin datos: no mostrar
+                             if (isAfter(parseISO(asistencia.diaString + 'T00:00:00'), startOfToday()) && totalRegistros === 0 && !permiso) return null;
 
                             return (
                               <tr
                                 key={`${usuario.userId}-${asistencia.diaString}-${idx}`}
-                                className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 group cursor-pointer"
-                                onClick={() => !esAusencia && onAbrirModal(asistencia, usuario.nombre)}
+                                className="border-b border-slate-100 dark:border-neutral-800 transition-colors"
                               >
-                                <td className={`py-3 px-4 text-[11px] xl:text-xs w-[40%] pl-8 ${esAusencia ? 'text-red-500 font-medium' : 'text-slate-700 dark:text-slate-300'}`}>
-                                  {esAusencia 
-                                    ? `${format(parseISO(asistencia.diaString + 'T00:00:00'), 'EEEE, d', { locale: es })} - Sin registros`
-                                    : format(parseISO(asistencia.diaString + 'T00:00:00'), 'EEEE, d \'de\' LLLL', { locale: es })
-                                  }
+                                {/* Fecha */}
+                                <td className={`py-2 px-3 text-xs w-[35%] pl-8 capitalize ${esAusencia ? 'text-red-500 font-medium' : 'text-slate-700 dark:text-slate-300'}`}>
+                                  {format(parseISO(asistencia.diaString + 'T00:00:00'), "eee d 'de' MMM", { locale: es })}
+                                  {esAusencia && <span className={`ml-1 text-[9px] italic ${permiso ? 'text-blue-500' : 'text-red-500'}`}>— Sin registros</span>}
                                 </td>
-                                
-                                {esAusencia ? (
-                                  <>
-                                    <td className="py-2 px-2 text-[11px] xl:text-xs font-mono text-center w-[30%] text-red-500 font-bold tracking-wider">--:--</td>
-                                    <td className="py-2 px-2 text-[11px] xl:text-xs font-mono text-center w-[30%] text-red-500 font-bold tracking-wider">--:--</td>
-                                  </>
-                                ) : esMultiple ? (
-                                  <td colSpan={2} className="py-2 px-2 text-center w-[60%]">
-                                    <div className="inline-flex items-center gap-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-sm font-medium text-[10px]">
-                                      <List size={12} /> Ver Asistencia ({asistencia.multiple.length})
+
+                                {/* Asistencia + Permiso */}
+                                <td colSpan={2} className="py-2 px-3">
+                                  <div className="flex items-center gap-1">
+                                    <div
+                                      className={`w-3/4 ${!esAusencia ? 'cursor-pointer' : ''}`}
+                                      onClick={() => !esAusencia && onAbrirModal(asistencia, usuario.nombre)}
+                                    >
+                                      {esAusencia ? (
+                                        <div className="flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center">
+                                          <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                            <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
+                                            <span className="text-red-400">--:--</span>
+                                          </span>
+                                          <span className="text-gray-300 dark:text-neutral-700">|</span>
+                                          <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                            <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
+                                            <span className="text-red-400">--:--</span>
+                                          </span>
+                                        </div>
+                                      ) : esMultiple || totalRegistros > 2 ? (
+                                        <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold flex items-center gap-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[9px]">
+                                          <List size={12} /> Ver Asistencia ({totalRegistros})
+                                        </div>
+                                      ) : (
+                                        <div className="flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center">
+                                          <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                            <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
+                                            {formatTime(asistencia.entrada?.created_at || asistencia.entrada?.fecha_hora, !!permiso)}
+                                          </span>
+                                          <span className="text-gray-300 dark:text-neutral-700">|</span>
+                                          <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                            <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
+                                            {formatTime(asistencia.salida?.created_at || asistencia.salida?.fecha_hora, !!permiso)}
+                                          </span>
+                                        </div>
+                                      )}
                                     </div>
-                                  </td>
-                                ) : (
-                                  <>
-                                    <td className="py-2 px-2 text-[11px] xl:text-xs font-mono text-center w-[30%] text-slate-600 dark:text-slate-400">
-                                      {formatTime(asistencia.entrada?.created_at || asistencia.entrada?.fecha_hora)}
-                                    </td>
-                                    <td className="py-2 px-2 text-[11px] xl:text-xs font-mono text-center w-[30%] text-slate-600 dark:text-slate-400">
-                                      {formatTime(asistencia.salida?.created_at || asistencia.salida?.fecha_hora)}
-                                    </td>
-                                  </>
-                                )}
+                                    <div className="w-1/4 flex-shrink-0">
+                                      <JustificacionBtn permiso={permiso} totalRegistros={totalRegistros} fechaStr={asistencia.diaString} />
+                                    </div>
+                                  </div>
+                                </td>
                               </tr>
                             );
                           })}

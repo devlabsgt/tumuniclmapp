@@ -637,18 +637,18 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
                               </div>
                             ) : (
                               <div className="flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center justify-left">
-                                <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                   <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
                                   {registroEntradaHoy 
                                     ? format(new Date(registroEntradaHoy.created_at), 'hh:mm aa', { locale: es }) 
-                                    : <span className="text-red-400">--:--</span>}
+                                    : <span className={`${permisoHoy ? 'text-blue-500' : 'text-red-400'} font-bold`}>--:--</span>}
                                 </span>
                                 <span className="text-gray-300 dark:text-neutral-700">|</span>
-                                <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                   <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
                                   {registroSalidaHoy 
                                     ? format(new Date(registroSalidaHoy.created_at), 'hh:mm aa', { locale: es }) 
-                                    : <span className="text-red-400">--:--</span>}
+                                    : <span className={`${permisoHoy ? 'text-blue-500' : 'text-red-400'} font-bold`}>--:--</span>}
                                 </span>
                               </div>
                             )}
@@ -659,24 +659,68 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
                             {permisoHoy ? (
                               <button
                                 onClick={(e) => { e.stopPropagation(); setPermisoParaPreview(permisoHoy); }}
-                                className="w-full py-1.5 px-1 rounded bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300 font-bold flex flex-col justify-center items-center gap-0.5 transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-[9px] leading-tight border border-indigo-100 dark:border-indigo-900/30 shadow-sm"
+                                className="w-full py-1.5 px-1 rounded bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300 font-bold flex flex-row items-center justify-center gap-1 transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-[9px] leading-tight border border-indigo-100 dark:border-indigo-900/30 shadow-sm"
                               >
                                 <FileCheck size={14} />
                                 <span className="text-center">Permiso</span>
                               </button>
+                            ) : registrosHoyMultiple.length < 2 ? (
+                              <div className="w-full py-1.5 px-1 rounded bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 font-bold flex flex-row items-center justify-center gap-1 text-[9px] leading-tight border border-red-100 dark:border-red-900/30 cursor-default transition-colors shadow-sm">
+                                <AlertCircle size={14} />
+                                <span className="text-center">Sin Permiso</span>
+                              </div>
                             ) : (
-                              <div className="w-full py-1.5 px-1 rounded bg-gray-50 dark:bg-neutral-800/50 text-gray-400 dark:text-gray-500 flex flex-col justify-center items-center gap-0.5 text-[9px] leading-tight border border-gray-100 dark:border-neutral-800 opacity-50 cursor-default">
-                                <span className="text-center italic font-medium">N/A</span>
+                              <div className="w-full py-1.5 px-1 rounded bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400 font-bold flex flex-row items-center justify-center gap-1 text-[9px] leading-tight border border-green-100 dark:border-green-900/30 cursor-default transition-colors shadow-sm">
+                                <FileCheck size={14} className="opacity-70" />
+                                <span className="text-center">Asist. Correcta</span>
                               </div>
                             )}
                           </div>
                         </div>
                       </>
                     ) : (
-                      <div className="p-4 bg-gray-50 dark:bg-neutral-800/50 rounded-md border border-gray-100 dark:border-neutral-800 text-center">
-                        <p className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">
-                          No ha marcado asistencia el día de hoy.
-                        </p>
+                      <div className="flex flex-col gap-3">
+                        <div className="p-4 bg-gray-50 dark:bg-neutral-800/50 rounded-md border border-gray-100 dark:border-neutral-800 text-center">
+                          <p className="text-xs lg:text-sm text-gray-500 dark:text-gray-400">
+                            {permisoHoy 
+                              ? "Aún no ha marcado asistencia, pero tiene un permiso vigente."
+                              : "No ha marcado asistencia el día de hoy."}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-3/4 flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center justify-left px-2">
+                             <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                               <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
+                               <span className={`${permisoHoy ? 'text-blue-500' : 'text-red-400'} font-bold`}>--:--</span>
+                             </span>
+                             <span className="text-gray-300 dark:text-neutral-700">|</span>
+                             <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                               <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
+                               <span className={`${permisoHoy ? 'text-blue-500' : 'text-red-400'} font-bold`}>--:--</span>
+                             </span>
+                          </div>
+                          <div className="w-1/4">
+                            {permisoHoy ? (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setPermisoParaPreview(permisoHoy); }}
+                                className="w-full py-1.5 px-1 rounded bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300 font-bold flex flex-row items-center justify-center gap-1 transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-[9px] leading-tight border border-indigo-100 dark:border-indigo-900/30 shadow-sm"
+                              >
+                                <FileCheck size={14} />
+                                <span className="text-center">Permiso</span>
+                              </button>
+                            ) : registrosHoyMultiple.length < 2 ? (
+                              <div className="w-full py-1.5 px-1 rounded bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 font-bold flex flex-row items-center justify-center gap-1 text-[9px] leading-tight border border-red-100 dark:border-red-900/30 cursor-default transition-colors shadow-sm">
+                                <AlertCircle size={14} />
+                                <span className="text-center">Sin Permiso</span>
+                              </div>
+                            ) : (
+                              <div className="w-full py-1.5 px-1 rounded bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400 font-bold flex flex-row items-center justify-center gap-1 text-[9px] leading-tight border border-green-100 dark:border-green-900/30 cursor-default transition-colors shadow-sm">
+                                <FileCheck size={14} className="opacity-70" />
+                                <span className="text-center">Asist. Correcta</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>

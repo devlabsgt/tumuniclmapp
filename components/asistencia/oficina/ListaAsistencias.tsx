@@ -1,199 +1,289 @@
 import React, { Fragment } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isAfter, startOfToday } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { List, AlertCircle } from 'lucide-react';
+import { List, FileCheck, AlertCircle } from 'lucide-react';
 import { RegistrosAgrupadosPorUsuario, RegistrosAgrupadosDiarios, AsistenciaEnriquecida } from './types';
+import { PermisoEmpleado } from '@/components/permisos/types';
 
 interface ListaAsistenciasProps {
     vista: 'nombre' | 'fecha';
-    // Importante: Hacemos opcionales (?) los arrays para evitar el error de undefined
     registrosPorUsuario?: RegistrosAgrupadosPorUsuario[];
     registrosPorFecha?: RegistrosAgrupadosDiarios[];
     onAbrirModal: (
         asistencia: { entrada: AsistenciaEnriquecida | null, salida: AsistenciaEnriquecida | null, multiple?: AsistenciaEnriquecida[] },
         nombreUsuario: string
     ) => void;
+    // Permisos indexados por userId -> lista de permisos
+    permisosMap?: Record<string, PermisoEmpleado[]>;
+    onVerPermiso?: (permiso: PermisoEmpleado) => void;
 }
 
 const ListaAsistencias: React.FC<ListaAsistenciasProps> = ({
     vista,
-    // Valor por defecto [] para evitar "Cannot read properties of undefined (reading 'map')"
     registrosPorUsuario = [],
     registrosPorFecha = [],
-    onAbrirModal
+    onAbrirModal,
+    permisosMap = {},
+    onVerPermiso,
 }) => {
-    
+
     let diaActual = "";
 
-    // Función para detectar si el día está vacío (sin marcas)
-    const esDiaVacio = (entrada: any, salida: any, multiple: any[]) => {
-        return !entrada && !salida && (!multiple || multiple.length === 0);
+    const esDiaVacio = (entrada: any, salida: any, multiple: any[]) =>
+        !entrada && !salida && (!multiple || multiple.length === 0);
+
+    const getPermisoParaDia = (userId: string, diaString: string): PermisoEmpleado | null => {
+        const permisos = permisosMap[userId] || [];
+        return permisos.find(p => {
+            const ini = p.inicio.substring(0, 10);
+            const fin = p.fin.substring(0, 10);
+            return diaString >= ini && diaString <= fin;
+        }) || null;
     };
 
-    // Verificar si hay datos antes de intentar renderizar
-    const hayDatos = vista === 'nombre' 
-        ? registrosPorUsuario && registrosPorUsuario.length > 0 
-        : registrosPorFecha && registrosPorFecha.length > 0;
+    const hayDatos = vista === 'nombre'
+        ? registrosPorUsuario.length > 0
+        : registrosPorFecha.length > 0;
+
+    const JustificacionBtn = ({ permiso, totalRegistros, fechaStr }: { permiso: PermisoEmpleado | null, totalRegistros: number, fechaStr: string }) => {
+        if (permiso) {
+            return (
+                <button
+                    onClick={(e) => { e.stopPropagation(); onVerPermiso?.(permiso); }}
+                    className="w-full py-1.5 px-1.5 rounded bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-300 font-bold flex flex-row items-center justify-center gap-1 transition-colors hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-[9px] leading-tight border border-indigo-100 dark:border-indigo-900/30 shadow-sm"
+                >
+                    <FileCheck size={12} />
+                    <span className="text-center">Permiso</span>
+                </button>
+            );
+        }
+
+        // Futuro: ocultar si no hay nada
+        const fechaDia = parseISO(fechaStr + 'T00:00:00');
+        const esFuturo = isAfter(fechaDia, startOfToday());
+        if (esFuturo && totalRegistros === 0) {
+            return null;
+        }
+
+        // 0 o 1 registros = Sin Permiso
+        if (totalRegistros < 2) {
+            return (
+                <div className="w-full py-1.5 px-1.5 rounded bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold flex flex-row items-center justify-center gap-1 text-[9px] leading-tight border border-red-100 dark:border-red-900/30 cursor-default transition-colors shadow-sm">
+                    <AlertCircle size={12} />
+                    <span className="text-center">Sin Permiso</span>
+                </div>
+            );
+        }
+
+        // 2 o más registros = Asistencia Correcta
+        return (
+            <div className="w-full py-1.5 px-1.5 rounded bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400 font-bold flex flex-row items-center justify-center gap-1 text-[9px] leading-tight border border-green-100 dark:border-green-900/30 cursor-default transition-colors shadow-sm">
+                <FileCheck size={12} className="opacity-70" />
+                <span className="text-center">Asist. Correcta</span>
+            </div>
+        );
+    };
 
     return (
         <div className="w-full">
-            <div className="w-full overflow-x-auto rounded-lg border border-gray-200 dark:border-neutral-800">
-                <table className="w-full table-fixed text-xs">
-                    
-                    {/* --- ENCABEZADOS --- */}
-                    {vista === 'nombre' ? (
-                        <thead className="bg-slate-50 dark:bg-neutral-900 text-left border-b border-gray-200 dark:border-neutral-800">
-                            <tr>
-                                <th className="py-3 px-4 text-[10px] xl:text-xs w-[40%] font-semibold text-slate-600 dark:text-slate-300 pl-8">Fecha</th>
-                                <th className="py-3 px-2 text-[10px] xl:text-xs w-[30%] text-center font-semibold text-slate-600 dark:text-slate-300">Entrada</th>
-                                <th className="py-3 px-2 text-[10px] xl:text-xs w-[30%] text-center font-semibold text-slate-600 dark:text-slate-300">Salida</th>
-                            </tr>
-                        </thead>
-                    ) : (
-                        <thead className="bg-slate-50 dark:bg-neutral-900 text-left border-b border-gray-200 dark:border-neutral-800">
-                            <tr>
-                                <th className="py-3 px-4 text-[10px] xl:text-xs w-[40%] font-semibold text-slate-600 dark:text-slate-300">Usuario</th>
-                                <th className="py-3 px-2 text-[10px] xl:text-xs w-[30%] text-center font-semibold text-slate-600 dark:text-slate-300">Entrada</th>
-                                <th className="py-3 px-2 text-[10px] xl:text-xs w-[30%] text-center font-semibold text-slate-600 dark:text-slate-300">Salida</th>
-                            </tr>
-                        </thead>
-                    )}
-
+            {!hayDatos ? (
+                <div className="py-8 text-center text-slate-500 dark:text-slate-400">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                        <AlertCircle className="h-6 w-6 opacity-50" />
+                        <p className="text-xs">No se encontraron registros para mostrar.</p>
+                    </div>
+                </div>
+            ) : (
+                <table className="w-full text-xs">
+                    <thead className="bg-gray-50 dark:bg-neutral-900 text-left text-gray-700 dark:text-gray-300">
+                        <tr>
+                            {vista === 'nombre' ? (
+                                <th className="px-3 py-2 text-xs">Fecha</th>
+                            ) : (
+                                <th className="px-3 py-2 text-xs">Empleado</th>
+                            )}
+                            <th className="px-3 py-2 text-xs" colSpan={2}>
+                                <div className="flex items-center">
+                                    <span className="w-3/4">Marcaje</span>
+                                    <span className="w-1/4 text-center text-indigo-500 dark:text-indigo-400">Justificación</span>
+                                </div>
+                            </th>
+                        </tr>
+                    </thead>
                     <tbody>
-                        {!hayDatos ? (
-                            <tr>
-                                <td colSpan={3} className="py-8 text-center text-slate-500 dark:text-slate-400">
-                                    <div className="flex flex-col items-center justify-center gap-2">
-                                        <AlertCircle className="h-6 w-6 opacity-50" />
-                                        <p>No se encontraron registros para mostrar.</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        ) : (
-                            // Renderizado Condicional según la vista
-                            vista === 'nombre' ? (
-                                registrosPorUsuario.map((usuario) => (
-                                    <Fragment key={usuario.userId}>
-                                        <tr className="bg-slate-100 dark:bg-neutral-800 border-y border-slate-200 dark:border-neutral-700">
-                                            <td colSpan={3} className="py-2.5 px-4 font-bold text-slate-800 dark:text-slate-200 text-sm">
-                                                {usuario.nombre}
+                        {vista === 'nombre' ? (
+                            registrosPorUsuario.map((usuario) => (
+                                <Fragment key={usuario.userId}>
+                                    {/* Encabezado de usuario */}
+                                    <tr className="bg-slate-100 dark:bg-neutral-800 border-y border-slate-200 dark:border-neutral-700">
+                                        <td colSpan={3} className="py-2 px-4 font-bold text-slate-800 dark:text-slate-200 text-sm">
+                                            <div>
+                                                <span>{usuario.nombre}</span>
+                                                {usuario.puesto_nombre && (
+                                                    <span className="ml-2 text-[10px] text-slate-500 dark:text-slate-400 font-normal">{usuario.puesto_nombre}</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    {usuario.asistencias.length > 0 ? (
+                                        usuario.asistencias.map((asistencia) => {
+                                            const esMultiple = asistencia.multiple && asistencia.multiple.length > 0;
+                                            const totalRegistros = (asistencia.entrada ? 1 : 0) + (asistencia.salida ? 1 : 0) + (asistencia.multiple?.length || 0);
+                                            const sinRegistros = esDiaVacio(asistencia.entrada, asistencia.salida, asistencia.multiple);
+                                            const permiso = getPermisoParaDia(usuario.userId, asistencia.diaString);
+                                            // Fecha futura sin datos: no mostrar
+                                            if (isAfter(parseISO(asistencia.diaString + 'T00:00:00'), startOfToday()) && sinRegistros && !permiso) return null;
+
+                                            return (
+                                                <tr
+                                                    key={asistencia.diaString}
+                                                    className="border-b dark:border-neutral-800 transition-colors"
+                                                >
+                                                    {/* Fecha */}
+                                                    <td className="px-3 py-2 text-xs capitalize text-gray-700 dark:text-gray-300 w-1/3">
+                                                        {format(parseISO(asistencia.diaString + 'T00:00:00'), 'eee d MMM', { locale: es })}
+                                                    </td>
+
+                                                    {/* Asistencia + Permiso */}
+                                                    <td colSpan={2} className="px-3 py-2">
+                                                        <div className="flex items-center gap-1">
+                                                            {/* 3/4: Asistencia */}
+                                                            <div
+                                                                className={`w-3/4 ${!sinRegistros ? 'cursor-pointer' : ''}`}
+                                                                onClick={() => !sinRegistros && onAbrirModal({
+                                                                    entrada: asistencia.entrada,
+                                                                    salida: asistencia.salida,
+                                                                    multiple: esMultiple ? asistencia.multiple : undefined
+                                                                }, usuario.nombre)}
+                                                            >
+                                                                {sinRegistros ? (
+                                                                    <span className={`text-[9px] font-medium ${permiso ? 'text-blue-500 dark:text-blue-400' : 'text-red-400 dark:text-red-400'}`}>Sin registros</span>
+                                                                ) : esMultiple || totalRegistros > 2 ? (
+                                                                    <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold flex items-center gap-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[9px]">
+                                                                        <List size={12} /> Ver Asistencia ({totalRegistros})
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center">
+                                                                        <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                                            <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
+                                                                            {asistencia.entrada
+                                                                                ? format(parseISO(asistencia.entrada.created_at), 'hh:mm aa', { locale: es })
+                                                                                : <span className={`${permiso ? 'text-blue-500' : 'text-red-400'} font-bold`}>--:--</span>}
+                                                                        </span>
+                                                                        <span className="text-gray-300 dark:text-neutral-700">|</span>
+                                                                        <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                                            <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
+                                                                            {asistencia.salida
+                                                                                ? format(parseISO(asistencia.salida.created_at), 'hh:mm aa', { locale: es })
+                                                                                : <span className={`${permiso ? 'text-blue-500' : 'text-red-400'} font-bold`}>--:--</span>}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            {/* 1/4: Permiso */}
+                                                            <div className="w-1/4 flex-shrink-0">
+                                                                <JustificacionBtn permiso={permiso} totalRegistros={totalRegistros} fechaStr={asistencia.diaString} />
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    ) : (
+                                        <tr className="border-b dark:border-neutral-800">
+                                            <td colSpan={3} className="py-3 px-4 text-xs text-slate-400 dark:text-slate-500 italic">
+                                                No hay registros en el rango seleccionado.
                                             </td>
                                         </tr>
+                                    )}
+                                </Fragment>
+                            ))
+                        ) : (
+                            registrosPorFecha.map((registro) => {
+                                const mostrarEncabezadoDia = registro.diaString !== diaActual;
+                                if (mostrarEncabezadoDia) diaActual = registro.diaString;
 
-                                        {usuario.asistencias.length > 0 ? (
-                                            usuario.asistencias.map((asistencia) => {
-                                                const esMultiple = asistencia.multiple.length > 0;
-                                                const sinRegistros = esDiaVacio(asistencia.entrada, asistencia.salida, asistencia.multiple);
+                                const esMultiple = registro.multiple && registro.multiple.length > 0;
+                                const totalRegistros = (registro.entrada ? 1 : 0) + (registro.salida ? 1 : 0) + (registro.multiple?.length || 0);
+                                const sinRegistros = esDiaVacio(registro.entrada, registro.salida, registro.multiple);
+                                const permiso = getPermisoParaDia(registro.userId, registro.diaString);
+                                // Fecha futura sin datos: no mostrar
+                                if (isAfter(parseISO(registro.diaString + 'T00:00:00'), startOfToday()) && sinRegistros && !permiso) return null;
 
-                                                return (
-                                                    <tr
-                                                        key={asistencia.diaString}
-                                                        className={`border-b border-slate-100 dark:border-neutral-800 transition-colors ${!sinRegistros ? 'hover:bg-blue-50 dark:hover:bg-neutral-900/50 cursor-pointer group' : ''}`}
-                                                        onClick={() => !sinRegistros && onAbrirModal({
-                                                            entrada: asistencia.entrada,
-                                                            salida: asistencia.salida,
-                                                            multiple: asistencia.multiple.length > 0 ? asistencia.multiple : undefined
-                                                        }, usuario.nombre)}
-                                                    >
-                                                        <td className="py-3 px-4 text-[11px] xl:text-xs text-slate-700 dark:text-slate-300 w-[40%] pl-8 capitalize">
-                                                            {format(parseISO(asistencia.diaString + 'T00:00:00'), 'EEEE, d \'de\' LLLL', { locale: es })}
-                                                        </td>
-
-                                                        {esMultiple ? (
-                                                            <td colSpan={2} className="py-2 px-2 text-center w-[60%]">
-                                                                <div className="inline-flex items-center gap-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-sm font-medium text-[10px]">
-                                                                    <List size={12} /> Ver Asistencia ({asistencia.multiple.length})
-                                                                </div>
-                                                            </td>
-                                                        ) : sinRegistros ? (
-                                                            <td colSpan={2} className="py-2 px-2 text-center w-[60%] bg-red-50/50 dark:bg-red-900/10">
-                                                                <span className="text-red-500 dark:text-red-400 font-medium text-[10px] xl:text-xs">
-                                                                    Sin registros de asistencia
-                                                                </span>
-                                                            </td>
-                                                        ) : (
-                                                            <>
-                                                                <td className="py-2 px-2 text-[11px] xl:text-xs font-mono text-center w-[30%] text-slate-600 dark:text-slate-300">
-                                                                    {asistencia.entrada ? format(parseISO(asistencia.entrada.created_at), 'hh:mm a', { locale: es }) : <span className="text-red-400 dark:text-red-400 font-bold">--:--</span>}
-                                                                </td>
-                                                                <td className="py-2 px-2 text-[11px] xl:text-xs font-mono text-center w-[30%] text-slate-600 dark:text-slate-300">
-                                                                    {asistencia.salida ? format(parseISO(asistencia.salida.created_at), 'hh:mm a', { locale: es }) : <span className="text-red-400 dark:text-red-400 font-bold">--:--</span>}
-                                                                </td>
-                                                            </>
-                                                        )}
-                                                    </tr>
-                                                );
-                                            })
-                                        ) : (
-                                            <tr className="border-b border-slate-100 dark:border-neutral-800">
-                                                <td colSpan={3} className="py-3 px-4 text-xs text-slate-400 dark:text-slate-500 pl-8 italic">
-                                                    No hay registros para este usuario en el rango seleccionado.
+                                return (
+                                    <Fragment key={registro.userId + registro.diaString}>
+                                        {/* Encabezado de día */}
+                                        {mostrarEncabezadoDia && (
+                                            <tr>
+                                                <td
+                                                    colSpan={3}
+                                                    className="bg-slate-100 dark:bg-neutral-800 px-4 py-2 font-bold text-slate-700 dark:text-slate-200 border-t border-b border-slate-200 dark:border-neutral-700 capitalize text-xs"
+                                                >
+                                                    {format(parseISO(registro.diaString + 'T00:00:00'), "eeee, d 'de' LLLL", { locale: es })}
                                                 </td>
                                             </tr>
                                         )}
-                                    </Fragment>
-                                ))
-                            ) : (
-                                registrosPorFecha.map((usuario) => {
-                                    const mostrarEncabezadoDia = usuario.diaString !== diaActual;
-                                    if (mostrarEncabezadoDia) {
-                                        diaActual = usuario.diaString;
-                                    }
-                                    const esMultiple = usuario.multiple.length > 0;
-                                    const sinRegistros = esDiaVacio(usuario.entrada, usuario.salida, usuario.multiple);
 
-                                    return (
-                                        <Fragment key={usuario.userId + usuario.diaString}>
-                                            {mostrarEncabezadoDia && (
-                                                <tr>
-                                                    <td colSpan={3} className="bg-slate-50 dark:bg-neutral-800 py-1.5 px-4 font-bold text-slate-600 dark:text-slate-300 text-[11px] border-y border-slate-200 dark:border-neutral-700 uppercase tracking-wide">
-                                                        {format(parseISO(usuario.diaString + 'T00:00:00'), 'EEEE, d \'de\' LLLL', { locale: es })}
-                                                    </td>
-                                                </tr>
-                                            )}
-                                            <tr
-                                                className={`border-b border-slate-100 dark:border-neutral-800 transition-colors ${!sinRegistros ? 'hover:bg-blue-50 dark:hover:bg-neutral-900/50 cursor-pointer group' : ''}`}
-                                                onClick={() => !sinRegistros && onAbrirModal({
-                                                    entrada: usuario.entrada,
-                                                    salida: usuario.salida,
-                                                    multiple: usuario.multiple.length > 0 ? usuario.multiple : undefined
-                                                }, usuario.nombre)}
-                                            >
-                                                <td className="py-3 px-4 text-[11px] xl:text-xs text-slate-700 dark:text-slate-300 w-[40%] font-medium">
-                                                    {usuario.nombre}
-                                                </td>
-
-                                                {esMultiple ? (
-                                                    <td colSpan={2} className="py-2 px-2 text-center w-[60%]">
-                                                        <div className="inline-flex items-center gap-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-sm font-medium text-[10px]">
-                                                            <List size={12} /> Ver Asistencia ({usuario.multiple.length})
-                                                        </div>
-                                                    </td>
-                                                ) : sinRegistros ? (
-                                                    <td colSpan={2} className="py-2 px-2 text-center w-[60%] bg-red-50/50 dark:bg-red-900/10">
-                                                        <span className="text-red-500 dark:text-red-400 font-medium text-[10px] xl:text-xs">
-                                                            Sin registros de asistencia
-                                                        </span>
-                                                    </td>
-                                                ) : (
-                                                    <>
-                                                        <td className="py-2 px-2 text-[11px] xl:text-xs font-mono text-center w-[30%] text-slate-600 dark:text-slate-300">
-                                                            {usuario.entrada ? format(parseISO(usuario.entrada.created_at), 'hh:mm a', { locale: es }) : <span className="text-red-400 dark:text-red-400 font-bold">--:--</span>}
-                                                        </td>
-                                                        <td className="py-2 px-2 text-[11px] xl:text-xs font-mono text-center w-[30%] text-slate-600 dark:text-slate-300">
-                                                            {usuario.salida ? format(parseISO(usuario.salida.created_at), 'hh:mm a', { locale: es }) : <span className="text-red-400 dark:text-red-400 font-bold">--:--</span>}
-                                                        </td>
-                                                    </>
+                                        <tr className="border-b dark:border-neutral-800 transition-colors">
+                                            {/* Nombre */}
+                                            <td className="px-3 py-2 text-xs font-bold text-gray-800 dark:text-gray-200 w-1/3">
+                                                {registro.nombre}
+                                                {registro.puesto_nombre && (
+                                                    <span className="block text-[9px] text-gray-400 font-normal">{registro.puesto_nombre}</span>
                                                 )}
-                                            </tr>
-                                        </Fragment>
-                                    );
-                                })
-                            )
+                                            </td>
+
+                                            {/* Asistencia + Permiso */}
+                                            <td colSpan={2} className="px-3 py-2">
+                                                <div className="flex items-center gap-1">
+                                                    {/* 3/4: Asistencia */}
+                                                    <div
+                                                        className={`w-3/4 ${!sinRegistros ? 'cursor-pointer' : ''}`}
+                                                        onClick={() => !sinRegistros && onAbrirModal({
+                                                            entrada: registro.entrada,
+                                                            salida: registro.salida,
+                                                            multiple: esMultiple ? registro.multiple : undefined
+                                                        }, registro.nombre)}
+                                                    >
+                                                        {sinRegistros ? (
+                                                            <span className={`text-[9px] font-medium ${permiso ? 'text-blue-500 dark:text-blue-400' : 'text-red-400'}`}>Sin registros</span>
+                                                        ) : esMultiple || totalRegistros > 2 ? (
+                                                            <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold flex items-center gap-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[9px]">
+                                                                <List size={12} /> Ver Asistencia ({totalRegistros})
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center">
+                                                                <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                                    <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
+                                                                    {registro.entrada
+                                                                        ? format(parseISO(registro.entrada.created_at), 'hh:mm aa', { locale: es })
+                                                                        : <span className={`${permiso ? 'text-blue-500' : 'text-red-400'} font-bold`}>--:--</span>}
+                                                                </span>
+                                                                <span className="text-gray-300 dark:text-neutral-700">|</span>
+                                                                <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                                    <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
+                                                                    {registro.salida
+                                                                        ? format(parseISO(registro.salida.created_at), 'hh:mm aa', { locale: es })
+                                                                        : <span className={`${permiso ? 'text-blue-500' : 'text-red-400'} font-bold`}>--:--</span>}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {/* 1/4: Permiso */}
+                                                    <div className="w-1/4 flex-shrink-0">
+                                                        <JustificacionBtn permiso={permiso} totalRegistros={totalRegistros} fechaStr={registro.diaString} />
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </Fragment>
+                                );
+                            })
                         )}
                     </tbody>
                 </table>
-            </div>
+            )}
         </div>
     );
 };
