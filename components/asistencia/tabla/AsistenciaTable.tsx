@@ -105,11 +105,11 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
       data.forEach((p: any) => {
         if (!map[p.user_id]) map[p.user_id] = [];
         
-        const user = todosLosUsuarios.find((u: any) => u.id === p.user_id) as any;
+        const user = todosLosUsuarios.find((u: any) => (u.id === p.user_id) || (u.user_id === p.user_id)) as any;
         const permisoE: PermisoEmpleado = {
           ...p,
           usuario: user ? {
-            id: user.id,
+            id: user.id || user.user_id || p.user_id,
             nombre: user.nombre,
             puesto_nombre: user.puesto_nombre,
             oficina_nombre: user.oficina_nombre,

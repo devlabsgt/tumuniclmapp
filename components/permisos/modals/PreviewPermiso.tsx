@@ -121,10 +121,10 @@ export default function PreviewPermiso({ permiso, isOpen, onClose }: Props) {
           <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-neutral-800/50 rounded-xl border border-slate-100 dark:border-neutral-700">
             <div className="pl-3 border-l-4 border-emerald-500">
               <label className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest mb-1 block">
-                Fecha y Hora de Inicio
+                Fecha de Inicio
               </label>
               <p className="text-sm font-bold text-neutral-800 dark:text-neutral-100 capitalize">
-                {format(fechaInicio, "EEEE d 'de' MMMM", { locale: es })}
+                {format(fechaInicio, "eee d, MMMM", { locale: es }).replace('.', '')}
               </p>
               <p className="text-xs text-neutral-500">
                 Año {format(fechaInicio, "yyyy")} • {format(fechaInicio, "h:mm a")}
@@ -132,10 +132,10 @@ export default function PreviewPermiso({ permiso, isOpen, onClose }: Props) {
             </div>
             <div className="pl-3 border-l-4 border-orange-500">
               <label className="text-[9px] font-bold text-orange-600 uppercase tracking-widest mb-1 block">
-                Fecha y Hora de Finalización
+                Fecha de Finalización
               </label>
               <p className="text-sm font-bold text-neutral-800 dark:text-neutral-100 capitalize">
-                {format(fechaFin, "EEEE d 'de' MMMM", { locale: es })}
+                {format(fechaFin, "eee d, MMMM", { locale: es }).replace('.', '')}
               </p>
               <p className="text-xs text-neutral-500">
                 Año {format(fechaFin, "yyyy")} • {format(fechaFin, "h:mm a")}
@@ -158,7 +158,7 @@ export default function PreviewPermiso({ permiso, isOpen, onClose }: Props) {
           {/* Footer doc: Estado + Código */}
           <div className="flex justify-between items-end border-t border-neutral-100 dark:border-neutral-800 pt-3">
             <div className="flex flex-col gap-2">
-              <label className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Estado</label>
+
               <div className="flex flex-wrap items-center gap-2">
                 <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${estadoColor}`}>
                   {permiso.estado.replace(/_/g, " ")}

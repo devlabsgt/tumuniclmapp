@@ -56,13 +56,13 @@ const PermisoTemplate = React.forwardRef<HTMLDivElement, Props>(({ permiso }, re
 
         <div className="grid grid-cols-2 gap-10 mb-8 relative z-10 p-6 bg-slate-50/50 border border-slate-100 rounded-2xl">
             <div className="relative pl-6 border-l-4 border-emerald-500">
-                <label className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1 block">Fecha y Hora de Inicio</label>
-                <p className="text-base font-bold text-neutral-800">{format(fechaInicio, "EEEE d 'de' MMMM", { locale: es })}</p>
+                <label className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1 block">Fecha de Inicio</label>
+                <p className="text-base font-bold text-neutral-800 capitalize">{format(fechaInicio, "eee d, MMMM", { locale: es }).replace('.', '')}</p>
                 <p className="text-sm text-neutral-500 font-medium">Año {format(fechaInicio, "yyyy")} • {format(fechaInicio, "h:mm a")}</p>
             </div>
             <div className="relative pl-6 border-l-4 border-orange-500">
-                <label className="text-[10px] font-bold text-orange-600 uppercase tracking-widest mb-1 block">Fecha y Hora de Finalización</label>
-                <p className="text-base font-bold text-neutral-800">{format(fechaFin, "EEEE d 'de' MMMM", { locale: es })}</p>
+                <label className="text-[10px] font-bold text-orange-600 uppercase tracking-widest mb-1 block">Fecha de Finalización</label>
+                <p className="text-base font-bold text-neutral-800 capitalize">{format(fechaFin, "eee d, MMMM", { locale: es }).replace('.', '')}</p>
                 <p className="text-sm text-neutral-500 font-medium">Año {format(fechaFin, "yyyy")} • {format(fechaFin, "h:mm a")}</p>
             </div>
         </div>
@@ -79,7 +79,7 @@ const PermisoTemplate = React.forwardRef<HTMLDivElement, Props>(({ permiso }, re
         <div className="flex justify-between items-end border-t border-neutral-100 pt-8 relative z-10">
             <div className="flex flex-col gap-3">
                  <div>
-                    <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1 block">Estado</label>
+
                     <div className="flex items-center gap-2">
                         <span className={`px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider ${
                             permiso.estado === 'aprobado' 

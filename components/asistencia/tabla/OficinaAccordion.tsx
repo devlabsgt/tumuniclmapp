@@ -132,7 +132,6 @@ export default function OficinaAccordion({
                       const permiso = getPermisoParaDia(registro.userId, registro.diaString);
                       const esMultiple = registro.multiple && registro.multiple.length > 0;
                       const totalRegistros = (registro.entrada ? 1 : 0) + (registro.salida ? 1 : 0) + (registro.multiple?.length || 0);
-                      // Fecha futura sin datos: no mostrar
                       if (isAfter(parseISO(registro.diaString + 'T00:00:00'), startOfToday()) && totalRegistros === 0 && !permiso) return null;
 
                       return (
