@@ -19,12 +19,12 @@ export const TODOS_LOS_MODULOS = [
     titulo: 'Política de Desarrollo Económico Local',
     descripcion: 'Gestione beneficiarios, entregas y estadísticas.',
     ruta: '/protected/fertilizante/beneficiarios',
-    iconoKey: 'bikvuqcq',
+    iconoKey: 'pdgwlefy',
     colorProps: { primaryFrom: '#ffc738', secondaryColor: '#4ade80' },
     categoria: 'Políticas Públicas'
   },
 
-    {
+  {
     id: 'PERMISOS',
     permiso: 'PERMISOS',
     titulo: 'Mis Permisos',
@@ -32,7 +32,7 @@ export const TODOS_LOS_MODULOS = [
     ruta: '/protected/permisos',
     iconoKey: 'hnqamtrw',
     categoria: 'Gestión Administrativa',
-    subgrupo: 'Gestión Propia' 
+    subgrupo: 'Gestión Propia'
   },
   {
     id: 'ACTIVIDADES',
@@ -50,11 +50,10 @@ export const TODOS_LOS_MODULOS = [
     titulo: 'Solicitar Cupón Combustible',
     descripcion: 'Solicitud de cupones de combustible.',
     ruta: '/protected/solicitud',
-    iconoKey: 'unsfxkxg',
+    iconoKey: 'roogetvr',
     categoria: 'Gestión Administrativa',
     subgrupo: 'Gestión Propia'
   },
-  //-----------------------------------
   {
     id: 'PERMISOS_JEFE',
     permiso: 'PERMISOS',
@@ -67,7 +66,7 @@ export const TODOS_LOS_MODULOS = [
   },
   {
     id: 'ACTIVIDADES_JEFE',
-    permiso: 'ACTIVIDADES', 
+    permiso: 'ACTIVIDADES',
     titulo: 'Supervisión de Actividades',
     descripcion: 'Revise y gestione las actividades de su equipo.',
     ruta: '/protected/actividades/jefe',
@@ -97,20 +96,20 @@ export const TODOS_LOS_MODULOS = [
   },
   {
     id: 'PERMISOS_GESTION',
-    permiso: 'RRHH', 
+    permiso: 'RRHH',
     titulo: 'Administración de Permisos',
     descripcion: 'Aprobación final y gestión de historial.',
-    ruta: '/protected/permisos/rrhh', 
+    ruta: '/protected/permisos/rrhh',
     iconoKey: 'hnqamtrw',
     categoria: 'Gestión Administrativa',
     subgrupo: 'Recursos Humanos'
   },
   {
     id: 'ACTIVIDADES_GESTION',
-    permiso: 'RRHH', 
+    permiso: 'RRHH',
     titulo: 'Administración de Actividades',
     descripcion: 'Visión global de actividades municipales.',
-    ruta: '/protected/actividades/rrhh', 
+    ruta: '/protected/actividades/rrhh',
     iconoKey: 'hrtsficn',
     categoria: 'Gestión Administrativa',
     subgrupo: 'Recursos Humanos'
@@ -141,7 +140,7 @@ export const TODOS_LOS_MODULOS = [
     titulo: 'Estructura Organizacional',
     descripcion: 'Gestione dependencias y jerarquías.',
     ruta: '/protected/admin/dependencias',
-    iconoKey: 'ilrifayj', 
+    iconoKey: 'ilrifayj',
     colorProps: { primaryColor: '#ebe6ef', secondaryColor: '#b26836' },
     categoria: 'Gestión Administrativa',
     subgrupo: 'Recursos Humanos'
@@ -158,7 +157,7 @@ export const TODOS_LOS_MODULOS = [
     subgrupo: 'Concejo Municipal'
   },
   {
-    id: 'ORGANOS_CONCEJO', 
+    id: 'ORGANOS_CONCEJO',
     permiso: 'ORGANOS',
     titulo: 'Estructura Organizacional',
     descripcion: 'Vista de estructura y órganos municipales.',
@@ -168,4 +167,25 @@ export const TODOS_LOS_MODULOS = [
     categoria: 'Gestión Administrativa',
     subgrupo: 'Concejo Municipal'
   },
+
+  {
+    id: 'GESTION_COMBUSTIBLE',
+    permiso: 'COMBUSTIBLE',
+    titulo: 'Gestión de Combustible',
+    descripcion: 'Control de vales y consumo de combustible.',
+    ruta: '/protected/combustible',
+    iconoKey: 'whcpieow',
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Gestión de Recursos Municipales'
+  },
+  {
+    id: 'CONTRATOS_COMBUSTIBLE',
+    permiso: 'CONTRATOS',
+    titulo: 'Contratos de Combustible',
+    descripcion: 'Seguimiento de contratos con gasolineras.',
+    ruta: '/protected/combustible/contrato',
+    iconoKey: 'pxglrdrs',
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Gestión de Recursos Municipales'
+  }
 ];

@@ -52,6 +52,9 @@ export default function ModulesView({
             modulos.includes(m.permiso)
           );
         }
+        if (m.subgrupo === "Gestión de Recursos Municipales") {
+          return ["SUPER", "SECRETARIO", "SEC-TECNICO"].includes(rol);
+        }
         return modulos.includes(m.permiso);
       }),
     [rol, modulos, esjefe],
@@ -79,6 +82,10 @@ export default function ModulesView({
   const showRRHHAccordion = useMemo(
     () => ["RRHH", "SECRETARIO"].includes(rol) || modulos.includes("RRHH"),
     [rol, modulos],
+  );
+  const showRecursosMunicipalesAccordion = useMemo(
+    () => ["SUPER", "SECRETARIO", "SEC-TECNICO"].includes(rol),
+    [rol],
   );
 
   const renderModuleCard = (modulo: any) => (
@@ -171,6 +178,18 @@ export default function ModulesView({
               modulosGestion
                 .filter((m) => m.subgrupo === "Recursos Humanos")
                 .map(renderModuleCard)
+            )}
+
+            {showRecursosMunicipalesAccordion && (
+              <ModuleAccordion
+                titulo="Gestión de Recursos Municipales"
+                descripcion="Administre los recursos físicos, materiales y contratos municipales"
+                iconKey="bikvuqcq"
+              >
+                {modulosGestion
+                  .filter((m) => m.subgrupo === "Gestión de Recursos Municipales")
+                  .map(renderModuleCard)}
+              </ModuleAccordion>
             )}
 
             <div className="space-y-4 pt-2">
