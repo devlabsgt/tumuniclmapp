@@ -88,14 +88,14 @@ export default function Mapa({ isOpen, onClose, registros, nombreUsuario, titulo
       {isOpen && (
         <motion.div
           onClick={onClose}
-          className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+          className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
           <motion.div
             onClick={(e) => e.stopPropagation()}
-            className="bg-white dark:bg-neutral-900 rounded-lg shadow-2xl dark:shadow-black/50 dark:border dark:border-neutral-800 w-full max-w-6xl h-[90vh] flex flex-col md:flex-row overflow-hidden"
+            className="bg-white dark:bg-neutral-900 border-none shadow-2xl dark:shadow-black/50 w-full h-full max-w-none flex flex-col md:flex-row overflow-hidden"
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
@@ -104,7 +104,7 @@ export default function Mapa({ isOpen, onClose, registros, nombreUsuario, titulo
             {/* Sidebar / Lista */}
             <div className={`
               w-full md:w-80 bg-slate-50 dark:bg-neutral-900 border-r border-gray-200 dark:border-neutral-800 flex flex-col
-              ${mapaVisible ? 'h-1/2' : 'h-full'}
+              ${mapaVisible ? 'h-2/5' : 'h-full'}
               md:h-full
             `}>
               {/* Header Sidebar */}
@@ -222,7 +222,7 @@ export default function Mapa({ isOpen, onClose, registros, nombreUsuario, titulo
             {/* Area del Mapa */}
             <div className={`
               flex-grow flex flex-col relative bg-gray-50 dark:bg-neutral-950
-              ${mapaVisible ? 'h-1/2' : 'hidden'}
+              ${mapaVisible ? 'h-3/5' : 'hidden'}
               md:flex md:h-full
             `}>
                <button 
@@ -246,15 +246,7 @@ export default function Mapa({ isOpen, onClose, registros, nombreUsuario, titulo
                   ></iframe>
                   
                   {/* Botones de acción del mapa */}
-                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center justify-center gap-1.5 p-1 bg-white/90 dark:bg-neutral-800/90 backdrop-blur-md rounded-full shadow-lg border border-gray-200 dark:border-neutral-700/50">
-                    <button 
-                      onClick={() => setMapRefreshKey(prev => prev + 1)}
-                      className="flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/30 transition-all border border-blue-100 dark:border-blue-500/30"
-                      title="Forzar actualización del mapa"
-                    >
-                      <RefreshCw size={14} className={mapRefreshKey > 0 ? "origin-center" : ""} />
-                      Actualizar
-                    </button>
+                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center justify-center p-1 bg-white/90 dark:bg-neutral-800/90 backdrop-blur-md rounded-full shadow-lg border border-gray-200 dark:border-neutral-700/50">
                     <a 
                       href={`https://www.google.com/maps/search/?api=1&query=${registroActivo.ubicacion.lat},${registroActivo.ubicacion.lng}`}
                       target="_blank"
