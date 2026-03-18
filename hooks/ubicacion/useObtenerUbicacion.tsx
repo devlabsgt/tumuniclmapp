@@ -22,18 +22,72 @@ export const useObtenerUbicacion = () => {
     }
 
     return new Promise((resolve) => {
-      navigator.geolocation.getCurrentPosition(
+      let watchId: number;
+      let timeoutId: NodeJS.Timeout;
+      let timeoutExtraId: NodeJS.Timeout;
+      let bestCoords: Coordenadas | null = null;
+      let lecturas = 0;
+
+      const finishAndResolve = (coordsToReturn: Coordenadas | null, errorMsg?: string) => {
+        if (watchId !== undefined) navigator.geolocation.clearWatch(watchId);
+        if (timeoutId) clearTimeout(timeoutId);
+        if (timeoutExtraId) clearTimeout(timeoutExtraId);
+
+        if (coordsToReturn) {
+          setUbicacion(coordsToReturn);
+          setError(null);
+        } else if (errorMsg) {
+          setError(errorMsg);
+        }
+        setCargando(false);
+        resolve(coordsToReturn);
+      };
+
+      // Si después de 12 segundos no tenemos nada perfecto, nos quedamos con lo mejor o fallamos
+      timeoutId = setTimeout(() => {
+        if (bestCoords) {
+          finishAndResolve(bestCoords);
+        } else {
+          finishAndResolve(null, 'Se agotó el tiempo para obtener la ubicación.');
+        }
+      }, 12000);
+
+      watchId = navigator.geolocation.watchPosition(
         (position) => {
-          const coords = {
+          lecturas++;
+          const currentCoords = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
             accuracy: position.coords.accuracy,
           };
-          setUbicacion(coords);
-          setCargando(false);
-          resolve(coords);
+
+          if (!bestCoords || currentCoords.accuracy < bestCoords.accuracy) {
+            bestCoords = currentCoords;
+          }
+
+          // Si la precisión es de menos de 20 metros, resolvemos inmediatamente (muy preciso)
+          if (currentCoords.accuracy <= 20) {
+            finishAndResolve(bestCoords);
+            return;
+          }
+
+          // Si tiene menos de 50 metros y todavía no disparamos el timeout extra
+          if (currentCoords.accuracy <= 50 && !timeoutExtraId) {
+             timeoutExtraId = setTimeout(() => {
+               finishAndResolve(bestCoords);
+             }, 3000);
+          }
+
+          // A las 4 lecturas aceptables rompemos para que el usuario no espere eternamente
+          if (lecturas >= 4 && bestCoords.accuracy <= 100) {
+            finishAndResolve(bestCoords);
+          }
         },
         (err) => {
+          if (bestCoords) {
+            finishAndResolve(bestCoords);
+            return;
+          }
           let msg = 'Error al obtener ubicación.';
           switch (err.code) {
             case err.PERMISSION_DENIED:
@@ -46,14 +100,12 @@ export const useObtenerUbicacion = () => {
               msg = 'Se agotó el tiempo para obtener la ubicación.';
               break;
           }
-          setError(msg);
-          setCargando(false);
-          resolve(null);
+          finishAndResolve(null, msg);
         },
         {
           enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0
+          maximumAge: 0,
+          timeout: 10000 
         }
       );
     });

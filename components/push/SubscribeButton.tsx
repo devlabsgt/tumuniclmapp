@@ -1,107 +1,113 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/utils/supabase/client'
-import { urlBase64ToUint8Array } from '@/app/utils/vapid'
-import { Bell, BellOff, Loader2, Check } from 'lucide-react'
+import { useState, useEffect } from "react";
+import { createClient } from "@/utils/supabase/client";
+import { urlBase64ToUint8Array } from "@/app/utils/vapid";
+import { Bell, BellOff, Loader2, Check } from "lucide-react";
 
 export default function SubscribeButton({ userId }: { userId: string }) {
-  const [isSubscribed, setIsSubscribed] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const supabase = createClient()
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const supabase = createClient();
 
   useEffect(() => {
     const checkStatus = async () => {
-      if ('serviceWorker' in navigator && userId) {
+      if ("serviceWorker" in navigator && userId) {
         try {
-          const reg = await navigator.serviceWorker.getRegistration()
+          const reg = await navigator.serviceWorker.getRegistration();
           if (reg) {
-            const sub = await reg.pushManager.getSubscription()
+            const sub = await reg.pushManager.getSubscription();
             if (sub) {
-              const subJson = JSON.parse(JSON.stringify(sub))
-              
+              const subJson = JSON.parse(JSON.stringify(sub));
+
               const { data } = await supabase
-                .from('push_subscriptions')
-                .select('id')
+                .from("push_subscriptions")
+                .select("id")
                 .match({ user_id: userId })
-                .contains('subscription', subJson)
-                .maybeSingle()
+                .contains("subscription", subJson)
+                .maybeSingle();
 
               if (data) {
-                setIsSubscribed(true)
+                setIsSubscribed(true);
               } else {
-                await sub.unsubscribe()
-                setIsSubscribed(false)
+                await sub.unsubscribe();
+                setIsSubscribed(false);
               }
             }
           }
         } catch (e) {}
       }
-    }
-    checkStatus()
-  }, [userId])
+    };
+    checkStatus();
+  }, [userId]);
 
   const handleToggle = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      if (!('serviceWorker' in navigator)) return
+      if (!("serviceWorker" in navigator)) return;
 
-      const reg = await navigator.serviceWorker.register('/push-sw.js')
-      await reg.update()
-      
-      const registration = await navigator.serviceWorker.ready
+      const reg = await navigator.serviceWorker.register("/push-sw.js");
+      await reg.update();
+
+      const registration = await navigator.serviceWorker.ready;
 
       if (isSubscribed) {
-        const subscription = await registration.pushManager.getSubscription()
+        const subscription = await registration.pushManager.getSubscription();
         if (subscription) {
-          const subscriptionJson = JSON.parse(JSON.stringify(subscription))
-          
-          await supabase.from('push_subscriptions')
+          const subscriptionJson = JSON.parse(JSON.stringify(subscription));
+
+          await supabase
+            .from("push_subscriptions")
             .delete()
             .match({ user_id: userId })
-            .contains('subscription', subscriptionJson)
+            .contains("subscription", subscriptionJson);
 
-          await subscription.unsubscribe()
+          await subscription.unsubscribe();
         }
-        setIsSubscribed(false)
+        setIsSubscribed(false);
       } else {
-        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-        if (!vapidKey) throw new Error()
-        
+        const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+        if (!vapidKey) throw new Error();
+
         const sub = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapidKey)
-        })
+          applicationServerKey: urlBase64ToUint8Array(vapidKey),
+        });
 
-        const subscriptionJson = JSON.parse(JSON.stringify(sub))
+        const subscriptionJson = JSON.parse(JSON.stringify(sub));
 
-        const { error } = await supabase.from('push_subscriptions').upsert({
-          user_id: userId,
-          subscription: subscriptionJson,
-          device_agent: navigator.userAgent
-        }, { onConflict: 'user_id, subscription' })
+        const { error } = await supabase.from("push_subscriptions").upsert(
+          {
+            user_id: userId,
+            subscription: subscriptionJson,
+            device_agent: navigator.userAgent,
+          },
+          { onConflict: "user_id, subscription" },
+        );
 
-        if (error) throw error
+        if (error) throw error;
 
-        setIsSubscribed(true)
+        setIsSubscribed(true);
       }
     } catch (error) {
-      console.error(error)
+      console.error(error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <button
       onClick={handleToggle}
       disabled={loading}
       className={`h-14 w-full flex items-center justify-center rounded-md border transition-all duration-200 ${
-        isSubscribed 
-          ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/30' 
-          : 'bg-gray-100 dark:bg-neutral-900 border-gray-200 dark:border-neutral-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-neutral-800'
+        isSubscribed
+          ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/30"
+          : "bg-gray-100 dark:bg-neutral-900 border-gray-200 dark:border-neutral-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-neutral-800"
       }`}
-      title={isSubscribed ? 'Desactivar notificaciones' : 'Activar notificaciones'}
+      title={
+        isSubscribed ? "Desactivar notificaciones" : "Activar notificaciones"
+      }
     >
       {loading ? (
         <Loader2 className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-400" />
@@ -116,5 +122,5 @@ export default function SubscribeButton({ userId }: { userId: string }) {
         <BellOff className="h-7 w-7 text-gray-400 dark:text-gray-500" />
       )}
     </button>
-  )
+  );
 }

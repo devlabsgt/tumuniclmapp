@@ -244,7 +244,7 @@ export default function ComisionForm({ isOpen, onClose, onSave, usuarios, comisi
           onClick={onClose}
         >
           <motion.div
-            className="bg-white dark:bg-neutral-900 rounded-xl border border-gray-300 dark:border-neutral-800 w-full max-w-4xl max-h-[90vh] overflow-y-auto transition-colors duration-200"
+            className="bg-white dark:bg-neutral-900 rounded-xl border border-gray-300 dark:border-neutral-800 w-[95vw] md:w-[80vw] max-w-[1200px] max-h-[90vh] overflow-y-auto transition-colors duration-200"
             initial={{ scale: 0.9, y: 30 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.9, y: 30 }}

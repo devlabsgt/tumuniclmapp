@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { X, MapPin, ArrowUpDown, Eye, EyeOff, FileCheck } from 'lucide-react';
+import { X, MapPin, ArrowUpDown, Eye, EyeOff, FileCheck, RefreshCw, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -31,6 +31,7 @@ export default function Mapa({ isOpen, onClose, registros, nombreUsuario, titulo
   const [registroActivo, setRegistroActivo] = useState<Registro | null>(null);
   const [mapaVisible, setMapaVisible] = useState(true);
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [mapRefreshKey, setMapRefreshKey] = useState(0);
 
   useEffect(() => {
     if (isOpen) {
@@ -234,14 +235,37 @@ export default function Mapa({ isOpen, onClose, registros, nombreUsuario, titulo
               {registroActivo && registroActivo.ubicacion ? (
                 <div className="flex-grow relative min-h-0">
                   <iframe
+                    key={`${registroActivo.ubicacion.lat}-${registroActivo.ubicacion.lng}-${mapRefreshKey}`}
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}
                     loading="lazy"
                     allowFullScreen
                     referrerPolicy="no-referrer-when-downgrade"
-                    src={`https://maps.google.com/maps?q=${registroActivo.ubicacion.lat},${registroActivo.ubicacion.lng}&z=17&output=embed&t=k`}
+                    src={`https://maps.google.com/maps?q=${registroActivo.ubicacion.lat},${registroActivo.ubicacion.lng}&z=17&output=embed&t=k&ts=${mapRefreshKey}`}
                   ></iframe>
+                  
+                  {/* Botones de acción del mapa */}
+                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center justify-center gap-1.5 p-1 bg-white/90 dark:bg-neutral-800/90 backdrop-blur-md rounded-full shadow-lg border border-gray-200 dark:border-neutral-700/50">
+                    <button 
+                      onClick={() => setMapRefreshKey(prev => prev + 1)}
+                      className="flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/30 transition-all border border-blue-100 dark:border-blue-500/30"
+                      title="Forzar actualización del mapa"
+                    >
+                      <RefreshCw size={14} className={mapRefreshKey > 0 ? "origin-center" : ""} />
+                      Actualizar
+                    </button>
+                    <a 
+                      href={`https://www.google.com/maps/search/?api=1&query=${registroActivo.ubicacion.lat},${registroActivo.ubicacion.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-full text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-neutral-700/80 transition-all"
+                      title="Ver ubicación exacta en la aplicación de mapas"
+                    >
+                      <ExternalLink size={14} />
+                      Abrir en App
+                    </a>
+                  </div>
                 </div>
               ) : (
                 <div className="flex-grow flex flex-col items-center justify-center bg-gray-50 dark:bg-neutral-950">

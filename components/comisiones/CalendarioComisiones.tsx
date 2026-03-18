@@ -13,7 +13,7 @@ import {
   isAfter,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ListPlus, StretchHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ListPlus, StretchHorizontal, ChevronLeft, ChevronRight, MousePointerClick } from 'lucide-react';
 
 interface CalendarioComisionesProps {
   fechasSeleccionadas: Date[];
@@ -29,14 +29,14 @@ export default function CalendarioComisiones({
   const [fechaDeReferencia, setFechaDeReferencia] = useState(
     fechasSeleccionadas[0] || new Date()
   );
-  const [selectionMode, setSelectionMode] = useState<'multiple' | 'range'>(
-    'multiple'
+  const [selectionMode, setSelectionMode] = useState<'single' | 'multiple' | 'range'>(
+    'single'
   );
   const [rangeStart, setRangeStart] = useState<Date | null>(null);
 
   useEffect(() => {
     if (disabled) {
-      setSelectionMode('multiple');
+      setSelectionMode('single');
       setRangeStart(null);
     }
   }, [disabled]);
@@ -61,10 +61,19 @@ export default function CalendarioComisiones({
   const irMesAnterior = () => setFechaDeReferencia(subMonths(fechaDeReferencia, 1));
 
   const handleSeleccionFecha = (dia: Date) => {
+    const todayStart = new Date().setHours(0, 0, 0, 0);
+    const diaStart = new Date(dia).setHours(0, 0, 0, 0);
+
+    if (diaStart < todayStart && !disabled) {
+      return;
+    }
+
     if (disabled) {
       onSelectFechas([dia]);
     } else {
-      if (selectionMode === 'multiple') {
+      if (selectionMode === 'single') {
+        onSelectFechas([dia]);
+      } else if (selectionMode === 'multiple') {
         const isAlreadySelected = fechasSeleccionadas.some((fecha) =>
           isSameDay(fecha, dia)
         );
@@ -119,12 +128,12 @@ export default function CalendarioComisiones({
     const diaEstaEnRango = isDayInRange(dia);
     const isDiaRangeStart = rangeStart && isSameDay(dia, rangeStart);
 
-    let classes = 'w-10 h-10 flex items-center justify-center rounded-md transition-all text-sm cursor-pointer ';
+    let classes = 'w-full aspect-square flex items-center justify-center rounded-md transition-all text-sm md:text-base lg:text-lg cursor-pointer ';
 
     if (diaEstaSeleccionado) {
       if (isPastDate) {
         // Seleccionado en el pasado (grisaceo)
-        classes += 'bg-slate-300 dark:bg-neutral-700 text-slate-500 dark:text-neutral-400';
+        classes += 'bg-slate-300 dark:bg-neutral-700 text-slate-500 dark:text-neutral-400 cursor-not-allowed opacity-60';
       } else {
         // Seleccionado futuro/hoy (azul fuerte)
         classes += 'bg-blue-600 dark:bg-blue-700 text-white font-semibold';
@@ -142,7 +151,7 @@ export default function CalendarioComisiones({
       classes += 'bg-blue-50 dark:bg-blue-900/10 text-blue-800 dark:text-blue-400 font-bold border border-blue-200 dark:border-blue-800';
     } else if (isPastDate) {
       // Pasado sin seleccionar
-      classes += 'text-slate-400 dark:text-neutral-600';
+      classes += 'text-slate-400 dark:text-neutral-600 cursor-not-allowed opacity-50';
     } else {
       // Futuro sin seleccionar (normal)
       classes += 'hover:bg-slate-100 dark:hover:bg-neutral-800 text-slate-600 dark:text-neutral-300';
@@ -156,7 +165,7 @@ export default function CalendarioComisiones({
   }
 
   return (
-    <div className="p-4 bg-white dark:bg-neutral-950 rounded-lg border border-gray-200 dark:border-neutral-800 space-y-4 w-full max-w-md mx-auto transition-colors duration-200">
+    <div className="p-4 md:p-6 bg-white dark:bg-neutral-950 rounded-lg border border-gray-200 dark:border-neutral-800 space-y-6 w-full h-full transition-colors duration-200">
       
       {/* Header Mes/Año */}
       <div className="flex justify-between items-center p-2 rounded-lg">
@@ -188,8 +197,26 @@ export default function CalendarioComisiones({
           <button
             type="button"
             onClick={() => {
+              setSelectionMode('single');
+              setRangeStart(null);
+              onSelectFechas([new Date()]);
+            }}
+            disabled={disabled}
+            className={`flex-1 flex items-center justify-center gap-2 text-xs px-3 py-1.5 rounded-md transition-all ${
+              selectionMode === 'single'
+                ? 'bg-white dark:bg-neutral-800 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-slate-600 dark:text-neutral-400 hover:bg-slate-200 dark:hover:bg-neutral-800'
+            }`}
+          >
+            <MousePointerClick size={16} />
+            Uno
+          </button>
+          <button
+            type="button"
+            onClick={() => {
               setSelectionMode('multiple');
               setRangeStart(null);
+              onSelectFechas([]);
             }}
             disabled={disabled}
             className={`flex-1 flex items-center justify-center gap-2 text-xs px-3 py-1.5 rounded-md transition-all ${
@@ -199,13 +226,14 @@ export default function CalendarioComisiones({
             }`}
           >
             <ListPlus size={16} />
-            Uno por uno
+            Varios
           </button>
           <button
             type="button"
             onClick={() => {
               setSelectionMode('range');
               setRangeStart(null);
+              onSelectFechas([]);
             }}
             disabled={disabled}
             className={`flex-1 flex items-center justify-center gap-2 text-xs px-3 py-1.5 rounded-md transition-all ${
@@ -221,16 +249,16 @@ export default function CalendarioComisiones({
       )}
 
       {/* Grid de Días */}
-      <div className="grid grid-cols-7 gap-1 text-center">
+      <div className="grid grid-cols-7 gap-1 md:gap-2 text-center w-full">
         {['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'].map((dia) => (
-          <span key={dia} className="text-xs uppercase font-semibold text-gray-500 dark:text-neutral-500 w-10 h-10 flex items-center justify-center">
+          <span key={dia} className="text-xs lg:text-sm uppercase font-semibold text-gray-500 dark:text-neutral-500 w-full aspect-square flex items-center justify-center">
             {dia}
           </span>
         ))}
         {Array.from(
           { length: inicioDeMes.getDay() === 0 ? 6 : inicioDeMes.getDay() - 1 },
           (_, i) => (
-            <div key={`empty-${i}`} className="w-10 h-10"></div>
+            <div key={`empty-${i}`} className="w-full aspect-square"></div>
           )
         )}
         {diasDelMes.map((dia) => {
