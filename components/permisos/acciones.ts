@@ -111,6 +111,9 @@ export async function gestionarPermiso(
       updateData.aprobado_jefe_nombre = nombreAprobador;
     } else if (nuevoEstado === "aprobado" || nuevoEstado === "rechazado_rrhh") {
       updateData.aprobado_rrhh_nombre = nombreAprobador;
+      if (nuevoEstado === "aprobado") {
+        updateData.aprobado_rrhh_at = new Date().toISOString();
+      }
     }
 
     const { error } = await supabase

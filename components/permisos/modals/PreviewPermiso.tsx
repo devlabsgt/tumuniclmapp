@@ -168,6 +168,13 @@ export default function PreviewPermiso({ permiso, isOpen, onClose }: Props) {
               <p className="text-[10px] font-bold text-neutral-700 dark:text-neutral-200">
                 {permiso.aprobado_rrhh_nombre || "--"}
               </p>
+              {permiso.aprobado_rrhh_at ? (
+                <p className="text-[9px] text-neutral-400 italic">
+                  {format(parseISO(permiso.aprobado_rrhh_at), "eee dd/MMM/yy, HH:mm", { locale: es })}
+                </p>
+              ) : (
+                <p className="text-[9px] text-neutral-400 italic">--</p>
+              )}
             </div>
           </div>
 

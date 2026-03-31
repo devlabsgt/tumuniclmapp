@@ -45,9 +45,14 @@ export default function OficinaAccordion({
   const getPermisoParaDia = (userId: string, diaString: string): PermisoEmpleado | null => {
     const permisos = permisosMap[userId] || [];
     return permisos.find(p => {
-      const ini = p.inicio.substring(0, 10);
+      // Solo mostrar permisos aprobados por RRHH
+      if (p.estado !== 'aprobado') return false;
+      // Desde la fecha de aprobación RRHH; si es null (registros viejos) desde inicio
+      const fechaInicio = p.aprobado_rrhh_at
+        ? p.aprobado_rrhh_at.substring(0, 10)
+        : p.inicio.substring(0, 10);
       const fin = p.fin.substring(0, 10);
-      return diaString >= ini && diaString <= fin;
+      return diaString >= fechaInicio && diaString <= fin;
     }) || null;
   };
 
