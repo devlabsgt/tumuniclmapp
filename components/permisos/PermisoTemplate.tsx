@@ -76,6 +76,28 @@ const PermisoTemplate = React.forwardRef<HTMLDivElement, Props>(({ permiso }, re
             </div>
         )}
 
+        <div className="grid grid-cols-2 gap-6 mb-8 relative z-10">
+            <div className="flex flex-col gap-1 px-5 py-4 bg-slate-50/50 rounded-xl border border-slate-100">
+              <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Aprobado Jefe</label>
+              <p className="text-sm font-bold text-neutral-800">
+                {permiso.aprobado_jefe_nombre || "--"}
+              </p>
+            </div>
+            <div className="flex flex-col gap-1 px-5 py-4 bg-slate-50/50 rounded-xl border border-slate-100">
+              <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Aprobado RRHH</label>
+              <p className="text-sm font-bold text-neutral-800">
+                {permiso.aprobado_rrhh_nombre || "--"}
+              </p>
+              {permiso.aprobado_rrhh_at ? (
+                <p className="text-[10px] text-neutral-400 italic font-medium mt-0.5">
+                  {format(parseISO(permiso.aprobado_rrhh_at), "eee dd/MMM/yy, HH:mm", { locale: es })}
+                </p>
+              ) : (
+                <p className="text-[10px] text-neutral-400 italic font-medium mt-0.5">--</p>
+              )}
+            </div>
+        </div>
+
         <div className="flex justify-between items-end border-t border-neutral-100 pt-8 relative z-10">
             <div className="flex flex-col gap-3">
                  <div>
@@ -109,7 +131,6 @@ const PermisoTemplate = React.forwardRef<HTMLDivElement, Props>(({ permiso }, re
                     <p className="text-[10px] font-bold text-neutral-400 mb-0.5 tracking-wider">CÓDIGO DE VERIFICACIÓN</p>
                     <p className="text-sm font-mono text-neutral-400 font-black uppercase tracking-widest">{permiso.id.substring(0, 6)}</p>
                 </div>
-                <p className="text-[9px] text-neutral-300 italic uppercase">Documento digital -CLM- ({format(new Date(), "dd/MM/yyyy HH:mm")})</p>
             </div>
         </div>
 

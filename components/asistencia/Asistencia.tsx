@@ -137,6 +137,18 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
   const [permisoParaPreview, setPermisoParaPreview] = useState<PermisoEmpleado | null>(null);
   const [notasPendientes, setNotasPendientes] = useState("");
 
+  const permisoHoy = useMemo(() => {
+    if (!permisosEmpleado) return null;
+    const hoyStr = format(fechaHoraGt, 'yyyy-MM-dd');
+    return permisosEmpleado.find(p => {
+      // Solo consideramos el permiso si está aprobado por RRHH
+      if (p.estado !== 'aprobado') return false;
+      const inicioDia = p.inicio.substring(0, 10);
+      const finDia = p.fin.substring(0, 10);
+      return hoyStr >= inicioDia && hoyStr <= finDia;
+    }) || null;
+  }, [permisosEmpleado, fechaHoraGt]);
+
   const {
     estaFueraDeHorario,
     scheduleEntrada,
@@ -161,22 +173,34 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
       seconds: sE || 0,
       milliseconds: 0,
     });
-    const scheduleSalida = set(fechaHoraGt, {
+    
+    // Si hay un permiso hoy, se usa la hora del permiso (inicio) como hora de salida
+    let scheduleSalida = set(fechaHoraGt, {
       hours: hS,
       minutes: mS,
       seconds: sS || 0,
       milliseconds: 0,
     });
+
+    if (permisoHoy) {
+      const horaPermiso = new Date(permisoHoy.inicio);
+      scheduleSalida = set(fechaHoraGt, {
+        hours: horaPermiso.getHours(),
+        minutes: horaPermiso.getMinutes(),
+        seconds: horaPermiso.getSeconds(),
+        milliseconds: 0,
+      });
+    }
+
     const scheduleSalidaTarde = addMinutes(scheduleSalida, 15);
 
     const puedeMarcarEntrada = isAfter(
       fechaHoraGt,
       addMinutes(scheduleEntrada, -60),
     );
-    const puedeMarcarSalida = isAfter(
-      fechaHoraGt,
-      addMinutes(scheduleSalida, -60),
-    );
+    const puedeMarcarSalida = permisoHoy 
+      ? fechaHoraGt.getTime() >= scheduleSalida.getTime()
+      : isAfter(fechaHoraGt, addMinutes(scheduleSalida, -60));
 
     const diaDeLaSemana = getDay(fechaHoraGt);
     const esDiaLaboral = diasLaborales.includes(diaDeLaSemana);
@@ -190,7 +214,7 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
       nombre: horario_nombre || "Normal",
       dias: formatScheduleDays(horario_dias),
       entrada: formatScheduleTime(horario_entrada),
-      salida: formatScheduleTime(horario_salida),
+      salida: permisoHoy ? format(scheduleSalida, 'hh:mm aa', { locale: es }) : formatScheduleTime(horario_salida),
     };
 
     const esHorarioMultiple =
@@ -213,6 +237,7 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
     horario_salida,
     horario_dias,
     horario_nombre,
+    permisoHoy,
   ]);
 
   const registroEntradaHoy = useMemo(() => {
@@ -240,15 +265,7 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
     );
   }, [todosLosRegistros, fechaHoraGt]);
 
-  const permisoHoy = useMemo(() => {
-    if (!permisosEmpleado) return null;
-    const hoyStr = format(fechaHoraGt, 'yyyy-MM-dd');
-    return permisosEmpleado.find(p => {
-      const inicioDia = p.inicio.substring(0, 10);
-      const finDia = p.fin.substring(0, 10);
-      return hoyStr >= inicioDia && hoyStr <= finDia;
-    }) || null;
-  }, [permisosEmpleado, fechaHoraGt]);
+
 
   useEffect(() => {
     if (modalMapaAbierto) {

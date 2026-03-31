@@ -47,12 +47,9 @@ export default function OficinaAccordion({
     return permisos.find(p => {
       // Solo mostrar permisos aprobados por RRHH
       if (p.estado !== 'aprobado') return false;
-      // Desde la fecha de aprobación RRHH; si es null (registros viejos) desde inicio
-      const fechaInicio = p.aprobado_rrhh_at
-        ? p.aprobado_rrhh_at.substring(0, 10)
-        : p.inicio.substring(0, 10);
+      const ini = p.inicio.substring(0, 10);
       const fin = p.fin.substring(0, 10);
-      return diaString >= fechaInicio && diaString <= fin;
+      return diaString >= ini && diaString <= fin;
     }) || null;
   };
 
