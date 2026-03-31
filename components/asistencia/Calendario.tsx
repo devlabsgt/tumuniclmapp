@@ -18,13 +18,15 @@ import {
   isAfter,
   parseISO,
   startOfToday,
-  isValid
+  isValid,
+  getDay
 } from 'date-fns';
-import { ChevronsLeft, ChevronsRight, List, FileCheck, AlertCircle } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, List, FileCheck, AlertCircle, PartyPopper, Umbrella, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { PermisoEmpleado } from '@/components/permisos/types';
 import PreviewPermiso from '@/components/permisos/modals/PreviewPermiso';
+import { useAsuetos, getAsuetoPorFecha } from '@/hooks/asistencia/useAsuetos';
 
 interface CalendarioProps {
   todosLosRegistros: any[];
@@ -32,6 +34,8 @@ interface CalendarioProps {
   fechaHoraGt: Date;
   esHorarioMultiple?: boolean;
   permisosEmpleado?: PermisoEmpleado[];
+  /** Días laborales del horario del empleado (0=Dom, 1=Lun...6=Sáb). Si es null, muestra todos. */
+  horarioDias?: number[] | null;
 }
 
 const getWeekDays = (date: Date) => eachDayOfInterval({
@@ -63,7 +67,7 @@ const sortUsuarios = (usuarios: AsistenciaRegistro[]) => {
   });
 };
 
-export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaHoraGt, esHorarioMultiple = false, permisosEmpleado = [] }: CalendarioProps) {
+export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaHoraGt, esHorarioMultiple = false, permisosEmpleado = [], horarioDias }: CalendarioProps) {
   const [fechaDeReferencia, setFechaDeReferencia] = useState(new Date());
   const [diaSeleccionado, setDiaSeleccionado] = useState<Date | undefined>(undefined);
   const [filtroTipo, setFiltroTipo] = useState<'semanal' | 'rango'>('semanal');
@@ -72,6 +76,24 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
   const [permisoPreview, setPermisoPreview] = useState<PermisoEmpleado | null>(null);
 
   const diasDeLaSemana = useMemo(() => getWeekDays(fechaDeReferencia), [fechaDeReferencia]);
+
+  // Calcular rango de fechas para cargar asuetos
+  const { rangoInicio, rangoFin } = useMemo(() => {
+    const semanaInicio = format(diasDeLaSemana[0], 'yyyy-MM-dd');
+    const semanaFin = format(diasDeLaSemana[6], 'yyyy-MM-dd');
+    if (filtroTipo === 'rango' && fechaInicialRango && fechaFinalRango) {
+      return { rangoInicio: fechaInicialRango, rangoFin: fechaFinalRango };
+    }
+    return { rangoInicio: semanaInicio, rangoFin: semanaFin };
+  }, [diasDeLaSemana, filtroTipo, fechaInicialRango, fechaFinalRango]);
+
+  const { asuetos } = useAsuetos(rangoInicio, rangoFin);
+
+  /** ¿Este día está dentro del horario laboral del empleado? */
+  const esDiaLaboral = (dia: Date): boolean => {
+    if (!horarioDias || horarioDias.length === 0) return true;
+    return horarioDias.includes(getDay(dia));
+  };
 
   const registrosAgrupados = useMemo(() => {
     const agrupados: Record<string, Record<string, AsistenciaRegistro>> = {};
@@ -137,8 +159,11 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
 
     if (!isValid(start) || !isValid(end) || isAfter(start, end)) return [];
 
-    return eachDayOfInterval({ start, end }).map(d => format(d, 'yyyy-MM-dd'));
-  }, [filtroTipo, diasDeLaSemana, diaSeleccionado, fechaInicialRango, fechaFinalRango]);
+    return eachDayOfInterval({ start, end })
+      // Filtrar días NO laborales (según horario del empleado)
+      .filter(d => esDiaLaboral(d))
+      .map(d => format(d, 'yyyy-MM-dd'));
+  }, [filtroTipo, diasDeLaSemana, diaSeleccionado, fechaInicialRango, fechaFinalRango, horarioDias]);
 
   const irSemanaSiguiente = () => setFechaDeReferencia(addDays(fechaDeReferencia, 7));
   const irSemanaAnterior = () => setFechaDeReferencia(subDays(fechaDeReferencia, 7));
@@ -174,6 +199,74 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
       const finDia = p.fin.substring(0, 10);
       return diaString >= inicioDia && diaString <= finDia;
     }) || null;
+  };
+
+  /** Botón de justificación con ícono por tipo */
+  const JustificacionBtn = ({ permiso, asueto, totalRegistros, fechaStr }: {
+    permiso: PermisoEmpleado | null;
+    asueto: ReturnType<typeof getAsuetoPorFecha>;
+    totalRegistros: number;
+    fechaStr: string;
+  }) => {
+    // Asueto — amarillo con cohete
+    if (asueto) {
+      return (
+        <div
+          title={asueto.descripcion || asueto.nombre}
+          className="w-full py-1 px-1.5 rounded bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 font-bold flex items-center justify-center gap-1 text-center text-[9px] leading-tight border border-amber-200 dark:border-amber-800 cursor-default shadow-sm"
+        >
+          <PartyPopper className="w-2.5 h-2.5 flex-shrink-0" />
+          Asueto
+        </div>
+      );
+    }
+
+    if (permiso) {
+      const esVacaciones = permiso.tipo.toLowerCase().includes('vacaciones');
+      return (
+        <button
+          onClick={(e) => { e.stopPropagation(); setPermisoPreview(permiso); }}
+          className={`w-full py-1 px-1.5 rounded font-bold flex items-center justify-center gap-1 text-center transition-colors text-[9px] leading-tight border shadow-sm cursor-pointer ${
+            esVacaciones
+              ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 border-purple-100 dark:border-purple-900/30'
+              : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 border-blue-100 dark:border-blue-900/30'
+          }`}
+        >
+          {esVacaciones
+            ? <><Umbrella className="w-2.5 h-2.5 flex-shrink-0" /> Vacaciones</>
+            : <><FileCheck className="w-2.5 h-2.5 flex-shrink-0" /> Permiso</>}
+        </button>
+      );
+    }
+
+    const fechaDia = parseISO(fechaStr + 'T00:00:00');
+    const esHoyOFuturo = isToday(fechaDia) || isAfter(fechaDia, startOfToday());
+
+    if (esHoyOFuturo && totalRegistros === 0) return null;
+
+    if (totalRegistros < 2) {
+      if (esHoyOFuturo) {
+        return (
+          <div className="w-full py-1 px-1.5 rounded bg-gray-100 dark:bg-neutral-800 text-gray-400 dark:text-gray-500 font-bold flex items-center justify-center gap-1 text-center text-[9px] leading-tight border border-gray-200 dark:border-neutral-700 cursor-default shadow-sm">
+            <Clock className="w-2.5 h-2.5 flex-shrink-0" />
+            Esperando
+          </div>
+        );
+      }
+      return (
+        <div className="w-full py-1 px-1.5 rounded bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold flex items-center justify-center gap-1 text-center text-[9px] leading-tight border border-red-100 dark:border-red-900/30 cursor-default shadow-sm">
+          <XCircle className="w-2.5 h-2.5 flex-shrink-0" />
+          Sin Permiso
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-full py-1 px-1.5 rounded bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400 font-bold flex items-center justify-center gap-1 text-center text-[9px] leading-tight border border-green-100 dark:border-green-900/30 cursor-default shadow-sm">
+        <CheckCircle2 className="w-2.5 h-2.5 flex-shrink-0" />
+        Correcto
+      </div>
+    );
   };
 
   return (
@@ -246,8 +339,12 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
       {filtroTipo === 'semanal' && (
         <div className="flex justify-around items-center pt-2">
           {diasDeLaSemana.map((dia) => {
+            const diaStr = format(dia, 'yyyy-MM-dd');
             const esDiaSeleccionado = diaSeleccionado ? isSameDay(dia, diaSeleccionado) : false;
-            const tienePermiso = getPermisoParaDia(format(dia, 'yyyy-MM-dd')) !== null;
+            const tienePermiso = getPermisoParaDia(diaStr) !== null;
+            const tieneAsueto = getAsuetoPorFecha(asuetos, diaStr) !== null;
+            const esLaboral = esDiaLaboral(dia);
+            if (!esLaboral) return null; // No mostrar días fuera del horario
             return (
               <div 
                 key={dia.toString()} 
@@ -259,7 +356,10 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
               >
                 <span className="text-[10px] uppercase">{format(dia, 'eee', { locale: es })}</span>
                 <span className="text-xs">{format(dia, 'd')}</span>
-                {tienePermiso && (
+                {tieneAsueto && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 border border-white dark:border-neutral-950" />
+                )}
+                {!tieneAsueto && tienePermiso && (
                   <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-indigo-500 border border-white dark:border-neutral-950" />
                 )}
               </div>
@@ -295,68 +395,32 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
                 const fechaDia = parseISO(diaString + 'T00:00:00');
                 const esFuturo = isAfter(fechaDia, startOfToday());
                 const permisoDelDia = getPermisoParaDia(diaString);
+                const asuetoDelDia = getAsuetoPorFecha(asuetos, diaString);
+                const esAsueto = !!asuetoDelDia;
 
-                if (esFuturo && usuariosDelDia.length === 0 && !permisoDelDia) {
+                // Ocultar días futuros sin datos (salvo que haya asueto)
+                if (esFuturo && usuariosDelDia.length === 0 && !permisoDelDia && !esAsueto) {
                   return null;
                 }
 
-                const JustificacionBtn = ({ permiso, totalRegistros, fechaStr }: { permiso: PermisoEmpleado | null, totalRegistros: number, fechaStr: string }) => {
-                  if (permiso) {
-                    const esVacaciones = permiso.tipo.toLowerCase().includes('vacaciones');
-                    return (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setPermisoPreview(permiso); }}
-                        className={`w-full py-1 px-1.5 rounded font-bold flex items-center justify-center text-center transition-colors text-[9px] leading-tight border shadow-sm cursor-pointer ${
-                          esVacaciones
-                            ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 border-purple-100 dark:border-purple-900/30'
-                            : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 border-blue-100 dark:border-blue-900/30'
-                        }`}
-                      >
-                        {esVacaciones ? 'Vacaciones' : 'Permiso'}
-                      </button>
-                    );
-                  }
-                  
-                  const fechaDia = parseISO(fechaStr + 'T00:00:00');
-                  const esHoyOFuturo = isToday(fechaDia) || isAfter(fechaDia, startOfToday());
-                  
-                  if (esHoyOFuturo && totalRegistros === 0) {
-                    return null;
-                  }
 
-                  if (totalRegistros < 2) {
-                    if (esHoyOFuturo) {
-                      return (
-                        <div className="w-full py-1 px-1.5 rounded bg-gray-100 dark:bg-neutral-800 text-gray-400 dark:text-gray-500 font-bold flex items-center justify-center text-center text-[9px] leading-tight border border-gray-200 dark:border-neutral-700 cursor-default transition-colors shadow-sm">
-                          Esperando Asistencia
-                        </div>
-                      );
-                    }
-                    return (
-                      <div className="w-full py-1 px-1.5 rounded bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold flex items-center justify-center text-center text-[9px] leading-tight border border-red-100 dark:border-red-900/30 cursor-default transition-colors shadow-sm">
-                        Sin Permiso
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div className="w-full py-1 px-1.5 rounded bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400 font-bold flex items-center justify-center text-center text-[9px] leading-tight border border-green-100 dark:border-green-900/30 cursor-default transition-colors shadow-sm">
-                      Correcto
-                    </div>
-                  );
-                };
 
                 return (
                   <Fragment key={diaString}>
+                    {/* Encabezado del día — siempre gris, sin badge */}
                     <tr>
-                      <td colSpan={colSpanCount} className="bg-slate-100 dark:bg-neutral-800 px-4 py-2 font-bold text-slate-700 dark:text-slate-200 border-t border-b border-slate-200 dark:border-neutral-700 transition-colors">
-                        {format(fechaDia, 'eeee, d \'de\' LLLL', { locale: es })}
+                      <td
+                        colSpan={colSpanCount}
+                        className="px-4 py-2 font-bold border-t border-b transition-colors bg-slate-100 dark:bg-neutral-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-neutral-700"
+                      >
+                        {format(fechaDia, "eeee, d 'de' LLLL", { locale: es })}
                       </td>
                     </tr>
 
                     {usuariosDelDia.length > 0 ? (
                       usuariosDelDia.map((usuario, index) => {
                         const sinRegistros = !usuario.entrada && !usuario.salida && !usuario.tieneMultiple;
+                        const totalRegs = usuario.cantidad || ((usuario.entrada ? 1 : 0) + (usuario.salida ? 1 : 0));
 
                         return (
                           <tr 
@@ -374,7 +438,13 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
                                   onClick={() => !sinRegistros && onAbrirMapa(usuario.entrada || usuario.salida || usuario.representante)}
                                 >
                                   {sinRegistros ? (
-                                    <span className={`text-[9px] font-medium ${permisoDelDia ? (permisoDelDia.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-500 dark:text-red-400'}`}>Sin registros</span>
+                                    <span className={`text-[9px] font-medium ${
+                                      esAsueto
+                                        ? 'text-amber-500 dark:text-amber-400'
+                                        : permisoDelDia
+                                          ? (permisoDelDia.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400')
+                                          : 'text-red-500 dark:text-red-400'
+                                    }`}>Sin registros de asistencia</span>
                                   ) : (esHorarioMultiple || usuario.tieneMultiple) ? (
                                     <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold flex items-center justify-center text-center transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[9px]">
                                       Ver Asistencia ({usuario.cantidad})
@@ -385,21 +455,26 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
                                         <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
                                         {usuario.entrada 
                                           ? format(new Date(usuario.entrada.created_at), 'hh:mm aa', { locale: es }) 
-                                          : <span className={`${permisoDelDia ? (permisoDelDia.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-400'} font-bold`}>--:--</span>}
+                                          : <span className={`${esAsueto ? 'text-amber-500 dark:text-amber-400' : permisoDelDia ? (permisoDelDia.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-400'} font-bold`}>--:--</span>}
                                       </span>
                                       <span className="text-gray-300 dark:text-neutral-700">|</span>
                                       <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                         <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
                                         {usuario.salida 
                                           ? format(new Date(usuario.salida.created_at), 'hh:mm aa', { locale: es }) 
-                                          : <span className={`${permisoDelDia ? (permisoDelDia.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-400'} font-bold`}>--:--</span>}
+                                          : <span className={`${esAsueto ? 'text-amber-500 dark:text-amber-400' : permisoDelDia ? (permisoDelDia.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-400'} font-bold`}>--:--</span>}
                                       </span>
                                     </div>
                                   )}
                                 </div>
-                                {/* Columna 1/4: Permiso */}
-                                <div className="w-1/4 flex-shrink-0 cursor-pointer">
-                                    <JustificacionBtn permiso={permisoDelDia} totalRegistros={usuario.cantidad || ((usuario.entrada ? 1 : 0) + (usuario.salida ? 1 : 0))} fechaStr={diaString} />
+                                {/* Columna 1/4: Justificación */}
+                                <div className="w-1/4 flex-shrink-0">
+                                    <JustificacionBtn
+                                      permiso={esAsueto ? null : permisoDelDia}
+                                      asueto={asuetoDelDia}
+                                      totalRegistros={esAsueto ? 99 : totalRegs}
+                                      fechaStr={diaString}
+                                    />
                                 </div>
                               </div>
                             </td>
@@ -411,7 +486,11 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
                         <td colSpan={colSpanCount} className="px-3 py-2">
                           <div className="flex items-center gap-1">
                             <div className="w-3/4">
-                                {permisoDelDia
+                                {esAsueto ? (
+                                  <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                                    {asuetoDelDia.nombre}
+                                  </span>
+                                ) : permisoDelDia
                                   ? <span className={`text-xs font-medium ${permisoDelDia.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400'}`}>Sin registros de asistencia</span>
                                   : !isToday(fechaDia) && !isAfter(fechaDia, startOfToday())
                                     ? <span className="text-xs text-red-500 dark:text-red-400 font-medium">Sin registros de asistencia</span>
@@ -419,7 +498,12 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
                                 }
                               </div>
                               <div className="w-1/4 flex-shrink-0 cursor-pointer">
-                                <JustificacionBtn permiso={permisoDelDia} totalRegistros={0} fechaStr={diaString} />
+                                <JustificacionBtn
+                                  permiso={esAsueto ? null : permisoDelDia}
+                                  asueto={asuetoDelDia}
+                                  totalRegistros={0}
+                                  fechaStr={diaString}
+                                />
                               </div>
                             </div>
                           </td>

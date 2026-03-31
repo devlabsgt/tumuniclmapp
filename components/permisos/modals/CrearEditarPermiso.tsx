@@ -193,15 +193,11 @@ export default function CrearEditarPermiso({
 
     const inicioDate = new Date(inicioVal);
     const finDate = new Date(finVal);
-    const ahora = new Date();
 
     if (finDate <= inicioDate) {
       return toast.error("La fecha de fin debe ser posterior a la de inicio.");
     }
 
-    if (finDate < ahora && !permisoAEditar) {
-      return toast.error("La fecha de fin no puede ser en el pasado.");
-    }
 
     setLoading(true);
     const formData = new FormData(e.currentTarget);

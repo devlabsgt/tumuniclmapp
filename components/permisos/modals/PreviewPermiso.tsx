@@ -155,6 +155,22 @@ export default function PreviewPermiso({ permiso, isOpen, onClose }: Props) {
             </div>
           )}
 
+          {/* Aprobadores */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1 px-3 py-2 bg-slate-50 dark:bg-neutral-800/50 rounded-xl border border-slate-100 dark:border-neutral-700">
+              <label className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Aprobado Jefe</label>
+              <p className="text-[10px] font-bold text-neutral-700 dark:text-neutral-200">
+                {permiso.aprobado_jefe_nombre || "--"}
+              </p>
+            </div>
+            <div className="flex flex-col gap-1 px-3 py-2 bg-slate-50 dark:bg-neutral-800/50 rounded-xl border border-slate-100 dark:border-neutral-700">
+              <label className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Aprobado RRHH</label>
+              <p className="text-[10px] font-bold text-neutral-700 dark:text-neutral-200">
+                {permiso.aprobado_rrhh_nombre || "--"}
+              </p>
+            </div>
+          </div>
+
           {/* Footer doc: Estado + Código */}
           <div className="flex justify-between items-end border-t border-neutral-100 dark:border-neutral-800 pt-3">
             <div className="flex flex-col gap-2">

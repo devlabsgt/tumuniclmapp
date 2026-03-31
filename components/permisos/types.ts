@@ -19,6 +19,8 @@ export type PermisoEmpleado = {
   estado: EstadoPermiso
   created_at: string
   remunerado: boolean | null 
+  aprobado_jefe_nombre: string | null
+  aprobado_rrhh_nombre: string | null
   usuario?: UsuarioConJerarquia
 }
 

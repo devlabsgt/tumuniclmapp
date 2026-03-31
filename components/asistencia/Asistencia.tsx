@@ -741,6 +741,7 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
                 onAbrirMapa={handleAbrirMapa}
                 fechaHoraGt={fechaHoraGt}
                 permisosEmpleado={permisosEmpleado}
+                horarioDias={horario_dias}
               />
             </motion.div>
           )}

@@ -2,10 +2,11 @@
 
 import React, { Fragment } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, List, AlertCircle, LogIn, LogOut, FileCheck } from 'lucide-react';
+import { ChevronDown, AlertCircle, LogIn, LogOut, FileCheck, PartyPopper, Umbrella, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import { format, parseISO, isAfter, isToday, startOfToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { PermisoEmpleado } from '@/components/permisos/types';
+import { Asueto, getAsuetoPorFecha } from '@/hooks/asistencia/useAsuetos';
 
 interface OficinaAccordionProps {
   nombreOficina: string;
@@ -16,6 +17,7 @@ interface OficinaAccordionProps {
   onAbrirModal: (reg: any, nombre?: string) => void;
   permisosMap?: Record<string, PermisoEmpleado[]>;
   onVerPermiso?: (permiso: PermisoEmpleado) => void;
+  asuetos?: Asueto[];
 }
 
 export default function OficinaAccordion({
@@ -27,6 +29,7 @@ export default function OficinaAccordion({
   onAbrirModal,
   permisosMap = {},
   onVerPermiso,
+  asuetos = [],
 }: OficinaAccordionProps) {
 
   let diaActual = "";
@@ -48,19 +51,40 @@ export default function OficinaAccordion({
     }) || null;
   };
 
-  const JustificacionBtn = ({ permiso, totalRegistros, fechaStr }: { permiso: PermisoEmpleado | null, totalRegistros: number, fechaStr: string }) => {
+  /** Botón de justificación con íconos — igual que en Calendario.tsx */
+  const JustificacionBtn = ({ permiso, asueto, totalRegistros, fechaStr }: {
+    permiso: PermisoEmpleado | null;
+    asueto: Asueto | null;
+    totalRegistros: number;
+    fechaStr: string;
+  }) => {
+    // Asueto — prioridad máxima
+    if (asueto) {
+      return (
+        <div
+          title={asueto.descripcion || asueto.nombre}
+          className="w-full py-1 px-1 rounded bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 font-bold flex items-center justify-center gap-1 text-center text-[9px] leading-tight border border-amber-200 dark:border-amber-800 cursor-default shadow-sm"
+        >
+          <PartyPopper className="w-2.5 h-2.5 flex-shrink-0" />
+          Asueto
+        </div>
+      );
+    }
+
     if (permiso) {
       const esVacaciones = permiso.tipo.toLowerCase().includes('vacaciones');
       return (
         <button
           onClick={(e) => { e.stopPropagation(); onVerPermiso?.(permiso); }}
-          className={`w-full py-1 px-1 rounded font-bold flex items-center justify-center text-center text-[9px] leading-tight transition-colors shadow-sm border cursor-pointer ${
+          className={`w-full py-1 px-1 rounded font-bold flex items-center justify-center gap-1 text-center text-[9px] leading-tight transition-colors shadow-sm border cursor-pointer ${
             esVacaciones
               ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 border-purple-100 dark:border-purple-900/30'
               : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 border-blue-100 dark:border-blue-900/30'
           }`}
         >
-          {esVacaciones ? 'Vacaciones' : 'Permiso'}
+          {esVacaciones
+            ? <><Umbrella className="w-2.5 h-2.5 flex-shrink-0" /> Vacaciones</>
+            : <><FileCheck className="w-2.5 h-2.5 flex-shrink-0" /> Permiso</>}
         </button>
       );
     }
@@ -68,27 +92,28 @@ export default function OficinaAccordion({
     const fechaDia = parseISO(fechaStr + 'T00:00:00');
     const esHoyOFuturo = isToday(fechaDia) || isAfter(fechaDia, startOfToday());
 
-    if (esHoyOFuturo && totalRegistros === 0) {
-      return null;
-    }
+    if (esHoyOFuturo && totalRegistros === 0) return null;
 
     if (totalRegistros < 2) {
       if (esHoyOFuturo) {
         return (
-          <div className="w-full py-1 px-1 rounded bg-gray-100 dark:bg-neutral-800 text-gray-400 dark:text-gray-500 font-bold flex items-center justify-center text-center text-[9px] leading-tight border border-gray-200 dark:border-neutral-700 cursor-default transition-colors shadow-sm">
-            Esperando Asistencia
+          <div className="w-full py-1 px-1 rounded bg-gray-100 dark:bg-neutral-800 text-gray-400 dark:text-gray-500 font-bold flex items-center justify-center gap-1 text-center text-[9px] leading-tight border border-gray-200 dark:border-neutral-700 cursor-default shadow-sm">
+            <Clock className="w-2.5 h-2.5 flex-shrink-0" />
+            Esperando
           </div>
         );
       }
       return (
-        <div className="w-full py-1 px-1 rounded bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold flex items-center justify-center text-center text-[9px] leading-tight border border-red-100 dark:border-red-900/30 cursor-default transition-colors shadow-sm">
+        <div className="w-full py-1 px-1 rounded bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-bold flex items-center justify-center gap-1 text-center text-[9px] leading-tight border border-red-100 dark:border-red-900/30 cursor-default shadow-sm">
+          <XCircle className="w-2.5 h-2.5 flex-shrink-0" />
           Sin Permiso
         </div>
       );
     }
 
     return (
-      <div className="w-full py-1 px-1 rounded bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400 font-bold flex items-center justify-center text-center text-[9px] leading-tight border border-green-100 dark:border-green-900/30 cursor-default transition-colors shadow-sm">
+      <div className="w-full py-1 px-1 rounded bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400 font-bold flex items-center justify-center gap-1 text-center text-[9px] leading-tight border border-green-100 dark:border-green-900/30 cursor-default shadow-sm">
+        <CheckCircle2 className="w-2.5 h-2.5 flex-shrink-0" />
         Correcto
       </div>
     );
@@ -138,9 +163,10 @@ export default function OficinaAccordion({
 
                       const esVacio = registro.esDiaVacio || registro.esAusencia;
                       const permiso = getPermisoParaDia(registro.userId, registro.diaString);
+                      const asueto = getAsuetoPorFecha(asuetos, registro.diaString);
                       const esMultiple = registro.multiple && registro.multiple.length > 0;
                       const totalRegistros = (registro.entrada ? 1 : 0) + (registro.salida ? 1 : 0) + (registro.multiple?.length || 0);
-                      if (isAfter(parseISO(registro.diaString + 'T00:00:00'), startOfToday()) && totalRegistros === 0 && !permiso) return null;
+                      if (isAfter(parseISO(registro.diaString + 'T00:00:00'), startOfToday()) && totalRegistros === 0 && !permiso && !asueto) return null;
 
                       return (
                         <Fragment key={`${registro.userId}-${registro.diaString}-${index}`}>
@@ -152,9 +178,7 @@ export default function OficinaAccordion({
                             </tr>
                           )}
 
-                          <tr
-                            className="border-b border-slate-100 dark:border-neutral-800 transition-colors"
-                          >
+                          <tr className="border-b border-slate-100 dark:border-neutral-800 transition-colors">
                               {/* Nombre */}
                               <td className="py-2 px-3 text-xs text-slate-700 dark:text-slate-300 w-[45%]">
                                 {registro.nombre}
@@ -172,8 +196,14 @@ export default function OficinaAccordion({
                                       </div>
                                     ) : esVacio ? (
                                       <div className="flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center">
-                                        <span className={`text-[9px] md:text-sm font-medium italic whitespace-nowrap ${permiso ? (permiso.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-500 dark:text-red-400'}`}>
-                                          Sin registros de asistencia
+                                        <span className={`text-[9px] md:text-sm font-medium italic whitespace-nowrap ${
+                                          asueto
+                                            ? 'text-amber-600 dark:text-amber-400'
+                                            : permiso
+                                              ? (permiso.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400')
+                                              : 'text-red-500 dark:text-red-400'
+                                        }`}>
+                                          {asueto ? asueto.nombre : 'Sin registros de asistencia'}
                                         </span>
                                       </div>
                                     ) : (
@@ -191,7 +221,7 @@ export default function OficinaAccordion({
                                     )}
                                   </div>
                                   <div className="w-1/4 flex-shrink-0 cursor-pointer">
-                                    <JustificacionBtn permiso={permiso} totalRegistros={totalRegistros} fechaStr={registro.diaString} />
+                                    <JustificacionBtn permiso={permiso} asueto={asueto} totalRegistros={totalRegistros} fechaStr={registro.diaString} />
                                   </div>
                                 </div>
                               </td>
@@ -238,8 +268,8 @@ export default function OficinaAccordion({
                              const esAusencia = asistencia.esAusencia;
                              const totalRegistros = (asistencia.entrada ? 1 : 0) + (asistencia.salida ? 1 : 0) + (asistencia.multiple?.length || 0);
                              const permiso = getPermisoParaDia(usuario.userId, asistencia.diaString);
-                             // Fecha futura sin datos: no mostrar
-                             if (isAfter(parseISO(asistencia.diaString + 'T00:00:00'), startOfToday()) && totalRegistros === 0 && !permiso) return null;
+                             const asueto = getAsuetoPorFecha(asuetos, asistencia.diaString);
+                             if (isAfter(parseISO(asistencia.diaString + 'T00:00:00'), startOfToday()) && totalRegistros === 0 && !permiso && !asueto) return null;
 
                             return (
                               <tr
@@ -247,9 +277,10 @@ export default function OficinaAccordion({
                                 className="border-b border-slate-100 dark:border-neutral-800 transition-colors"
                               >
                                 {/* Fecha */}
-                                 <td className={`py-2 px-3 text-xs w-[45%] pl-8 capitalize ${esAusencia ? 'text-red-500 font-medium' : 'text-slate-700 dark:text-slate-300'}`}>
+                                 <td className={`py-2 px-3 text-xs w-[45%] pl-8 capitalize ${esAusencia && !asueto ? 'text-red-500 font-medium' : 'text-slate-700 dark:text-slate-300'}`}>
                                   {format(parseISO(asistencia.diaString + 'T00:00:00'), "eee d 'de' MMM", { locale: es })}
-                                  {esAusencia && <span className={`ml-1 text-[9px] italic ${permiso ? 'text-blue-500' : 'text-red-500'}`}>— Sin registros</span>}
+                                  {esAusencia && !asueto && <span className={`ml-1 text-[9px] italic ${permiso ? 'text-blue-500' : 'text-red-500'}`}>— Sin registros</span>}
+                                  {asueto && <span className="ml-1 text-[9px] italic text-amber-600">— {asueto.nombre}</span>}
                                 </td>
 
                                 {/* Asistencia + Permiso */}
@@ -290,7 +321,7 @@ export default function OficinaAccordion({
                                       )}
                                     </div>
                                     <div className="w-1/4 flex-shrink-0 cursor-pointer">
-                                      <JustificacionBtn permiso={permiso} totalRegistros={totalRegistros} fechaStr={asistencia.diaString} />
+                                      <JustificacionBtn permiso={permiso} asueto={asueto} totalRegistros={totalRegistros} fechaStr={asistencia.diaString} />
                                     </div>
                                   </div>
                                 </td>

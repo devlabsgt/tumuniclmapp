@@ -103,9 +103,19 @@ export async function gestionarPermiso(
   }
 
   if (nuevoEstado) {
+    // Construir el update con el nombre del aprobador en el campo correcto
+    const updateData: Record<string, any> = { estado: nuevoEstado };
+    const nombreAprobador = perfil.nombre || "--";
+
+    if (nuevoEstado === "aprobado_jefe" || nuevoEstado === "rechazado_jefe") {
+      updateData.aprobado_jefe_nombre = nombreAprobador;
+    } else if (nuevoEstado === "aprobado" || nuevoEstado === "rechazado_rrhh") {
+      updateData.aprobado_rrhh_nombre = nombreAprobador;
+    }
+
     const { error } = await supabase
       .from("permisos_empleado")
-      .update({ estado: nuevoEstado })
+      .update(updateData)
       .eq("id", permisoId);
     if (error) throw new Error(error.message);
 
@@ -115,6 +125,8 @@ export async function gestionarPermiso(
 
   return false;
 }
+
+
 
 export async function guardarPermiso(formData: FormData, id?: string) {
   const supabase = await createClient();

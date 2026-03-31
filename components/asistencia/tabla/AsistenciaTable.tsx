@@ -16,6 +16,7 @@ import PreviewPermiso from '@/components/permisos/modals/PreviewPermiso';
 import { PermisoEmpleado } from '@/components/permisos/types';
 import { createClient } from '@/utils/supabase/client';
 import { useListaUsuarios } from '@/hooks/usuarios/useListarUsuarios';
+import { useAsuetos } from '@/hooks/asistencia/useAsuetos';
 
 type Props = {
   registros: AsistenciaEnriquecida[];
@@ -66,6 +67,8 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
   const [fechaInicialRango, setFechaInicialRango] = useState(() => format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'));
   const [fechaFinalRango, setFechaFinalRango] = useState(() => format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'));
   const [searchTerm, setSearchTerm] = useState('');
+
+  const { asuetos } = useAsuetos(fechaInicialRango, fechaFinalRango);
 
   const [nivel2Id, setNivel2Id] = useState<string | null>(null);
   const [nivel3Id, setNivel3Id] = useState<string | null>(null);
@@ -644,6 +647,7 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
                           onAbrirModal={handleAbrirModalMapa}
                           permisosMap={permisosMap}
                           onVerPermiso={setPermisoPreview}
+                          asuetos={asuetos}
                         />
                       ))}
                       {oficinasOrdenadas.length === 0 && (

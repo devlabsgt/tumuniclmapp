@@ -16,8 +16,10 @@ import {
   Briefcase,
   Eye,
   Pencil,
+  PartyPopper,
 } from "lucide-react";
 import PreviewPermiso from "./modals/PreviewPermiso";
+import GestionAsueto from "./modals/GestionAsueto";
 import { PermisoEmpleado } from "./types";
 import { Button } from "@/components/ui/button";
 import Cargando from "@/components/ui/animations/Cargando";
@@ -75,6 +77,7 @@ export default function VerPermisos({ tipoVista }: Props) {
 
   const [modalPreviewAbierto, setModalPreviewAbierto] = React.useState(false);
   const [permisoParaImagen, setPermisoParaImagen] = React.useState<PermisoEmpleado | null>(null);
+  const [modalAsuetoAbierto, setModalAsuetoAbierto] = React.useState(false);
 
   const handleVerPreview = (e: React.MouseEvent, permiso: PermisoEmpleado) => {
     e.stopPropagation();
@@ -224,6 +227,15 @@ export default function VerPermisos({ tipoVista }: Props) {
                     className="h-8 text-xs bg-black dark:bg-white text-white dark:text-black hover:opacity-90 ml-2"
                   >
                     <Plus className="w-3 h-3 mr-1.5" /> Nuevo Permiso
+                  </Button>
+                )}
+                {tipoVista === "gestion_rrhh" && (
+                  <Button
+                    size="sm"
+                    onClick={() => setModalAsuetoAbierto(true)}
+                    className="h-8 text-xs bg-amber-500 hover:bg-amber-600 text-white border-0 gap-1.5"
+                  >
+                    <PartyPopper className="w-3 h-3" /> Gestionar Asuetos
                   </Button>
                 )}
               </div>
@@ -425,6 +437,10 @@ export default function VerPermisos({ tipoVista }: Props) {
         onSuccess={cargarDatos}
         perfilUsuario={perfilUsuario}
         tipoVista={tipoVista}
+      />
+      <GestionAsueto
+        isOpen={modalAsuetoAbierto}
+        onClose={() => setModalAsuetoAbierto(false)}
       />
     </>
   );
