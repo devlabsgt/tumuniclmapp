@@ -77,7 +77,13 @@ export const CreateRequestModal: React.FC<Props> = ({
     setCurrentStep(1);
   };
 
-  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+  const nextStep = () => {
+    if (currentStep === 2 && (kmInicial === '' || Number(kmInicial) < 0)) {
+        toast.warning('Debe ingresar el kilometraje actual del vehículo para continuar.');
+        return;
+    }
+    setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+  };
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
   const handleSubmit = async () => {
