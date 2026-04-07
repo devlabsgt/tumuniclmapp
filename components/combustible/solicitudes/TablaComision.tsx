@@ -5,9 +5,10 @@ import { DetalleComision } from '@/components/combustible/solicitudes/types';
 interface Props {
   items: DetalleComision[];
   onChange: (items: DetalleComision[]) => void;
+  isMaquinaria?: boolean;
 }
 
-export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
+export const CommissionTable: React.FC<Props> = ({ items, onChange, isMaquinaria = false }) => {
   
   const [newItem, setNewItem] = useState<DetalleComision>({
     fecha_inicio: '',
@@ -128,7 +129,7 @@ export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
 
           <div className="md:col-span-2">
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">
-              Kilómetros Estimado (Ida y Vuelta)
+              {isMaquinaria ? "Horas Estimadas de Trabajo" : "Kilómetros Estimado (Ida y Vuelta)"}
             </label>
             <div className="relative">
               <input 
@@ -151,7 +152,7 @@ export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
                     }}
                     onFocus={e => e.target.select()}
                 />
-              <span className="absolute right-3 top-2.5 text-xs text-gray-500 font-bold">KM</span>
+              <span className="absolute right-3 top-2.5 text-xs text-gray-500 font-bold">{isMaquinaria ? 'HR' : 'KM'}</span>
             </div>
           </div>
         </div>
@@ -235,11 +236,11 @@ export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
                     </div>
 
                     <div className="text-right pl-3 border-l border-gray-200 dark:border-neutral-700">
-                        <span className="block text-[10px] font-bold text-gray-400 uppercase">Distancia</span>
+                        <span className="block text-[10px] font-bold text-gray-400 uppercase">{isMaquinaria ? 'Horas' : 'Distancia'}</span>
                         <span className="text-lg font-black text-blue-700 dark:text-blue-400">
                             {item.kilometros_recorrer}
                         </span>
-                        <span className="text-[10px] text-gray-500 ml-1">km</span>
+                        <span className="text-[10px] text-gray-500 ml-1">{isMaquinaria ? 'hr' : 'km'}</span>
                     </div>
 
                 </div>
@@ -256,7 +257,7 @@ export const CommissionTable: React.FC<Props> = ({ items, onChange }) => {
                 </div>
                 <div>
                     <span className="text-xl font-bold text-white">{totalKms}</span>
-                    <span className="text-xs font-bold text-gray-400 ml-1">KM</span>
+                    <span className="text-xs font-bold text-gray-400 ml-1">{isMaquinaria ? 'HR' : 'KM'}</span>
                 </div>
              </div>
           </div>

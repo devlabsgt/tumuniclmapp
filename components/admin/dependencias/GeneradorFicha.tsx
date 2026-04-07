@@ -132,7 +132,15 @@ const calcularEdad = (fechaString: string | null | undefined): string => {
 const formatearFecha = (fechaString: string | null | undefined): string => {
   if (!fechaString) return "--";
   const fecha = new Date(fechaString);
-  return new Intl.DateTimeFormat("es-GT", { timeZone: "UTC" }).format(fecha);
+  const formatStr = new Intl.DateTimeFormat("es-GT", { 
+    weekday: "short", 
+    day: "2-digit", 
+    month: "2-digit", 
+    year: "numeric",
+    timeZone: "UTC" 
+  }).format(fecha);
+  const cleaned = formatStr.replace(/[,\.]/g, "").trim();
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 };
 
 interface GeneradorFichaProps {
@@ -380,6 +388,18 @@ export default function GeneradorFicha({
                               label="Puesto"
                               value={datos?.puesto_nombre}
                             />
+                            <TableRow
+                              icon={<Calendar />}
+                              label="Fecha de Inicio"
+                              value={formatearFecha(datos?.fecha_ini)}
+                            />
+                            {datos?.fecha_fin && (
+                              <TableRow
+                                icon={<Calendar />}
+                                label="Fecha de Fin"
+                                value={formatearFecha(datos?.fecha_fin)}
+                              />
+                            )}
                             <TableRow
                               icon={<Building2 />}
                               label="Ubicación Organizacional"

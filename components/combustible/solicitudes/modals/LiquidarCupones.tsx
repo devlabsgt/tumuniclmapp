@@ -116,6 +116,8 @@ export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSol
   const inputsDisabled = !isEditing; 
   const isSolvente = solicitudData?.solvente === true;
   const isSubmitting = guardar.isPending || actualizar.isPending; 
+  const vData = Array.isArray(solicitudData?.vehiculo) ? solicitudData?.vehiculo[0] : solicitudData?.vehiculo;
+  const isMaquinaria = vData ? (['maquinaria', 'retroexcavadora', 'tractor', 'patrulla de caminos', 'motoniveladora'].some(t => vData.tipo_vehiculo?.toLowerCase().includes(t)) || vData.tipo_vehiculo?.toLowerCase() === 'maquinaria') : false;
 
   const handleSubmit = async () => {
     if (!solicitudData || typeof kmFinal !== 'number') return;
@@ -125,7 +127,7 @@ export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSol
     }
 
     if (isInvalidKm) {
-        return Toast.fire({ icon: 'error', title: 'El Km Final no puede ser menor al Inicial.' });
+        return Toast.fire({ icon: 'error', title: `El ${isMaquinaria ? 'Horómetro' : 'Km'} Final no puede ser menor al Inicial.` });
     }
 
     try {
@@ -310,7 +312,7 @@ export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSol
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10 items-end">
                                 <div className="flex flex-col border-b border-slate-200 dark:border-neutral-700 pb-1">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">Km Inicial</span>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">{isMaquinaria ? 'Hr Inicial' : 'Km Inicial'}</span>
                                     <div className="text-lg font-mono font-bold text-slate-600 dark:text-slate-400">
                                         {formatNumber(solicitudData.kilometraje_inicial)}
                                     </div>
@@ -318,7 +320,7 @@ export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSol
 
                                 <div className="flex flex-col">
                                     <label className={`text-[10px] font-bold uppercase mb-1 ${inputsDisabled ? 'text-gray-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                                        Km Final
+                                        {isMaquinaria ? 'Hr Final' : 'Km Final'}
                                     </label>
                                     <div className="relative">
                                         
@@ -348,7 +350,7 @@ export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSol
                                         <span className={`text-xl font-black tracking-tight ${inputsDisabled ? 'text-gray-600' : 'text-slate-800 dark:text-white'}`}>
                                             {formatNumber(totalRecorrido)}
                                         </span>
-                                        <span className="text-[10px] font-bold text-slate-400">KM</span>
+                                        <span className="text-[10px] font-bold text-slate-400">{isMaquinaria ? 'HR' : 'KM'}</span>
                                     </div>
                                 </div>
                             </div>

@@ -191,6 +191,7 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
 
   const totalRecorrido = liqData ? (liqData.km_final - solicitud.kilometraje_inicial) : 0;
   const fechaLiq = liqData?.fecha_comision ? new Date(liqData.fecha_comision).toLocaleDateString('es-GT', { dateStyle: 'long' }) : '---';
+  const isMaquinaria = ['maquinaria', 'retroexcavadora', 'tractor', 'patrulla de caminos', 'motoniveladora'].some(t => solicitud.vehiculo?.tipo_vehiculo?.toLowerCase().includes(t)) || solicitud.vehiculo?.tipo_vehiculo?.toLowerCase() === 'maquinaria';
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -245,7 +246,7 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
                             <Gauge size={120} />
                         </div>
                         <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 relative z-10 flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Registro de Kilometraje
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Registro de {isMaquinaria ? "Horómetro" : "Kilometraje"}
                         </h3>
                         <div className="grid grid-cols-3 gap-4 relative z-10">
                             <div className="flex flex-col border-r border-slate-100 dark:border-neutral-700 pr-4">
@@ -263,7 +264,7 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
                             <div className="flex flex-col text-right">
                                 <span className="text-[10px] font-bold text-emerald-500 uppercase">Recorrido</span>
                                 <span className="text-xl font-mono font-black text-emerald-600 dark:text-emerald-400">
-                                    {totalRecorrido.toLocaleString()} <span className="text-[10px] text-gray-400 font-medium">km</span>
+                                    {totalRecorrido.toLocaleString()} <span className="text-[10px] text-gray-400 font-medium">{isMaquinaria ? 'hr' : 'km'}</span>
                                 </span>
                             </div>
                         </div>

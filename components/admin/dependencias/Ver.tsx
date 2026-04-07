@@ -389,7 +389,7 @@ export default function Ver() {
 
   const handleSubmitInfoFinanciera = async (data: InfoFinancieraFormData) => {
     if (!dependenciaFinanciera) return;
-    const { error } = await supabase
+    const { error: depError } = await supabase
       .from("dependencias")
       .update({
         renglon: data.renglon,
@@ -403,13 +403,58 @@ export default function Ver() {
       })
       .eq("id", dependenciaFinanciera.id);
 
-    if (error) {
+    if (depError) {
       toast.error("Error al guardar información financiera.");
-    } else {
-      toast.success("Información financiera actualizada.");
-      handleCloseInfoFinanciera();
-      mutateDependencias();
+      return;
     }
+
+    // Lógica para guardar las fechas en la tabla 'contrato'
+    if (data.fecha_inicio) {
+      // 1. Encontrar quién es el empleado asignado actualmente a este puesto
+      // infoUsuarios ya está disponible en este componente
+      const empleadoAsignado = infoUsuarios?.find(
+        (info: InfoUsuario) => info.dependencia_id === dependenciaFinanciera.id
+      );
+
+      if (empleadoAsignado) {
+        // 2. Verificar si ya existe un contrato activo (para no duplicar si solo editaron el salario)
+        const { data: contratosExistentes } = await supabase
+          .from("contrato")
+          .select("id")
+          .eq("user_id", empleadoAsignado.user_id)
+          .eq("dependencia_id", dependenciaFinanciera.id)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (contratosExistentes && contratosExistentes.length > 0) {
+          // Existe, lo actualizamos
+          await supabase
+            .from("contrato")
+            .update({
+              fecha_inicio: data.fecha_inicio,
+              fecha_fin: data.fecha_fin || null,
+            })
+            .eq("id", contratosExistentes[0].id);
+        } else {
+          // No existe, creamos uno nuevo
+          await supabase
+            .from("contrato")
+            .insert({
+              user_id: empleadoAsignado.user_id,
+              dependencia_id: dependenciaFinanciera.id,
+              fecha_inicio: data.fecha_inicio,
+              fecha_fin: data.fecha_fin || null,
+            });
+        }
+      } else {
+         // Podrías mostrar una alerta si intentan asignar contrato pero el puesto está vacío
+         toast.warn("Fechas de contrato ignoradas: no hay un empleado asignado a este puesto aún.", { autoClose: 6000 });
+      }
+    }
+
+    toast.success("Información financiera y contrato guardados.");
+    handleCloseInfoFinanciera();
+    mutateDependencias();
   };
 
   const handleSubmit = async (formData: FormData) => {
