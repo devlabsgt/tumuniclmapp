@@ -98,6 +98,7 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
   const { direccion, cargo } = safeDatos ? getCargoYDireccion(safeDatos.unidad_direccion) : { direccion: '', cargo: '' };
   const totalKm = safeDatos?.detalles.reduce((acc, curr) => acc + (curr.kilometros_recorrer || 0), 0) || 0;
   const valorTotalCupones = safeDatos?.cupones.reduce((acc, curr) => acc + curr.subtotal, 0) || 0;
+  const isMaquinaria = safeDatos ? (['maquinaria', 'retroexcavadora', 'tractor', 'patrulla de caminos', 'motoniveladora'].some(t => safeDatos.vehiculo?.tipo?.toLowerCase().includes(t)) || safeDatos.vehiculo?.tipo?.toLowerCase() === 'maquinaria') : false;
 
   if (!isOpen) return null;
 
@@ -219,7 +220,7 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                                     <div className="flex-1 border-b border-black px-2 text-black text-center whitespace-nowrap">{safeDatos.vehiculo.modelo}</div>
                                 </div>
                                 <div className="flex items-end gap-2 mt-1">
-                                    <span className="whitespace-nowrap">KILOMETRAJE INICIAL:</span>
+                                    <span className="whitespace-nowrap">{isMaquinaria ? 'HORÓMETRO INICIAL:' : 'KILOMETRAJE INICIAL:'}</span>
                                     <div className="flex-1 border-b border-black px-2 text-black text-center whitespace-nowrap">{safeDatos.kilometraje_inicial}</div>
                                     <span className="whitespace-nowrap ml-8">TIPO DE COMBUSTIBLE:</span>
                                     <div className="flex-1 border-b border-black px-2 text-black text-center whitespace-nowrap">{safeDatos.vehiculo.combustible}</div>
@@ -236,7 +237,7 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                                     <tr className="bg-blue-100/50 text-center font-bold">
                                         <th className="border border-black py-1 w-1/5" colSpan={2}>FECHA</th>
                                         <th className="border border-black py-1 w-2/5" rowSpan={2}>LUGARES A VISITAR</th>
-                                        <th className="border border-black py-1 w-1/5" rowSpan={2}>KILOMETROS A<br/>RECORRER</th>
+                                        <th className="border border-black py-1 w-1/5" rowSpan={2}>{isMaquinaria ? 'HORAS A' : 'KILÓMETROS A'}<br/>RECORRER</th>
                                     </tr>
                                     <tr className="bg-blue-100/50 text-center font-bold">
                                         <th className="border border-black py-1">DEL</th>
@@ -256,7 +257,7 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                                 <tfoot>
                                     <tr>
                                         <td colSpan={3} className="border border-black text-right pr-2 font-bold uppercase py-1">
-                                            TOTAL DE KILOMETROS A RECORRER:
+                                            TOTAL DE {isMaquinaria ? 'HORAS' : 'KILÓMETROS'} A RECORRER:
                                         </td>
                                         <td className="border border-black text-center font-bold py-1">
                                             {totalKm}
@@ -293,7 +294,7 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                             
                             <div className="flex justify-between mb-3 px-2 gap-8">
                                 <div className="flex items-end gap-2 w-1/2">
-                                    <span className="font-bold uppercase whitespace-nowrap">KMS AUTORIZADOS:</span>
+                                    <span className="font-bold uppercase whitespace-nowrap">{isMaquinaria ? 'HRS AUTORIZADAS:' : 'KMS AUTORIZADOS:'}</span>
                                     <div className="flex-1 border-b border-black text-center font-mono">
                                     {safeDatos.cupones.length > 0 ? totalKm : ''}
                                     </div>

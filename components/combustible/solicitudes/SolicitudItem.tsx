@@ -38,6 +38,7 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
   const [showLiquidarModal, setShowLiquidarModal] = useState(false); 
 
   const totalKilometros = sol.detalles?.reduce((acc, curr) => acc + (Number(curr.kilometros_recorrer) || 0), 0) || 0;
+  const isMaquinaria = ['maquinaria', 'retroexcavadora', 'tractor', 'patrulla de caminos', 'motoniveladora'].some(t => sol.vehiculo?.tipo_vehiculo?.toLowerCase().includes(t)) || sol.vehiculo?.tipo_vehiculo?.toLowerCase() === 'maquinaria';
 
   const getStatusColor = (status: string) => {
       if (status === 'aprobado') return 'emerald';
@@ -275,7 +276,7 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
                                 <div className="flex-1 flex items-center gap-2 border-r border-slate-200 dark:border-neutral-700 pr-2 overflow-hidden">
                                     <Gauge size={14} className="text-slate-400 shrink-0" />
                                     <div className="text-xs truncate">
-                                        <span className="font-bold text-slate-400 uppercase tracking-tight mr-1">Inicial:</span>
+                                        <span className="font-bold text-slate-400 uppercase tracking-tight mr-1">{isMaquinaria ? "H. Inicial:" : "Inicial:"}</span>
                                         <span className="font-mono font-black text-slate-700 dark:text-slate-200">
                                             {sol.kilometraje_inicial.toLocaleString()}
                                         </span>
@@ -286,7 +287,7 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
                                     <div className="text-xs truncate">
                                         <span className="font-bold text-blue-400 uppercase tracking-tight mr-1">Total:</span>
                                         <span className="font-mono font-black text-blue-600 dark:text-blue-400">
-                                            {totalKilometros} km
+                                            {totalKilometros} {isMaquinaria ? 'hr' : 'km'}
                                         </span>
                                     </div>
                                 </div>
@@ -352,7 +353,7 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
                                                     {det.lugar_visitar}
                                                 </h5>
                                                 <span className="text-xs text-blue-600 dark:text-blue-400 font-semibold mt-1 inline-block">
-                                                    Distancia: {det.kilometros_recorrer} km
+                                                    {isMaquinaria ? 'Horas:' : 'Distancia:'} {det.kilometros_recorrer} {isMaquinaria ? 'hr' : 'km'}
                                                 </span>
                                             </div>
                                         </div>

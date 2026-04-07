@@ -95,7 +95,15 @@ const calcularEdad = (fechaString: string | null | undefined): string => {
 const formatearFecha = (fechaString: string | null | undefined): string => {
   if (!fechaString) return "--";
   const fecha = new Date(fechaString);
-  return new Intl.DateTimeFormat('es-GT', { timeZone: 'UTC' }).format(fecha);
+  const formatStr = new Intl.DateTimeFormat('es-GT', { 
+    weekday: 'short', 
+    day: '2-digit', 
+    month: '2-digit', 
+    year: 'numeric',
+    timeZone: 'UTC' 
+  }).format(fecha);
+  const cleaned = formatStr.replace(/[,\.]/g, '').trim();
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 };
 
 interface TarjetaEmpleadoProps {
@@ -310,6 +318,10 @@ export default function TarjetaEmpleado({
                       Información de Contrato
                     </h3>
                     <InfoItem icon={<Briefcase size={18} />} label="Cargo" value={datosCompletos?.puesto_nombre} />
+                    <InfoItem icon={<Calendar size={18} />} label="Fecha de Inicio" value={formatearFecha(datosCompletos?.fecha_ini)} />
+                    {(datosCompletos?.fecha_fin) && (
+                      <InfoItem icon={<Calendar size={18} />} label="Fecha de Fin" value={formatearFecha(datosCompletos?.fecha_fin)} />
+                    )}
                     <InfoItem icon={<FileText size={18} />} label="Renglón" value={renglon} />
 
                     {mostrarFinanciera ? (

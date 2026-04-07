@@ -1,19 +1,41 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { CreateRequestModal } from './modals/CrearSolicitud';
 import { RequestList } from './SolicitudesList';
 import { SolicitudCombustible } from './types';
 import { AlertCircle, Lock, Plus } from 'lucide-react'; 
-import { useSolicitudes } from './hook';
+import { useSolicitudes, useUserInfo } from './hook';
 
 export default function RequestManager() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [editingSolicitud, setEditingSolicitud] = useState<SolicitudCombustible | null>(null);
   const { data: solicitudes = [], isLoading: loading, refetch } = useSolicitudes();
+  const { data: user } = useUserInfo();
 
-  const hasPendingLiquidation = solicitudes.some(s => s.solvente === false);
+  const isSpecialCargo = user?.dependencia?.nombre === 'Jefe Del Departamento De Mantenimiento De La Red Municipal De Calles Y Carreteras' || user?.dependencia?.nombre === 'Auxiliar Analista Desarrollador de Sistemas';
+
+  const hasPendingLiquidation = useMemo(() => {
+      if (solicitudes.length === 0) return false;
+      
+      if (isSpecialCargo) {
+          const now = new Date();
+          const cutoff = new Date(now);
+          
+          let daysSinceFriday = (now.getDay() - 5 + 7) % 7;
+          if (daysSinceFriday === 0 && now.getHours() < 17) {
+              daysSinceFriday = 7;
+          }
+          
+          cutoff.setDate(now.getDate() - daysSinceFriday);
+          cutoff.setHours(17, 0, 0, 0);
+
+          return solicitudes.some(s => s.solvente === false && new Date(s.created_at) < cutoff);
+      }
+
+      return solicitudes.some(s => s.solvente === false);
+  }, [solicitudes, isSpecialCargo]);
 
   const handleOpenCreate = () => {
     if (hasPendingLiquidation) return;

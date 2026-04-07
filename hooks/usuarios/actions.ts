@@ -133,6 +133,14 @@ export async function getDetalleUsuarioAction(
     .eq("user_id", userId)
     .maybeSingle();
 
+  const { data: nuevoContrato } = await supabase
+    .from("contrato")
+    .select("fecha_inicio, fecha_fin")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   // @ts-ignore
   const rolNombre = userRol?.roles?.nombre || null;
 
@@ -161,8 +169,8 @@ export async function getDetalleUsuarioAction(
     puesto_path_jerarquico: puestoPathJerarquico,
     puesto_path_ordenado: puestoPathOrdenado,
     contrato_no: contratoData?.contrato_no || null,
-    fecha_ini: contratoData?.fecha_ini || null,
-    fecha_fin: contratoData?.fecha_fin || null,
+    fecha_ini: nuevoContrato?.fecha_inicio || contratoData?.fecha_ini || null,
+    fecha_fin: nuevoContrato?.fecha_fin || contratoData?.fecha_fin || null,
     horario_nombre: horarioData?.nombre || null,
     horario_dias: horarioData?.dias || [],
     horario_entrada: horarioData?.entrada || null,

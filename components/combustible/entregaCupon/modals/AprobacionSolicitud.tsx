@@ -111,6 +111,8 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
     return solicitud.detalles?.reduce((acc, d) => acc + (d.kilometros_recorrer || 0), 0) || 0;
   }, [solicitud]);
 
+  const isMaquinaria = ['maquinaria', 'retroexcavadora', 'tractor', 'patrulla de caminos', 'motoniveladora'].some(t => solicitud.vehiculo?.tipo_vehiculo?.toLowerCase().includes(t)) || solicitud.vehiculo?.tipo_vehiculo?.toLowerCase() === 'maquinaria';
+
   useEffect(() => {
     if (isOpen) {
         document.body.style.overflow = 'hidden';
@@ -220,7 +222,7 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">Solicitud #{solicitud.id}</h2>
                 <span className="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-bold border border-blue-200 dark:border-blue-800 uppercase">{solicitud.placa}</span>
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 text-xs font-bold border border-emerald-200 dark:border-emerald-800 uppercase">
-                    {kmsSolicitados} KM
+                    {kmsSolicitados} {isMaquinaria ? "HR" : "KM"}
                 </span>
             </div>
             <p className="text-sm text-gray-500 mt-1">Gestión de solicitud de combustible.</p>

@@ -17,6 +17,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Trash2 } from "lucide-react";
 import { DependenciaNode } from "../DependenciaItem";
+import { createClient } from "@/utils/supabase/client";
 
 const formSchema = z.object({
   renglon: z.string().min(1, { message: "Seleccione un renglón" }),
@@ -28,6 +29,8 @@ const formSchema = z.object({
   antiguedad: z.string().optional(),
   isr: z.string().optional(),
   plan_prestaciones: z.boolean().optional(),
+  fecha_inicio: z.string().optional(),
+  fecha_fin: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -41,6 +44,8 @@ export type InfoFinancieraFormData = {
   antiguedad?: number;
   isr?: number;
   plan_prestaciones?: boolean;
+  fecha_inicio?: string;
+  fecha_fin?: string;
 };
 
 interface Props {
@@ -178,6 +183,8 @@ export default function InfoFinancieraForm({
       prima: false,
       tiene_antiguedad: false,
       antiguedad: "",
+      fecha_inicio: "",
+      fecha_fin: "",
     },
   });
 
@@ -217,7 +224,28 @@ export default function InfoFinancieraForm({
         // --- AGREGADOS ---
         isr: dep.isr !== null && dep.isr !== undefined ? String(dep.isr) : "",
         plan_prestaciones: dep.plan_prestaciones || false,
+        fecha_inicio: "",
+        fecha_fin: "",
       });
+
+      // Fetch the latest contract for this dependence
+      const fetchContrato = async () => {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from("contrato")
+          .select("fecha_inicio, fecha_fin")
+          .eq("dependencia_id", dep.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (data) {
+          if (data.fecha_inicio) setValue("fecha_inicio", data.fecha_inicio);
+          if (data.fecha_fin) setValue("fecha_fin", data.fecha_fin);
+        }
+      };
+      
+      fetchContrato();
     } else if (!isOpen) {
       reset({
         renglon: "",
@@ -229,6 +257,8 @@ export default function InfoFinancieraForm({
         antiguedad: "",
         isr: "",
         plan_prestaciones: false,
+        fecha_inicio: "",
+        fecha_fin: "",
       });
     }
   }, [isOpen, dependencia, reset]);
@@ -296,13 +326,15 @@ export default function InfoFinancieraForm({
       prima: data.prima || false,
       antiguedad:
         configActual?.admiteAntiguedad &&
-        data.tiene_antiguedad &&
-        data.antiguedad
+          data.tiene_antiguedad &&
+          data.antiguedad
           ? parseFloat(data.antiguedad)
           : 0,
       // --- NUEVOS CAMPOS ---
       isr: data.isr ? parseFloat(data.isr) : 0,
       plan_prestaciones: data.plan_prestaciones || false,
+      fecha_inicio: data.fecha_inicio || undefined,
+      fecha_fin: data.renglon === "011" ? undefined : (data.fecha_fin || undefined),
     });
   };
 
@@ -317,6 +349,8 @@ export default function InfoFinancieraForm({
       // --- RESETEAR NUEVOS CAMPOS ---
       isr: 0,
       plan_prestaciones: false,
+      fecha_inicio: undefined,
+      fecha_fin: undefined,
     });
     onClose();
   };
@@ -347,7 +381,7 @@ export default function InfoFinancieraForm({
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg max-h-[95vh] overflow-y-auto"
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             exit={{ scale: 0.9 }}
@@ -720,6 +754,54 @@ export default function InfoFinancieraForm({
                       )}
                     />
                   </div>
+
+                  <div className="md:col-span-1 mt-2">
+                    <FormField
+                      control={form.control}
+                      name="fecha_inicio"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">
+                            Fecha de Inicio (Contrato)
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="date"
+                              className="dark:bg-slate-900 dark:border-slate-700"
+                              value={field.value || ""}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {renglonSeleccionado !== "011" && (
+                    <div className="md:col-span-1 mt-2">
+                      <FormField
+                        control={form.control}
+                        name="fecha_fin"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">
+                              Fecha de Fin
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                type="date"
+                                className="dark:bg-slate-900 dark:border-slate-700"
+                                value={field.value || ""}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
 
                   {configActual && granTotal > 0 && (
                     <div className="md:col-span-2 mt-4 space-y-2 p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg">

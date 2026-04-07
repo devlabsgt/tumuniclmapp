@@ -95,6 +95,8 @@ export const VehiculoData: React.FC<Props> = ({
     return acc;
   }, {} as Record<string, Vehiculo[]>);
 
+  const isMaquinaria = ['maquinaria', 'retroexcavadora', 'tractor', 'patrulla de caminos', 'motoniveladora'].some(t => vehiculo.tipo_vehiculo?.toLowerCase().includes(t)) || vehiculo.tipo_vehiculo?.toLowerCase() === 'maquinaria';
+
   return (
     <div className="lg:col-span-5 flex flex-col h-full">
         <div className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-xl shadow-lg p-5 flex flex-col h-full relative overflow-visible">
@@ -185,7 +187,7 @@ export const VehiculoData: React.FC<Props> = ({
                         </div>
                     </div>
                     <div>
-                        <label className="text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400 block mb-1">Km Actual</label>
+                        <label className="text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400 block mb-1">{isMaquinaria ? "Horómetro Inicial" : "Km Actual"}</label>
                         <div className="relative">
                             <input 
                                 type="text"
@@ -199,7 +201,7 @@ export const VehiculoData: React.FC<Props> = ({
                                 className="w-full border border-gray-300 dark:border-neutral-600 rounded px-3 py-1.5 text-gray-900 dark:text-white bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-blue-500 outline-none h-9 font-mono" 
                                 placeholder="0"
                             />
-                            <span className="absolute right-2 top-2 text-[10px] font-bold text-gray-400">KM</span>
+                            <span className="absolute right-2 top-2 text-[10px] font-bold text-gray-400">{isMaquinaria ? "HR" : "KM"}</span>
                         </div>
                     </div>
                 </div>
