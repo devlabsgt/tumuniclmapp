@@ -14,7 +14,7 @@ export default function RequestManager() {
   const { data: solicitudes = [], isLoading: loading, refetch } = useSolicitudes();
   const { data: user } = useUserInfo();
 
-  const isSpecialCargo = user?.dependencia?.nombre === 'Jefe Del Departamento De Mantenimiento De La Red Municipal De Calles Y Carreteras' || user?.dependencia?.nombre === 'Auxiliar Analista Desarrollador de Sistemas';
+  const isSpecialCargo = user?.dependencia?.nombre === 'Director de Servicios Públicos' || user?.dependencia?.nombre === 'Jefe Del Departamento De Mantenimiento De La Red Municipal De Calles Y Carreteras' || user?.dependencia?.nombre === 'Auxiliar Analista Desarrollador de Sistemas';
 
   const hasPendingLiquidation = useMemo(() => {
       if (solicitudes.length === 0) return false;

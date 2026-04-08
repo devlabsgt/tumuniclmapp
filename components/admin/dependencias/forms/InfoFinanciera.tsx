@@ -24,7 +24,8 @@ const formSchema = z.object({
   salario: z.string().optional(),
   bonificacion: z.string().optional(),
   unidades_tiempo: z.string().optional(),
-  prima: z.boolean().optional(),
+  tiene_prima: z.boolean().optional(),
+  prima: z.string().optional(),
   tiene_antiguedad: z.boolean().optional(),
   antiguedad: z.string().optional(),
   isr: z.string().optional(),
@@ -40,7 +41,7 @@ export type InfoFinancieraFormData = {
   salario?: number;
   bonificacion?: number;
   unidades_tiempo?: number;
-  prima?: boolean;
+  prima?: number;
   antiguedad?: number;
   isr?: number;
   plan_prestaciones?: boolean;
@@ -180,7 +181,8 @@ export default function InfoFinancieraForm({
       salario: "",
       bonificacion: "",
       unidades_tiempo: "",
-      prima: false,
+      tiene_prima: false,
+      prima: "",
       tiene_antiguedad: false,
       antiguedad: "",
       fecha_inicio: "",
@@ -191,6 +193,7 @@ export default function InfoFinancieraForm({
   const { reset, setValue, watch, handleSubmit } = form;
   const renglonSeleccionado = watch("renglon");
   const tieneAntiguedad = watch("tiene_antiguedad");
+  const tienePrima = watch("tiene_prima");
 
   const wSalario = parseFloat(watch("salario") || "0");
   const wBono = parseFloat(watch("bonificacion") || "0");
@@ -202,6 +205,8 @@ export default function InfoFinancieraForm({
       const dep = dependencia as any;
       const montoAntiguedad = dep.antiguedad;
       const hasAntiguedad = montoAntiguedad && montoAntiguedad > 0;
+      const montoPrima = dep.prima;
+      const hasPrima = montoPrima && montoPrima > 0;
 
       const unidadesVal = dep.unidades_tiempo
         ? String(dep.unidades_tiempo)
@@ -218,7 +223,8 @@ export default function InfoFinancieraForm({
             ? String(dep.bonificacion)
             : "",
         unidades_tiempo: unidadesVal,
-        prima: dep.prima || false,
+        tiene_prima: !!hasPrima,
+        prima: hasPrima ? String(montoPrima) : "",
         tiene_antiguedad: !!hasAntiguedad,
         antiguedad: hasAntiguedad ? String(montoAntiguedad) : "",
         // --- AGREGADOS ---
@@ -252,7 +258,8 @@ export default function InfoFinancieraForm({
         salario: "",
         bonificacion: "",
         unidades_tiempo: "",
-        prima: false,
+        tiene_prima: false,
+        prima: "",
         tiene_antiguedad: false,
         antiguedad: "",
         isr: "",
@@ -323,7 +330,7 @@ export default function InfoFinancieraForm({
         configActual?.requiereUnidades && data.unidades_tiempo
           ? parseInt(data.unidades_tiempo)
           : 0,
-      prima: data.prima || false,
+      prima: data.tiene_prima && data.prima ? parseFloat(data.prima) : 0,
       antiguedad:
         configActual?.admiteAntiguedad &&
           data.tiene_antiguedad &&
@@ -344,7 +351,7 @@ export default function InfoFinancieraForm({
       salario: 0,
       bonificacion: 0,
       unidades_tiempo: 0,
-      prima: false,
+      prima: 0,
       antiguedad: 0,
       // --- RESETEAR NUEVOS CAMPOS ---
       isr: 0,
@@ -486,39 +493,7 @@ export default function InfoFinancieraForm({
                     />
                   </div>
 
-                  <div className="md:col-span-2">
-                    <FormField
-                      control={form.control}
-                      name="prima"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-gray-50/50 border-gray-200 dark:bg-slate-700/30 dark:border-slate-600">
-                          <FormLabel className="text-sm font-normal">
-                            Prima de Fianza
-                          </FormLabel>
-                          <FormControl>
-                            <label
-                              htmlFor="toggle-prima"
-                              className="flex items-center cursor-pointer"
-                            >
-                              <div className="relative">
-                                <input
-                                  type="checkbox"
-                                  id="toggle-prima"
-                                  className="sr-only peer"
-                                  checked={!!field.value}
-                                  onChange={(e) =>
-                                    field.onChange(e.target.checked)
-                                  }
-                                />
-                                <div className="block h-5 w-9 rounded-full bg-gray-200 dark:bg-slate-600 peer-checked:bg-blue-600 transition-colors duration-200"></div>
-                                <div className="absolute left-1 top-1 h-3 w-3 rounded-full bg-white transition-all duration-200 peer-checked:translate-x-4"></div>
-                              </div>
-                            </label>
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+
 
                   <div className="md:col-span-2">
                     <FormField
@@ -629,6 +604,80 @@ export default function InfoFinancieraForm({
                       </AnimatePresence>
                     </div>
                   )}
+
+                  <div className="md:col-span-2 space-y-3 p-3 border border-indigo-100 rounded-lg bg-indigo-50/30 dark:bg-indigo-900/20 dark:border-indigo-800/50">
+                    <FormField
+                      control={form.control}
+                      name="tiene_prima"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between mb-0">
+                          <FormLabel className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+                            Prima de Fianza
+                          </FormLabel>
+                          <FormControl>
+                            <label
+                              htmlFor="toggle-prima"
+                              className="flex items-center cursor-pointer"
+                            >
+                              <div className="relative">
+                                <input
+                                  type="checkbox"
+                                  id="toggle-prima"
+                                  className="sr-only peer"
+                                  checked={!!field.value}
+                                  onChange={(e) =>
+                                    field.onChange(e.target.checked)
+                                  }
+                                />
+                                <div className="block h-5 w-9 rounded-full bg-gray-200 dark:bg-slate-600 peer-checked:bg-indigo-600 transition-colors duration-200"></div>
+                                <div className="absolute left-1 top-1 h-3 w-3 rounded-full bg-white transition-all duration-200 peer-checked:translate-x-4"></div>
+                              </div>
+                            </label>
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    <AnimatePresence>
+                      {tienePrima && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <FormField
+                            control={form.control}
+                            name="prima"
+                            render={({ field }) => (
+                              <FormItem className="pt-2">
+                                <FormLabel className="text-xs text-indigo-600 dark:text-indigo-400">
+                                  Monto Prima
+                                </FormLabel>
+                                <FormControl>
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                                      Q
+                                    </span>
+                                    <Input
+                                      {...field}
+                                      className="pl-7 border-indigo-200 focus:border-indigo-400 dark:bg-slate-900 dark:border-indigo-800 dark:text-slate-100"
+                                      placeholder="0.00"
+                                      onChange={(e) =>
+                                        handleNumericChange(e, field)
+                                      }
+                                      value={field.value}
+                                    />
+                                  </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
 
                   {configActual && (
                     <>
