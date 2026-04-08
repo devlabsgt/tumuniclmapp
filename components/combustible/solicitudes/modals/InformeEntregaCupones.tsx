@@ -3,7 +3,7 @@
 import React, { useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Printer, Loader2, X, FileText } from 'lucide-react';
+import { Printer, Loader2, X, FileText, Download } from 'lucide-react';
 import jsPDF from 'jspdf';
 import * as htmlToImage from 'html-to-image';
 import { useDetalleImpresion } from '../hook'; 
@@ -56,7 +56,7 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
   const printRef = useRef<HTMLDivElement>(null);
 
 
-  const generatePdf = async () => {
+  const handleAction = async (action: 'download' | 'print') => {
     if (!printRef.current || !datos) return;
     
     setIsPrinting(true);
@@ -70,10 +70,17 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
       pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`Solicitud_Comision_${datos.id}.pdf`);
+      
+      if (action === 'print') {
+          pdf.autoPrint();
+          const blob = pdf.output('bloburl');
+          window.open(blob, '_blank');
+      } else {
+          pdf.save(`Solicitud_Comision_${datos.id}.pdf`);
+      }
     } catch (error) {
-      console.error('Error generando PDF', error);
-      Swal.fire('Error', 'No se pudo generar el PDF', 'error');
+      console.error('Error generando documento', error);
+      Swal.fire('Error', 'No se pudo generar el documento', 'error');
     } finally {
       setIsPrinting(false);
     }
@@ -104,7 +111,7 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] h-[95vh] flex flex-col p-0 bg-gray-100 dark:bg-neutral-900 text-black border-none overflow-hidden">
+      <DialogContent className="max-w-[95vw] h-[95vh] flex flex-col p-0 bg-gray-100 dark:bg-neutral-900 text-black border-none overflow-hidden [&>button]:hidden">
         
         <DialogHeader className="p-4 bg-white dark:bg-neutral-800 border-b border-gray-200 dark:border-neutral-700 flex flex-row items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
@@ -116,15 +123,28 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                 <p className="text-xs text-gray-500 dark:text-gray-400">#{safeDatos?.id || '---'} — Vista previa</p>
              </div>
           </div>
-          <div className="flex gap-2">
-             <Button variant="outline" onClick={onClose} disabled={isPrinting} className="dark:text-white dark:border-neutral-600 dark:hover:bg-neutral-700">
-                <X size={18} />
-             </Button>
-             <Button onClick={generatePdf} disabled={loading || isPrinting || !safeDatos} className="bg-slate-900 text-white hover:bg-slate-800 gap-2">
+           <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={() => handleAction('print')} 
+                disabled={loading || isPrinting || !safeDatos} 
+                className="hidden sm:flex gap-2 border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30"
+              >
                 {isPrinting ? <Loader2 className="animate-spin" size={18} /> : <Printer size={18} />}
+                <span className="hidden sm:inline">Imprimir Directo</span>
+              </Button>
+              <Button 
+                onClick={() => handleAction('download')} 
+                disabled={loading || isPrinting || !safeDatos} 
+                className="bg-slate-900 text-white hover:bg-slate-800 gap-2"
+              >
+                {isPrinting ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
                 <span className="hidden sm:inline">Descargar PDF</span>
-             </Button>
-          </div>
+              </Button>
+              <Button variant="outline" onClick={onClose} disabled={isPrinting} className="dark:text-white dark:border-neutral-600 dark:hover:bg-neutral-700">
+                 <X size={18} />
+              </Button>
+           </div>
         </DialogHeader>
 
         <div className="flex-1 overflow-auto p-4 md:p-8 flex items-start justify-center bg-gray-200/50 dark:bg-black/20">

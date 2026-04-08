@@ -235,6 +235,7 @@ export const getDatosReporteMensual = async (mes: number, anio: number, correlat
       id,
       created_at,
       placa,
+      justificacion,
       usuario:info_usuario (
         nombre,
         dependencia:dependencias!info_usuario_dependencia_id_fkey ( 
@@ -242,6 +243,7 @@ export const getDatosReporteMensual = async (mes: number, anio: number, correlat
           padre:parent_id ( nombre ) 
         )
       ),
+      vehiculo:vehiculos ( modelo ),
       vales:entrega_cupones (
         cantidad_entregada,
         correlativo_inicio,
@@ -277,6 +279,10 @@ export const getDatosReporteMensual = async (mes: number, anio: number, correlat
         fecha: new Date(sol.created_at).toLocaleDateString('es-GT'),
         piloto: sol.usuario?.nombre,
         placa: sol.placa,
+        comision: nombreOficina.toUpperCase().includes('RED VIAL') 
+          ? 'Mantenimiento De Carreteras' 
+          : (sol.justificacion || 'N/A'),
+        modeloVehiculo: Array.isArray(sol.vehiculo) ? sol.vehiculo[0]?.modelo : sol.vehiculo?.modelo || 'No asignado',
         monto: montoTotal,
         tipo: sol.vales[0]?.detalle?.producto || 'N/A',
         correlativoInicio: sol.vales[0]?.correlativo_inicio,

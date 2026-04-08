@@ -3,13 +3,15 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Printer, X, FileText, Loader2 } from 'lucide-react';
+import { Printer, X, FileText, Loader2, Download } from 'lucide-react';
 import { generarPdfMensualOficinas } from '../lib/ReporteMensual';
 
 interface ItemReporte {
   fecha: string;
   piloto: string;
   placa: string;
+  comision: string;
+  modeloVehiculo?: string;
   monto: number;
   tipo: string;
   correlativoInicio: number;
@@ -39,9 +41,21 @@ export default function InformeMensualModal({ isOpen, onClose, datos, mesNombre 
     if (!datos) return;
     setIsGenerating(true);
     try {
-      await generarPdfMensualOficinas(datos, mesNombre);
+      await generarPdfMensualOficinas(datos, mesNombre, 'download');
     } catch (error) {
       console.error("Error generando PDF", error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handlePrint = async () => {
+    if (!datos) return;
+    setIsGenerating(true);
+    try {
+      await generarPdfMensualOficinas(datos, mesNombre, 'print');
+    } catch (error) {
+      console.error("Error generando PDF para imprimir", error);
     } finally {
       setIsGenerating(false);
     }
@@ -53,7 +67,7 @@ export default function InformeMensualModal({ isOpen, onClose, datos, mesNombre 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] h-[95vh] flex flex-col p-0 bg-slate-100 dark:bg-neutral-900 border-none overflow-hidden">
+      <DialogContent className="max-w-[95vw] h-[95vh] flex flex-col p-0 bg-slate-100 dark:bg-neutral-900 border-none overflow-hidden [&>button]:hidden">
         
         <DialogHeader className="p-4 bg-white dark:bg-neutral-800 border-b flex flex-row items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
@@ -65,12 +79,16 @@ export default function InformeMensualModal({ isOpen, onClose, datos, mesNombre 
              </div>
           </div>
           <div className="flex gap-2">
-             <Button variant="outline" onClick={onClose} className="gap-2">
-                <X size={18} /> <span className="hidden sm:inline">Cerrar</span>
+             <Button variant="outline" onClick={handlePrint} disabled={isGenerating} className="hidden sm:flex gap-2 border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30">
+                {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Printer size={18} />}
+                <span className="hidden sm:inline">Imprimir Directo</span>
              </Button>
              <Button onClick={handleDownload} disabled={isGenerating} className="bg-slate-900 hover:bg-slate-800 text-white gap-2">
-                {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Printer size={18} />}
-                <span className="hidden sm:inline">Generar PDF Oficial</span>
+                {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
+                <span className="hidden sm:inline">Descargar PDF</span>
+             </Button>
+             <Button variant="outline" onClick={onClose} className="gap-2">
+                <X size={18} /> <span className="hidden sm:inline">Cerrar</span>
              </Button>
           </div>
         </DialogHeader>
@@ -120,45 +138,53 @@ export default function InformeMensualModal({ isOpen, onClose, datos, mesNombre 
                                 Por medio de la Presente me permito Trasladarle el informe sobre los cupones de combustibles consumidos para el funcionamiento de planes, programas y proyectos para el año 2026, correspondientes al mes de <strong>{mesNombre.toUpperCase()}</strong> para iniciar el proceso de pago de factura.
                             </p>
 
-                            <table className="w-full border-collapse border border-black text-[10px]">
+                            <table className="w-full border-collapse border border-black text-[9px]">
                                 <thead>
                                     <tr className="bg-blue-100/50 border-b border-black">
-                                        <th colSpan={6} className="p-3 text-center font-bold uppercase leading-tight text-[#0066CC]">
+                                        <th colSpan={oficina.toUpperCase().includes('RED VIAL') ? 8 : 7} className="p-3 text-center font-bold uppercase leading-tight text-[#0066CC]">
                                             {oficina}
                                         </th>
                                     </tr>
                                     <tr className="bg-blue-50 border-b border-black font-bold">
-                                        <th className="border-r border-black p-2 w-8 text-center">No.</th>
-                                        <th className="border-r border-black p-2 text-center uppercase">Número de Correlativo</th>
-                                        <th className="border-r border-black p-2 text-center uppercase">Cantidad</th>
-                                        <th className="border-r border-black p-2 text-center uppercase">Vehículo</th>
-                                        <th className="border-r border-black p-2 text-center uppercase">Fecha</th>
-                                        <th className="p-2 text-center uppercase">Tipo de Combustible</th>
+                                        <th className="border-r border-black p-1 w-6 text-center">No.</th>
+                                        <th className="border-r border-black p-1 text-center uppercase">Número de Correlativo</th>
+                                        <th className="border-r border-black p-1 text-center uppercase">Cantidad</th>
+                                        <th className="border-r border-black p-1 text-center uppercase">Vehículo</th>
+                                        {oficina.toUpperCase().includes('RED VIAL') && (
+                                            <th className="border-r border-black p-1 text-center uppercase">Modelo de Vehículo</th>
+                                        )}
+                                        <th className="border-r border-black p-1 text-center uppercase">Comisión</th>
+                                        <th className="border-r border-black p-1 text-center uppercase">Fecha</th>
+                                        <th className="p-1 text-center uppercase">Tipo de Combustible</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {infoOficina.items.map((d, i) => (
                                         <tr key={i} className="border-b border-black">
-                                            <td className="border-r border-black p-2 text-center">{i + 1}</td>
-                                            <td className="border-r border-black p-2 text-center font-mono font-bold">
+                                            <td className="border-r border-black p-1 text-center">{i + 1}</td>
+                                            <td className="border-r border-black p-1 text-center font-mono font-bold">
                                                 {d.correlativoInicio && d.correlativoFin 
                                                     ? (d.correlativoInicio === d.correlativoFin ? d.correlativoInicio : `${d.correlativoInicio} al ${d.correlativoFin}`)
                                                     : '---'}
                                             </td>
-                                            <td className="border-r border-black p-2 text-center whitespace-nowrap">Q{d.monto.toFixed(2)}</td>
-                                            <td className="border-r border-black p-2 text-center uppercase font-medium">{d.placa}</td>
-                                            <td className="border-r border-black p-2 text-center">{d.fecha}</td>
-                                            <td className="p-2 text-center uppercase font-bold">{d.tipo}</td>
+                                            <td className="border-r border-black p-1 text-center whitespace-nowrap">Q{d.monto.toFixed(2)}</td>
+                                            <td className="border-r border-black p-1 text-center uppercase font-medium">{d.placa}</td>
+                                            {oficina.toUpperCase().includes('RED VIAL') && (
+                                                <td className="border-r border-black p-1 text-center uppercase">{d.modeloVehiculo || 'NO ASIGNADO'}</td>
+                                            )}
+                                            <td className="border-r border-black p-1 text-center">{d.comision}</td>
+                                            <td className="border-r border-black p-1 text-center">{d.fecha}</td>
+                                            <td className="p-1 text-center uppercase font-bold">{d.tipo}</td>
                                         </tr>
                                     ))}
                                 </tbody>
                                 <tfoot className="font-bold border-t border-black">
                                     <tr>
-                                        <td colSpan={2} className="border-r border-black p-2 text-left uppercase bg-gray-50">CANTIDAD TOTAL:</td>
-                                        <td className="border-r border-black p-2 text-center bg-gray-50">
+                                        <td colSpan={2} className="border-r border-black p-1 text-left uppercase bg-gray-50">CANTIDAD TOTAL:</td>
+                                        <td className="border-r border-black p-1 text-center bg-gray-50">
                                             Q{infoOficina.items.reduce((acc, curr) => acc + curr.monto, 0).toFixed(2)}
                                         </td>
-                                        <td colSpan={3} className="p-2"></td>
+                                        <td colSpan={oficina.toUpperCase().includes('RED VIAL') ? 5 : 4} className="p-1"></td>
                                     </tr>
                                 </tfoot>
                             </table>
