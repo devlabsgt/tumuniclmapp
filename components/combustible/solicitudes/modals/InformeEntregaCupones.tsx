@@ -88,7 +88,7 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
 
     const formatDate = (dateStr: string) => {
         if (!dateStr) return '';
-        return new Date(dateStr).toLocaleDateString('es-GT');
+        return new Date(dateStr).toLocaleDateString('es-GT', { timeZone: 'America/Guatemala' });
     }
 
     const getCargoYDireccion = (raw: string) => {
@@ -199,7 +199,7 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
                                 <div className="flex justify-end items-end text-[11px] mb-4 gap-2 font-bold text-gray-800">
                                     <span>CONCEPCIÓN LAS MINAS,</span>
                                     <div className="min-w-[150px] text-center px-2">
-                                        {new Date(safeDatos.created_at).toLocaleDateString('es-GT', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                        {new Date(safeDatos.created_at).toLocaleDateString('es-GT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Guatemala' })}
                                     </div>
                                 </div>
 
@@ -423,7 +423,7 @@ export default function SolicitudPrintModal({ isOpen, onClose, solicitudId }: Pr
 
                                         <span className="whitespace-nowrap w-12 ml-4">FECHA:</span>
                                         <div className="flex-1 border-b border-black px-2 text-black text-center pb-2">
-                                            {new Date(safeDatos.created_at).toLocaleDateString('es-GT')}
+                                            {new Date(safeDatos.created_at).toLocaleDateString('es-GT', { timeZone: 'America/Guatemala' })}
                                         </div>
                                     </div>
                                 </div>

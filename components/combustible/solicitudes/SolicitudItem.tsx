@@ -51,14 +51,14 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
   const getSimpleDate = (dateStr: string) => {
     if(!dateStr) return '--';
     const date = new Date(dateStr);
-    const day = date.getDate();
-    const month = date.toLocaleDateString('es-GT', { month: 'short' }).replace('.', '');
+    const day = date.toLocaleDateString('es-GT', { day: 'numeric', timeZone: 'America/Guatemala' });
+    const month = date.toLocaleDateString('es-GT', { month: 'short', timeZone: 'America/Guatemala' }).replace('.', '');
     return `${day}-${month}`;
   };
   
   const getSimpleTime = (dateStr: string) => {
     if(!dateStr) return '--';
-    return new Date(dateStr).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', hour12: true });
+    return new Date(dateStr).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'America/Guatemala' });
   };
 
   const handleDelete = async (e: React.MouseEvent) => {

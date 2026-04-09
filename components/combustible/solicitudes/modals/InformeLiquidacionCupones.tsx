@@ -171,7 +171,7 @@ export default function InformeLiquidacionCupones({ isOpen, onClose, solicitudId
                                                 const dateOnly = raw.includes('T') ? raw.split('T')[0] : raw;
                                                 const [y, m, d] = dateOnly.split('-').map(Number);
                                                 const date = new Date(y, m - 1, d);
-                                                return date.toLocaleDateString('es-GT', { day: 'numeric', month: 'long', year: 'numeric' });
+                                                return date.toLocaleDateString('es-GT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Guatemala' });
                                             }
                                             return '---';
                                         })()}
@@ -345,7 +345,7 @@ export default function InformeLiquidacionCupones({ isOpen, onClose, solicitudId
                                     <div className="absolute w-[48%] flex gap-2 items-end bottom-[230px] left-0 text-[11px] font-bold text-gray-800">
                                         <span className="whitespace-nowrap">FECHA DE LIQUIDACIÓN:</span>
                                         <div className="flex-1 border-b border-black text-center px-1 whitespace-nowrap">
-                                            {(safeDatos.liquidacion?.updated_at ? new Date(safeDatos.liquidacion.updated_at) : (safeDatos.liquidacion?.created_at ? new Date(safeDatos.liquidacion.created_at) : new Date())).toLocaleDateString('es-GT', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                            {(safeDatos.liquidacion?.updated_at ? new Date(safeDatos.liquidacion.updated_at) : (safeDatos.liquidacion?.created_at ? new Date(safeDatos.liquidacion.created_at) : new Date())).toLocaleDateString('es-GT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Guatemala' })}
                                         </div>
                                     </div>
 
