@@ -642,29 +642,6 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
           </TransitionChild>
           <div className="fixed inset-0 flex items-center justify-center p-4">
             <DialogPanel className="bg-white dark:bg-neutral-900 rounded-lg w-full max-w-lg min-h-[600px] p-6 shadow-xl border dark:border-neutral-800">
-              <div className="flex justify-between items-center mb-6">
-                <Button
-                  variant="ghost"
-                  onClick={handleCerrarModal}
-                  className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center gap-2"
-                >
-                  <LogOut className="h-4 w-4 rotate-180" />
-                  Salir
-                </Button>
-
-                {rolActual === "SUPER" && (
-                  <Button
-                    variant="ghost"
-                    onClick={handleEliminarUsuario}
-                    disabled={eliminando}
-                    className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    {eliminando ? "Eliminando..." : "Eliminar"}
-                  </Button>
-                )}
-              </div>
-
               <AnimatePresence mode="wait">
                 {usuarioIdSeleccionado && (
                   <motion.div
@@ -679,6 +656,19 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                       onSuccess={handleSuccess}
                       onCancel={handleCancel}
                       rolUsuarioActual={rolActual || ""}
+                      botonEliminar={
+                        rolActual === "SUPER" ? (
+                          <Button
+                            variant="ghost"
+                            onClick={handleEliminarUsuario}
+                            disabled={eliminando}
+                            className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 px-3"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            {eliminando ? "Eliminando..." : "Eliminar"}
+                          </Button>
+                        ) : null
+                      }
                     />
                   </motion.div>
                 )}

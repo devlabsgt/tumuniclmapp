@@ -6,7 +6,7 @@ import { createClient } from '@/utils/supabase/server';
 
 export async function POST(req: Request) {
   try {
-    const { id, email, nombre, rol, password, activo, esJefe, direccion, telefono, dpi, nit, igss, cuenta_no } = await req.json();
+    const { id, email, nombre, rol, password, activo, esJefe } = await req.json();
 
     if (!id || !email || !nombre || !rol) {
       return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 });
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     // 1. Obtener datos actuales
     const { data: perfilActual, error: errorPerfilActual } = await supabaseAdmin
       .from('info_usuario')
-      .select('nombre, activo, esjefe, direccion, telefono, dpi, nit, igss, cuenta_no')
+      .select('nombre, activo, esjefe')
       .eq('user_id', id)
       .single();
 
@@ -40,19 +40,24 @@ export async function POST(req: Request) {
     const nombreAnterior = perfilActual.nombre ?? '—';
     const activoAnterior = perfilActual.activo;
     const esjefeAnterior = perfilActual.esjefe ?? false;
-    const direccionAnterior = perfilActual.direccion ?? '—';
-    const telefonoAnterior = perfilActual.telefono ?? '—';
-    const dpiAnterior = perfilActual.dpi ?? '—';
-    const nitAnterior = perfilActual.nit ?? '—';
-    const igssAnterior = perfilActual.igss ?? '—';
-    const cuentaNoAnterior = perfilActual.cuenta_no ?? '—';
 
     const rolAnterior = rolActualRow.rol_id;
     const emailAnterior = authActual.user.email ?? '—';
 
-    // 2. Actualizar en auth
+    // 2. Actualizar en auth (email, password y ban según activo)
     const updateData: any = { email };
     if (password) updateData.password = password;
+
+    // Ban/Unban según estado activo
+    if (activo === false || activo === 'false') {
+      // Banear por 100 años
+      const banUntil = new Date();
+      banUntil.setFullYear(banUntil.getFullYear() + 100);
+      updateData.ban_duration = '876000h'; // ~100 años en horas
+    } else {
+      // Quitar ban
+      updateData.ban_duration = 'none';
+    }
 
     const { error: errorAuth } = await supabaseAdmin.auth.admin.updateUserById(id, updateData);
     if (errorAuth) {
@@ -63,7 +68,7 @@ export async function POST(req: Request) {
     // 3. Actualizar perfil
     const { error: errorPerfil } = await supabaseAdmin
       .from('info_usuario')
-      .update({ nombre, activo, esjefe: esJefe, direccion, telefono, dpi, nit, igss, cuenta_no })
+      .update({ nombre, activo, esjefe: esJefe })
       .eq('user_id', id);
 
     if (errorPerfil) {
@@ -106,31 +111,6 @@ export async function POST(req: Request) {
       const estadoNuevo = esJefe ? 'Sí' : 'No';
       cambios.push(`Es Jefe: "${estadoAnterior}" → "${estadoNuevo}"`);
     }
-    
-    if (direccion !== direccionAnterior) {
-      cambios.push(`Dirección: "${direccionAnterior}" → "${direccion}"`);
-    }
-
-    if (telefono !== telefonoAnterior) {
-      cambios.push(`Teléfono: "${telefonoAnterior}" → "${telefono}"`);
-    }
-    
-    if (dpi !== dpiAnterior) {
-      cambios.push(`DPI: "${dpiAnterior}" → "${dpi}"`);
-    }
-
-    if (nit !== nitAnterior) {
-      cambios.push(`NIT: "${nitAnterior}" → "${nit}"`);
-    }
-    
-    if (igss !== igssAnterior) {
-      cambios.push(`IGSS: "${igssAnterior}" → "${igss}"`);
-    }
-    
-    if (cuenta_no !== cuentaNoAnterior) {
-      cambios.push(`No. de Cuenta: "${cuentaNoAnterior}" → "${cuenta_no}"`);
-    }
-
 
     // Obtener nombres de roles
     const { data: rolAnteriorData } = await supabaseAdmin

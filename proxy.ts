@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/utils/supabase/proxy";
+import supabaseAdmin from "@/lib/supabaseAdmin";
 
 export async function proxy(request: NextRequest) {
   const { supabase, response } = createClient(request);
@@ -11,6 +12,18 @@ export async function proxy(request: NextRequest) {
 
   if (!user && isProtectedRoute) {
     return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  // Verificar ban de Supabase Auth
+  if (user && isProtectedRoute) {
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(user.id);
+    const authUserAny = authUser?.user as any;
+    const bannedUntil = authUserAny?.banned_until;
+
+    if (bannedUntil && new Date(bannedUntil) > new Date()) {
+      await supabase.auth.signOut();
+      return NextResponse.redirect(new URL("/", request.url));
+    }
   }
 
   if (user && isProtectedRoute) {

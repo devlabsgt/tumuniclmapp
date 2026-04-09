@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import PasswordForm from './PasswordForm';
 import Swal from 'sweetalert2';
+import { LogOut } from 'lucide-react';
 import { fetchUsuario } from '@/lib/usuarios/acciones';
 import useSWR from 'swr';
 import { createClient } from '@/utils/supabase/client';
@@ -27,6 +28,7 @@ interface UserFormProps {
   onSuccess: () => void;
   onCancel: () => void;
   rolUsuarioActual: string;
+  botonEliminar?: React.ReactNode;
 }
 
 const formSchema = z.object({
@@ -51,7 +53,7 @@ const formSchema = z.object({
   path: ['confirmar'],
 });
 
-export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: UserFormProps) {
+export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual, botonEliminar }: UserFormProps) {
   const [activeTab, setActiveTab] = useState<TabState>('informacion');
   
   const [nombre, setNombre] = useState('');
@@ -174,27 +176,42 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex p-1 bg-gray-100 dark:bg-zinc-800 rounded-lg w-full max-w-md mx-auto">
-        <button
-          onClick={() => setActiveTab('informacion')}
-          className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
-            activeTab === 'informacion' 
-            ? 'bg-white dark:bg-zinc-700 shadow-sm text-blue-600 dark:text-blue-400' 
-            : 'text-gray-500 dark:text-zinc-400 hover:text-gray-700'
-          }`}
+      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4 w-full">
+        <Button
+          variant="ghost"
+          onClick={onCancel}
+          className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-3 flex items-center gap-2 m-0"
         >
-          Usuario
-        </button>
-        <button
-          onClick={() => setActiveTab('personal')}
-          className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
-            activeTab === 'personal' 
-            ? 'bg-white dark:bg-zinc-700 shadow-sm text-blue-600 dark:text-blue-400' 
-            : 'text-gray-500 dark:text-zinc-400 hover:text-gray-700'
-          }`}
-        >
-          Información Personal
-        </button>
+          <LogOut className="h-4 w-4 rotate-180" />
+          Salir
+        </Button>
+
+        <div className="flex p-1 bg-gray-100 dark:bg-zinc-800 rounded-lg w-full">
+          <button
+            onClick={() => setActiveTab('informacion')}
+            className={`flex-1 py-2 text-xs sm:text-sm font-medium rounded-md transition-all whitespace-nowrap ${
+              activeTab === 'informacion' 
+              ? 'bg-white dark:bg-zinc-700 shadow-sm text-blue-600 dark:text-blue-400' 
+              : 'text-gray-500 dark:text-zinc-400 hover:text-gray-700'
+            }`}
+          >
+            Usuario
+          </button>
+          <button
+            onClick={() => setActiveTab('personal')}
+            className={`flex-1 py-2 text-xs sm:text-sm font-medium rounded-md transition-all whitespace-nowrap ${
+              activeTab === 'personal' 
+              ? 'bg-white dark:bg-zinc-700 shadow-sm text-blue-600 dark:text-blue-400' 
+              : 'text-gray-500 dark:text-zinc-400 hover:text-gray-700'
+            }`}
+          >
+            Información Personal
+          </button>
+        </div>
+
+        <div className="flex justify-end">
+          {botonEliminar}
+        </div>
       </div>
 
       <AnimatePresence mode="wait">
@@ -233,42 +250,46 @@ export default function UserForm({ id, onSuccess, onCancel, rolUsuarioActual }: 
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Label htmlFor="rol" className="text-xs w-20">Rol</Label>
-              <div className="flex flex-col w-full">
-                <select
-                  id="rol"
-                  value={rol || ''}
-                  onChange={(e) => { setRol(e.target.value); validateForm(); }}
-                  className={`w-full px-3 py-2 border dark:border-zinc-700 dark:bg-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.find(err => err.path[0] === 'rol') ? 'border-red-500' : ''}`}
-                >
-                  <option value="">Seleccione un rol</option>
-                  {rolesFiltrados.map((rolItem) => (
-                    <option key={rolItem.id} value={rolItem.id}>{rolItem.nombre}</option>
-                  ))}
-                </select>
-                {errors.find(err => err.path[0] === 'rol') && <p className="text-red-500 text-xs mt-1">{errors.find(err => err.path[0] === 'rol')?.message}</p>}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 flex-1">
+                <Label htmlFor="rol" className="text-xs w-20">Rol</Label>
+                <div className="flex flex-col w-full">
+                  <select
+                    id="rol"
+                    value={rol || ''}
+                    onChange={(e) => { setRol(e.target.value); validateForm(); }}
+                    className={`w-full px-3 py-2 border dark:border-zinc-700 dark:bg-zinc-800 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm h-12 ${errors.find(err => err.path[0] === 'rol') ? 'border-red-500' : ''}`}
+                  >
+                    <option value="">Seleccione un rol</option>
+                    {rolesFiltrados.map((rolItem) => (
+                      <option key={rolItem.id} value={rolItem.id}>{rolItem.nombre}</option>
+                    ))}
+                  </select>
+                  {errors.find(err => err.path[0] === 'rol') && <p className="text-red-500 text-xs mt-1">{errors.find(err => err.path[0] === 'rol')?.message}</p>}
+                </div>
               </div>
-            </div>
 
-            <div className="flex justify-center items-center gap-8 py-2">
-              <label className="flex items-center cursor-pointer">
-                <div className="relative">
-                  <input type="checkbox" className="sr-only peer" checked={activo} onChange={() => setActivo(!activo)} />
-                  <div className="block h-6 w-10 rounded-full bg-gray-200 peer-checked:bg-green-600 transition-colors"></div>
-                  <div className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition-all peer-checked:translate-x-4"></div>
-                </div>
-                <div className="ml-3 text-gray-700 dark:text-zinc-300 text-xs">{activo ? 'Activo' : 'Inactivo'}</div>
-              </label>
+              <div className="flex items-center gap-6 shrink-0 h-12 px-2">
+                <label className="flex items-center cursor-pointer">
+                  <div className="relative">
+                    <input type="checkbox" className="sr-only peer" checked={activo} onChange={() => setActivo(!activo)} />
+                    <div className="block h-6 w-10 rounded-full bg-gray-200 peer-checked:bg-green-600 transition-colors"></div>
+                    <div className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition-all peer-checked:translate-x-4"></div>
+                  </div>
+                  <div className={`ml-3 text-xs font-medium ${activo ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-600'}`}>
+                    {activo ? 'Activo' : 'Inactivo'}
+                  </div>
+                </label>
 
-              <label className="flex items-center cursor-pointer">
-                <div className="relative">
-                  <input type="checkbox" className="sr-only peer" checked={esJefe} onChange={() => setEsJefe(!esJefe)} />
-                  <div className="block h-6 w-10 rounded-full bg-gray-200 peer-checked:bg-blue-600 transition-colors"></div>
-                  <div className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition-all peer-checked:translate-x-4"></div>
-                </div>
-                <div className="ml-3 text-gray-700 dark:text-zinc-300 text-xs">{esJefe ? 'Es Jefe' : 'No es Jefe'}</div>
-              </label>
+                <label className="flex items-center cursor-pointer">
+                  <div className="relative">
+                    <input type="checkbox" className="sr-only peer" checked={esJefe} onChange={() => setEsJefe(!esJefe)} />
+                    <div className="block h-6 w-10 rounded-full bg-gray-200 peer-checked:bg-blue-600 transition-colors"></div>
+                    <div className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition-all peer-checked:translate-x-4"></div>
+                  </div>
+                  <div className="ml-3 text-gray-700 dark:text-zinc-300 text-xs">{esJefe ? 'Es Jefe' : 'No es Jefe'}</div>
+                </label>
+              </div>
             </div>
 
             <div className="border-t dark:border-zinc-800 my-2"></div>

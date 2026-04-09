@@ -1,14 +1,10 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
+import supabaseAdmin from '@/lib/supabaseAdmin';
 
 export async function actualizarInfoPersonal(userId: string, formData: any) {
-  const supabase = await createClient();
-
-  const { error } = await supabase
-    .from('info_usuario')
-    .update({
-      nombre: formData.nombre,
+  const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+    user_metadata: {
       telefono: formData.telefono,
       dpi: formData.dpi,
       nit: formData.nit,
@@ -16,8 +12,8 @@ export async function actualizarInfoPersonal(userId: string, formData: any) {
       cuenta_no: formData.cuenta_no,
       direccion: formData.direccion,
       nacimiento: formData.nacimiento || null,
-    })
-    .eq('user_id', userId);
+    },
+  });
 
   if (error) {
     console.error('Update error:', error);
@@ -28,18 +24,21 @@ export async function actualizarInfoPersonal(userId: string, formData: any) {
 }
 
 export async function obtenerInfoUsuario(userId: string) {
-  const supabase = await createClient();
-  
-  const { data, error } = await supabase
-    .from('info_usuario')
-    .select('*')
-    .eq('user_id', userId)
-    .single();
+  const { data, error } = await supabaseAdmin.auth.admin.getUserById(userId);
 
-  if (error) {
+  if (error || !data?.user) {
     console.error('Error fetching user info:', error);
     return null;
   }
 
-  return data;
+  const meta = data.user.user_metadata || {};
+  return {
+    telefono: meta.telefono || null,
+    dpi: meta.dpi || null,
+    nit: meta.nit || null,
+    igss: meta.igss || null,
+    cuenta_no: meta.cuenta_no || null,
+    direccion: meta.direccion || null,
+    nacimiento: meta.nacimiento || null,
+  };
 }

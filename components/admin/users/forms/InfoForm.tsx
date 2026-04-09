@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
   Phone, Fingerprint, Hash, Shield, 
-  CircleDollarSign, MapPin, Calendar, User, Loader2 
+  CircleDollarSign, MapPin, Calendar, Loader2 
 } from 'lucide-react';
 
 export default function InfoForm({ userData }: { userData: any }) {
@@ -16,7 +16,6 @@ export default function InfoForm({ userData }: { userData: any }) {
   const { usuarioData, isLoadingData, handleSave, isSaving } = useInfoForm(userId);
 
   const [formData, setFormData] = useState({
-    nombre: '',
     telefono: '',
     dpi: '',
     nit: '',
@@ -32,7 +31,6 @@ export default function InfoForm({ userData }: { userData: any }) {
 
     if (datos) {
       setFormData({
-        nombre: datos.nombre || '',
         telefono: datos.telefono || '',
         dpi: datos.dpi || '',
         nit: datos.nit || '',
@@ -67,22 +65,10 @@ export default function InfoForm({ userData }: { userData: any }) {
   return (
     <form 
       onSubmit={onSubmit} 
-      className="flex flex-col gap-6 p-4 animate-in fade-in duration-500 max-h-[60vh] overflow-y-auto"
+      className="flex flex-col gap-6 p-4 animate-in fade-in duration-500"
     >
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="md:col-span-2 space-y-2">
-          <Label className="text-[10px] uppercase dark:text-zinc-500 flex items-center gap-2 font-bold tracking-tighter">
-            <User size={12} /> Nombre Completo
-          </Label>
-          <Input 
-            name="nombre"
-            value={formData.nombre}
-            onChange={handleChange}
-            placeholder="Nombre completo"
-            className="h-11 dark:bg-zinc-900 dark:border-zinc-800"
-          />
-        </div>
 
         <div className="space-y-2">
           <Label className="text-[10px] uppercase dark:text-zinc-500 flex items-center gap-2 font-bold tracking-tighter">

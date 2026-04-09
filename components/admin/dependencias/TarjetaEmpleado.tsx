@@ -30,7 +30,6 @@ import { Button } from "@/components/ui/button";
 import Cargando from "@/components/ui/animations/Cargando";
 import { useInfoUsuario } from "@/hooks/usuarios/useInfoUsuario";
 import useUserData from "@/hooks/sesion/useUserData";
-import { useNacimientoUsuario } from "@/components/admin/dependencias/hook"; 
 
 type RenglonConfig = {
   salarioLabel: string;
@@ -135,9 +134,10 @@ export default function TarjetaEmpleado({
   const { rol } = useUserData();
   const [showExportModal, setShowExportModal] = useState(false);
 
-  const { nacimiento } = useNacimientoUsuario(userId);
-
   if (!isOpen) return null;
+
+  // Nacimiento viene del user_metadata (raw Supabase Auth) via getDetalleUsuarioAction
+  const nacimiento = datosCompletos?.nacimiento ?? null;
 
   const ROLES_FINANCIERA = ["SUPER", "RRHH", "SECRETARIO", "DAFIM"];
   const mostrarFinanciera = ROLES_FINANCIERA.includes(rol);
