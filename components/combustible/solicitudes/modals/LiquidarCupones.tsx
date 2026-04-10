@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Search, Save, X, FileSignature, AlertCircle, Gauge, Lock, Edit, CheckCircle2, User, Briefcase, Building2, Car } from 'lucide-react';
+import { Search, Save, X, FileSignature, AlertCircle, Gauge, Lock, Edit, CheckCircle2, User, Briefcase, Building2, Car, Printer } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 import { useLiquidacionData, useLiquidacionMutations, useSolicitudes } from '../hook';
+import InformeLiquidacionCupones from './InformeLiquidacionCupones';
 
 interface Props {
     isOpen: boolean;
@@ -35,6 +36,7 @@ const formatNumber = (num: number | string) => {
 export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSolicitudId, mode = 'create' }: Props) {
     const [activeId, setActiveId] = useState<number | null>(null);
     const [searchId, setSearchId] = useState('');
+    const [showPrintModal, setShowPrintModal] = useState(false);
 
     const [kmFinal, setKmFinal] = useState<number | ''>('');
     const [fechaComision, setFechaComision] = useState('');
@@ -202,9 +204,22 @@ export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSol
                             </p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="h-8 w-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-neutral-800 dark:hover:text-white transition-all">
-                        <X size={20} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {hasExistingRecord && (
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="flex border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30 gap-1.5 px-2.5 sm:px-3"
+                                onClick={() => setShowPrintModal(true)}
+                            >
+                                <FileSignature size={14} /> 
+                                <span className="hidden sm:inline">Imprimir Hoja</span>
+                            </Button>
+                        )}
+                        <button onClick={onClose} className="h-8 w-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-neutral-800 dark:hover:text-white transition-all">
+                            <X size={20} />
+                        </button>
+                    </div>
                 </DialogHeader>
 
                 {tabs.length > 1 && (
@@ -457,6 +472,17 @@ export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSol
                     </div>
                 )}
             </DialogContent>
+            
+            {showPrintModal && activeId && (
+                <InformeLiquidacionCupones 
+                    isOpen={showPrintModal}
+                    onClose={() => setShowPrintModal(false)}
+                    solicitudId={activeId}
+                    fechaComisionOverride={liquidacionData?.fecha_comision || fechaComision}
+                    kmFinalOverride={liquidacionData?.km_final}
+                    correlativoOverride={liquidacionData?.correlativo}
+                />
+            )}
         </Dialog>
     );
 }

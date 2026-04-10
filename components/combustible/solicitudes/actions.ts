@@ -245,6 +245,13 @@ export const getDatosSolicitudImpresion = async (id: number) => {
 
   const vehiculoData = Array.isArray(solicitud.vehiculo) ? solicitud.vehiculo[0] : solicitud.vehiculo;
 
+  // Buscar datos de liquidación si existen
+  const { data: liquidacion } = await supabase
+    .from('liquidacion')
+    .select('correlativo, fecha_comision, km_final, cupones_devueltos, created_at, updated_at')
+    .eq('id_solicitud', id)
+    .single();
+
   return {
     ...solicitud,
     solicitante_nombre: nombreSolicitante,
@@ -257,7 +264,8 @@ export const getDatosSolicitudImpresion = async (id: number) => {
       modelo: vehiculoData?.modelo || '---',
       combustible: vehiculoData?.tipo_combustible || '---'
     },
-    cupones: itemsCupones
+    cupones: itemsCupones,
+    liquidacion: liquidacion || null
   };
 };
 
@@ -293,7 +301,26 @@ export const saveLiquidacion = async (payload: { id_solicitud: number; km_final:
   const { data: existingRecord } = await supabase.from('liquidacion').select('id').eq('id_solicitud', payload.id_solicitud).single();
   if (existingRecord) return await updateLiquidacion(existingRecord.id, payload);
 
-  const { error } = await supabase.from('liquidacion').insert({ ...payload, estado_liquidacion: 'liquidado' });
+  // Obtener el correlativo máximo actual (ignorando nulls)
+  const { data: lastRecords } = await supabase
+    .from('liquidacion')
+    .select('correlativo')
+    .not('correlativo', 'is', null)
+    .order('correlativo', { ascending: false })
+    .limit(1);
+
+  let nextCorrelativo = 2;
+  if (lastRecords && lastRecords.length > 0) {
+    const highest = lastRecords[0].correlativo || 0;
+    nextCorrelativo = Math.max(highest + 1, 2);
+  }
+
+  const { error } = await supabase.from('liquidacion').insert({ 
+    ...payload, 
+    estado_liquidacion: 'liquidado',
+    correlativo: nextCorrelativo
+  });
+  
   if (error) throw new Error(error.message);
   return { success: true };
 };

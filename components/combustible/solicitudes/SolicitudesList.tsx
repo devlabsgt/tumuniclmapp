@@ -53,7 +53,7 @@ const getWeekOfMonth = (date: Date) => {
 };
 
 const formatTinyDate = (date: Date) => {
-    return date.toLocaleDateString('es-GT', { day: '2-digit', month: 'short' });
+    return date.toLocaleDateString('es-GT', { day: '2-digit', month: 'short', timeZone: 'America/Guatemala' });
 };
 
 const getWeeksInMonth = (year: number, month: number) => {
@@ -80,7 +80,7 @@ const getWeeksInMonth = (year: number, month: number) => {
 };
 
 const getSimpleDateLabel = (date: Date) => {
-    const options: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric' };
+    const options: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', timeZone: 'America/Guatemala' };
     const dateText = date.toLocaleDateString('es-GT', options);
     return dateText.charAt(0).toUpperCase() + dateText.slice(1);
 };

@@ -32,7 +32,8 @@ export const useDetalleImpresion = (id: number) => {
     queryKey: KEYS.impresion(id),
     queryFn: () => getDatosSolicitudImpresion(id),
     enabled: !!id, 
-    staleTime: FIVE_MINUTES, 
+    staleTime: 0,
+    gcTime: 0,
   });
 };
 
