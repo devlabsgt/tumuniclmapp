@@ -5,7 +5,6 @@ import { Search, Save, X, FileSignature, AlertCircle, Gauge, Lock, Edit, CheckCi
 import Swal from 'sweetalert2';
 
 import { useLiquidacionData, useLiquidacionMutations, useSolicitudes } from '../hook';
-import InformeLiquidacionCupones from './InformeLiquidacionCupones';
 
 interface Props {
     isOpen: boolean;
@@ -36,7 +35,6 @@ const formatNumber = (num: number | string) => {
 export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSolicitudId, mode = 'create' }: Props) {
     const [activeId, setActiveId] = useState<number | null>(null);
     const [searchId, setSearchId] = useState('');
-    const [showPrintModal, setShowPrintModal] = useState(false);
 
     const [kmFinal, setKmFinal] = useState<number | ''>('');
     const [fechaComision, setFechaComision] = useState('');
@@ -84,7 +82,7 @@ export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSol
                 if (liquidacionData.fecha_comision) {
                     setFechaComision(new Date(liquidacionData.fecha_comision).toISOString().split('T')[0]);
                 }
-                setIsEditing(false);
+                setIsEditing(!solicitudData?.solvente); // No solvente = Editable
             }
             else if (solicitudData) {
                 setKmFinal(solicitudData.kilometraje_inicial);
@@ -128,8 +126,8 @@ export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSol
         : 0;
 
     const isInvalidKm = totalRecorrido < 0;
-    const inputsDisabled = !isEditing;
     const isSolvente = solicitudData?.solvente === true;
+    const inputsDisabled = isSolvente || !isEditing;
     const isSubmitting = guardar.isPending || actualizar.isPending;
     const vData = Array.isArray(solicitudData?.vehiculo) ? solicitudData?.vehiculo[0] : solicitudData?.vehiculo;
     const isMaquinaria = vData ? (['maquinaria', 'retroexcavadora', 'tractor', 'patrulla de caminos', 'motoniveladora'].some(t => vData.tipo_vehiculo?.toLowerCase().includes(t)) || vData.tipo_vehiculo?.toLowerCase() === 'maquinaria') : false;
@@ -205,17 +203,6 @@ export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSol
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        {hasExistingRecord && (
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="flex border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30 gap-1.5 px-2.5 sm:px-3"
-                                onClick={() => setShowPrintModal(true)}
-                            >
-                                <FileSignature size={14} /> 
-                                <span className="hidden sm:inline">Imprimir Hoja</span>
-                            </Button>
-                        )}
                         <button onClick={onClose} className="h-8 w-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-neutral-800 dark:hover:text-white transition-all">
                             <X size={20} />
                         </button>
@@ -361,7 +348,9 @@ export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSol
                                         <div className="flex flex-col border-b border-slate-200 dark:border-neutral-700 pb-1">
                                             <span className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">{isMaquinaria ? 'Hr Inicial' : 'Km Inicial'}</span>
                                             <div className="text-lg font-mono font-bold text-slate-600 dark:text-slate-400">
-                                                {formatNumber(solicitudData.kilometraje_inicial)}
+                                                {solicitudData.kilometraje_inicial === 0 
+                                                    ? <span className="text-xs text-red-500/80 uppercase font-sans tracking-tight">{isMaquinaria ? 'No posee horómetro' : 'No posee odómetro'}</span>
+                                                    : formatNumber(solicitudData.kilometraje_inicial)}
                                             </div>
                                         </div>
 
@@ -373,12 +362,12 @@ export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSol
 
                                                 <input
                                                     type="text"
-                                                    placeholder="0"
-                                                    disabled={inputsDisabled}
+                                                    placeholder={solicitudData.kilometraje_inicial === 0 ? "N/A" : "0"}
+                                                    disabled={inputsDisabled || solicitudData.kilometraje_inicial === 0}
                                                     onBlur={handleBlurKm}
                                                     className={`w-full bg-white dark:bg-neutral-900 border-b-2 rounded-t-md px-3 py-2 text-xl font-mono font-bold outline-none transition-all shadow-sm
-                                                ${inputsDisabled
-                                                            ? 'text-gray-600 dark:text-gray-400 border-gray-300 dark:border-neutral-700 bg-gray-100 dark:bg-neutral-800 cursor-not-allowed'
+                                                ${(inputsDisabled || solicitudData.kilometraje_inicial === 0)
+                                                            ? 'text-gray-400 dark:text-gray-500 border-gray-100 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900/50 cursor-not-allowed italic'
                                                             : isInvalidKm
                                                                 ? 'border-red-500 text-red-600 bg-red-50 dark:bg-red-900/10'
                                                                 : 'border-blue-500 text-slate-900 dark:text-white focus:bg-blue-50 dark:focus:bg-blue-900/10'
@@ -472,17 +461,6 @@ export default function LiquidarCupones({ isOpen, onClose, onSuccess, initialSol
                     </div>
                 )}
             </DialogContent>
-            
-            {showPrintModal && activeId && (
-                <InformeLiquidacionCupones 
-                    isOpen={showPrintModal}
-                    onClose={() => setShowPrintModal(false)}
-                    solicitudId={activeId}
-                    fechaComisionOverride={liquidacionData?.fecha_comision || fechaComision}
-                    kmFinalOverride={liquidacionData?.km_final}
-                    correlativoOverride={liquidacionData?.correlativo}
-                />
-            )}
         </Dialog>
     );
 }

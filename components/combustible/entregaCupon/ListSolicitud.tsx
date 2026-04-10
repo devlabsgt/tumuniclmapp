@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useSolicitudes, useReporteMutations } from './lib/hooks'; 
+import { useSolicitudes, useReporteMutations, useLiquidacionAdminData } from './lib/hooks'; 
 import { SolicitudEntrega } from './lib/schemas';
 import { EntregaItem } from './EntregaItem';
 import AprobacionSolicitud from './modals/AprobacionSolicitud'; 
 import InformeMensualModal from './modals/InformeMensual';
 import ValidarLiquidacion from './modals/ValidarLiquidacion';
+import InformeLiquidacionCupones from '@/components/combustible/solicitudes/modals/InformeLiquidacionCupones';
 
 import { Search, Calendar as CalendarIcon, SearchX, CalendarDays, FileDown, Loader2 } from 'lucide-react'; 
 import Swal from 'sweetalert2';
@@ -62,6 +63,10 @@ export default function ListSolicitud({ initialData }: Props) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const [validarSolicitud, setValidarSolicitud] = useState<SolicitudEntrega | null>(null);
+  const [printLiquidacionSol, setPrintLiquidacionSol] = useState<SolicitudEntrega | null>(null);
+
+  // Fetch del correlativo de liquidación directamente desde el módulo admin
+  const { data: liqAdminData } = useLiquidacionAdminData(printLiquidacionSol?.id ?? 0);
 
   const [datosReporte, setDatosReporte] = useState<any>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -166,9 +171,12 @@ export default function ListSolicitud({ initialData }: Props) {
           }));
   }, [listaVisual]);
 
-  const handleCloseModal = (nuevoEstado?: 'aprobado' | 'rechazado') => {
+  const handleCloseModal = (nuevoEstado?: 'aprobado' | 'rechazado', liqCorrelativo?: number) => {
     if (nuevoEstado && selectedSolicitud) {
-        updateLocalSolicitud(selectedSolicitud.id, { estado: nuevoEstado });
+        updateLocalSolicitud(selectedSolicitud.id, { 
+          estado: nuevoEstado,
+          ...(liqCorrelativo ? { liquidacion: { correlativo: liqCorrelativo } } : {})
+        });
         refresh();
     }
     setSelectedSolicitud(null);
@@ -289,6 +297,7 @@ export default function ListSolicitud({ initialData }: Props) {
                                 onToggle={() => handleToggle(sol.id)} 
                                 onClick={(item) => setSelectedSolicitud(item)}
                                 onValidar={(item) => setValidarSolicitud(item)}
+                                onPrint={(item) => setPrintLiquidacionSol(item)}
                             />
                         ))}
                     </div>
@@ -308,7 +317,7 @@ export default function ListSolicitud({ initialData }: Props) {
             isOpen={!!selectedSolicitud}
             solicitud={selectedSolicitud}
             onClose={() => handleCloseModal()} 
-            onSuccess={(estado) => handleCloseModal(estado)} 
+            onSuccess={(estado, correlativo) => handleCloseModal(estado, correlativo)} 
         />
       )}
 
@@ -322,6 +331,15 @@ export default function ListSolicitud({ initialData }: Props) {
                   refresh(); 
                   setValidarSolicitud(null);
               }}
+          />
+      )}
+
+      {printLiquidacionSol && (
+          <InformeLiquidacionCupones
+              isOpen={!!printLiquidacionSol}
+              onClose={() => setPrintLiquidacionSol(null)}
+              solicitudId={printLiquidacionSol.id}
+              correlativoOverride={liqAdminData?.correlativo ?? printLiquidacionSol.liquidacion?.correlativo ?? undefined}
           />
       )}
 

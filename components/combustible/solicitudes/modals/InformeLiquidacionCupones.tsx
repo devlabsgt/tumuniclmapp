@@ -8,6 +8,7 @@ import jsPDF from 'jspdf';
 import * as htmlToImage from 'html-to-image';
 import { useDetalleImpresion } from '../hook';
 import Swal from 'sweetalert2';
+import { formatFechaLarga, formatFechaDateOnly } from '../dateUtils';
 
 interface Props {
     isOpen: boolean;
@@ -164,17 +165,8 @@ export default function InformeLiquidacionCupones({ isOpen, onClose, solicitudId
 
                                 <div className="flex justify-end items-end text-[11px] mb-4 gap-2 font-bold text-gray-800">
                                     <span>FECHA DE COMISIÓN:</span>
-                                    <div className="min-w-[150px] text-center px-2">
-                                        {(() => {
-                                            const raw = fechaComisionOverride || safeDatos.liquidacion?.fecha_comision;
-                                            if (raw) {
-                                                const dateOnly = raw.includes('T') ? raw.split('T')[0] : raw;
-                                                const [y, m, d] = dateOnly.split('-').map(Number);
-                                                const date = new Date(y, m - 1, d);
-                                                return date.toLocaleDateString('es-GT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Guatemala' });
-                                            }
-                                            return '---';
-                                        })()}
+                                    <div className="min-w-[150px] border-b border-black text-center px-2 h-4">
+                                        &nbsp;
                                     </div>
                                 </div>
 
@@ -223,15 +215,19 @@ export default function InformeLiquidacionCupones({ isOpen, onClose, solicitudId
                                         <div className="flex items-end gap-2 mt-2 text-[11px]">
                                             <div className="flex gap-2 w-1/3">
                                                 <span>{isMaquinaria ? 'HORÓMETRO' : 'KILOMETRAJE'} INICIAL:</span>
-                                                <div className="flex-1 border-b border-black text-center">{safeDatos.kilometraje_inicial}</div>
+                                                <div className="flex-1 border-b border-black text-center">
+                                                    {safeDatos.kilometraje_inicial === 0
+                                                        ? (isMaquinaria ? 'NO POSEE' : 'NO POSEE')
+                                                        : safeDatos.kilometraje_inicial}
+                                                </div>
                                             </div>
                                             <div className="flex gap-2 w-1/3">
                                                 <span>{isMaquinaria ? 'HORÓMETRO' : 'KILOMETRAJE'} FINAL:</span>
-                                                <div className="flex-1 border-b border-black text-center">{kmFinalOverride ?? safeDatos.liquidacion?.km_final ?? '---'}</div>
+                                                <div className="flex-1 border-b border-black text-center">&nbsp;</div>
                                             </div>
                                             <div className="flex gap-2 w-1/3 text-red-700 font-bold">
                                                 <span>TOTAL {isMaquinaria ? 'HORAS' : 'RECORRIDO'}:</span>
-                                                <div className="flex-1 border-b border-black text-center">{((kmFinalOverride ?? safeDatos.liquidacion?.km_final ?? 0) - (safeDatos.kilometraje_inicial || 0))}</div>
+                                                <div className="flex-1 border-b border-black text-center">&nbsp;</div>
                                             </div>
                                         </div>
                                     </div>
@@ -344,8 +340,8 @@ export default function InformeLiquidacionCupones({ isOpen, onClose, solicitudId
                                     {/* Fecha lado izquierdo */}
                                     <div className="absolute w-[48%] flex gap-2 items-end bottom-[230px] left-0 text-[11px] font-bold text-gray-800">
                                         <span className="whitespace-nowrap">FECHA DE LIQUIDACIÓN:</span>
-                                        <div className="flex-1 border-b border-black text-center px-1 whitespace-nowrap">
-                                            {(safeDatos.liquidacion?.updated_at ? new Date(safeDatos.liquidacion.updated_at) : (safeDatos.liquidacion?.created_at ? new Date(safeDatos.liquidacion.created_at) : new Date())).toLocaleDateString('es-GT', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Guatemala' })}
+                                        <div className="flex-1 border-b border-black text-center px-1 whitespace-nowrap h-4">
+                                            &nbsp;
                                         </div>
                                     </div>
 
