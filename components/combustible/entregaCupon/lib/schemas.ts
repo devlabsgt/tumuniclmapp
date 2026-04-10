@@ -30,6 +30,9 @@ export const solicitudEntregaSchema = z.object({
   }).nullable(),
 
   detalles: z.array(detalleSchema).optional(),
+  liquidacion: z.object({
+    correlativo: z.number().nullable()
+  }).nullable().optional(),
 });
 
 export type SolicitudEntrega = z.infer<typeof solicitudEntregaSchema>;

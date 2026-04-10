@@ -3,12 +3,33 @@
 import { createClient } from '@/utils/supabase/server';
 import { UsuarioInfo, Vehiculo, SolicitudCombustible, CreateSolicitudPayload } from './types';
 
-const convertToUTC = (dateInput: string | Date | null | undefined) => {
+// Guatemala = UTC-6, sin horario de verano.
+const GT_OFFSET = '-06:00';
+
+const convertToUTC = (dateInput: string | Date | null | undefined): string => {
   if (!dateInput) return new Date().toISOString();
-  const date = new Date(dateInput);
+
+  if (typeof dateInput === 'string') {
+    // Detecta si ya tiene zona horaria: termina en Z, +HH:MM o -HH:MM
+    const hasTZ = /Z|[+-]\d{2}:\d{2}$/.test(dateInput);
+    if (!hasTZ) {
+      // Sin TZ: tratar como hora Guatemala añadiendo el offset
+      const withOffset = dateInput.includes('T')
+        ? dateInput + GT_OFFSET              // "2026-04-09T15:30" → "2026-04-09T15:30-06:00"
+        : dateInput + 'T00:00:00' + GT_OFFSET; // "2026-04-09" → "2026-04-09T00:00:00-06:00"
+      const date = new Date(withOffset);
+      if (isNaN(date.getTime())) {
+        console.warn('⚠️ Fecha inválida recibida, usando fecha actual:', dateInput);
+        return new Date().toISOString();
+      }
+      return date.toISOString();
+    }
+  }
+
+  const date = new Date(dateInput as string | Date);
   if (isNaN(date.getTime())) {
-      console.warn("⚠️ Fecha inválida recibida, usando fecha actual:", dateInput);
-      return new Date().toISOString(); 
+    console.warn('⚠️ Fecha inválida recibida, usando fecha actual:', dateInput);
+    return new Date().toISOString();
   }
   return date.toISOString();
 };
@@ -38,7 +59,7 @@ export const getCurrentUserInfo = async (): Promise<UsuarioInfo | null> => {
 
   let padreInfo = null;
   if (dependenciaData && dependenciaData.padre) {
-      padreInfo = Array.isArray(dependenciaData.padre) ? dependenciaData.padre[0] : dependenciaData.padre;
+    padreInfo = Array.isArray(dependenciaData.padre) ? dependenciaData.padre[0] : dependenciaData.padre;
   }
 
   return {
@@ -57,10 +78,10 @@ export const searchVehiculos = async (query: string): Promise<Vehiculo[]> => {
     .limit(5);
   if (error) return [];
   return (data || []).map(v => ({
-      placa: v.placa || '',
-      tipo_vehiculo: v.tipo_vehiculo || '',
-      modelo: v.modelo || '',
-      tipo_combustible: v.tipo_combustible || ''
+    placa: v.placa || '',
+    tipo_vehiculo: v.tipo_vehiculo || '',
+    modelo: v.modelo || '',
+    tipo_combustible: v.tipo_combustible || ''
   }));
 };
 
@@ -68,11 +89,11 @@ export const saveSolicitud = async (input: CreateSolicitudPayload) => {
   const supabase = await createClient();
   if (input.es_nuevo_vehiculo) {
     await supabase.from('vehiculos').upsert({
-        placa: input.vehiculo.placa,
-        tipo_vehiculo: input.vehiculo.tipo_vehiculo,
-        modelo: input.vehiculo.modelo,
-        tipo_combustible: input.vehiculo.tipo_combustible,
-      }, { onConflict: 'placa' });
+      placa: input.vehiculo.placa,
+      tipo_vehiculo: input.vehiculo.tipo_vehiculo,
+      modelo: input.vehiculo.modelo,
+      tipo_combustible: input.vehiculo.tipo_combustible,
+    }, { onConflict: 'placa' });
   }
 
   const { data: solicitudData, error: solError } = await supabase
@@ -84,24 +105,24 @@ export const saveSolicitud = async (input: CreateSolicitudPayload) => {
       departamento_destino: input.departamento_destino,
       kilometraje_inicial: input.kilometraje_inicial,
       justificacion: input.justificacion,
-      estado: 'pendiente', 
+      estado: 'pendiente',
     })
     .select('id').single();
 
   if (solError) throw new Error(solError.message);
-  
+
   if (input.detalles.length > 0) {
     const comisionesToInsert = input.detalles.map((c) => ({
-      solicitud_id: solicitudData.id,       
-      fecha_inicio: convertToUTC(c.fecha_inicio),      
-      fecha_fin: convertToUTC(c.fecha_fin),            
-      lugar_visitar: c.lugar_visitar,    
-      kilometros_recorrer: Number(c.kilometros_recorrer) 
+      solicitud_id: solicitudData.id,
+      fecha_inicio: convertToUTC(c.fecha_inicio),
+      fecha_fin: convertToUTC(c.fecha_fin),
+      lugar_visitar: c.lugar_visitar,
+      kilometros_recorrer: Number(c.kilometros_recorrer)
     }));
     const { error: comError } = await supabase.from('datos_comision_combustible').insert(comisionesToInsert);
     if (comError) {
-       await supabase.from('solicitud_combustible').delete().eq('id', solicitudData.id);
-       throw new Error(comError.message);
+      await supabase.from('solicitud_combustible').delete().eq('id', solicitudData.id);
+      throw new Error(comError.message);
     }
   }
   return { success: true, id: solicitudData.id };
@@ -113,7 +134,7 @@ export const deleteSolicitud = async (id: number) => {
     .from('solicitud_combustible')
     .delete()
     .eq('id', id)
-    .select(); 
+    .select();
 
   if (error) throw new Error(`Error al eliminar solicitud: ${error.message}`);
   if (!data || data.length === 0) throw new Error("No tienes permisos o ya no existe.");
@@ -134,7 +155,7 @@ export const getMySolicitudes = async (): Promise<SolicitudCombustible[]> => {
       kilometraje_inicial, justificacion, estado, correlativo, solvente, 
       vehiculo:vehiculos ( placa, modelo, tipo_vehiculo, tipo_combustible ),
       detalles:datos_comision_combustible ( fecha_inicio, fecha_fin, lugar_visitar, kilometros_recorrer )
-    `) 
+    `)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
@@ -149,20 +170,20 @@ export const getMySolicitudes = async (): Promise<SolicitudCombustible[]> => {
 export const updateSolicitud = async (idSolicitud: number, payload: CreateSolicitudPayload) => {
   const supabase = await createClient();
   await supabase.from('vehiculos').upsert({
-        placa: payload.vehiculo.placa,
-        tipo_vehiculo: payload.vehiculo.tipo_vehiculo,
-        modelo: payload.vehiculo.modelo,
-        tipo_combustible: payload.vehiculo.tipo_combustible,
-      }, { onConflict: 'placa' });
+    placa: payload.vehiculo.placa,
+    tipo_vehiculo: payload.vehiculo.tipo_vehiculo,
+    modelo: payload.vehiculo.modelo,
+    tipo_combustible: payload.vehiculo.tipo_combustible,
+  }, { onConflict: 'placa' });
 
   const { error: errUpdate } = await supabase
     .from('solicitud_combustible')
     .update({
-       municipio_destino: payload.municipio_destino,
-       departamento_destino: payload.departamento_destino,
-       kilometraje_inicial: payload.kilometraje_inicial,
-       justificacion: payload.justificacion,
-       placa: payload.vehiculo.placa 
+      municipio_destino: payload.municipio_destino,
+      departamento_destino: payload.departamento_destino,
+      kilometraje_inicial: payload.kilometraje_inicial,
+      justificacion: payload.justificacion,
+      placa: payload.vehiculo.placa
     })
     .eq('id', idSolicitud);
 
@@ -170,15 +191,15 @@ export const updateSolicitud = async (idSolicitud: number, payload: CreateSolici
   await supabase.from('datos_comision_combustible').delete().eq('solicitud_id', idSolicitud);
 
   if (payload.detalles.length > 0) {
-      const detallesParaInsertar = payload.detalles.map((d) => ({
-          solicitud_id: idSolicitud,
-          lugar_visitar: d.lugar_visitar,
-          kilometros_recorrer: Number(d.kilometros_recorrer),
-          fecha_inicio: convertToUTC(d.fecha_inicio),
-          fecha_fin: convertToUTC(d.fecha_fin)
-      }));
-      const { error: errInsert } = await supabase.from('datos_comision_combustible').insert(detallesParaInsertar);
-      if (errInsert) throw new Error(errInsert.message);
+    const detallesParaInsertar = payload.detalles.map((d) => ({
+      solicitud_id: idSolicitud,
+      lugar_visitar: d.lugar_visitar,
+      kilometros_recorrer: Number(d.kilometros_recorrer),
+      fecha_inicio: convertToUTC(d.fecha_inicio),
+      fecha_fin: convertToUTC(d.fecha_fin)
+    }));
+    const { error: errInsert } = await supabase.from('datos_comision_combustible').insert(detallesParaInsertar);
+    if (errInsert) throw new Error(errInsert.message);
   }
   return { success: true };
 };
@@ -204,7 +225,7 @@ export const getDatosSolicitudImpresion = async (id: number) => {
 
     if (usuario) {
       nombreSolicitante = usuario.nombre;
-      dpiSolicitante = usuario.dpi || ''; 
+      dpiSolicitante = usuario.dpi || '';
       if (usuario.dependencia_id) {
         const { data: dep } = await supabase
           .from('dependencias')
@@ -222,10 +243,10 @@ export const getDatosSolicitudImpresion = async (id: number) => {
 
   const { data: entregas } = await supabase
     .from('entrega_cupones')
-    .select(`cantidad_entregada, correlativo_inicio, correlativo_fin, encargado, detalle:detalle_contrato_id ( producto, denominacion )`) 
+    .select(`cantidad_entregada, correlativo_inicio, correlativo_fin, encargado, detalle:detalle_contrato_id ( producto, denominacion )`)
     .eq('solicitud_id', id);
 
-  let nombreAprobador = ''; 
+  let nombreAprobador = '';
   if (entregas && entregas.length > 0 && entregas[0].encargado) {
     const { data: datosEncargado } = await supabase.from('info_usuario').select('nombre').eq('user_id', entregas[0].encargado).single();
     if (datosEncargado) nombreAprobador = datosEncargado.nombre;
@@ -278,19 +299,19 @@ export const getSolicitudParaLiquidacion = async (id: number) => {
 
   if (error || !solicitud) return null;
 
-  let nombreUsuario = '---', cargoUsuario = '---', unidadUsuario = '---'; 
+  let nombreUsuario = '---', cargoUsuario = '---', unidadUsuario = '---';
   if (solicitud.user_id) {
     const { data: usr } = await supabase.from('info_usuario').select('nombre, dependencia_id').eq('user_id', solicitud.user_id).single();
     if (usr) {
-        nombreUsuario = usr.nombre;
-        if (usr.dependencia_id) {
-             const { data: dep } = await supabase.from('dependencias').select(`nombre, padre:parent_id ( nombre )`).eq('id', usr.dependencia_id).single();
-             if(dep) {
-                 cargoUsuario = dep.nombre;
-                 const padreObj = Array.isArray(dep.padre) ? dep.padre[0] : dep.padre;
-                 if (padreObj?.nombre) unidadUsuario = padreObj.nombre;
-             }
+      nombreUsuario = usr.nombre;
+      if (usr.dependencia_id) {
+        const { data: dep } = await supabase.from('dependencias').select(`nombre, padre:parent_id ( nombre )`).eq('id', usr.dependencia_id).single();
+        if (dep) {
+          cargoUsuario = dep.nombre;
+          const padreObj = Array.isArray(dep.padre) ? dep.padre[0] : dep.padre;
+          if (padreObj?.nombre) unidadUsuario = padreObj.nombre;
         }
+      }
     }
   }
   return { ...solicitud, usuario: { nombre: nombreUsuario, cargo: cargoUsuario, unidad: unidadUsuario } };
@@ -315,12 +336,12 @@ export const saveLiquidacion = async (payload: { id_solicitud: number; km_final:
     nextCorrelativo = Math.max(highest + 1, 2);
   }
 
-  const { error } = await supabase.from('liquidacion').insert({ 
-    ...payload, 
+  const { error } = await supabase.from('liquidacion').insert({
+    ...payload,
     estado_liquidacion: 'liquidado',
     correlativo: nextCorrelativo
   });
-  
+
   if (error) throw new Error(error.message);
   return { success: true };
 };

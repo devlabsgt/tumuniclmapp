@@ -25,7 +25,8 @@ export const getSolicitudesParaEntrega = async (): Promise<SolicitudEntrega[]> =
       solvente, 
       usuario:info_usuario ( nombre ),
       vehiculo:vehiculos ( modelo, tipo_combustible, tipo_vehiculo ),
-      detalles:datos_comision_combustible ( lugar_visitar, kilometros_recorrer, fecha_inicio, fecha_fin )
+      detalles:datos_comision_combustible ( lugar_visitar, kilometros_recorrer, fecha_inicio, fecha_fin ),
+      liquidacion:liquidacion ( correlativo )
     `)
     .order('created_at', { ascending: false });
 
@@ -129,8 +130,30 @@ export const entregarCupones = async (payload: EntregaCuponFormValues) => {
         throw new Error(`Error finalizando la solicitud: ${updateSolError.message}`);
     }
 
+    // Pre-crear el registro de liquidación con correlativo asignado.
+    // El empleado se lleva la hoja al viaje con este número.
+    // Al regresar, saveLiquidacion detecta el registro y solo lo actualiza.
+    const { data: lastLiq } = await supabase
+      .from('liquidacion')
+      .select('correlativo')
+      .not('correlativo', 'is', null)
+      .order('correlativo', { ascending: false })
+      .limit(1)
+      .single();
+
+    const liqCorrelativo = Math.max((lastLiq?.correlativo || 1) + 1, 2);
+
+    await supabase.from('liquidacion').insert({
+      id_solicitud: solicitud_id,
+      correlativo: liqCorrelativo,
+      estado_liquidacion: 'pendiente',
+      km_final: 0,
+      cupones_devueltos: 0,
+      fecha_comision: new Date().toISOString(),
+    });
+
     revalidatePath('/combustible/entregaCupon'); 
-    return { success: true };
+    return { success: true, liqCorrelativo };
 
   } catch (error: any) {
     console.error("Error en transacción:", error);

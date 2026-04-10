@@ -4,6 +4,7 @@ import { useSolicitudMutations } from './hook';
 import SolicitudPrintModal from './modals/InformeEntregaCupones'; 
 import LiquidarCupones from './modals/LiquidarCupones'; 
 import Swal from 'sweetalert2';
+import { formatFechaMes, formatHora } from './dateUtils';
 import { 
   ChevronDown, 
   MapPin, 
@@ -48,18 +49,8 @@ export const SolicitudItem: React.FC<Props> = ({ sol, isExpanded, onToggleExpand
 
   const color = getStatusColor(sol.estado);
 
-  const getSimpleDate = (dateStr: string) => {
-    if(!dateStr) return '--';
-    const date = new Date(dateStr);
-    const day = date.toLocaleDateString('es-GT', { day: 'numeric', timeZone: 'America/Guatemala' });
-    const month = date.toLocaleDateString('es-GT', { month: 'short', timeZone: 'America/Guatemala' }).replace('.', '');
-    return `${day}-${month}`;
-  };
-  
-  const getSimpleTime = (dateStr: string) => {
-    if(!dateStr) return '--';
-    return new Date(dateStr).toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'America/Guatemala' });
-  };
+  const getSimpleDate = (dateStr: string) => formatFechaMes(dateStr);
+  const getSimpleTime = (dateStr: string) => formatHora(dateStr);
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();

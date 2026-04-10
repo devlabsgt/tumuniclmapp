@@ -8,7 +8,7 @@ import Swal from 'sweetalert2';
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (nuevoEstado: 'aprobado' | 'rechazado') => void; 
+  onSuccess: (nuevoEstado: 'aprobado' | 'rechazado', liqCorrelativo?: number) => void; 
   solicitud: SolicitudEntrega;
 }
 
@@ -170,7 +170,7 @@ export default function AprobacionSolicitud({ isOpen, onClose, onSuccess, solici
 
         if (res.success) {
             Swal.fire({ title: '¡Aprobada!', text: 'Cupones asignados correctamente.', icon: 'success', timer: 1500, showConfirmButton: false });
-            onSuccess('aprobado'); 
+            onSuccess('aprobado', res.liqCorrelativo ?? undefined); 
         } else {
             Swal.fire('Error', res.error || 'No se pudo guardar', 'error');
         }

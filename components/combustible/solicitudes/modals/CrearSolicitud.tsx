@@ -85,7 +85,7 @@ export const CreateRequestModal: React.FC<Props> = ({
                 toast.warning('Debe seleccionar o registrar un vehículo para continuar.');
                 return;
             }
-            if (kmInicial === '' || Number(kmInicial) <= 0) {
+            if (kmInicial === '' || Number(kmInicial) < 0) {
                 toast.warning(`Debe ingresar un ${isMaquinaria ? 'horómetro' : 'kilometraje'} válido.`);
                 return;
             }
@@ -175,7 +175,11 @@ export const CreateRequestModal: React.FC<Props> = ({
                     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                         {currentStep === 1 && (
                             <div className="space-y-6">
-                                <DataSolicitante user={user || null} destino={destino} setDestino={setDestino} />
+                                <DataSolicitante 
+                                    user={user || null} 
+                                    destino={destino} 
+                                    setDestino={setDestino} 
+                                />
                             </div>
                         )}
 

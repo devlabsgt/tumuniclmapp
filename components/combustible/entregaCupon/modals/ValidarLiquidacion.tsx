@@ -251,14 +251,14 @@ export default function ValidarLiquidacion({ isOpen, onClose, onSuccess, solicit
                         <div className="grid grid-cols-3 gap-4 relative z-10">
                             <div className="flex flex-col border-r border-slate-100 dark:border-neutral-700 pr-4">
                                 <span className="text-[10px] font-bold text-gray-400 uppercase">Inicial</span>
-                                <span className="text-lg font-mono font-bold text-slate-600 dark:text-slate-300">
-                                    {solicitud.kilometraje_inicial.toLocaleString()}
+                                <span className={`font-mono font-bold ${solicitud.kilometraje_inicial === 0 ? 'text-[10px] text-red-500/70 py-1 uppercase font-sans' : 'text-lg text-slate-600 dark:text-slate-300'}`}>
+                                    {solicitud.kilometraje_inicial === 0 ? (isMaquinaria ? 'No posee horómetro' : 'No posee odómetro') : solicitud.kilometraje_inicial.toLocaleString()}
                                 </span>
                             </div>
                             <div className="flex flex-col border-r border-slate-100 dark:border-neutral-700 pr-4">
                                 <span className="text-[10px] font-bold text-blue-500 uppercase">Final</span>
-                                <span className="text-xl font-mono font-black text-blue-600 dark:text-blue-400">
-                                    {liqData.km_final.toLocaleString()}
+                                <span className={`font-mono font-black ${liqData.km_final === 0 ? 'text-[10px] text-red-500/70 py-1 uppercase font-sans' : 'text-xl text-blue-600 dark:text-blue-400'}`}>
+                                    {liqData.km_final === 0 ? (isMaquinaria ? 'No posee horómetro' : 'No posee odómetro') : liqData.km_final.toLocaleString()}
                                 </span>
                             </div>
                             <div className="flex flex-col text-right">

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { SolicitudCombustible } from './types';
 import { SolicitudItem } from './SolicitudItem';
 import { Calendar as CalendarIcon, Filter, SearchX, ListFilter, CalendarDays, RefreshCw } from 'lucide-react';
+import { formatFechaMes } from './dateUtils';
 
 interface Props {
   solicitudes: SolicitudCombustible[];
@@ -40,20 +41,27 @@ const TAB_STYLES: Record<string, { active: string, inactive: string, badge: stri
   }
 };
 
+// Offset manual UTC-6 (Guatemala, sin DST) — no depende de Intl timezone
+const GT_OFFSET_MS = -6 * 60 * 60 * 1000;
 const getGTDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return new Date(date.toLocaleString("en-US", { timeZone: "America/Guatemala" }));
+  const utc = new Date(dateString);
+  return new Date(utc.getTime() + GT_OFFSET_MS); // leer con getUTC*
 };
 
 const getWeekOfMonth = (date: Date) => {
-  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
-  const dayOfWeek = firstDay.getDay(); 
-  const offsetDate = date.getDate() + dayOfWeek - 1;
+  const firstDay = new Date(date.getUTCFullYear(), date.getUTCMonth(), 1);
+  const dayOfWeek = firstDay.getDay();
+  const offsetDate = date.getUTCDate() + dayOfWeek - 1;
   return Math.floor(offsetDate / 7) + 1;
 };
 
+const DIAS_SEMANA = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const MESES_CORTOS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
 const formatTinyDate = (date: Date) => {
-    return date.toLocaleDateString('es-GT', { day: '2-digit', month: 'short', timeZone: 'America/Guatemala' });
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const month = MESES_CORTOS[date.getUTCMonth()];
+  return `${day} ${month}`;
 };
 
 const getWeeksInMonth = (year: number, month: number) => {
@@ -64,8 +72,8 @@ const getWeeksInMonth = (year: number, month: number) => {
     while (currentDate <= lastDayOfMonth) {
         const startOfWeek = new Date(currentDate);
         let endOfWeek = new Date(currentDate);
-        const dayOfWeek = currentDate.getDay(); 
-        const daysUntilSaturday = 6 - dayOfWeek; 
+        const dayOfWeek = currentDate.getDay();
+        const daysUntilSaturday = 6 - dayOfWeek;
         endOfWeek.setDate(currentDate.getDate() + daysUntilSaturday);
         if (endOfWeek > lastDayOfMonth) endOfWeek = lastDayOfMonth;
         weeks.push({
@@ -80,9 +88,9 @@ const getWeeksInMonth = (year: number, month: number) => {
 };
 
 const getSimpleDateLabel = (date: Date) => {
-    const options: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', timeZone: 'America/Guatemala' };
-    const dateText = date.toLocaleDateString('es-GT', options);
-    return dateText.charAt(0).toUpperCase() + dateText.slice(1);
+  const weekday = DIAS_SEMANA[date.getUTCDay()];
+  const day = date.getUTCDate();
+  return `${weekday} ${day}`;
 };
 
 export const RequestList: React.FC<Props> = ({ solicitudes, onRefresh, onEdit }) => {
