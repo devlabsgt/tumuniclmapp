@@ -20,6 +20,7 @@ export type PermisoEmpleado = {
   created_at: string
   remunerado: boolean | null 
   aprobado_jefe_nombre: string | null
+  aprobado_jefe_at: string | null
   aprobado_rrhh_nombre: string | null
   aprobado_rrhh_at: string | null
   usuario?: UsuarioConJerarquia

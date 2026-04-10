@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-import supabaseAdmin from "@/lib/supabaseAdmin";
+
 
 // Interfaces (Puedes moverlas a un archivo types.ts si prefieres, pero aquí funcionan)
 export interface InfoUsuarioData {
@@ -67,10 +67,6 @@ export async function getDetalleUsuarioAction(
   if (userError || !user) {
     return null;
   }
-
-  // Leer datos personales del user_metadata (Supabase Auth raw user)
-  const { data: authData } = await supabaseAdmin.auth.admin.getUserById(userId);
-  const meta = authData?.user?.user_metadata || {};
 
   let dependenciaData: any = null;
   let horarioData: any = null;
@@ -159,14 +155,14 @@ export async function getDetalleUsuarioAction(
     permisos: [],
     modulos: [],
     programas: [],
-    // Datos personales exclusivamente del user_metadata (raw Supabase Auth)
-    direccion: meta.direccion || null,
-    telefono: meta.telefono || null,
-    dpi: meta.dpi || null,
-    nit: meta.nit || null,
-    igss: meta.igss || null,
-    cuenta_no: meta.cuenta_no || null,
-    nacimiento: meta.nacimiento || null,
+    // Datos personales de la tabla info_usuario
+    direccion: user.direccion || null,
+    telefono: user.telefono || null,
+    dpi: user.dpi || null,
+    nit: user.nit || null,
+    igss: user.igss || null,
+    cuenta_no: user.cuenta_no || null,
+    nacimiento: user.nacimiento || null,
     puesto_nombre: dependenciaData?.nombre || null,
     renglon: dependenciaData?.renglon || null,
     salario: dependenciaData?.salario || 0,

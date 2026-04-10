@@ -109,6 +109,7 @@ export async function gestionarPermiso(
 
     if (nuevoEstado === "aprobado_jefe" || nuevoEstado === "rechazado_jefe") {
       updateData.aprobado_jefe_nombre = nombreAprobador;
+      updateData.aprobado_jefe_at = new Date().toISOString();
     } else if (nuevoEstado === "aprobado" || nuevoEstado === "rechazado_rrhh") {
       updateData.aprobado_rrhh_nombre = nombreAprobador;
       if (nuevoEstado === "aprobado") {

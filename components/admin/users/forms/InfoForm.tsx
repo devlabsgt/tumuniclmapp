@@ -26,16 +26,35 @@ export default function InfoForm({ userData }: { userData: any }) {
   });
 
 
+  const cleanNumbers = (val: string) => val.toString().replace(/\D/g, '');
+
+  const formatPhoneDisplay = (val: string) => {
+    const clean = cleanNumbers(val).slice(0, 8);
+    if (clean.length <= 4) return clean;
+    return `${clean.slice(0, 4)} ${clean.slice(4)}`;
+  };
+
+  const formatDPIDisplay = (val: string) => {
+    const clean = cleanNumbers(val).slice(0, 13);
+    if (clean.length <= 4) return clean;
+    if (clean.length <= 9) return `${clean.slice(0, 4)} ${clean.slice(4)}`;
+    return `${clean.slice(0, 4)} ${clean.slice(4, 9)} ${clean.slice(9)}`;
+  };
+
+  const formatEveryFour = (val: string) => {
+    return cleanNumbers(val).replace(/(.{4})/g, '$1 ').trim();
+  };
+
   useEffect(() => {
     const datos = usuarioData || userData;
 
     if (datos) {
       setFormData({
-        telefono: datos.telefono || '',
-        dpi: datos.dpi || '',
-        nit: datos.nit || '',
-        igss: datos.igss || '',
-        cuenta_no: datos.cuenta_no || '',
+        telefono: cleanNumbers(datos.telefono || ''),
+        dpi: cleanNumbers(datos.dpi || ''),
+        nit: cleanNumbers(datos.nit || ''),
+        igss: cleanNumbers(datos.igss || ''),
+        cuenta_no: cleanNumbers(datos.cuenta_no || ''),
         direccion: datos.direccion || '',
         nacimiento: datos.nacimiento ? String(datos.nacimiento).split('T')[0] : '',
       });
@@ -44,7 +63,11 @@ export default function InfoForm({ userData }: { userData: any }) {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (['telefono', 'dpi', 'igss', 'nit', 'cuenta_no'].includes(name)) {
+      setFormData(prev => ({ ...prev, [name]: cleanNumbers(value) }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const onSubmit = (e: React.FormEvent) => {
@@ -88,11 +111,13 @@ export default function InfoForm({ userData }: { userData: any }) {
             <Phone size={12} /> Teléfono
           </Label>
           <Input 
+            type="text"
             name="telefono"
-            value={formData.telefono}
+            value={formatPhoneDisplay(formData.telefono)}
             onChange={handleChange}
-            placeholder="0000-0000"
-            className="h-11 dark:bg-zinc-900 dark:border-zinc-800"
+            inputMode="numeric"
+            placeholder="0000 0000"
+            className="h-11 dark:bg-zinc-900 dark:border-zinc-800 font-mono tracking-wider"
           />
         </div>
 
@@ -101,11 +126,13 @@ export default function InfoForm({ userData }: { userData: any }) {
             <Fingerprint size={12} /> DPI
           </Label>
           <Input 
+            type="text"
             name="dpi"
-            value={formData.dpi}
+            value={formatDPIDisplay(formData.dpi)}
             onChange={handleChange}
+            inputMode="numeric"
             placeholder="0000 00000 0000"
-            className="h-11 dark:bg-zinc-900 dark:border-zinc-800"
+            className="h-11 dark:bg-zinc-900 dark:border-zinc-800 font-mono tracking-wider"
           />
         </div>
 
@@ -114,11 +141,13 @@ export default function InfoForm({ userData }: { userData: any }) {
             <Hash size={12} /> NIT
           </Label>
           <Input 
+            type="text"
             name="nit"
-            value={formData.nit}
+            value={formatEveryFour(formData.nit)}
             onChange={handleChange}
+            inputMode="numeric"
             placeholder="Ingrese NIT"
-            className="h-11 dark:bg-zinc-900 dark:border-zinc-800"
+            className="h-11 dark:bg-zinc-900 dark:border-zinc-800 font-mono tracking-wider"
           />
         </div>
 
@@ -127,24 +156,28 @@ export default function InfoForm({ userData }: { userData: any }) {
             <Shield size={12} /> Afiliación IGSS
           </Label>
           <Input 
+            type="text"
             name="igss"
-            value={formData.igss}
+            value={formData.igss === formData.dpi && formData.igss !== '' ? formatDPIDisplay(formData.igss) : formData.igss}
             onChange={handleChange}
+            inputMode="numeric"
             placeholder="No. de afiliación"
-            className="h-11 dark:bg-zinc-900 dark:border-zinc-800"
+            className={`h-11 dark:bg-zinc-900 dark:border-zinc-800 ${formData.igss === formData.dpi && formData.igss !== '' ? 'font-mono tracking-wider' : ''}`}
           />
         </div>
 
         <div className="space-y-2">
           <Label className="text-[10px] uppercase dark:text-zinc-500 flex items-center gap-2 font-bold tracking-tighter">
-            <CircleDollarSign size={12} /> No. Cuenta
+            <CircleDollarSign size={12} /> No. Cuenta (BANRURAL)
           </Label>
           <Input 
+            type="text"
             name="cuenta_no"
-            value={formData.cuenta_no}
+            value={formatEveryFour(formData.cuenta_no)}
             onChange={handleChange}
+            inputMode="numeric"
             placeholder="No. de cuenta bancaria"
-            className="h-11 dark:bg-zinc-900 dark:border-zinc-800"
+            className="h-11 dark:bg-zinc-900 dark:border-zinc-800 font-mono tracking-wider"
           />
         </div>
 

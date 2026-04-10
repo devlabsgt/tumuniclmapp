@@ -101,8 +101,27 @@ const formatearFecha = (fechaString: string | null | undefined): string => {
     year: 'numeric',
     timeZone: 'UTC' 
   }).format(fecha);
-  const cleaned = formatStr.replace(/[,\.]/g, '').trim();
-  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+  const formatMod = formatStr.replace(/[,\.]/g, '').trim();
+  return formatMod.charAt(0).toUpperCase() + formatMod.slice(1);
+};
+
+const cleanDigits = (val: string | null | undefined) => (val?.toString() || '').replace(/\D/g, '');
+
+const formatPhone = (val: string | null | undefined) => {
+  const clean = cleanDigits(val).slice(0, 8);
+  if (clean.length <= 4) return clean;
+  return `${clean.slice(0, 4)} ${clean.slice(4)}`;
+};
+
+const formatDPI = (val: string | null | undefined) => {
+  const clean = cleanDigits(val).slice(0, 13);
+  if (clean.length <= 4) return clean;
+  if (clean.length <= 9) return `${clean.slice(0, 4)} ${clean.slice(4)}`;
+  return `${clean.slice(0, 4)} ${clean.slice(4, 9)} ${clean.slice(9)}`;
+};
+
+const formatEveryFour = (val: string | null | undefined) => {
+  return cleanDigits(val).replace(/(.{4})/g, '$1 ').trim();
 };
 
 interface TarjetaEmpleadoProps {
@@ -136,7 +155,7 @@ export default function TarjetaEmpleado({
 
   if (!isOpen) return null;
 
-  // Nacimiento viene del user_metadata (raw Supabase Auth) via getDetalleUsuarioAction
+  // Nacimiento viene de la tabla info_usuario via getDetalleUsuarioAction
   const nacimiento = datosCompletos?.nacimiento ?? null;
 
   const ROLES_FINANCIERA = ["SUPER", "RRHH", "SECRETARIO", "DAFIM"];
@@ -305,11 +324,19 @@ export default function TarjetaEmpleado({
                     
                     <InfoItem icon={<Calendar size={18} />} label="Fecha de Nacimiento" value={fechaNacimiento} />
 
-                    <InfoItem icon={<Phone size={18} />} label="Teléfono" value={datosCompletos?.telefono} />
-                    <InfoItem icon={<Fingerprint size={18} />} label="DPI" value={datosCompletos?.dpi} />
-                    <InfoItem icon={<Shield size={18} />} label="IGSS" value={datosCompletos?.igss} />
-                    <InfoItem icon={<Hash size={18} />} label="NIT" value={datosCompletos?.nit} />
-                    <InfoItem icon={<CircleDollarSign size={18} />} label="No. Cuenta" value={datosCompletos?.cuenta_no} />
+                    <InfoItem icon={<Phone size={18} />} label="Teléfono" value={formatPhone(datosCompletos?.telefono)} />
+                    <InfoItem icon={<Fingerprint size={18} />} label="DPI" value={formatDPI(datosCompletos?.dpi)} />
+                    <InfoItem 
+                      icon={<Shield size={18} />} 
+                      label="IGSS" 
+                      value={
+                        cleanDigits(datosCompletos?.igss) === cleanDigits(datosCompletos?.dpi) && datosCompletos?.igss 
+                        ? formatDPI(datosCompletos?.igss) 
+                        : datosCompletos?.igss
+                      } 
+                    />
+                    <InfoItem icon={<Hash size={18} />} label="NIT" value={formatEveryFour(datosCompletos?.nit)} />
+                    <InfoItem icon={<CircleDollarSign size={18} />} label="No. Cuenta" value={formatEveryFour(datosCompletos?.cuenta_no)} />
                     <InfoItem icon={<MapPin size={18} />} label="Dirección" value={datosCompletos?.direccion} />
                   </div>
 
@@ -318,10 +345,23 @@ export default function TarjetaEmpleado({
                       Información de Contrato
                     </h3>
                     <InfoItem icon={<Briefcase size={18} />} label="Cargo" value={datosCompletos?.puesto_nombre} />
-                    <InfoItem icon={<Calendar size={18} />} label="Fecha de Inicio" value={formatearFecha(datosCompletos?.fecha_ini)} />
-                    {(datosCompletos?.fecha_fin) && (
-                      <InfoItem icon={<Calendar size={18} />} label="Fecha de Fin" value={formatearFecha(datosCompletos?.fecha_fin)} />
-                    )}
+                    <div className="flex items-start gap-4 py-1">
+                      <div className="mt-1 text-blue-500 dark:text-blue-400">
+                        <Calendar size={18} />
+                      </div>
+                      <div className="flex flex-col">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Fecha de Contrato</p>
+                        <h3 className="text-xs font-semibold text-gray-800 dark:text-gray-100 flex flex-wrap gap-x-2">
+                          <span><span className="font-medium text-gray-500 dark:text-gray-400">Inicio:</span> {formatearFecha(datosCompletos?.fecha_ini)}</span>
+                          {datosCompletos?.fecha_fin && (
+                            <>
+                              <span className="hidden sm:inline text-gray-400">|</span>
+                              <span><span className="font-medium text-gray-500 dark:text-gray-400">Fin:</span> {formatearFecha(datosCompletos?.fecha_fin)}</span>
+                            </>
+                          )}
+                        </h3>
+                      </div>
+                    </div>
                     <InfoItem icon={<FileText size={18} />} label="Renglón" value={renglon} />
 
                     {mostrarFinanciera ? (

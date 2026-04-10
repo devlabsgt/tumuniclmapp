@@ -118,16 +118,16 @@ export default function PreviewPermiso({ permiso, isOpen, onClose }: Props) {
           </div>
 
           {/* Fila 2: Fechas inicio / fin */}
-          <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-neutral-800/50 rounded-xl border border-slate-100 dark:border-neutral-700">
+          <div className="grid grid-cols-2 gap-2 p-3 bg-slate-50 dark:bg-neutral-800/50 rounded-xl border border-slate-100 dark:border-neutral-700">
             <div className="pl-3 border-l-4 border-emerald-500">
               <label className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest mb-1 block">
                 Fecha de Inicio
               </label>
               <p className="text-sm font-bold text-neutral-800 dark:text-neutral-100 capitalize">
-                {format(fechaInicio, "eee d, MMMM", { locale: es }).replace('.', '')}
+                {format(fechaInicio, "eee dd/MMM/yy", { locale: es }).replace('.', '')}
               </p>
               <p className="text-xs text-neutral-500">
-                Año {format(fechaInicio, "yyyy")} • {format(fechaInicio, "h:mm a")}
+                {format(fechaInicio, "h:mm a", { locale: es })}
               </p>
             </div>
             <div className="pl-3 border-l-4 border-orange-500">
@@ -135,11 +135,16 @@ export default function PreviewPermiso({ permiso, isOpen, onClose }: Props) {
                 Fecha de Finalización
               </label>
               <p className="text-sm font-bold text-neutral-800 dark:text-neutral-100 capitalize">
-                {format(fechaFin, "eee d, MMMM", { locale: es }).replace('.', '')}
+                {format(fechaFin, "eee dd/MMM/yy", { locale: es }).replace('.', '')}
               </p>
               <p className="text-xs text-neutral-500">
-                Año {format(fechaFin, "yyyy")} • {format(fechaFin, "h:mm a")}
+                {format(fechaFin, "h:mm a", { locale: es })}
               </p>
+            </div>
+            <div className="col-span-2 mt-1">
+                <p className="text-[9px] text-neutral-500 font-medium italic">
+                  Solicitado: {format(parseISO(permiso.created_at), "eee dd/MMM/yy, h:mm a", { locale: es }).replace('.', '')}
+                </p>
             </div>
           </div>
 
@@ -162,6 +167,13 @@ export default function PreviewPermiso({ permiso, isOpen, onClose }: Props) {
               <p className="text-[10px] font-bold text-neutral-700 dark:text-neutral-200">
                 {permiso.aprobado_jefe_nombre || "--"}
               </p>
+              {permiso.aprobado_jefe_at ? (
+                <p className="text-[9px] text-neutral-400 italic">
+                  {format(parseISO(permiso.aprobado_jefe_at), "eee dd/MM/yy, h:mm a", { locale: es })}
+                </p>
+              ) : (
+                <p className="text-[9px] text-neutral-400 italic">--</p>
+              )}
             </div>
             <div className="flex flex-col gap-1 px-3 py-2 bg-slate-50 dark:bg-neutral-800/50 rounded-xl border border-slate-100 dark:border-neutral-700">
               <label className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">Aprobado RRHH</label>
@@ -170,7 +182,7 @@ export default function PreviewPermiso({ permiso, isOpen, onClose }: Props) {
               </p>
               {permiso.aprobado_rrhh_at ? (
                 <p className="text-[9px] text-neutral-400 italic">
-                  {format(parseISO(permiso.aprobado_rrhh_at), "eee dd/MMM/yy, HH:mm", { locale: es })}
+                  {format(parseISO(permiso.aprobado_rrhh_at), "eee dd/MM/yy, h:mm a", { locale: es })}
                 </p>
               ) : (
                 <p className="text-[9px] text-neutral-400 italic">--</p>

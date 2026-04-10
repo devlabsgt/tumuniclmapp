@@ -1,19 +1,22 @@
 'use server';
 
-import supabaseAdmin from '@/lib/supabaseAdmin';
+import { createClient } from '@/utils/supabase/server';
 
 export async function actualizarInfoPersonal(userId: string, formData: any) {
-  const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-    user_metadata: {
-      telefono: formData.telefono,
-      dpi: formData.dpi,
-      nit: formData.nit,
-      igss: formData.igss,
-      cuenta_no: formData.cuenta_no,
-      direccion: formData.direccion,
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from('info_usuario')
+    .update({
+      telefono: formData.telefono || null,
+      dpi: formData.dpi || null,
+      nit: formData.nit || null,
+      igss: formData.igss || null,
+      cuenta_no: formData.cuenta_no || null,
+      direccion: formData.direccion || null,
       nacimiento: formData.nacimiento || null,
-    },
-  });
+    })
+    .eq('user_id', userId);
 
   if (error) {
     console.error('Update error:', error);
@@ -24,21 +27,26 @@ export async function actualizarInfoPersonal(userId: string, formData: any) {
 }
 
 export async function obtenerInfoUsuario(userId: string) {
-  const { data, error } = await supabaseAdmin.auth.admin.getUserById(userId);
+  const supabase = await createClient();
 
-  if (error || !data?.user) {
+  const { data, error } = await supabase
+    .from('info_usuario')
+    .select('telefono, dpi, nit, igss, cuenta_no, direccion, nacimiento')
+    .eq('user_id', userId)
+    .single();
+
+  if (error || !data) {
     console.error('Error fetching user info:', error);
     return null;
   }
 
-  const meta = data.user.user_metadata || {};
   return {
-    telefono: meta.telefono || null,
-    dpi: meta.dpi || null,
-    nit: meta.nit || null,
-    igss: meta.igss || null,
-    cuenta_no: meta.cuenta_no || null,
-    direccion: meta.direccion || null,
-    nacimiento: meta.nacimiento || null,
+    telefono: data.telefono || null,
+    dpi: data.dpi || null,
+    nit: data.nit || null,
+    igss: data.igss || null,
+    cuenta_no: data.cuenta_no || null,
+    direccion: data.direccion || null,
+    nacimiento: data.nacimiento || null,
   };
 }
