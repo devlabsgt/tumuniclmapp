@@ -12,7 +12,8 @@ import {
   XCircle,
   Printer,
   Calendar,
-  FileSignature 
+  FileSignature,
+  Layers
 } from 'lucide-react';
 
 interface Props {
@@ -21,10 +22,11 @@ interface Props {
   onToggle: () => void;
   onClick?: (sol: SolicitudEntrega) => void;
   onPrint?: (sol: SolicitudEntrega) => void; 
+  onPrintMasivo?: (sol: SolicitudEntrega) => void;
   onValidar?: (sol: SolicitudEntrega) => void; 
 }
 
-export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, onPrint, onValidar }) => {
+export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, onPrint, onPrintMasivo, onValidar }) => {
   
   const totalKms = sol.detalles?.reduce((acc, d) => acc + (d.kilometros_recorrer || 0), 0) || 0;
   
@@ -144,16 +146,30 @@ export const EntregaItem: React.FC<Props> = ({ sol, isOpen, onToggle, onClick, o
 
                 <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto pl-16 sm:pl-0">
                     {isApproved && onPrint && (
-                        <button 
-                            onClick={(e) => {
-                                e.stopPropagation(); 
-                                onPrint(sol);
-                            }}
-                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-all border border-transparent hover:border-blue-100 dark:hover:border-blue-800"
-                            title="Imprimir Vale de Entrega"
-                        >
-                            <Printer size={20} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                            {sol.liquidacion?.lote_masivo_id && onPrintMasivo && (
+                                <button 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onPrintMasivo(sol);
+                                    }}
+                                    className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-full transition-all border border-transparent hover:border-indigo-100 dark:hover:border-indigo-800"
+                                    title={`Parte del Reporte Masivo. Clic para reimprimir reporte.`}
+                                >
+                                    <Layers size={20} />
+                                </button>
+                            )}
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation(); 
+                                    onPrint(sol);
+                                }}
+                                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-full transition-all border border-transparent hover:border-blue-100 dark:hover:border-blue-800"
+                                title="Imprimir Vale de Entrega"
+                            >
+                                <Printer size={20} />
+                            </button>
+                        </div>
                     )}
 
                     <ChevronDown 
