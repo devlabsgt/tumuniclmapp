@@ -21,6 +21,9 @@ export const solicitudEntregaSchema = z.object({
 
   usuario: z.object({
     nombre: z.string(),
+    dependencia: z.object({
+      nombre: z.string()
+    }).nullable().optional()
   }).nullable(),
   
   vehiculo: z.object({
@@ -31,7 +34,8 @@ export const solicitudEntregaSchema = z.object({
 
   detalles: z.array(detalleSchema).optional(),
   liquidacion: z.object({
-    correlativo: z.number().nullable()
+    correlativo: z.number().nullable(),
+    lote_masivo_id: z.number().nullable().optional()
   }).nullable().optional(),
 });
 

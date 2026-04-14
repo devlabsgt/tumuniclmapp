@@ -23,10 +23,13 @@ export const getSolicitudesParaEntrega = async (): Promise<SolicitudEntrega[]> =
       estado,
       correlativo,
       solvente, 
-      usuario:info_usuario ( nombre ),
+      usuario:info_usuario ( 
+          nombre,
+          dependencia:dependencias!info_usuario_dependencia_id_fkey ( nombre ) 
+      ),
       vehiculo:vehiculos ( modelo, tipo_combustible, tipo_vehiculo ),
       detalles:datos_comision_combustible ( lugar_visitar, kilometros_recorrer, fecha_inicio, fecha_fin ),
-      liquidacion:liquidacion ( correlativo )
+      liquidacion:liquidacion ( correlativo, lote_masivo_id )
     `)
     .order('created_at', { ascending: false });
 
@@ -35,7 +38,13 @@ export const getSolicitudesParaEntrega = async (): Promise<SolicitudEntrega[]> =
     return [];
   }
 
-  return data as unknown as SolicitudEntrega[];
+  return (data || []).map((item: any) => ({
+      ...item,
+      usuario: Array.isArray(item.usuario) ? item.usuario[0] : item.usuario,
+      vehiculo: Array.isArray(item.vehiculo) ? item.vehiculo[0] : item.vehiculo,
+      liquidacion: Array.isArray(item.liquidacion) ? item.liquidacion[0] : item.liquidacion,
+      detalles: item.detalles || []
+  })) as unknown as SolicitudEntrega[];
 };
 
 export const getInventarioPorTipo = async (tipo: 'Gasolina' | 'Diesel') => {
@@ -420,4 +429,166 @@ export const getEntregasRealizadas = async (solicitud_id: number) => {
         fin: item.correlativo_fin
       };
   });
+};
+
+export const generarLoteMasivo = async (solicitudIds: number[]) => {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, error: 'Usuario no autenticado' };
+
+  try {
+    // 1. Obtener el siguiente correlativo
+    const { data: maxRecord } = await supabase
+      .from('lote_liquidacion_combustible')
+      .select('correlativo')
+      .order('correlativo', { ascending: false })
+      .limit(1)
+      .single();
+
+    const nuevoCorrelativo = maxRecord?.correlativo ? maxRecord.correlativo + 1 : 2;
+
+    // 2. Crear el nuevo lote
+    const { data: lote, error: loteError } = await supabase
+      .from('lote_liquidacion_combustible')
+      .insert({
+        creado_por: user.id,
+        correlativo: nuevoCorrelativo
+      })
+      .select('id')
+      .single();
+
+    if (loteError || !lote) throw new Error(loteError?.message || 'Error al crear lote.');
+
+    // 3. Vincular las liquidaciones a este lote
+    const { error: updateError } = await supabase
+      .from('liquidacion')
+      .update({ lote_masivo_id: lote.id })
+      .in('id_solicitud', solicitudIds);
+
+    if (updateError) throw new Error(updateError.message);
+
+    revalidatePath('/combustible/entregaCupon');
+    return { success: true, loteId: lote.id, correlativo: nuevoCorrelativo };
+  } catch (error: any) {
+    console.error("Error generando lote masivo:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const getDatosLoteMasivo = async (lote_masivo_id: number) => {
+  const supabase = await createClient();
+
+  // Obtener la info general del lote
+  const { data: lote, error: loteError } = await supabase
+    .from('lote_liquidacion_combustible')
+    .select('*')
+    .eq('id', lote_masivo_id)
+    .single();
+
+  if (loteError || !lote) return null;
+
+  const { data: creadorData } = await supabase
+    .from('info_usuario')
+    .select(`
+      nombre,
+      dependencia:dependencias!info_usuario_dependencia_id_fkey (
+         nombre,
+         padre:parent_id(nombre)
+      )
+    `)
+    .eq('user_id', lote.creado_por)
+    .maybeSingle();
+
+  const dep = creadorData?.dependencia as any;
+  const direccion = dep?.padre?.nombre || '';
+  const cargo = dep?.nombre || '';
+
+  // Obtener todas las liquidaciones (y sus solicitudes) asociadas a este lote masivo
+  const { data: liquidaciones, error: liqError } = await supabase
+    .from('liquidacion')
+    .select(`
+      id,
+      correlativo,
+      km_final,
+      id_solicitud,
+      solicitud:solicitud_combustible (
+        id, correlativo, placa, municipio_destino, kilometraje_inicial,
+        usuario:info_usuario(nombre),
+        vehiculo:vehiculos(modelo, tipo_combustible, tipo_vehiculo),
+        entregas:entrega_cupones(
+          cantidad_entregada, correlativo_inicio, correlativo_fin,
+          created_at,
+          detalle:DetalleContrato(producto, denominacion)
+        )
+      )
+    `)
+    .eq('lote_masivo_id', lote_masivo_id)
+    .order('correlativo', { ascending: true });
+
+  if (liqError) {
+    console.error("Error cargando detalles del lote:", liqError);
+    return null;
+  }
+
+  // Mapeamos a la estructura plana que necesita la tabla del PDF
+  const items = liquidaciones.map((liq: any) => {
+     const sol = liq.solicitud;
+     const vehiculo = Array.isArray(sol.vehiculo) ? sol.vehiculo[0] : sol.vehiculo;
+     
+     // Cálculos del cupón
+     let valorQ = 0;
+     let noCupones = '';
+     let fechaEntrega = '';
+     
+     if (sol.entregas && sol.entregas.length > 0) {
+        fechaEntrega = new Date(sol.entregas[0].created_at).toLocaleDateString('es-GT');
+        // Sumar todos los cupones entregados para sacar el valor Q total
+        sol.entregas.forEach((e: any) => {
+            const denom = e.detalle ? (Array.isArray(e.detalle) ? e.detalle[0]?.denominacion : e.detalle.denominacion) : 0;
+            valorQ += (e.cantidad_entregada * denom);
+            const cuponText = e.correlativo_inicio === e.correlativo_fin 
+                ? `${e.correlativo_inicio}` 
+                : `${e.correlativo_inicio} al ${e.correlativo_fin}`;
+
+            if (!noCupones) {
+                 noCupones = cuponText;
+            } else {
+                 noCupones += ` / ${cuponText}`;
+            }
+        });
+     }
+
+     const isMaquina = ['maquinaria', 'retroexcavadora', 'tractor', 'patrulla de caminos', 'motoniveladora'].some(t => vehiculo?.tipo_vehiculo?.toLowerCase().includes(t)) || vehiculo?.tipo_vehiculo?.toLowerCase() === 'maquinaria';
+     const inicial = sol.kilometraje_inicial || 0;
+     const final = liq.km_final || 0;
+     const dif = final > inicial ? final - inicial : 0;
+
+     return {
+         id_liquidacion: liq.correlativo,
+         id_solicitud: sol.correlativo || sol.id || liq.id_solicitud,
+         empleado: '', // Espacio en blanco para mano
+         no_cupon: noCupones,
+         valor_q: valorQ,
+         modelo: vehiculo?.modelo || 'N/A',
+         tv_vehiculo: vehiculo?.tipo_vehiculo?.toUpperCase() || 'N/A',
+         destino: sol?.municipio_destino || 'N/A',
+         fecha: fechaEntrega,
+         tipo_combustible: vehiculo?.tipo_combustible?.toUpperCase() || 'N/A',
+         inicial_val: inicial,
+         final_val: final,
+         diferencia_val: dif,
+         is_maquina: isMaquina,
+         placa: sol?.placa || 'N/A'
+     };
+  });
+
+  return {
+      loteCorrelativo: lote.correlativo, // Este es el general (ej. 2, 3...)
+      fechaGeneracion: lote.created_at,
+      creadorNombre: creadorData?.nombre || '',
+      creadorCargo: cargo,
+      creadorDireccion: direccion,
+      items
+  };
 };
