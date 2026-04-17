@@ -62,7 +62,7 @@ export default function InformeLoteMasivo({ isOpen, onClose, loteId }: Props) {
                 const blob = pdf.output('bloburl');
                 window.open(blob, '_blank');
             } else {
-                pdf.save(`Liquidacion_Masiva_M-${data.loteCorrelativo}.pdf`);
+                pdf.save(`Liquidacion_General_M-${data.loteCorrelativo}.pdf`);
                 Swal.fire({
                     title: '¡Descargado!',
                     text: 'El documento ha sido generado con éxito.',
@@ -91,7 +91,7 @@ export default function InformeLoteMasivo({ isOpen, onClose, loteId }: Props) {
                             <FileText size={20} />
                         </div>
                         <div className="flex flex-col text-left">
-                            <DialogTitle className="text-lg font-bold text-gray-900 dark:text-white">Formulario de Liquidación Masiva</DialogTitle>
+                            <DialogTitle className="text-lg font-bold text-gray-900 dark:text-white">Formulario de Liquidación General</DialogTitle>
                             <p className="text-xs text-gray-500 dark:text-gray-400">#{data?.loteCorrelativo || '---'} — Vista previa</p>
                         </div>
                     </div>
