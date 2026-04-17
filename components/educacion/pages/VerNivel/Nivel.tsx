@@ -21,6 +21,8 @@ import FormPrograma from '../../forms/Programa';
 
 import Lista from './Lista';
 import Estadistica from './Estadistica';
+import Asistencia from './Asistencia';
+import HistorialAsistencia from './HistorialAsistencia';
 import OpcionesAlumno from './modals/OpcionesAlumno';
 import AlumnoCard from '../../forms/AlumnoCard';
 
@@ -38,20 +40,21 @@ export default function Nivel() {
   const [isFormNivelOpen, setIsFormNivelOpen] = useState(false);
   const [accionesAbiertas, setAccionesAbiertas] = useState<Alumno | null>(null);
   const [todosLosAlumnos, setTodosLosAlumnos] = useState<Alumno[]>([]);
+  const [tabActiva, setTabActiva] = useState<'lista' | 'asistencia' | 'historial'>('lista');
 
   useEffect(() => {
     const fetchAllAlumnos = async () => {
-        const supabase = createClient();
-        const { data, error } = await supabase.from('alumnos').select('*');
-        if (data) {
-            setTodosLosAlumnos(data);
-        } else {
-            console.error('Error fetching all students:', error);
-        }
+      const supabase = createClient();
+      const { data, error } = await supabase.from('alumnos').select('*');
+      if (data) {
+        setTodosLosAlumnos(data);
+      } else {
+        console.error('Error fetching all students:', error);
+      }
     };
     fetchAllAlumnos();
   }, []);
-  
+
   useEffect(() => {
     const isModalOpen = isFormAlumnoOpen || alumnoSeleccionado || isAsignarMaestroOpen || isFormNivelOpen || accionesAbiertas;
     if (isModalOpen) {
@@ -69,7 +72,7 @@ export default function Nivel() {
     setAlumnoParaEditar(null);
     setIsFormAlumnoOpen(true);
   };
-  
+
   const handleOpenEditarAlumno = (alumno: Alumno) => {
     setAlumnoParaEditar(alumno);
     setIsFormAlumnoOpen(true);
@@ -86,11 +89,11 @@ export default function Nivel() {
     setAlumnoParaEditar(null);
     fetchData();
   };
-  
+
   const handleDesinscribir = async (alumno: Alumno) => {
     if (!nivel) {
-        toast.error('Error: No se pudo obtener la información del nivel.');
-        return;
+      toast.error('Error: No se pudo obtener la información del nivel.');
+      return;
     }
 
     // Nota: SweetAlert2 por defecto es claro. Para dark mode nativo en swal se requiere configuración global de CSS, 
@@ -127,7 +130,7 @@ export default function Nivel() {
     if (!nivel || !nivel.maestro_id || !maestros || maestros.length === 0) return null;
     return maestros.find(m => m.id === nivel.maestro_id) || null;
   }, [nivel, maestros]);
-  
+
   if (loading || cargandoUsuario || !nivel) {
     // Texto de carga ajustado para dark mode
     return <div className="text-center py-10 text-gray-600 dark:text-gray-300">Cargando Nivel...</div>;
@@ -144,11 +147,11 @@ export default function Nivel() {
               className="gap-2 text-blue-600 dark:text-blue-400 justify-start p-0"
               onClick={() => router.back()}
             >
-              <ArrowLeft className="h-4 w-4"/>
+              <ArrowLeft className="h-4 w-4" />
               Volver
             </Button>
           </div>
-            <div className='w-full sm:w-auto flex flex-col items-end'>
+          <div className='w-full sm:w-auto flex flex-col items-end'>
             <DropdownMenu.Root>
               <DropdownMenu.Trigger asChild>
                 <Button
@@ -175,9 +178,9 @@ export default function Nivel() {
                   <div className="w-full px-2 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 whitespace-normal">
                     {nivel.descripcion || 'Sin descripción'}
                   </div>
-                  
+
                   <DropdownMenu.Separator className="h-px bg-gray-200 dark:bg-neutral-700 my-1" />
-                  
+
                   {(permisos.includes('EDITAR') || permisos.includes('TODO')) && (
                     <DropdownMenu.Item asChild>
                       <Button
@@ -216,17 +219,48 @@ export default function Nivel() {
             </DropdownMenu.Root>
           </div>
         </header>
-              
-        <div className="flex flex-col gap-4">
+
+        <div className="flex flex-col gap-3">
         </div>
 
-        <div className="flex flex-col gap-6 mt-4">
-          <Lista
-            alumnosDelNivel={alumnosDelNivel}
-            maestroAsignado={maestroAsignado}
-            setAccionesAbiertas={setAccionesAbiertas}
-          />
-          <Estadistica alumnosDelNivel={alumnosDelNivel} />
+        <div className="flex justify-center sm:justify-start border-b border-gray-200 dark:border-neutral-700 mt-4 overflow-x-auto md:overflow-x-visible select-none no-scrollbar">
+          <button
+            onClick={() => setTabActiva('lista')}
+            className={`pb-1 px-1 text-xs sm:text-sm md:text-base font-semibold transition-colors border-b-2 leading-tight flex items-center justify-center text-center w-24 sm:w-auto ${tabActiva === 'lista' ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
+          >
+            Lista de Alumnos
+          </button>
+          <button
+            onClick={() => setTabActiva('asistencia')}
+            className={`pb-1 px-1 text-xs sm:text-sm md:text-base font-semibold transition-colors border-b-2 leading-tight flex items-center justify-center text-center w-24 sm:w-auto ${tabActiva === 'asistencia' ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
+          >
+            Toma de Asistencia
+          </button>
+          <button
+            onClick={() => setTabActiva('historial')}
+            className={`pb-1 px-1 text-xs sm:text-sm md:text-base font-semibold transition-colors border-b-2 leading-tight flex items-center justify-center text-center w-24 sm:w-auto ${tabActiva === 'historial' ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}
+          >
+            Historial de Asistencia
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-6 mt-4 min-h-[400px]">
+          {tabActiva === 'lista' && (
+            <>
+              <Lista
+                alumnosDelNivel={alumnosDelNivel}
+                maestroAsignado={maestroAsignado}
+                setAccionesAbiertas={setAccionesAbiertas}
+              />
+              <Estadistica alumnosDelNivel={alumnosDelNivel} />
+            </>
+          )}
+          {tabActiva === 'asistencia' && (
+            <Asistencia nivelId={nivelId} alumnosDelNivel={alumnosDelNivel} />
+          )}
+          {tabActiva === 'historial' && (
+            <HistorialAsistencia nivelId={nivelId} alumnosDelNivel={alumnosDelNivel} />
+          )}
         </div>
       </div>
 
@@ -245,10 +279,10 @@ export default function Nivel() {
 
       <AnimatePresence>
         {alumnoSeleccionado && (
-          <AlumnoCard 
-            isOpen={!!alumnoSeleccionado} 
-            onClose={() => setAlumnoSeleccionado(null)} 
-            alumno={alumnoSeleccionado} 
+          <AlumnoCard
+            isOpen={!!alumnoSeleccionado}
+            onClose={() => setAlumnoSeleccionado(null)}
+            alumno={alumnoSeleccionado}
             key={alumnoSeleccionado.id}
           />
         )}
