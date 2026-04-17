@@ -187,5 +187,14 @@ export const TODOS_LOS_MODULOS = [
     iconoKey: 'pxglrdrs',
     categoria: 'Gestión Administrativa',
     subgrupo: 'Gestión de Recursos Municipales'
+  },
+  {
+    id: 'DEV',
+    permiso: 'SUPER',
+    titulo: 'Dev',
+    descripcion: 'Herramientas de configuración y desarrollo del sistema.',
+    ruta: '/protected/dev',
+    iconoKey: 'byicyhmi',
+    categoria: 'Gestión Administrativa'
   }
 ];

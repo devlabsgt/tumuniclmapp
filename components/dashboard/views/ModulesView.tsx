@@ -21,6 +21,7 @@ export default function ModulesView({
   const modulosDisponibles = useMemo(
     () =>
       TODOS_LOS_MODULOS.filter((m) => {
+        if (m.id === 'DEV' && rol !== 'SUPER') return false;
         if (rol === "SUPER") return true;
         if (["ACTIVIDADES", "PERMISOS", "SOLICITUDCOMBUSTIBLE"].includes(m.id)) return true;
         if (
