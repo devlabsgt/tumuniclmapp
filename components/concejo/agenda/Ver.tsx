@@ -186,6 +186,28 @@ export default function Ver() {
   const [agendaParaActa, setAgendaParaActa] = useState<AgendaConcejo | null>(null);
   const [filtroAnio, setFiltroAnio] = useState<string>(getYear(new Date()).toString());
   const [filtroMes, setFiltroMes] = useState<string | null>(null);
+
+  useEffect(() => {
+    const savedAnio = localStorage.getItem('agenda_filtroAnio');
+    if (savedAnio) setFiltroAnio(savedAnio);
+    
+    const savedMes = localStorage.getItem('agenda_filtroMes');
+    if (savedMes) setFiltroMes(savedMes);
+  }, []);
+
+  useEffect(() => {
+    if (filtroAnio) {
+      localStorage.setItem('agenda_filtroAnio', filtroAnio);
+    }
+  }, [filtroAnio]);
+
+  useEffect(() => {
+    if (filtroMes === null) {
+      localStorage.removeItem('agenda_filtroMes');
+    } else {
+      localStorage.setItem('agenda_filtroMes', filtroMes);
+    }
+  }, [filtroMes]);
   
   const [loadingAgendaId, setLoadingAgendaId] = useState<string | null>(null);
   const [selectedAgendaId, setSelectedAgendaId] = useState<string | null>(null);

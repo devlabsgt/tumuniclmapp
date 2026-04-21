@@ -241,7 +241,7 @@ export default function Asistencia({
           coordsSalida: null,
           duracion: "--",
           estado: "Sin Salida",
-          remunerado: reg.remunerado ?? true,
+          remunerado: reg.remunerado ?? false,
           registroEntradaCompleto: null,
           registroSalidaCompleto: null,
         });
@@ -273,7 +273,9 @@ export default function Asistencia({
         usuario.registroSalidaCompleto = registroNormalizado;
       }
 
-      usuario.remunerado = reg.remunerado ?? true;
+      if (reg.remunerado !== undefined && reg.remunerado !== null) {
+        usuario.remunerado = reg.remunerado;
+      }
     });
 
     const lista = Array.from(mapa.values());
@@ -326,6 +328,12 @@ export default function Asistencia({
     if (success) {
       toast.success(
         newVal ? "Marcado como remunerado" : "Marcado como no remunerado",
+        {
+          style: {
+            background: newVal ? "#16a34a" : "#dc2626",
+            color: "#fff",
+          },
+        },
       );
     } else {
       setRegistros((prev) =>
