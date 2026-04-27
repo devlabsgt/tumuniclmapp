@@ -89,6 +89,14 @@ export default function VerBeneficiarios() {
     visible: { opacity: 1, y: 0 },
   };
 
+  if (cargandoUsuario || initialLoading) {
+    return (
+      <div className="w-full mx-auto p-2 md:px-10">
+        <div className="text-center text-gray-500 my-10 text-lg italic">Cargando beneficiarios...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full mx-auto p-2 md:px-10">
       <motion.div initial="hidden" animate="visible" variants={itemVariants} transition={{ duration: 0.5, delay: 0.2 }}>
@@ -163,9 +171,7 @@ export default function VerBeneficiarios() {
       </motion.div>
       
       <motion.div initial="hidden" animate="visible" variants={itemVariants} transition={{ duration: 0.5, delay: 0.6 }}>
-        {(initialLoading || cargandoUsuario) ? (
-            <div className="text-center text-gray-500 my-10 text-lg italic">Cargando beneficiarios...</div>
-        ) : beneficiariosFiltrados.length === 0 ? (
+        {beneficiariosFiltrados.length === 0 ? (
             <div className="text-center text-gray-600 dark:text-neutral-400 my-8 text-2xl"><strong>No se encontraron beneficiarios en {filtros.anio}.</strong></div>
         ) : (
             <TablaBeneficiarios data={beneficiariosPaginados} resumen={resumen} isLoading={false} permisos={permisos} />

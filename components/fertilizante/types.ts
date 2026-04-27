@@ -10,6 +10,8 @@ export interface Beneficiario {
   sexo?: string | null;
   cantidad?: number | null;
   estado?: string | null;
+  created_at?: string | null;
+  creado_por?: string | null;
 }
 
 export interface ResumenBeneficiarios {
