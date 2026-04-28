@@ -24,7 +24,7 @@ export default function PreviewPermiso({ permiso, isOpen, onClose }: Props) {
 
   const fechaInicio = parseISO(permiso.inicio);
   const fechaFin = parseISO(permiso.fin);
-  const codigo = permiso.id.substring(0, 6).toUpperCase();
+  const codigo = `${permiso.id.substring(0, 3)}-${permiso.id.substring(3, 6)}`.toUpperCase();
 
   const estadoColor =
     permiso.estado === "aprobado"

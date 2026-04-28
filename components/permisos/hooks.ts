@@ -1,7 +1,8 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { format } from 'date-fns';
 import Swal from 'sweetalert2';
 import { PermisoEmpleado, PermisosPorOficina, UsuarioConJerarquia, EstadoPermiso } from '@/components/permisos/types';
-import { obtenerPermisos, eliminarPermiso, obtenerPerfilUsuario, PerfilUsuario } from '@/components/permisos/acciones';
+import { obtenerPermisosPorFecha, obtenerPermisosPorRango, obtenerTodosPendientes, eliminarPermiso, obtenerPerfilUsuario, PerfilUsuario } from '@/components/permisos/acciones';
 import { useListaUsuarios } from '@/hooks/usuarios/useListarUsuarios';
 
 export type TipoVistaPermisos = 'mis_permisos' | 'gestion_jefe' | 'gestion_rrhh';
@@ -13,11 +14,15 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [oficinasAbiertas, setOficinasAbiertas] = useState<Record<string, boolean>>({});
+  const [todosAbiertos, setTodosAbiertos] = useState(true);
   
   const [filtroEstado, setFiltroEstado] = useState<'todos' | EstadoPermiso>('todos');
   
-  const [mesSeleccionado, setMesSeleccionado] = useState(new Date().getMonth() + 1);
-  const [anioSeleccionado, setAnioSeleccionado] = useState(new Date().getFullYear());
+  // Modos de filtro: 'dia' | 'semana' | 'rango' | 'pendientes'
+  const [modoFiltro, setModoFiltro] = useState<'dia' | 'semana' | 'rango' | 'pendientes'>('dia');
+  const [fechaSeleccionada, setFechaSeleccionada] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [fechaInicio, setFechaInicio] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [fechaFin, setFechaFin] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   
   const [modalAbierto, setModalAbierto] = useState(false);
   const [permisoParaEditar, setPermisoParaEditar] = useState<PermisoEmpleado | null>(null);
@@ -28,23 +33,35 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
     return (usuariosHook as unknown) as UsuarioConJerarquia[];
   }, [usuariosHook]);
 
-  const cargarDatos = async () => {
+  const cargarDatos = useCallback(async () => {
     try {
-      const data = await obtenerPermisos(mesSeleccionado, anioSeleccionado);
+      let data: PermisoEmpleado[];
+      if (modoFiltro === 'pendientes') {
+        data = await obtenerTodosPendientes();
+      } else if (modoFiltro === 'rango' || modoFiltro === 'semana') {
+        data = await obtenerPermisosPorRango(fechaInicio, fechaFin);
+      } else {
+        data = await obtenerPermisosPorFecha(fechaSeleccionada);
+      }
       setRegistrosRaw(data);
     } catch (error) {
       console.error(error);
     }
-  };
+  }, [fechaSeleccionada, fechaInicio, fechaFin, modoFiltro]);
 
   useEffect(() => {
     const init = async () => {
       setLoadingPermisos(true);
       try {
-        const [data, perfil] = await Promise.all([
-          obtenerPermisos(mesSeleccionado, anioSeleccionado),
-          obtenerPerfilUsuario()
-        ]);
+        let data: PermisoEmpleado[];
+        if (modoFiltro === 'pendientes') {
+          data = await obtenerTodosPendientes();
+        } else if (modoFiltro === 'rango' || modoFiltro === 'semana') {
+          data = await obtenerPermisosPorRango(fechaInicio, fechaFin);
+        } else {
+          data = await obtenerPermisosPorFecha(fechaSeleccionada);
+        }
+        const perfil = await obtenerPerfilUsuario();
         setRegistrosRaw(data);
         setPerfilUsuario(perfil);
       } catch (error) {
@@ -54,10 +71,32 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
       }
     };
     init();
-  }, [mesSeleccionado, anioSeleccionado]);
+  }, [fechaSeleccionada, fechaInicio, fechaFin, modoFiltro]);
+
+  // Auto-abrir todos los acordeones cuando cambian los datos
+  useEffect(() => {
+    if (todosAbiertos) {
+      const nuevoEstado: Record<string, boolean> = {};
+      datosAgrupadosInterno.forEach(g => {
+        nuevoEstado[g.oficina_nombre] = true;
+      });
+      setOficinasAbiertas(nuevoEstado);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [registrosRaw, todosAbiertos]);
 
   const toggleOficina = (nombre: string) => {
     setOficinasAbiertas(prev => ({ ...prev, [nombre]: !prev[nombre] }));
+  };
+
+  const toggleTodos = () => {
+    const nuevoEstado = !todosAbiertos;
+    setTodosAbiertos(nuevoEstado);
+    const estado: Record<string, boolean> = {};
+    datosAgrupadosInterno.forEach(g => {
+      estado[g.oficina_nombre] = nuevoEstado;
+    });
+    setOficinasAbiertas(estado);
   };
 
   const handleNuevoPermiso = () => {
@@ -169,13 +208,15 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
     return permisosVisibles.filter(r => {
       const nombreEmpleado = r.usuario?.nombre?.toLowerCase() || '';
       const nombreOficina = r.usuario?.oficina_nombre?.toLowerCase() || '';
-      const codigoPermiso = r.id.substring(0, 6).toLowerCase();
+      const codigoBase = r.id.substring(0, 6).toLowerCase();
+      const codigoFormateado = `${codigoBase.substring(0, 3)}-${codigoBase.substring(3, 6)}`;
       const termino = searchTerm.toLowerCase();
       
       const matchBusqueda = 
         nombreEmpleado.includes(termino) || 
         nombreOficina.includes(termino) ||
-        codigoPermiso.includes(termino);
+        codigoBase.includes(termino) ||
+        codigoFormateado.includes(termino);
       
       const matchEstado = filtroEstado === 'todos' || r.estado === filtroEstado;
       
@@ -204,7 +245,8 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
       return 3; // aprobados y rechazados al final
   }
 
-  const datosAgrupados = useMemo(() => {
+  // Necesitamos que datosAgrupados esté disponible antes del effect de auto-abrir
+  const datosAgrupadosInterno = useMemo(() => {
     const grupos: Record<string, PermisosPorOficina> = {};
 
     if (tipoVista === 'gestion_jefe' && perfilUsuario?.oficinasACargo) {
@@ -252,13 +294,15 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
 
   return {
     state: {
-      loadingPermisos, searchTerm, filtroEstado, mesSeleccionado, anioSeleccionado,
-      modalAbierto, permisoParaEditar, perfilUsuario, oficinasAbiertas,
-      datosAgrupados, estadisticas, usuariosParaModal,
+      loadingPermisos, searchTerm, filtroEstado, fechaSeleccionada, modoFiltro,
+      fechaInicio, fechaFin,
+      modalAbierto, permisoParaEditar, perfilUsuario, oficinasAbiertas, todosAbiertos,
+      datosAgrupados: datosAgrupadosInterno, estadisticas, usuariosParaModal,
     },
     actions: {
-      setSearchTerm, setFiltroEstado, setMesSeleccionado, setAnioSeleccionado,
-      setModalAbierto, toggleOficina, cargarDatos, handleNuevoPermiso,
+      setSearchTerm, setFiltroEstado, setFechaSeleccionada, setModoFiltro,
+      setFechaInicio, setFechaFin,
+      setModalAbierto, toggleOficina, toggleTodos, cargarDatos, handleNuevoPermiso,
       handleClickFila, handleEliminarPermiso,
     }
   };

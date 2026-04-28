@@ -145,7 +145,7 @@ const PermisoTemplate = React.forwardRef<HTMLDivElement, Props>(({ permiso }, re
             <div className="text-right">
                 <div className="mb-2">
                     <p className="text-[10px] font-bold text-neutral-400 mb-0.5 tracking-wider">CÓDIGO DE VERIFICACIÓN</p>
-                    <p className="text-sm font-mono text-neutral-400 font-black uppercase tracking-widest">{permiso.id.substring(0, 6)}</p>
+                    <p className="text-sm font-mono text-neutral-400 font-black uppercase tracking-widest">{`${permiso.id.substring(0, 3)}-${permiso.id.substring(3, 6)}`}</p>
                 </div>
             </div>
         </div>
