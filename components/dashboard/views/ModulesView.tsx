@@ -55,6 +55,9 @@ export default function ModulesView({
         if (m.subgrupo === "Gestión de Recursos Municipales") {
           return ["SUPER", "SECRETARIO", "SEC-TECNICO"].includes(rol);
         }
+        if (m.id === "SOLICITUDES_LAMARAS") {
+          return rol === "SECRETARIO" || rol === "SUPER";
+        }
         return modulos.includes(m.permiso);
       }),
     [rol, modulos, esjefe],
@@ -85,6 +88,10 @@ export default function ModulesView({
   );
   const showRecursosMunicipalesAccordion = useMemo(
     () => ["SUPER", "SECRETARIO", "SEC-TECNICO"].includes(rol),
+    [rol],
+  );
+  const showRecepcionAccordion = useMemo(
+    () => rol === "SECRETARIO" || rol === "SUPER",
     [rol],
   );
 
@@ -188,6 +195,18 @@ export default function ModulesView({
               >
                 {modulosGestion
                   .filter((m) => m.subgrupo === "Gestión de Recursos Municipales")
+                  .map(renderModuleCard)}
+              </ModuleAccordion>
+            )}
+
+            {showRecepcionAccordion && (
+              <ModuleAccordion
+                titulo="Recepción"
+                descripcion="Gestione la recepción y despacho de documentos."
+                iconKey="dicxqsya"
+              >
+                {modulosGestion
+                  .filter((m) => m.subgrupo === "Recepción")
                   .map(renderModuleCard)}
               </ModuleAccordion>
             )}

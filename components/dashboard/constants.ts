@@ -187,5 +187,15 @@ export const TODOS_LOS_MODULOS = [
     iconoKey: 'pxglrdrs',
     categoria: 'Gestión Administrativa',
     subgrupo: 'Gestión de Recursos Municipales'
+  },
+  {
+    id: 'SOLICITUDES_LAMARAS',
+    permiso: 'SOLICITUDES_LAMARAS',
+    titulo: 'Solicitudes de Lámparas',
+    descripcion: 'Gestione el ingreso y seguimiento de Solicitudes de Lámparas.',
+    ruta: '/protected/solicitudes/lamparas',
+    iconoKey: 'cuywyxhb',
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Recepción'
   }
 ];
