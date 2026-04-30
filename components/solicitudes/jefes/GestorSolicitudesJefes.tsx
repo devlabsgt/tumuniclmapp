@@ -1,20 +1,20 @@
 import React from 'react';
-import { getSolicitudesMobiliario } from './lib/actions';
-import ListSoliMobiliario from './ListSolicitudesMobiliario';
+import { getSolicitudesJefes } from './lib/actions';
+import ListSolitJefes from './ListSolitJefes';
 import { createClient } from '@/utils/supabase/server';
 
-export default async function GestorSolitMobiliario() {
+export default async function GestorSolicitudesJefes() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return null;
 
-  const solicitudes = await getSolicitudesMobiliario();
+  const solicitudes = await getSolicitudesJefes();
 
   return (
     <div className="w-full flex flex-col gap-6">
       <div className="w-full">
-        <ListSoliMobiliario
+        <ListSolitJefes
           initialData={solicitudes}
           userServerSide={{
             userId: user.id,

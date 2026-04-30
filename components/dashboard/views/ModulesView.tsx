@@ -1,22 +1,34 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { TODOS_LOS_MODULOS } from "../constants";
 import ModuleCard from "../modules/ModuleCard";
 import ModuleAccordion from "../modules/ModuleAccordion";
+import { getUsuariosAtencionVecino } from "@/components/solicitudes/lamparas/lib/actions";
 
 interface ModulesViewProps {
   rol: string;
   modulos: string[];
   esjefe: boolean;
+  userId?: string | null;
 }
 
 export default function ModulesView({
   rol,
   modulos = [],
   esjefe,
+  userId,
 }: ModulesViewProps) {
   const [loadingModule, setLoadingModule] = useState<string | null>(null);
+  const [esAtencionVecino, setEsAtencionVecino] = useState(false);
+
+  useEffect(() => {
+    if (userId) {
+      getUsuariosAtencionVecino().then((usuarios) => {
+        setEsAtencionVecino(usuarios.some((u) => u.user_id === userId));
+      }).catch(console.error);
+    }
+  }, [userId]);
 
   const modulosDisponibles = useMemo(
     () =>
@@ -32,6 +44,9 @@ export default function ModulesView({
           ].includes(m.id)
         )
           return esjefe;
+        if (m.id === "SOLICITUDES_JEFE") {
+          return esjefe || esAtencionVecino || rol === "SECRETARIO" || rol === "SUPER";
+        }
         if (
           [
             "COMISIONES_RRHH",
@@ -56,7 +71,13 @@ export default function ModulesView({
           return ["SUPER", "SECRETARIO", "SEC-TECNICO"].includes(rol);
         }
         if (m.id === "SOLICITUDES_LAMARAS") {
-          return rol === "SECRETARIO" || rol === "SUPER";
+          return rol === "SECRETARIO" || rol === "SUPER" || esAtencionVecino;
+        }
+        if (m.id === "SOLICITUDES_MOBILIARIO") {
+          return rol === "SECRETARIO" || rol === "SUPER" || esAtencionVecino;
+        }
+        if (m.id === "RECEPCION_DOCS") {
+          return rol === "SECRETARIO" || rol === "SUPER" || esAtencionVecino;
         }
         return modulos.includes(m.permiso);
       }),
@@ -91,8 +112,8 @@ export default function ModulesView({
     [rol],
   );
   const showRecepcionAccordion = useMemo(
-    () => rol === "SECRETARIO" || rol === "SUPER",
-    [rol],
+    () => rol === "SECRETARIO" || rol === "SUPER" || esAtencionVecino,
+    [rol, esAtencionVecino],
   );
 
   const renderModuleCard = (modulo: any) => (
@@ -143,7 +164,7 @@ export default function ModulesView({
                 .map(renderModuleCard)}
             </ModuleAccordion>
 
-            {esjefe && (
+            {(esjefe || esAtencionVecino) && (
               <ModuleAccordion
                 titulo="Gestión Jefe de Área"
                 descripcion="Gestión y supervisión de equipos."
@@ -206,7 +227,7 @@ export default function ModulesView({
                 iconKey="dicxqsya"
               >
                 {modulosGestion
-                  .filter((m) => m.subgrupo === "Recepción")
+                  .filter((m) => m.subgrupo === "Recepción" || m.id === "SOLICITUDES_JEFE")
                   .map(renderModuleCard)}
               </ModuleAccordion>
             )}

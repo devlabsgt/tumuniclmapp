@@ -95,6 +95,16 @@ export const TODOS_LOS_MODULOS = [
     subgrupo: 'Gestión Jefe de Área'
   },
   {
+    id: 'SOLICITUDES_JEFE',
+    permiso: 'SOLICITUDES_JEFE',
+    titulo: 'Solicitudes Inter-Oficinas',
+    descripcion: 'Revise y gestione las solicitudes de Inter-Oficinas.',
+    ruta: '/protected/solicitudes/jefes',
+    iconoKey: 'dnkhszms',
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Gestión Jefe de Área'
+  },
+  {
     id: 'PERMISOS_GESTION',
     permiso: 'RRHH',
     titulo: 'Administración de Permisos',
@@ -195,6 +205,17 @@ export const TODOS_LOS_MODULOS = [
     descripcion: 'Gestione el ingreso y seguimiento de Solicitudes de Lámparas.',
     ruta: '/protected/solicitudes/lamparas',
     iconoKey: 'cuywyxhb',
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Recepción'
+  },
+  {
+    id: 'SOLICITUDES_MOBILIARIO',
+    permiso: 'SOLICITUDES_MOBILIARIO',
+    titulo: 'Solicitudes de Mobiliario',
+    descripcion: 'Gestione el ingreso y seguimiento de Solicitudes de Mobiliario.',
+    ruta: '/protected/solicitudes/mobiliario',
+    iconoKey: 'qretqoqe',
+    colorProps: { primaryColor: '#242424', secondaryColor: '#b4b4b4' },
     categoria: 'Gestión Administrativa',
     subgrupo: 'Recepción'
   }

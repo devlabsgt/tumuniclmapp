@@ -68,7 +68,7 @@ export default function Dashboard() {
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.3 }}
       >
-        <ModulesView rol={rol} modulos={modulos} esjefe={esjefe} />
+        <ModulesView rol={rol} modulos={modulos} esjefe={esjefe} userId={userId} />
       </motion.div>
 
       <AnimatePresence>
