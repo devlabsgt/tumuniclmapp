@@ -11,6 +11,7 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
   const [registrosRaw, setRegistrosRaw] = useState<PermisoEmpleado[]>([]);
   const [loadingPermisos, setLoadingPermisos] = useState(true);
   const [perfilUsuario, setPerfilUsuario] = useState<PerfilUsuario | null>(null);
+  const [conteosPendientes, setConteosPendientes] = useState<{ pendientes: number; avalados: number }>({ pendientes: 0, avalados: 0 });
   
   const [searchTerm, setSearchTerm] = useState('');
   const [oficinasAbiertas, setOficinasAbiertas] = useState<Record<string, boolean>>({});
@@ -44,10 +45,27 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
         data = await obtenerPermisosPorFecha(fechaSeleccionada);
       }
       setRegistrosRaw(data);
+      // Actualizar conteos de pendientes globales
+      await actualizarConteosPendientes();
     } catch (error) {
       console.error(error);
     }
   }, [fechaSeleccionada, fechaInicio, fechaFin, modoFiltro]);
+
+  const actualizarConteosPendientes = useCallback(async () => {
+    try {
+      const todos = await obtenerTodosPendientes();
+      let pend = 0;
+      let aval = 0;
+      todos.forEach(r => {
+        if (r.estado === 'pendiente') pend++;
+        if (r.estado === 'aprobado_jefe') aval++;
+      });
+      setConteosPendientes({ pendientes: pend, avalados: aval });
+    } catch (e) {
+      // silently fail
+    }
+  }, []);
 
   useEffect(() => {
     const init = async () => {
@@ -64,6 +82,8 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
         const perfil = await obtenerPerfilUsuario();
         setRegistrosRaw(data);
         setPerfilUsuario(perfil);
+        // Cargar conteos de pendientes globales
+        await actualizarConteosPendientes();
       } catch (error) {
         console.error(error);
       } finally {
@@ -297,7 +317,7 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
       loadingPermisos, searchTerm, filtroEstado, fechaSeleccionada, modoFiltro,
       fechaInicio, fechaFin,
       modalAbierto, permisoParaEditar, perfilUsuario, oficinasAbiertas, todosAbiertos,
-      datosAgrupados: datosAgrupadosInterno, estadisticas, usuariosParaModal,
+      datosAgrupados: datosAgrupadosInterno, estadisticas, conteosPendientes, usuariosParaModal,
     },
     actions: {
       setSearchTerm, setFiltroEstado, setFechaSeleccionada, setModoFiltro,

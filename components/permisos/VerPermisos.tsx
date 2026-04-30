@@ -85,6 +85,7 @@ export default function VerPermisos({ tipoVista }: Props) {
     todosAbiertos,
     datosAgrupados,
     estadisticas,
+    conteosPendientes,
   } = state;
   const {
     setSearchTerm,
@@ -285,68 +286,129 @@ export default function VerPermisos({ tipoVista }: Props) {
 
             <div className="flex flex-col lg:flex-row items-center justify-between gap-4 bg-gray-50/50 dark:bg-neutral-900/30 p-3 rounded-xl border border-gray-100 dark:border-neutral-800/50 w-full">
               
-              {/* Buscador (Izquierda en desktop, arriba en mobile) */}
-              <div className="relative w-full lg:w-auto lg:min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 lg:h-5 lg:w-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full h-10 lg:h-11 pl-10 lg:pl-11 pr-3 text-xs lg:text-base border border-gray-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-950 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
-                />
-              </div>
+              {/* Izquierda: Buscador + Todo el Switch de Modos */}
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+                {/* Buscador */}
+                <div className="relative w-full lg:w-auto lg:min-w-[200px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 lg:h-5 lg:w-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full h-10 lg:h-11 pl-10 lg:pl-11 pr-3 text-xs lg:text-base border border-gray-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-950 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
+                  />
+                </div>
 
-              {/* Grupo de Modos y Fecha (Centro) */}
-              <div className="flex flex-wrap justify-center items-stretch gap-2 w-full lg:w-auto">
+                {/* Switch Unificado */}
                 <div className="flex items-stretch bg-gray-200/50 dark:bg-neutral-800 p-1 rounded-lg h-[46px]">
                   <button
-                    onClick={() => setModoFiltro('dia')}
+                    onClick={() => { setModoFiltro('dia'); setFiltroEstado('todos'); }}
                     className={cn(
-                    "px-3 h-full flex items-center justify-center text-[11px] lg:text-base font-bold rounded-md transition-all",
-                    modoFiltro === 'dia'
-                      ? "bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      "px-3 h-full flex items-center justify-center text-[11px] lg:text-base font-bold rounded-md transition-all",
+                      modoFiltro === 'dia'
+                        ? "bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    )}
+                  >
+                    Día
+                  </button>
+                  <button
+                    onClick={() => {
+                      setModoFiltro('semana');
+                      setFiltroEstado('todos');
+                      setMesSemanas(format(new Date(), "yyyy-MM"));
+                      const hoy = format(new Date(), 'yyyy-MM-dd');
+                      const semActual = getSemanasDelMes(format(new Date(), "yyyy-MM")).find(s => s.inicio <= hoy && s.fin >= hoy);
+                      if (semActual) {
+                        setFechaInicio(semActual.inicio);
+                        setFechaFin(semActual.fin);
+                      }
+                    }}
+                    className={cn(
+                      "px-3 h-full flex items-center justify-center text-[11px] lg:text-base font-bold rounded-md transition-all",
+                      modoFiltro === 'semana'
+                        ? "bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    )}
+                  >
+                    Semana
+                  </button>
+                  <button
+                    onClick={() => { setModoFiltro('rango'); setFiltroEstado('todos'); }}
+                    className={cn(
+                      "px-3 h-full flex items-center justify-center text-[11px] lg:text-base font-bold rounded-md transition-all",
+                      modoFiltro === 'rango'
+                        ? "bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    )}
+                  >
+                    Rango
+                  </button>
+                  {/* Separador dinámico */}
+                  {(conteosPendientes.pendientes > 0 || conteosPendientes.avalados > 0) && (
+                    <div className="w-px bg-gray-300 dark:bg-neutral-600 mx-1 my-1" />
                   )}
-                >
-                  Día
-                </button>
-                <button
-                  onClick={() => {
-                    setModoFiltro('semana');
-                    setMesSemanas(format(new Date(), "yyyy-MM"));
-                    // Forzamos que se quite un posible match viejo si volvemos a la semana actual
-                    const hoy = format(new Date(), 'yyyy-MM-dd');
-                    const semActual = getSemanasDelMes(format(new Date(), "yyyy-MM")).find(s => s.inicio <= hoy && s.fin >= hoy);
-                    if (semActual) {
-                      setFechaInicio(semActual.inicio);
-                      setFechaFin(semActual.fin);
-                    }
-                  }}
-                  className={cn(
-                    "px-3 h-full flex items-center justify-center text-[11px] lg:text-base font-bold rounded-md transition-all",
-                    modoFiltro === 'semana'
-                      ? "bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+
+                  {conteosPendientes.pendientes > 0 && (
+                  <button
+                    onClick={() => {
+                      if (filtroEstado === 'pendiente' && modoFiltro === 'pendientes') {
+                        setFiltroEstado('todos');
+                        setModoFiltro('dia');
+                      } else {
+                        setFiltroEstado('pendiente');
+                        setModoFiltro('pendientes');
+                      }
+                    }}
+                    className={cn(
+                      "px-4 lg:px-6 h-full flex items-center justify-center gap-1.5 text-[11px] lg:text-base font-bold rounded-md transition-all",
+                      modoFiltro === 'pendientes' && filtroEstado === 'pendiente'
+                        ? "bg-white dark:bg-neutral-700 text-amber-600 dark:text-amber-400 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    )}
+                  >
+                    <span>P. Jefe</span>
+                    {conteosPendientes.pendientes > 0 && (
+                      <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-gray-200 dark:bg-neutral-600 text-[10px] font-bold text-amber-600 dark:text-amber-400 px-1">
+                        {conteosPendientes.pendientes}
+                      </span>
+                    )}
+                  </button>
                   )}
-                >
-                  Semana
-                </button>
-                <button
-                  onClick={() => setModoFiltro('rango')}
-                  className={cn(
-                    "px-3 h-full flex items-center justify-center text-[11px] lg:text-base font-bold rounded-md transition-all",
-                    modoFiltro === 'rango'
-                      ? "bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  {conteosPendientes.avalados > 0 && (
+                  <button
+                    onClick={() => {
+                      if (filtroEstado === 'aprobado_jefe' && modoFiltro === 'pendientes') {
+                        setFiltroEstado('todos');
+                        setModoFiltro('dia');
+                      } else {
+                        setFiltroEstado('aprobado_jefe');
+                        setModoFiltro('pendientes');
+                      }
+                    }}
+                    className={cn(
+                      "px-4 lg:px-6 h-full flex items-center justify-center gap-1.5 text-[11px] lg:text-base font-bold rounded-md transition-all",
+                      modoFiltro === 'pendientes' && filtroEstado === 'aprobado_jefe'
+                        ? "bg-white dark:bg-neutral-700 text-purple-600 dark:text-purple-400 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    )}
+                  >
+                    <span>P. RRHH</span>
+                    {conteosPendientes.avalados > 0 && (
+                      <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-gray-200 dark:bg-neutral-600 text-[10px] font-bold text-purple-600 dark:text-purple-400 px-1">
+                        {conteosPendientes.avalados}
+                      </span>
+                    )}
+                  </button>
                   )}
-                >
-                  Rango
-                </button>
+                </div>
               </div>
 
-              {modoFiltro === 'dia' && (
-                <div className="flex flex-col items-center lg:items-start gap-1">
+              {/* Centro/Derecha: Controles de Fecha */}
+              <div className="flex flex-wrap justify-center items-stretch gap-2 w-full lg:w-auto">
+                {modoFiltro === 'dia' && (
+                  <div className="flex flex-col items-center lg:items-start gap-1">
                   <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 ml-1">
                     Seleccione un día para mostrar
                   </span>
@@ -408,7 +470,7 @@ export default function VerPermisos({ tipoVista }: Props) {
                         onChange={(e) => {
                           if (e.target.value) setMesSemanas(e.target.value);
                         }}
-                        className="absolute inset-0 opacity-0 pointer-events-none"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       />
                     </div>
                   </div>
@@ -463,14 +525,6 @@ export default function VerPermisos({ tipoVista }: Props) {
 
               {/* Chips de estado (Derecha en desktop, abajo en mobile) */}
               <div className="flex flex-wrap justify-center lg:justify-end items-center gap-2 w-full lg:w-auto">
-                <Button size="sm" onClick={() => { if (filtroEstado === "pendiente") { setFiltroEstado("todos"); setModoFiltro("dia"); } else { setFiltroEstado("pendiente"); setModoFiltro("pendientes"); } }} className={cn("h-10 lg:h-11 px-3 text-[11px] font-bold rounded-lg border transition-all shadow-sm", filtroEstado === "pendiente" ? "bg-amber-500 text-white border-amber-500" : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800")}>
-                  Pend. Jefe: {estadisticas.pendientes}
-                </Button>
-
-                <Button size="sm" onClick={() => { if (filtroEstado === "aprobado_jefe") { setFiltroEstado("todos"); setModoFiltro("dia"); } else { setFiltroEstado("aprobado_jefe"); setModoFiltro("pendientes"); } }} className={cn("h-10 lg:h-11 px-3 text-[11px] font-bold rounded-lg border transition-all shadow-sm", filtroEstado === "aprobado_jefe" ? "bg-blue-600 text-white border-blue-600" : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800")}>
-                  Pend. RRHH: {estadisticas.avalados}
-                </Button>
-
                 <Button size="sm" onClick={() => { if (filtroEstado === "aprobado") { setFiltroEstado("todos"); } else { setFiltroEstado("aprobado"); if (modoFiltro === "pendientes") setModoFiltro("dia"); } }} className={cn("h-10 lg:h-11 px-3 text-[11px] font-bold rounded-lg border transition-all shadow-sm", filtroEstado === "aprobado" ? "bg-emerald-600 text-white border-emerald-600" : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800")}>
                   Apr: {estadisticas.aprobados}
                 </Button>
@@ -727,8 +781,12 @@ function UsuarioGrupoPermisos({
               tipoVista === "gestion_rrhh" ||
               (tipoVista === "mis_permisos" && esPendiente);
             const puedeEditar = tipoVista === "gestion_rrhh" || esPendiente;
+            // Fecha sin hora (para comparación de días)
             const fechaInicio = new Date(permiso.inicio.split('T')[0] + 'T00:00:00');
             const fechaFin = new Date(permiso.fin.split('T')[0] + 'T00:00:00');
+            // Fecha completa con hora real (para mostrar el horario)
+            const fechaInicioConHora = parseISO(permiso.inicio);
+            const fechaFinConHora = parseISO(permiso.fin);
             const esMismoDia = isSameDay(fechaInicio, fechaFin);
             
             const formatCustom = (date: Date) => {
@@ -742,7 +800,7 @@ function UsuarioGrupoPermisos({
             const textoFecha = esMismoDia
               ? formatCustom(fechaInicio)
               : `Del ${formatCustom(fechaInicio)} al ${formatCustom(fechaFin)}`;
-            const textoHora = `${format(fechaInicio, "h:mm a", { locale: es })} - ${format(fechaFin, "h:mm a", { locale: es })}`;
+            const textoHora = `${format(fechaInicioConHora, "h:mm a", { locale: es })} - ${format(fechaFinConHora, "h:mm a", { locale: es })}`;
             const borderClass = getCategoriaBorderClass(
               permiso.tipo,
               permiso.descripcion
