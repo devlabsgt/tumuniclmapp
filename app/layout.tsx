@@ -12,6 +12,7 @@ import { ThemeProvider } from "@/components/themes/theme-provider";
 import { ThemeSwitcher } from "@/components/themes/theme-switcher";
 import QueryProvider from "@/components/providers/QueryProvider";
 import SystemGuard from "@/components/system-guard";
+import DevBanner from "@/components/dev/DevBanner";
 
 export const metadata: Metadata = {
   title: "SIGEM -CLM-",
@@ -61,6 +62,8 @@ export default async function RootLayout({
             <SystemGuard>
               <NotificationListener />
               <div className="flex flex-col min-h-screen">
+                <DevBanner />
+
                 {isLoginPage ? (
                   <main className="flex-grow w-full">{children}</main>
                 ) : (

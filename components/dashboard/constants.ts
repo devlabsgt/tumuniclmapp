@@ -218,5 +218,14 @@ export const TODOS_LOS_MODULOS = [
     colorProps: { primaryColor: '#242424', secondaryColor: '#b4b4b4' },
     categoria: 'Gestión Administrativa',
     subgrupo: 'Recepción'
+  },
+  {
+    id: 'DEV',
+    permiso: 'SUPER',
+    titulo: 'Dev',
+    descripcion: 'Herramientas de configuración y desarrollo del sistema.',
+    ruta: '/protected/dev',
+    iconoKey: 'byicyhmi',
+    categoria: 'Gestión Administrativa'
   }
 ];

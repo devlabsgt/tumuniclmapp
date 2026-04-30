@@ -71,6 +71,54 @@ export async function obtenerPermisos(mes: number, anio: number) {
   return data as unknown as PermisoEmpleado[];
 }
 
+export async function obtenerPermisosPorFecha(fecha: string) {
+  const supabase = await createClient();
+  // Buscamos permisos que cubran este día (que empiecen antes o el mismo día, y terminen después o el mismo día)
+  const fechaInicio = `${fecha}T00:00:00-06:00`;
+  const fechaFin = `${fecha}T23:59:59.999-06:00`;
+
+  const { data, error } = await supabase
+    .from("permisos_empleado")
+    .select("*")
+    // El permiso debe estar activo en este día:
+    // inicio <= fechaFin AND fin >= fechaInicio
+    .lte("inicio", fechaFin)
+    .gte("fin", fechaInicio)
+    .order("inicio", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data as unknown as PermisoEmpleado[];
+}
+
+export async function obtenerPermisosPorRango(fechaDesde: string, fechaHasta: string) {
+  const supabase = await createClient();
+  const fechaInicio = `${fechaDesde}T00:00:00-06:00`;
+  const fechaFin = `${fechaHasta}T23:59:59.999-06:00`;
+
+  const { data, error } = await supabase
+    .from("permisos_empleado")
+    .select("*")
+    .lte("inicio", fechaFin)
+    .gte("fin", fechaInicio)
+    .order("inicio", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data as unknown as PermisoEmpleado[];
+}
+
+export async function obtenerTodosPendientes() {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("permisos_empleado")
+    .select("*")
+    .in("estado", ["pendiente", "aprobado_jefe"])
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return data as unknown as PermisoEmpleado[];
+}
+
 export async function gestionarPermiso(
   permisoId: string,
   accion: "aprobar" | "rechazar",
@@ -109,6 +157,7 @@ export async function gestionarPermiso(
 
     if (nuevoEstado === "aprobado_jefe" || nuevoEstado === "rechazado_jefe") {
       updateData.aprobado_jefe_nombre = nombreAprobador;
+      updateData.aprobado_jefe_at = new Date().toISOString();
     } else if (nuevoEstado === "aprobado" || nuevoEstado === "rechazado_rrhh") {
       updateData.aprobado_rrhh_nombre = nombreAprobador;
       if (nuevoEstado === "aprobado") {

@@ -58,15 +58,15 @@ export const obtenerAniosDisponibles = async (): Promise<string[]> => {
     .select('anio')
     .order('anio', { ascending: true });
 
-  if (error || !data) return [];
+  if (error || !data) return [new Date().getFullYear().toString()];
 
-  return Array.from(
-    new Set(
-      data
-        .map((b: any) => (typeof b.anio === 'number' ? b.anio.toString() : null))
-        .filter((anio): anio is string => anio !== null)
-    )
-  );
+  const anioActual = new Date().getFullYear().toString();
+
+  const aniosDB = data
+    .map((b: any) => (typeof b.anio === 'number' ? b.anio.toString() : null))
+    .filter((anio): anio is string => anio !== null);
+
+  return Array.from(new Set([...aniosDB, anioActual])).sort();
 };
 
 export const ingresarFolioAnulado = async (

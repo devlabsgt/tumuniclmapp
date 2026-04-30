@@ -65,7 +65,7 @@ export const fetchAsistenciaGlobalAgenda = async (agendaId: string) => {
 
     return {
       ...registro,
-      remunerado: registro.remunerado ?? true,
+      remunerado: registro.remunerado ?? false,
       usuarios: {
         id: registro.user_id,
         nombre: infoUsuario?.nombre || "Desconocido",

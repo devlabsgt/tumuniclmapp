@@ -277,6 +277,7 @@ export default function Nivel() {
         )}
       </AnimatePresence>
 
+
       <AnimatePresence>
         {alumnoSeleccionado && (
           <AlumnoCard

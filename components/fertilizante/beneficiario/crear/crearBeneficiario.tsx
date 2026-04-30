@@ -5,14 +5,14 @@ import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import Swal from 'sweetalert2';
 import { Button } from '@/components/ui/button';
-import { Formulario } from './Formulario';
-import CampoDPI from './CampoDPI';
-import CampoSexo from './CampoSexo';
-import CampoEstado from './CampoEstado';
+import { Input } from '@/components/ui/input';
 import { registrarLog } from '@/utils/registrarLog';
-
+import { buscarHistorialDPI } from './actions';
+import { obtenerLugares } from '@/lib/obtenerLugares';
+import useUserData from '@/hooks/sesion/useUserData';
 
 export function CrearBeneficiario() {
+  const { nombre } = useUserData();
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -58,6 +58,17 @@ useEffect(() => {
 
   const [dpi, setDpi] = useState('');
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [anioHistorial, setAnioHistorial] = useState<string | null>(null);
+  const [lugares, setLugares] = useState<string[]>([]);
+  const [errores, setErrores] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const cargarLugares = async () => {
+      const lista = await obtenerLugares();
+      setLugares(lista);
+    };
+    cargarLugares();
+  }, []);
 
 const [formulario, setFormulario] = useState({
   nombre_completo: '',
@@ -76,8 +87,20 @@ const [formulario, setFormulario] = useState({
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+
+    if (name === 'dpi') {
+      value = value.replace(/\D/g, '').slice(0, 13);
+    } else if (name === 'telefono') {
+      value = value.replace(/\D/g, '').slice(0, 8);
+    } else if (name === 'codigo') {
+      value = value.replace(/\D/g, '').slice(0, 4);
+    }
+
     setFormulario((prev) => ({ ...prev, [name]: value }));
+    if (errores[name]) {
+      setErrores((prev) => ({ ...prev, [name]: '' }));
+    }
   };
 
   const verificarDPI = async () => {
@@ -86,24 +109,19 @@ const [formulario, setFormulario] = useState({
       return;
     }
 
-    const { data, error } = await supabase
-      .from('beneficiarios_fertilizante')
-      .select('*')
-      .eq('dpi', dpi)
-      .eq('anio', anio)
-      .maybeSingle();
+    const respuesta = await buscarHistorialDPI(dpi, anio);
 
-
-    if (error) {
-      Swal.fire('Error', 'Error al verificar el DPI.', 'error');
+    if (!respuesta.success) {
+      Swal.fire('Error', respuesta.error || 'Error al verificar el DPI.', 'error');
       return;
     }
 
-    if (data) {
+    if (respuesta.existeActual) {
+      const { data } = respuesta;
       Swal.fire({
         title: 'No Entregar',
         html: `
-          <h2>El DPI<br/><span style="color:red">${data.dpi}</span><br/>ya recibió el beneficio</h2><br/>
+          <h2>El DPI<br/><span style="color:red">${data.dpi}</span><br/>ya recibió el beneficio este año</h2><br/>
           <strong>Datos del beneficiario:</strong><br/><br/>
           <strong>Nombre:</strong> ${data.nombre_completo}<br/><br/>
           <strong>DPI:</strong> ${data.dpi}<br/><br/>
@@ -114,7 +132,25 @@ const [formulario, setFormulario] = useState({
         icon: 'error',
       });
     } else {
-      setFormulario((prev) => ({ ...prev, dpi }));
+      if (respuesta.data) {
+        const historial = respuesta.data;
+        setAnioHistorial(historial.anio.toString());
+        setFormulario((prev) => ({
+          ...prev,
+          dpi,
+          nombre_completo: historial.nombre_completo || '',
+          lugar: historial.lugar || '',
+          fecha: '',
+          fecha_nacimiento: historial.fecha_nacimiento || '',
+          codigo: '',
+          telefono: historial.telefono === 'N/A' ? '' : (historial.telefono || ''),
+          sexo: historial.sexo || 'M',
+        }));
+      } else {
+        setAnioHistorial(null);
+        setFormulario((prev) => ({ ...prev, dpi }));
+      }
+      
       setMostrarFormulario(true);
     }
   };
@@ -132,45 +168,44 @@ const [formulario, setFormulario] = useState({
       'cantidad',
     ];
     
-    const vacios = camposRequeridos.some(
-      (campo) => !formulario[campo as keyof typeof formulario]?.trim()
-    );
+    const nuevosErrores: Record<string, string> = {};
+    camposRequeridos.forEach((campo) => {
+      if (!formulario[campo as keyof typeof formulario]?.trim()) {
+        nuevosErrores[campo] = 'Campo necesario';
+      }
+    });
 
     const cantidad = parseInt(formulario.cantidad || '1', 10);
 
     if (isNaN(cantidad) || cantidad < 1) {
-      Swal.fire('Error', 'La cantidad debe ser un número mayor o igual a 1.', 'warning');
-      return;
+      nuevosErrores['cantidad'] = 'Debe ser >= 1';
     }
 
-  
-    if (vacios) {
-      Swal.fire('Error', 'Complete todos los campos obligatorios.', 'error');
-      return;
-    }
-  
     const dpi = formulario.dpi.trim();
     const codigo = formulario.codigo.trim();
     const telefono = formulario.telefono.trim();
   
-    if (!/^\d{13}$/.test(dpi)) {
-      Swal.fire('Error', 'El DPI debe tener 13 números.', 'warning');
-      return;
+    if (dpi && !/^\d{13}$/.test(dpi)) {
+      nuevosErrores['dpi'] = 'Debe tener 13 números';
     }
   
-    if (!/^\d{4}$/.test(codigo)) {
-      Swal.fire('Error', 'El Foiio debe tener 4 números.', 'warning');
-      return;
+    if (codigo && !/^\d{4}$/.test(codigo)) {
+      nuevosErrores['codigo'] = 'Debe tener 4 números';
     }
   
     if (telefono !== '' && !/^\d{8}$/.test(telefono)) {
-      Swal.fire('Error', 'El Teléfono debe tener exactamente 8 números si se ingresa.', 'warning');
+      nuevosErrores['telefono'] = 'Debe tener 8 números';
+    }
+
+    if (Object.keys(nuevosErrores).length > 0) {
+      setErrores(nuevosErrores);
       return;
     }
   
     const { data: duplicados, error: errorCheck } = await supabase
       .from('beneficiarios_fertilizante')
       .select('*')
+      .eq('anio', anio)
       .or(`dpi.eq.${dpi},codigo.eq.${codigo},telefono.eq.${telefono}`);
   
     if (errorCheck) {
@@ -226,7 +261,9 @@ const [formulario, setFormulario] = useState({
         dpi,
         codigo,
         telefono: telefono === '' ? 'N/A' : telefono,
-        fecha_nacimiento: formulario.fecha_nacimiento?.trim() || null
+        fecha_nacimiento: formulario.fecha_nacimiento?.trim() || null,
+        anio: Number(anio),
+        creado_por: nombre || 'Desconocido'
       }]);
         
 if (error) {
@@ -257,6 +294,7 @@ if (error) {
           estado: 'Entregado',
       });
       setDpi('');
+      setAnioHistorial(null);
       setMostrarFormulario(false);
     });
 
@@ -281,6 +319,18 @@ return (
       Registrar Beneficiario de Fertilizante
     </h1>
 
+    {mostrarFormulario && anioHistorial && (
+      <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
+        <div className="flex">
+          <div className="ml-3">
+            <p className="text-sm text-blue-700">
+              Datos recuperados del año <strong>{anioHistorial}</strong>. Por favor complete la fecha y el folio actual.
+            </p>
+          </div>
+        </div>
+      </div>
+    )}
+
     {!mostrarFormulario && (
       <>
         {/* Año y DPI */}
@@ -297,15 +347,215 @@ return (
           </select>
         </div>
 
-        <CampoDPI dpi={dpi} setDpi={setDpi} verificarDPI={verificarDPI} />
+        <div className="flex flex-col gap-4">
+          <Input
+            type="text"
+            placeholder="Ingrese el DPI del beneficiario"
+            value={dpi}
+            onChange={(e) => {
+              const soloNumeros = e.target.value.replace(/\D/g, '').slice(0, 13);
+              setDpi(soloNumeros);
+            }}
+          />
+          <Button onClick={verificarDPI} className="h-11 text-lg">
+            Ingresar DPI
+          </Button>
+        </div>
       </>
     )}
 
     {mostrarFormulario && (
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-4">
-        <Formulario formulario={formulario} onChange={handleChange} />
-        <CampoSexo sexo={formulario.sexo} onChange={handleChange} />
-      <CampoEstado estado={formulario.estado} onChange={handleChange} />
+        {/* Nombre completo */}
+        <div>
+          <label className="font-semibold block mb-1">
+            Nombre completo
+            {errores.nombre_completo && <span className="text-red-500 ml-2 text-sm">{errores.nombre_completo}</span>}
+          </label>
+          <input
+            type="text"
+            name="nombre_completo"
+            value={formulario.nombre_completo}
+            onChange={handleChange}
+            className={`w-full border rounded px-3 py-2 ${errores.nombre_completo ? 'border-red-500' : 'border-gray-300'}`}
+          />
+        </div>
+
+        {/* DPI */}
+        <div>
+          <label className="font-semibold block mb-1">
+            DPI
+            {errores.dpi && <span className="text-red-500 ml-2 text-sm">{errores.dpi}</span>}
+          </label>
+          <input
+            type="text"
+            name="dpi"
+            value={formulario.dpi}
+            onChange={handleChange}
+            className={`w-full border rounded px-3 py-2 ${errores.dpi ? 'border-red-500' : 'border-gray-300'}`}
+          />
+        </div>
+
+        {/* Lugar */}
+        <div>
+          <label className="font-semibold block mb-1">
+            Lugar
+            {errores.lugar && <span className="text-red-500 ml-2 text-sm">{errores.lugar}</span>}
+          </label>
+          <select
+            name="lugar"
+            value={formulario.lugar}
+            onChange={handleChange}
+            className={`w-full border rounded px-3 py-2 ${errores.lugar ? 'border-red-500' : 'border-gray-300'}`}
+          >
+            <option value="">Seleccione un lugar...</option>
+            {lugares.map((lugar) => (
+              <option key={lugar} value={lugar}>
+                {lugar}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Fecha */}
+        <div>
+          <label className="font-semibold block mb-1">
+            Fecha de entrega
+            {errores.fecha && <span className="text-red-500 ml-2 text-sm">{errores.fecha}</span>}
+          </label>
+          <input
+            type="date"
+            name="fecha"
+            value={formulario.fecha}
+            onChange={handleChange}
+            className={`w-full border rounded px-3 py-2 ${errores.fecha ? 'border-red-500' : 'border-gray-300'}`}
+          />
+        </div>
+
+        {/* Fecha de nacimiento */}
+        <div>
+          <label className="font-semibold block mb-1">
+            Fecha de nacimiento
+          </label>
+          <input
+            type="date"
+            name="fecha_nacimiento"
+            value={formulario.fecha_nacimiento}
+            onChange={handleChange}
+            className="w-full border rounded px-3 py-2 border-gray-300"
+          />
+        </div>
+
+        {/* Folio */}
+        <div>
+          <label className="font-semibold block mb-1">
+            Folio
+            {errores.codigo && <span className="text-red-500 ml-2 text-sm">{errores.codigo}</span>}
+          </label>
+          <input
+            type="text"
+            name="codigo"
+            value={formulario.codigo}
+            onChange={handleChange}
+            className={`w-full border rounded px-3 py-2 ${errores.codigo ? 'border-red-500' : 'border-gray-300'}`}
+          />
+        </div>
+
+        {/* Cantidad de sacos */}
+        <div>
+          <label className="font-semibold block mb-1">
+            Cantidad de sacos
+            {errores.cantidad && <span className="text-red-500 ml-2 text-sm">{errores.cantidad}</span>}
+          </label>
+          <input
+            type="number"
+            name="cantidad"
+            min="1"
+            step="1"
+            value={formulario.cantidad}
+            onChange={handleChange}
+            className={`w-full border rounded px-3 py-2 ${errores.cantidad ? 'border-red-500' : 'border-gray-300'}`}
+          />
+        </div>
+
+        {/* Teléfono */}
+        <div>
+          <label className="font-semibold block mb-1">
+            Teléfono
+            {errores.telefono && <span className="text-red-500 ml-2 text-sm">{errores.telefono}</span>}
+          </label>
+          <input
+            type="tel"
+            name="telefono"
+            value={formulario.telefono}
+            onChange={handleChange}
+            placeholder="Ingrese 8 dígitos"
+            className={`w-full border rounded px-3 py-2 ${errores.telefono ? 'border-red-500' : 'border-gray-300'}`}
+          />
+        </div>
+
+        {/* Sexo */}
+        <div className="flex items-center gap-4">
+          <label className="text-lg font-medium">
+            Sexo:
+            {errores.sexo && <span className="text-red-500 ml-2 text-sm">{errores.sexo}</span>}
+          </label>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="sexo"
+                value="M"
+                checked={formulario.sexo === 'M'}
+                onChange={handleChange}
+                className="accent-blue-600"
+              />
+              Masculino
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="sexo"
+                value="F"
+                checked={formulario.sexo === 'F'}
+                onChange={handleChange}
+                className="accent-pink-500"
+              />
+              Femenino
+            </label>
+          </div>
+        </div>
+
+        {/* Estado */}
+        <div className="flex items-center gap-4">
+          <label className="text-lg font-medium">Estado:</label>
+          <div className="flex gap-4 flex-wrap">
+            <label className="flex items-center gap-2 text-green-700 font-medium">
+              <input
+                type="radio"
+                name="estado"
+                value="Entregado"
+                checked={formulario.estado === 'Entregado'}
+                onChange={handleChange}
+                className="accent-green-600"
+              />
+              Entregado
+            </label>
+
+            <label className="flex items-center gap-2 text-yellow-600 font-medium">
+              <input
+                type="radio"
+                name="estado"
+                value="Extraviado"
+                checked={formulario.estado === 'Extraviado'}
+                onChange={handleChange}
+                className="accent-yellow-500"
+              />
+              Extraviado
+            </label>
+          </div>
+        </div>
+
         <Button type="submit" className="mt-4 h-11 text-lg">
           Crear Beneficiario
         </Button>

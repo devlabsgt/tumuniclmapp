@@ -632,7 +632,7 @@ export const obtenerDatosReporte = async (
   reporteMap.forEach((fila) => {
     Object.keys(fila.asistencias).forEach((agendaId) => {
       const datos = fila.asistencias[agendaId];
-      if (datos.entrada && datos.salida && datos.remunerado) {
+      if (datos.remunerado) {
         datos.devengado = 2000;
         fila.total_devengado += 2000;
       } else {

@@ -22,7 +22,9 @@ const mostrar = (valor: string | number | null | undefined) =>
 
 const formatearFecha = (iso?: string | null) => {
   if (!iso || iso === 'null') return '—';
-  const [a, m, d] = iso.split('-');
+  const partes = iso.split('-');
+  if (partes.length !== 3) return iso;
+  const [a, m, d] = partes;
   return `${d}/${m}/${a}`;
 };
 const calcularEdad = (fechaNacimiento?: string | null) => {
@@ -36,6 +38,22 @@ const calcularEdad = (fechaNacimiento?: string | null) => {
     edad--;
   }
   return edad.toString();
+};
+
+const formatearTimestamp = (ts?: string | null) => {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return '—';
+  const dia = d.getDate().toString().padStart(2, '0');
+  const mes = (d.getMonth() + 1).toString().padStart(2, '0');
+  const anio = d.getFullYear();
+  let hora = d.getHours();
+  const ampm = hora >= 12 ? 'PM' : 'AM';
+  hora = hora % 12;
+  hora = hora ? hora : 12;
+  const min = d.getMinutes().toString().padStart(2, '0');
+  const horaStr = hora.toString().padStart(2, '0');
+  return `${dia}/${mes}/${anio}, ${horaStr}:${min} ${ampm}`;
 };
   return (
     <div>
@@ -54,7 +72,7 @@ const calcularEdad = (fechaNacimiento?: string | null) => {
           1. LA TABLA tiene el borde.
           2. LA TABLA NO tiene w-full.
         */}
-        <table className="border-collapse text-xs border-[2.5px] border-gray-400 table-fixed min-w-[1370px]">
+        <table className="border-collapse text-xs border-[2.5px] border-gray-400 table-fixed min-w-[1550px]">
         
         <colgroup>
           <col style={{ width: '50px' }} />
@@ -62,12 +80,13 @@ const calcularEdad = (fechaNacimiento?: string | null) => {
           <col style={{ width: '100px' }} />
           <col style={{ width: '50px' }} />
           <col style={{ width: '100px' }} />
-          <col style={{ width: '400px' }} />
+          <col style={{ width: '350px' }} />
           <col style={{ width: '120px' }} />
           <col style={{ width: '100px' }} />
           <col style={{ width: '100px' }} />
           <col style={{ width: '50px' }} />
           <col style={{ width: '50px' }} />
+          <col style={{ width: '200px' }} />
           {(permisos.includes('EDITAR') || permisos.includes('TODO')) && (
             <col style={{ width: '100px' }} />
           )}
@@ -75,23 +94,25 @@ const calcularEdad = (fechaNacimiento?: string | null) => {
 
         <thead>
           <tr className="text-left text-[13px] font-semibold bg-gray-200">
-            <th colSpan={5} className="p-2 border-b-[2.5px] border-r-[2.5px] border-gray-300 text-center">Datos de entrega</th>
-            <th colSpan={7} className="p-2 border-b-[2.5px] border-gray-400 text-center">Datos del beneficiario</th>
+            <th colSpan={5} className="p-2 border-b-[2.5px] border-r-[2.5px] border-gray-400 text-center uppercase tracking-wider">Datos de entrega</th>
+            <th colSpan={6} className="p-2 border-b-[2.5px] border-r-[2.5px] border-gray-400 text-center uppercase tracking-wider text-blue-800">Datos del beneficiario</th>
+            <th colSpan={(permisos.includes('EDITAR') || permisos.includes('TODO')) ? 2 : 1} className="p-2 border-b-[2.5px] border-gray-400 text-center uppercase tracking-wider text-green-800">Registros</th>
           </tr>
-          <tr className="bg-gray-100 text-left border-b-[2.5px] border-gray-400">
+          <tr className="bg-gray-100 text-left border-b-[2.5px] border-gray-400 font-bold">
             <th className="p-2 border-[1.5px] border-gray-300">Folio</th>
             <th className="p-2 border-[1.5px] border-gray-300">Lugar</th>
-            <th className="p-2 border-[1.5px] border-gray-300">Fecha</th>
-            <th className="p-2 border-[1.5px] border-gray-300">Ctd.</th>
-            <th className="p-2 border-r-[2.5px] border-gray-400">Estado</th>
+            <th className="p-2 border-[1.5px] border-gray-300">F. Entrega</th>
+            <th className="p-2 border-[1.5px] border-gray-300 text-center">Ctd.</th>
+            <th className="p-2 border-r-[2.5px] border-gray-400 text-center">Estado</th>
             <th className="p-2 border-[1.5px] border-gray-300">Nombre</th>
             <th className="p-2 border-[1.5px] border-gray-300">DPI</th>
             <th className="p-2 border-[1.5px] border-gray-300">Teléfono</th>
-            <th className="p-2 border-[1.5px] border-gray-300">Nacimiento</th>
-            <th className="p-2 border-[1.5px] border-gray-300">Edad</th>
-            <th className="p-2 border-r-[2.5px] border-gray-400">Sexo</th>
+            <th className="p-2 border-[1.5px] border-gray-300">F. Nacimiento</th>
+            <th className="p-2 border-[1.5px] border-gray-300 text-center">Edad</th>
+            <th className="p-2 border-r-[2.5px] border-gray-400 text-center">Sexo</th>
+            <th className={`p-2 border-gray-300 ${(permisos.includes('EDITAR') || permisos.includes('TODO')) ? 'border-r-[2.5px] border-r-gray-400' : ''}`}>Usuario que registró</th>
             {(permisos.includes('EDITAR') || permisos.includes('TODO')) && (
-              <th className="p-2 border-[1.5px] border-gray-300">Acciones</th>
+              <th className="p-2 border-[1.5px] border-gray-300 text-center">Acciones</th>
             )}
           </tr>
         </thead>
@@ -119,25 +140,23 @@ const calcularEdad = (fechaNacimiento?: string | null) => {
                     <td className="pl-2 border-[1.5px] border-gray-300">{formatearFecha(b.fecha_nacimiento)}</td>
                     <td className="pl-2 border-[1.5px] text-center border-gray-300">{calcularEdad(b.fecha_nacimiento)}</td>
                     <td className="pl-2 border-r-[2.5px] text-center border-gray-400">{mostrar(b.sexo)}</td>
-                    <td className="pl-2 border-[1.5px] border-gray-300 text-center">
-                      {permisos.includes('EDITAR') || permisos.includes('TODO') ? (
+                    <td className={`pl-2 border-[1.5px] border-gray-300 ${(permisos.includes('EDITAR') || permisos.includes('TODO')) ? 'border-r-[2.5px] border-r-gray-400' : ''}`}>
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-gray-800">{mostrar(b.creado_por)}</span>
+                        <span className="text-[10px] text-gray-500 italic">{formatearTimestamp(b.created_at)}</span>
+                      </div>
+                    </td>
+                    {(permisos.includes('EDITAR') || permisos.includes('TODO')) && (
+                      <td className="pl-2 border-[1.5px] border-gray-300 text-center">
                         <Button
                           variant="ghost"
                           onClick={() => irAEditar(b.id)}
-                          className="text-blue-600 text-xs"
+                          className="text-blue-600 text-xs font-bold hover:bg-blue-50"
                         >
                           Editar
                         </Button>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          disabled
-                          className="text-gray-400 text-xs cursor-default"
-                        >
-                          Editar
-                        </Button>
-                      )}
-                    </td>
+                      </td>
+                    )}
                   </tr>
                 ))}
           </tbody>
