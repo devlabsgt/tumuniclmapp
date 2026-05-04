@@ -21,12 +21,15 @@ export const metadata: Metadata = {
   icons: {
     icon: "/icon-192x192.png",
     shortcut: "/icon-192x192.png",
-    apple: "/icon-192x192.png",
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "SIGEM -CLM-",
+    startupImage: "/apple-touch-icon.png",
   },
 };
 
@@ -51,6 +54,10 @@ export default async function RootLayout({
 
   return (
     <html lang="es" className={geistSans.className} suppressHydrationWarning>
+      <head>
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png" />
+      </head>
       <body className="bg-background text-foreground" suppressHydrationWarning>
         <QueryProvider>
           <ThemeProvider

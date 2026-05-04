@@ -20,7 +20,7 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
   const [filtroEstado, setFiltroEstado] = useState<'todos' | EstadoPermiso>('todos');
   
   // Modos de filtro: 'dia' | 'semana' | 'rango' | 'pendientes'
-  const [modoFiltro, setModoFiltro] = useState<'dia' | 'semana' | 'rango' | 'pendientes'>('dia');
+  const [modoFiltro, setModoFiltro] = useState<'dia' | 'semana' | 'rango' | 'pendientes'>('semana');
   const [fechaSeleccionada, setFechaSeleccionada] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [fechaInicio, setFechaInicio] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [fechaFin, setFechaFin] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
@@ -52,12 +52,41 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
     }
   }, [fechaSeleccionada, fechaInicio, fechaFin, modoFiltro]);
 
-  const actualizarConteosPendientes = useCallback(async () => {
+  const actualizarConteosPendientes = useCallback(async (perfilActual?: PerfilUsuario | null) => {
     try {
+      const perfil = perfilActual || perfilUsuario;
+      if (!perfil) return;
       const todos = await obtenerTodosPendientes();
+
+      let permisosFiltrados = todos.map(permiso => {
+         const usuarioEncontrado = usuariosAdaptados.find(u => u.id === permiso.user_id);
+         return { ...permiso, usuario: usuarioEncontrado };
+      });
+
+      const esRRHH = ['RRHH', 'SUPER', 'SECRETARIO'].includes(perfil.rol || '');
+      const idsOficinasJefe = perfil.oficinasACargo.map(o => o.id);
+      const nombresOficinasJefe = perfil.oficinasACargo.map(o => o.nombre.toLowerCase().trim());
+
+      if (tipoVista === 'gestion_jefe') {
+         if (idsOficinasJefe.length > 0) {
+            permisosFiltrados = permisosFiltrados.filter(p => {
+               const depId = p.usuario?.dependencia_id;
+               const depNombre = p.usuario?.oficina_nombre?.toLowerCase().trim();
+               return (depId && idsOficinasJefe.includes(depId)) || 
+                      (depNombre && nombresOficinasJefe.includes(depNombre));
+            });
+         } else {
+            permisosFiltrados = [];
+         }
+      } else if (tipoVista === 'gestion_rrhh') {
+         if (!esRRHH) permisosFiltrados = [];
+      } else if (tipoVista === 'mis_permisos') {
+         permisosFiltrados = [];
+      }
+
       let pend = 0;
       let aval = 0;
-      todos.forEach(r => {
+      permisosFiltrados.forEach(r => {
         if (r.estado === 'pendiente') pend++;
         if (r.estado === 'aprobado_jefe') aval++;
       });
@@ -65,7 +94,7 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
     } catch (e) {
       // silently fail
     }
-  }, []);
+  }, [perfilUsuario, tipoVista, usuariosAdaptados]);
 
   useEffect(() => {
     const init = async () => {
@@ -82,8 +111,8 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
         const perfil = await obtenerPerfilUsuario();
         setRegistrosRaw(data);
         setPerfilUsuario(perfil);
-        // Cargar conteos de pendientes globales
-        await actualizarConteosPendientes();
+        // Intentar cargar conteos, aunque es posible que usuariosAdaptados aún no esté listo
+        await actualizarConteosPendientes(perfil);
       } catch (error) {
         console.error(error);
       } finally {
@@ -92,6 +121,13 @@ export const usePermisos = (tipoVista: TipoVistaPermisos) => {
     };
     init();
   }, [fechaSeleccionada, fechaInicio, fechaFin, modoFiltro]);
+
+  // Asegurarnos de que los conteos se calculen una vez que tenemos la lista de usuarios
+  useEffect(() => {
+    if (perfilUsuario && usuariosAdaptados.length > 0) {
+      actualizarConteosPendientes();
+    }
+  }, [perfilUsuario, usuariosAdaptados, actualizarConteosPendientes]);
 
   // Auto-abrir todos los acordeones cuando cambian los datos
   useEffect(() => {
