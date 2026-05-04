@@ -3,8 +3,9 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Printer, X, FileText, Loader2, Download } from 'lucide-react';
+import { Printer, X, FileText, Loader2, Download, Filter } from 'lucide-react';
 import { generarPdfMensualOficinas } from '../lib/ReporteMensual';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface ItemReporte {
   fecha: string;
@@ -36,12 +37,32 @@ interface Props {
 
 export default function InformeMensualModal({ isOpen, onClose, datos, mesNombre }: Props) {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [filtroTipo, setFiltroTipo] = useState<string>('todas');
+
+  const datosFiltrados = React.useMemo(() => {
+    if (!datos) return null;
+    if (filtroTipo === 'todas') return datos;
+
+    const filtrados: DatosReporte = {};
+    Object.keys(datos).forEach((oficina) => {
+      const itemsFiltrados = datos[oficina].items.filter(item => 
+        item.tipo.toLowerCase().includes(filtroTipo)
+      );
+      if (itemsFiltrados.length > 0) {
+        filtrados[oficina] = {
+          ...datos[oficina],
+          items: itemsFiltrados
+        };
+      }
+    });
+    return filtrados;
+  }, [datos, filtroTipo]);
 
   const handleDownload = async () => {
-    if (!datos) return;
+    if (!datosFiltrados) return;
     setIsGenerating(true);
     try {
-      await generarPdfMensualOficinas(datos, mesNombre, 'download');
+      await generarPdfMensualOficinas(datosFiltrados, mesNombre, 'download');
     } catch (error) {
       console.error("Error generando PDF", error);
     } finally {
@@ -50,10 +71,10 @@ export default function InformeMensualModal({ isOpen, onClose, datos, mesNombre 
   };
 
   const handlePrint = async () => {
-    if (!datos) return;
+    if (!datosFiltrados) return;
     setIsGenerating(true);
     try {
-      await generarPdfMensualOficinas(datos, mesNombre, 'print');
+      await generarPdfMensualOficinas(datosFiltrados, mesNombre, 'print');
     } catch (error) {
       console.error("Error generando PDF para imprimir", error);
     } finally {
@@ -63,7 +84,7 @@ export default function InformeMensualModal({ isOpen, onClose, datos, mesNombre 
 
   if (!isOpen || !datos) return null;
 
-  const oficinas = Object.keys(datos);
+  const oficinas = datosFiltrados ? Object.keys(datosFiltrados) : [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -78,7 +99,20 @@ export default function InformeMensualModal({ isOpen, onClose, datos, mesNombre 
                 <DialogTitle className="text-lg font-bold">Vista Previa de Informe Oficial</DialogTitle>
              </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+             <div className="flex items-center gap-2 mr-2">
+                <Filter size={16} className="text-gray-500" />
+                <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+                  <SelectTrigger className="w-[140px] h-9">
+                    <SelectValue placeholder="Tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas</SelectItem>
+                    <SelectItem value="diesel">Diesel</SelectItem>
+                    <SelectItem value="gasolina">Gasolina</SelectItem>
+                  </SelectContent>
+                </Select>
+             </div>
              <Button variant="outline" onClick={handlePrint} disabled={isGenerating} className="hidden sm:flex gap-2 border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30">
                 {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Printer size={18} />}
                 <span className="hidden sm:inline">Imprimir Directo</span>
@@ -98,7 +132,7 @@ export default function InformeMensualModal({ isOpen, onClose, datos, mesNombre 
             <div className="w-fit mx-auto transform scale-[0.42] origin-top-left sm:scale-75 sm:origin-top md:scale-100 md:origin-top transition-transform duration-200 flex flex-col gap-12 mb-[-60%] sm:mb-[-20%] md:mb-0">
                 
                 {oficinas.map((oficina) => {
-                    const infoOficina = datos[oficina];
+                    const infoOficina = datosFiltrados![oficina];
 
                     return (
                         <div key={oficina} className="w-[816px] min-h-[1247px] bg-white shadow-2xl p-20 text-black flex flex-col relative leading-tight">
@@ -198,6 +232,11 @@ export default function InformeMensualModal({ isOpen, onClose, datos, mesNombre 
                         </div>
                     );
                 })}
+                {oficinas.length === 0 && (
+                    <div className="w-full h-[400px] flex items-center justify-center text-gray-500 font-medium">
+                        No hay registros para el tipo de combustible seleccionado.
+                    </div>
+                )}
             </div>
         </div>
       </DialogContent>

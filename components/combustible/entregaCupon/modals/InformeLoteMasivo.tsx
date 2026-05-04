@@ -36,14 +36,8 @@ export default function InformeLoteMasivo({ isOpen, onClose, loteId }: Props) {
 
         setIsPrinting(true);
         try {
-            const element = printRef.current;
-            // Aumentamos pixelRatio para mejor calidad en impresión masiva
-            const dataUrl = await htmlToImage.toJpeg(element, {
-                quality: 1.0,
-                backgroundColor: '#ffffff',
-                pixelRatio: 2.5
-            });
-
+            const pageElements = printRef.current.querySelectorAll('.page-container');
+            
             // Oficio Landscape: 13 x 8.5 pulgadas
             const pdf = new jsPDF({
                 orientation: 'landscape',
@@ -51,11 +45,24 @@ export default function InformeLoteMasivo({ isOpen, onClose, loteId }: Props) {
                 format: [13, 8.5]
             });
 
-            const imgProps = pdf.getImageProperties(dataUrl);
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            for (let i = 0; i < pageElements.length; i++) {
+                const element = pageElements[i] as HTMLElement;
+                // Aumentamos pixelRatio para mejor calidad en impresión masiva
+                const dataUrl = await htmlToImage.toJpeg(element, {
+                    quality: 1.0,
+                    backgroundColor: '#ffffff',
+                    pixelRatio: 2.5
+                });
 
-            pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+                const imgProps = pdf.getImageProperties(dataUrl);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+                if (i > 0) {
+                    pdf.addPage([13, 8.5], 'landscape');
+                }
+                pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+            }
 
             if (action === 'print') {
                 pdf.autoPrint();
@@ -80,6 +87,14 @@ export default function InformeLoteMasivo({ isOpen, onClose, loteId }: Props) {
     };
 
     if (!isOpen) return null;
+
+    const ITEMS_PER_PAGE = 17;
+    const pages = [];
+    if (data?.items) {
+        for (let i = 0; i < data.items.length; i += ITEMS_PER_PAGE) {
+            pages.push(data.items.slice(i, i + ITEMS_PER_PAGE));
+        }
+    }
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -128,8 +143,10 @@ export default function InformeLoteMasivo({ isOpen, onClose, loteId }: Props) {
                             <p className="font-medium">Cargando Documento...</p>
                         </div>
                     ) : data ? (
-                        <div className="transform scale-[0.5] sm:scale-75 md:scale-100 origin-top h-fit transition-transform duration-200 shadow-2xl bg-white mb-8">
-                            <div ref={printRef} className="w-[1248px] min-h-[816px] text-black bg-white px-10 py-8 relative flex flex-col box-border">
+                        <div className="transform scale-[0.5] sm:scale-75 md:scale-100 origin-top h-fit transition-transform duration-200 mb-8 w-full flex justify-center pb-20">
+                            <div ref={printRef} className="flex flex-col gap-8 w-[1248px]">
+                                {pages.map((pageItems: any[], pageIndex: number) => (
+                                    <div key={pageIndex} className="page-container shadow-2xl w-[1248px] h-[816px] shrink-0 text-black bg-white px-10 py-8 relative flex flex-col box-border overflow-hidden">
 
                                 {/* Header con Logos Copiado */}
                                 <div className="flex justify-between items-center mb-6">
@@ -213,34 +230,45 @@ export default function InformeLoteMasivo({ isOpen, onClose, loteId }: Props) {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {data.items.map((item: any, idx: number) => (
-                                            <tr key={idx} className="border-b border-black">
-                                                <td className="border-r border-black p-1.5 text-center">{idx + 1}</td>
-                                                <td className="border-r border-black p-1.5 text-center font-bold text-gray-700">{item.id_solicitud || '---'}</td>
-                                                <td className="border-r border-black p-1.5 text-center text-gray-600">{item.id_liquidacion || '---'}</td>
-                                                <td className="border-r border-black p-1.5"></td>
-                                                <td className="border-r border-black p-1.5 text-center font-mono">{item.no_cupon}</td>
-                                                <td className="border-r border-black p-1.5 text-center font-bold">Q {item.valor_q.toFixed(2)}</td>
-                                                <td className="border-r border-black p-1.5 text-center truncate">{item.modelo}</td>
-                                                <td className="border-r border-black p-1.5 text-center">{item.destino}</td>
-                                                <td className="border-r border-black p-1.5 text-center">{item.fecha}</td>
-                                                <td className="border-r border-black p-1.5 text-center">{item.tipo_combustible}</td>
-                                                <td className="border-r border-black p-1.5 text-center">
-                                                    {item.inicial_val === 0 ? "NO FUNCIONA" : item.inicial_val}
-                                                </td>
-                                                <td className="border-r border-black p-1.5 text-center">
-                                                    {item.final_val === 0 ? "NO FUNCIONA" : item.final_val}
-                                                </td>
-                                                <td className="border-r border-black p-1.5 text-center font-bold">
-                                                    {item.diferencia_val === 0 && (item.inicial_val === 0 || item.final_val === 0) ? '---' : `${item.diferencia_val} ${item.is_maquina ? 'HRS' : 'KM'}`}
-                                                </td>
-                                                <td className="p-1.5 text-center whitespace-nowrap">{item.placa}</td>
-                                            </tr>
-                                        ))}
+                                        {pageItems.map((item: any, localIdx: number) => {
+                                            const globalIdx = pageIndex * ITEMS_PER_PAGE + localIdx;
+                                            return (
+                                                <tr key={globalIdx} className="border-b border-black">
+                                                    <td className="border-r border-black p-1.5 text-center">{globalIdx + 1}</td>
+                                                    <td className="border-r border-black p-1.5 text-center font-bold text-gray-700">{item.id_solicitud || '---'}</td>
+                                                    <td className="border-r border-black p-1.5 text-center text-gray-600">{item.id_liquidacion || '---'}</td>
+                                                    <td className="border-r border-black p-1.5"></td>
+                                                    <td className="border-r border-black p-1.5 text-center font-mono">{item.no_cupon}</td>
+                                                    <td className="border-r border-black p-1.5 text-center font-bold">Q {item.valor_q.toFixed(2)}</td>
+                                                    <td className="border-r border-black p-1.5 text-center truncate">{item.modelo}</td>
+                                                    <td className="border-r border-black p-1.5 text-center">{item.destino}</td>
+                                                    <td className="border-r border-black p-1.5 text-center">{item.fecha}</td>
+                                                    <td className="border-r border-black p-1.5 text-center">{item.tipo_combustible}</td>
+                                                    <td className="border-r border-black p-1.5 text-center">
+                                                        {item.inicial_val === 0 ? "NO FUNCIONA" : item.inicial_val}
+                                                    </td>
+                                                    <td className="border-r border-black p-1.5 text-center">
+                                                        {item.final_val === 0 ? "NO FUNCIONA" : item.final_val}
+                                                    </td>
+                                                    <td className="border-r border-black p-1.5 text-center font-bold">
+                                                        {item.diferencia_val === 0 && (item.inicial_val === 0 || item.final_val === 0) ? '---' : `${item.diferencia_val} ${item.is_maquina ? 'HRS' : 'KM'}`}
+                                                    </td>
+                                                    <td className="p-1.5 text-center whitespace-nowrap">{item.placa}</td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
+                                
+                                {pages.length > 1 && (
+                                    <div className="absolute bottom-4 right-10 text-[10px] font-bold text-gray-500">
+                                        Página {pageIndex + 1} de {pages.length}
+                                    </div>
+                                )}
                             </div>
-                        </div>
+                        ))}
+                    </div>
+                </div>
                     ) : (
                         <div className="text-white">Error cargando el formato...</div>
                     )}
