@@ -5,7 +5,7 @@ import { createClient } from "@/utils/supabase/client";
 import { urlBase64ToUint8Array } from "@/app/utils/vapid";
 import { Bell, BellOff, Loader2, Check } from "lucide-react";
 
-export default function SubscribeButton({ userId }: { userId: string }) {
+export default function SubscribeButton({ userId }: { userId: string | null }) {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
   const supabase = createClient();
@@ -99,7 +99,7 @@ export default function SubscribeButton({ userId }: { userId: string }) {
   return (
     <button
       onClick={handleToggle}
-      disabled={loading}
+      disabled={loading || !userId}
       className={`h-14 w-full flex items-center justify-center rounded-md border transition-all duration-200 ${
         isSubscribed
           ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/30"

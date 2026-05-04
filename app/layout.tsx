@@ -54,10 +54,7 @@ export default async function RootLayout({
 
   return (
     <html lang="es" className={geistSans.className} suppressHydrationWarning>
-      <head>
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png" />
-      </head>
+
       <body className="bg-background text-foreground" suppressHydrationWarning>
         <QueryProvider>
           <ThemeProvider

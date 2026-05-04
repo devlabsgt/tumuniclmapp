@@ -36,7 +36,7 @@ export default function Profile({
         <span className="truncate">Mi Información</span>
       </Button>
       <div className="w-[3.5rem] flex-shrink-0">
-        {userId && <SubscribeButton userId={userId} />}
+        <SubscribeButton userId={userId} />
       </div>
     </div>
   );
