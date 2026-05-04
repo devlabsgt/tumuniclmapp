@@ -15,7 +15,7 @@ import Profile from "./buttons/Profile";
 import ModulesView from "./views/ModulesView";
 
 export default function Dashboard() {
-  const { rol, modulos = [], permisos = [], userId, esjefe } = useUserData();
+  const { rol, modulos = [], permisos = [], userId, esjefe, dependencia_id } = useUserData();
 
   const [mostrarTarjetaModal, setMostrarTarjetaModal] = useState(false);
   const [mostrarHorarioModal, setMostrarHorarioModal] = useState(false);
@@ -68,7 +68,7 @@ export default function Dashboard() {
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.3 }}
       >
-        <ModulesView rol={rol} modulos={modulos} esjefe={esjefe} userId={userId} />
+        <ModulesView rol={rol} modulos={modulos} esjefe={esjefe} userId={userId} dependenciaId={dependencia_id} />
       </motion.div>
 
       <AnimatePresence>

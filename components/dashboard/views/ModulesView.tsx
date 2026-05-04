@@ -4,13 +4,14 @@ import { useMemo, useState, useEffect } from "react";
 import { TODOS_LOS_MODULOS } from "../constants";
 import ModuleCard from "../modules/ModuleCard";
 import ModuleAccordion from "../modules/ModuleAccordion";
-import { getUsuariosAtencionVecino } from "@/components/solicitudes/lamparas/lib/actions";
+import { checkIsAtencionVecino } from "@/components/solicitudes/lamparas/lib/actions";
 
 interface ModulesViewProps {
   rol: string;
   modulos: string[];
   esjefe: boolean;
   userId?: string | null;
+  dependenciaId?: string | null;
 }
 
 export default function ModulesView({
@@ -18,17 +19,20 @@ export default function ModulesView({
   modulos = [],
   esjefe,
   userId,
+  dependenciaId,
 }: ModulesViewProps) {
   const [loadingModule, setLoadingModule] = useState<string | null>(null);
   const [esAtencionVecino, setEsAtencionVecino] = useState(false);
 
   useEffect(() => {
-    if (userId) {
-      getUsuariosAtencionVecino().then((usuarios) => {
-        setEsAtencionVecino(usuarios.some((u) => u.user_id === userId));
-      }).catch(console.error);
+    if (dependenciaId) {
+      checkIsAtencionVecino(dependenciaId)
+        .then((isAtencion) => {
+          setEsAtencionVecino(isAtencion);
+        })
+        .catch(console.error);
     }
-  }, [userId]);
+  }, [dependenciaId]);
 
   const modulosDisponibles = useMemo(
     () =>
@@ -82,7 +86,7 @@ export default function ModulesView({
         }
         return modulos.includes(m.permiso);
       }),
-    [rol, modulos, esjefe],
+    [rol, modulos, esjefe, esAtencionVecino],
   );
 
   const modulosPoliticas = useMemo(
@@ -165,7 +169,7 @@ export default function ModulesView({
                 .map(renderModuleCard)}
             </ModuleAccordion>
 
-            {(esjefe || esAtencionVecino) && (
+            {esjefe && (
               <ModuleAccordion
                 titulo="Gestión Jefe de Área"
                 descripcion="Gestión y supervisión de equipos."

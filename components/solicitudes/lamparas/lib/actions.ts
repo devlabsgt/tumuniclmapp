@@ -339,3 +339,37 @@ export const getUsuariosAtencionVecino = async () => {
   }));
 };
 
+/**
+ * Verifica de forma robusta si un dependencia_id pertenece a la familia de
+ * "Unidad de Atención al Vecino" (ya sea él mismo, o un hijo/nieto).
+ */
+export const checkIsAtencionVecino = async (dependenciaId: string | null): Promise<boolean> => {
+  if (!dependenciaId) return false;
+  
+  const supabase = await createClient();
+  let currentId: string | null = dependenciaId;
+  let depth = 0;
+  const MAX_DEPTH = 5;
+
+  while (currentId && depth < MAX_DEPTH) {
+    const { data, error }: { data: any, error: any } = await supabase
+      .from('dependencias')
+      .select('id, nombre, parent_id')
+      .eq('id', currentId)
+      .single();
+      
+    if (error || !data) break;
+
+    // Buscamos cualquier variación del nombre, sin importar tildes o mayúsculas
+    const nombre = (data.nombre || '').toLowerCase();
+    if (nombre.includes('atención al vecino') || nombre.includes('atencion al vecino')) {
+      return true;
+    }
+
+    currentId = data.parent_id;
+    depth++;
+  }
+
+  return false;
+};
+
