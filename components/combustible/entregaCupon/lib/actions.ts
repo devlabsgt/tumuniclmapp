@@ -488,22 +488,6 @@ export const getDatosLoteMasivo = async (lote_masivo_id: number) => {
 
   if (loteError || !lote) return null;
 
-  const { data: creadorData } = await supabase
-    .from('info_usuario')
-    .select(`
-      nombre,
-      dependencia:dependencias!info_usuario_dependencia_id_fkey (
-         nombre,
-         padre:parent_id(nombre)
-      )
-    `)
-    .eq('user_id', lote.creado_por)
-    .maybeSingle();
-
-  const dep = creadorData?.dependencia as any;
-  const direccion = dep?.padre?.nombre || '';
-  const cargo = dep?.nombre || '';
-
   // Obtener todas las liquidaciones (y sus solicitudes) asociadas a este lote masivo
   const { data: liquidaciones, error: liqError } = await supabase
     .from('liquidacion')
@@ -513,7 +497,7 @@ export const getDatosLoteMasivo = async (lote_masivo_id: number) => {
       km_final,
       id_solicitud,
       solicitud:solicitud_combustible (
-        id, correlativo, placa, municipio_destino, kilometraje_inicial,
+        id, correlativo, placa, municipio_destino, kilometraje_inicial, user_id,
         usuario:info_usuario(nombre),
         vehiculo:vehiculos(modelo, tipo_combustible, tipo_vehiculo),
         entregas:entrega_cupones(
@@ -529,6 +513,33 @@ export const getDatosLoteMasivo = async (lote_masivo_id: number) => {
   if (liqError) {
     console.error("Error cargando detalles del lote:", liqError);
     return null;
+  }
+
+  const primerUserId = liquidaciones && liquidaciones.length > 0 && liquidaciones[0].solicitud 
+        ? Array.isArray(liquidaciones[0].solicitud) ? (liquidaciones[0].solicitud[0] as any).user_id : (liquidaciones[0].solicitud as any).user_id
+        : null;
+
+  let creadorNombre = '';
+  let cargo = '';
+  let direccion = '';
+
+  if (primerUserId) {
+    const { data: primerData } = await supabase
+      .from('info_usuario')
+      .select(`
+        nombre,
+        dependencia:dependencias!info_usuario_dependencia_id_fkey (
+           nombre,
+           padre:parent_id(nombre)
+        )
+      `)
+      .eq('user_id', primerUserId)
+      .maybeSingle();
+      
+    creadorNombre = primerData?.nombre || '';
+    const dep = primerData?.dependencia as any;
+    cargo = dep?.nombre || '';
+    direccion = dep?.padre?.nombre || '';
   }
 
   // Mapeamos a la estructura plana que necesita la tabla del PDF
@@ -586,7 +597,7 @@ export const getDatosLoteMasivo = async (lote_masivo_id: number) => {
   return {
       loteCorrelativo: lote.correlativo, // Este es el general (ej. 2, 3...)
       fechaGeneracion: lote.created_at,
-      creadorNombre: creadorData?.nombre || '',
+      creadorNombre: creadorNombre,
       creadorCargo: cargo,
       creadorDireccion: direccion,
       items

@@ -194,16 +194,16 @@ export default function InformeLoteMasivo({ isOpen, onClose, loteId }: Props) {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-end w-full gap-4 mt-1">
-                                        <div className="flex items-end w-[45%] gap-2">
+                                    <div className="flex items-baseline w-full gap-4 mt-1">
+                                        <div className="flex items-baseline w-[50%] gap-2">
                                             <span className="whitespace-nowrap">CARGO:</span>
-                                            <div className="flex-1 text-black px-2 overflow-hidden text-ellipsis whitespace-nowrap">
+                                            <div className={`flex-1 text-black px-1 leading-tight ${data.creadorCargo?.length > 40 ? 'text-[9.5px]' : 'text-[12px]'}`}>
                                                 {data.creadorCargo}
                                             </div>
                                         </div>
-                                        <div className="flex items-end w-[55%] gap-2">
+                                        <div className="flex items-baseline w-[50%] gap-2">
                                             <span className="whitespace-nowrap">UNIDAD / DIRECCIÓN:</span>
-                                            <div className="flex-1 text-black px-2 overflow-hidden text-ellipsis whitespace-nowrap">
+                                            <div className={`flex-1 text-black px-1 leading-tight ${data.creadorDireccion?.length > 40 ? 'text-[9.5px]' : 'text-[12px]'}`}>
                                                 {data.creadorDireccion}
                                             </div>
                                         </div>

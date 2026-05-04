@@ -6,9 +6,10 @@ export const generarPdfMensualOficinas = (datosAgrupados: any, mesNombre: string
   const width = doc.internal.pageSize.getWidth();
   const height = doc.internal.pageSize.getHeight(); 
 
-  Object.keys(datosAgrupados).forEach((oficina, index) => {
+  Object.keys(datosAgrupados).forEach((oficinaKey, index) => {
     if (index > 0) doc.addPage(); 
-    const info = datosAgrupados[oficina];
+    const info = datosAgrupados[oficinaKey];
+    const nombreImprimir = info.oficinaOriginal || oficinaKey;
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
@@ -29,7 +30,7 @@ export const generarPdfMensualOficinas = (datosAgrupados: any, mesNombre: string
     const intro = `Por medio de la Presente me permito Trasladarle el informe sobre los cupones de combustibles consumidos para el funcionamiento de planes, programas y proyectos para el año 2026, correspondientes al mes de ${mesNombre.toUpperCase()} para iniciar el proceso de pago de factura.`;
     doc.text(intro, 20, 85, { maxWidth: 175, align: 'justify' });
 
-    const isRedVial = oficina.toUpperCase().includes('RED VIAL');
+    const isRedVial = nombreImprimir.toUpperCase().includes('RED VIAL');
     const totalCols = isRedVial ? 8 : 7;
     const tableFontSize = isRedVial ? 6 : 7;
 
@@ -70,7 +71,7 @@ export const generarPdfMensualOficinas = (datosAgrupados: any, mesNombre: string
       theme: 'grid',
       head: [
         [{ 
-            content: oficina.toUpperCase(), 
+            content: nombreImprimir.toUpperCase(), 
             colSpan: totalCols, 
             styles: { halign: 'center', fillColor: [232, 240, 254], textColor: [0, 102, 204], fontStyle: 'bold' } 
         }],
