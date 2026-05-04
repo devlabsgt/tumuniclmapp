@@ -64,16 +64,18 @@ export default function InformeMensualModal({ isOpen, onClose, datos, mesNombre 
       });
 
       Object.keys(itemsByType).forEach(tipo => {
+        const informeParaEsteTipo = `T3208-122-250-${String(currentCorrelativo).padStart(3, '0')}-2026`;
+        currentCorrelativo++;
+
         if (filtroTipo !== 'todas' && !tipo.toLowerCase().includes(filtroTipo)) return;
 
         const key = `${oficina} - ${tipo}`;
         filtrados[key] = {
           ...datos[oficina],
-          informeNo: `T3208-122-250-${String(currentCorrelativo).padStart(3, '0')}-2026`,
+          informeNo: informeParaEsteTipo,
           items: itemsByType[tipo],
           oficinaOriginal: oficina
         };
-        currentCorrelativo++;
       });
     });
     return filtrados;
