@@ -20,6 +20,7 @@ export function TablaBeneficiarios({
   setViewMode,
 }: TablaBeneficiariosProps) {
   const router = useRouter();
+  
   const { rol } = useUserData();
   const tienePermisoEspecial = ['SUPER', 'ADMIN', 'SECRETARIO'].includes(rol);
   const [modalBeneficiario, setModalBeneficiario] = useState<Beneficiario | null>(null);
@@ -298,8 +299,6 @@ const formatearTimestamp = (ts?: string | null) => {
                       {mostrar(b.estado)}
                     </span>
                   </div>
-
-                  <div className="w-px h-24 bg-gray-100 dark:bg-neutral-800 hidden lg:block flex-shrink-0" />
 
                   {/* Location & Date */}
                   <div className="flex flex-col justify-center gap-4 flex-1 lg:flex-none lg:w-[160px] min-w-0">
@@ -640,11 +639,11 @@ const formatearTimestamp = (ts?: string | null) => {
       {/* Modal Ver Beneficiario (formato vertical estilo teléfono) */}
       {verBeneficiario && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] overflow-x-hidden overflow-y-auto overscroll-contain"
           onClick={() => setVerBeneficiario(null)}
         >
           <div
-            className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-lg h-[60vh] overflow-y-auto relative"
+            className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden relative min-h-0 mx-auto max-h-[min(88svh,calc(100svh-2rem))] lg:max-h-[62dvh] lg:h-[62dvh]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Decorative border line */}
@@ -663,85 +662,119 @@ const formatearTimestamp = (ts?: string | null) => {
               <X size={16} />
             </button>
 
-            <div className="p-6 pt-12 flex flex-col gap-5">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable] touch-pan-y">
+            <div className="p-4 sm:p-7 pt-10 sm:pt-12 flex flex-col gap-5 sm:gap-8 pb-6 sm:pb-9">
               {/* Nombre + datos rápidos */}
-              <div className="flex flex-col gap-3 px-1 pb-4 border-b border-gray-100 dark:border-neutral-800">
+              <div className="flex flex-col gap-3 sm:gap-5 px-0.5 pb-4 sm:pb-6 border-b border-gray-100 dark:border-neutral-800">
                 {verBeneficiario.estado !== 'Anulado' && verBeneficiario.estado !== 'Informe' && (
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-1">Nombre Completo</span>
-                    <span className="font-bold text-blue-600 dark:text-blue-500 text-[20px] block leading-[1.2] break-words">{mostrar(verBeneficiario.nombre_completo)}</span>
+                    <span className="text-[10px] lg:text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-1.5 sm:mb-2">Nombre Completo</span>
+                    <span className="font-bold text-blue-600 dark:text-blue-500 text-[16px] lg:text-[20px] block leading-[1.38] break-words">{mostrar(verBeneficiario.nombre_completo)}</span>
                   </div>
                 )}
-                <div className="flex flex-row justify-between items-start gap-3 flex-wrap">
+                <div className="flex flex-row justify-between items-start gap-x-3 gap-y-4 lg:gap-x-4 flex-wrap">
                   <div className="min-w-0">
-                    <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-1">DPI</span>
-                    <span className="text-gray-700 dark:text-gray-200 text-[14px] font-mono block leading-tight">{mostrar(verBeneficiario.dpi)}</span>
+                    <span className="text-[10px] lg:text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-1.5">DPI</span>
+                    <span className="text-gray-700 dark:text-gray-200 text-[12px] lg:text-[14px] font-mono block leading-snug break-all">{mostrar(verBeneficiario.dpi)}</span>
                   </div>
                   <div className="min-w-0">
-                    <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-1">F. Nacimiento</span>
-                    <span className="text-gray-700 dark:text-gray-200 text-[14px] block leading-tight">
+                    <span className="text-[10px] lg:text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-1.5">F. Nacim.</span>
+                    <span className="text-gray-700 dark:text-gray-200 text-[12px] lg:text-[14px] block leading-snug">
                       {formatearFecha(verBeneficiario.fecha_nacimiento)} <span className="font-semibold">({calcularEdad(verBeneficiario.fecha_nacimiento)})</span>
                     </span>
                   </div>
                   <div className="min-w-0">
-                    <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-1">Sexo</span>
+                    <span className="text-[10px] lg:text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-1.5">Sexo</span>
                     {verBeneficiario.sexo?.trim().toUpperCase().startsWith('M') ? (
-                      <span className="font-black text-2xl leading-none" style={{ color: '#3b82f6' }}>M</span>
+                      <span className="font-black text-xl lg:text-2xl leading-none" style={{ color: '#3b82f6' }}>M</span>
                     ) : verBeneficiario.sexo?.trim().toUpperCase().startsWith('F') ? (
-                      <span className="font-black text-2xl leading-none" style={{ color: '#ec4899' }}>F</span>
+                      <span className="font-black text-xl lg:text-2xl leading-none" style={{ color: '#ec4899' }}>F</span>
                     ) : (
-                      <span className="font-black text-2xl leading-none text-gray-500">-</span>
+                      <span className="font-black text-xl lg:text-2xl leading-none text-gray-500">-</span>
                     )}
                   </div>
                   <div className="min-w-0">
-                    <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-1">Teléfono</span>
+                    <span className="text-[10px] lg:text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-1.5">Teléfono</span>
                     {verBeneficiario.telefono && verBeneficiario.telefono.trim() !== '' && verBeneficiario.telefono.toUpperCase() !== 'N/A' ? (
                       <a
                         href={`https://wa.me/${verBeneficiario.telefono.replace(/\D/g, '')}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[13px] font-bold border bg-green-50 text-green-600 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50"
+                        className="inline-flex items-center gap-1 px-2 py-1.5 lg:px-2.5 lg:py-1.5 rounded text-[11px] lg:text-[13px] font-bold border bg-green-50 text-green-600 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50"
                       >
                         <MessageCircle size={14} />
                         {verBeneficiario.telefono}
                       </a>
                     ) : (
-                      <span className="text-gray-500 dark:text-gray-400 text-[13px]">{mostrar(verBeneficiario.telefono)}</span>
+                      <span className="text-gray-500 dark:text-gray-400 text-[12px] lg:text-[13px]">{mostrar(verBeneficiario.telefono)}</span>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Foto + Folio + Lugar */}
-              <div className="flex flex-row items-stretch gap-4">
+              {/* Foto + Folio + Lugar — debajo de lg: 3 columnas; lg+: apilado ancho */}
+              <div className="flex flex-row items-stretch gap-4 lg:gap-6 min-w-0">
                 {verBeneficiario.estado === 'Anulado' || verBeneficiario.estado === 'Informe' ? (
-                  <div className="w-[280px] flex-shrink-0 flex flex-col items-center justify-center rounded-lg p-4 bg-gray-50 dark:bg-neutral-800/50 border border-gray-200 dark:border-neutral-700">
-                    <span className="text-[11px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-3">Descripción</span>
-                    <span className="font-bold text-blue-600 dark:text-blue-500 text-[15px] text-center leading-[1.3] break-words">
+                  <div className="w-[34%] lg:w-[260px] flex-shrink-0 max-lg:aspect-[3/4] lg:aspect-auto lg:min-h-[200px] flex flex-col items-center justify-center rounded-lg p-4 lg:p-5 bg-gray-50 dark:bg-neutral-800/50 border border-gray-200 dark:border-neutral-700 overflow-y-auto min-w-0 gap-1">
+                    <span className="text-[10px] lg:text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-2.5 text-center">Descripción</span>
+                    <span className="font-bold text-blue-600 dark:text-blue-500 text-[14px] lg:text-[15px] text-center leading-relaxed break-words lg:line-clamp-none max-lg:line-clamp-[12]">
                       {mostrar(verBeneficiario.nombre_completo)}
                     </span>
                   </div>
                 ) : (
-                  <div className="w-[280px] aspect-[3/4] bg-gray-100 dark:bg-neutral-800 relative flex-shrink-0 flex items-center justify-center rounded-lg overflow-hidden border border-gray-200 dark:border-neutral-700 shadow-sm">
+                  <div className="w-[34%] lg:w-[260px] flex-shrink-0 aspect-[3/4] bg-gray-100 dark:bg-neutral-800 relative flex items-center justify-center rounded-lg overflow-hidden border border-gray-200 dark:border-neutral-700 shadow-sm min-w-0">
                     {verBeneficiario.img_url && thumbnails[verBeneficiario.img_url] ? (
                       <img src={thumbnails[verBeneficiario.img_url]} alt={verBeneficiario.nombre_completo || 'Foto'} className="w-full h-full object-cover" />
                     ) : (
-                      <ImageIcon size={40} className="text-gray-400 opacity-60" />
+                      <ImageIcon size={52} className="text-gray-400 opacity-70" />
                     )}
                   </div>
                 )}
 
-                <div className="flex flex-col justify-center gap-5 flex-1 min-w-0">
+                {/* Compacto: hasta pantallas medianas */}
+                <div className="flex flex-row flex-1 min-w-0 min-h-0 gap-4 lg:hidden items-stretch overflow-hidden">
+                  <div className="flex flex-col items-center justify-center min-w-[7.25rem] w-[44%] max-w-[12.5rem] flex-shrink-0 gap-3.5 py-2">
+                    <div className="flex flex-col items-center justify-center w-full min-w-0 gap-1">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider leading-tight mb-0 text-center">No. Folio</span>
+                      <span className="font-black text-red-600 dark:text-red-500 text-[22px] tracking-tight leading-tight w-full text-center whitespace-nowrap tabular-nums [overflow-wrap:normal]">{mostrar(verBeneficiario.codigo)}</span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg px-1.5 py-2 border border-blue-100 dark:border-blue-900/50 w-full gap-0.5">
+                      <span className="text-[9px] font-bold uppercase tracking-widest opacity-80">Cant.</span>
+                      <span className="font-black text-[20px] leading-tight mt-0">{mostrar(verBeneficiario.cantidad)}</span>
+                    </div>
+                    <span className={`px-1.5 py-1.5 rounded text-[9px] uppercase font-bold border text-center w-full truncate leading-snug ${
+                      verBeneficiario.estado === 'Entregado' ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50' :
+                      verBeneficiario.estado === 'Anulado' ? 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50' :
+                      verBeneficiario.estado === 'Extraviado' ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50' :
+                      'bg-gray-100 text-gray-600 border-gray-200 dark:bg-neutral-800 dark:text-gray-300 dark:border-neutral-700'
+                    }`}>
+                      {mostrar(verBeneficiario.estado)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col justify-center gap-4 flex-1 min-w-0 min-h-0 py-2 overflow-hidden">
+                    <div className="min-w-0">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-1.5">Lugar de Entrega</span>
+                      <span className="font-semibold text-gray-800 dark:text-gray-200 text-[14px] block leading-relaxed break-words [overflow-wrap:anywhere] line-clamp-5">{mostrar(verBeneficiario.lugar)}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-1.5">F. Entrega</span>
+                      <span className="text-gray-800 dark:text-gray-200 text-[13px] font-semibold block leading-snug">{formatearFecha(verBeneficiario.fecha)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Escritorio ancho: bloque apilado */}
+                <div className="hidden lg:flex flex-col justify-start gap-7 flex-1 min-w-0 py-1">
                   <div>
-                    <span className="text-[13px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-1">No. Folio</span>
-                    <span className="font-black text-red-600 dark:text-red-500 text-[44px] tracking-tight block leading-none">{mostrar(verBeneficiario.codigo)}</span>
+                    <span className="text-[13px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-2">No. Folio</span>
+                    <span className="font-black text-red-600 dark:text-red-500 text-[44px] tracking-tight block leading-tight break-all">{mostrar(verBeneficiario.codigo)}</span>
                   </div>
                   <div>
-                    <span className="text-[13px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-1">Cantidad</span>
-                    <span className="font-black text-blue-700 dark:text-blue-400 text-[32px] block leading-none">{mostrar(verBeneficiario.cantidad)}</span>
+                    <span className="text-[13px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-2">Cantidad</span>
+                    <span className="font-black text-blue-700 dark:text-blue-400 text-[32px] block leading-tight">{mostrar(verBeneficiario.cantidad)}</span>
                   </div>
                   <div>
-                    <span className="text-[13px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-1">Estado</span>
+                    <span className="text-[13px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-2">Estado</span>
                     <span className={`inline-block px-3 py-1.5 rounded text-[14px] uppercase font-bold border ${
                       verBeneficiario.estado === 'Entregado' ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50' :
                       verBeneficiario.estado === 'Anulado' ? 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50' :
@@ -752,16 +785,17 @@ const formatearTimestamp = (ts?: string | null) => {
                     </span>
                   </div>
                   <div className="min-w-0">
-                    <span className="text-[13px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-1">Lugar de Entrega</span>
-                    <span className="font-bold text-gray-800 dark:text-gray-200 text-[22px] block leading-tight break-words [overflow-wrap:anywhere]">{mostrar(verBeneficiario.lugar)}</span>
+                    <span className="text-[13px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-2">Lugar de Entrega</span>
+                    <span className="font-bold text-gray-800 dark:text-gray-200 text-[22px] block leading-snug break-words [overflow-wrap:anywhere]">{mostrar(verBeneficiario.lugar)}</span>
                   </div>
                   <div>
-                    <span className="text-[13px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-1">F. Entrega</span>
-                    <span className="text-gray-800 dark:text-gray-200 text-[20px] font-semibold block leading-tight">{formatearFecha(verBeneficiario.fecha)}</span>
+                    <span className="text-[13px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-2">F. Entrega</span>
+                    <span className="text-gray-800 dark:text-gray-200 text-[20px] font-semibold block leading-snug">{formatearFecha(verBeneficiario.fecha)}</span>
                   </div>
                 </div>
               </div>
 
+            </div>
             </div>
           </div>
         </div>

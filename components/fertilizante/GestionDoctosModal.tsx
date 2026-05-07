@@ -167,11 +167,11 @@ export default function GestionDoctosModal({ visible, onClose, aniosDisponibles,
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4"
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto relative"
+        className="bg-white dark:bg-neutral-900 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[95vh] sm:max-h-[90vh] overflow-y-auto relative"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -208,6 +208,7 @@ export default function GestionDoctosModal({ visible, onClose, aniosDisponibles,
               <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-1">Folio (4 dígitos)</label>
                 <input
+                  inputMode="numeric"
                   value={folio}
                   onChange={(e) => setFolio(e.target.value.replace(/\D/g, '').slice(0, 4))}
                   maxLength={4}
@@ -252,6 +253,7 @@ export default function GestionDoctosModal({ visible, onClose, aniosDisponibles,
               <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-1">Código (4 dígitos)</label>
                 <input
+                  inputMode="numeric"
                   value={codigo}
                   onChange={(e) => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 4))}
                   maxLength={4}
