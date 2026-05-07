@@ -62,21 +62,21 @@ export default function EstadisticasBeneficiarios({ data }: Props) {
 
   return (
     <>
-      <motion.div layout className="mb-4 border rounded-lg bg-white shadow-sm overflow-hidden">
+      <motion.div layout className="mb-4 border dark:border-neutral-700 rounded-lg bg-white dark:bg-neutral-900 shadow-sm overflow-hidden">
         {/* Cabecera Clicable */}
-        <div className="p-4 cursor-pointer hover:bg-gray-50" onClick={() => setIsOpen(prev => !prev)}>
-          <div className="text-lg font-bold text-green-700">
-            <div className="text-sm text-gray-900 mb-5">
-              <span className="text-green-700 mx-1">Folios: {data.filter(b => b.estado === 'Entregado').length}</span>+
-              <span className="text-orange-500 mx-1">Extraviados: {data.filter(b => b.estado === 'Extraviado').length}</span>+
-              <span className="text-red-500 mx-1">Anulados: {data.filter(b => b.estado === 'Anulado').length}</span>= 
-              <span className="text-gray-500 mx-1 underline">{data.length-data.filter(b => b.estado === 'Informe').length} en total</span>
-              |<span className="text-blue-500 mx-2">Informes: {data.filter(b => b.estado === 'Informe').length}</span>
+        <div className="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-neutral-800 transition-colors" onClick={() => setIsOpen(prev => !prev)}>
+          <div className="text-lg font-bold text-green-700 dark:text-green-500">
+            <div className="text-sm text-gray-900 dark:text-gray-200 mb-5">
+              <span className="text-green-700 dark:text-green-500 mx-1">Folios: {data.filter(b => b.estado === 'Entregado').length}</span>+
+              <span className="text-orange-500 dark:text-orange-400 mx-1">Extraviados: {data.filter(b => b.estado === 'Extraviado').length}</span>+
+              <span className="text-red-500 dark:text-red-400 mx-1">Anulados: {data.filter(b => b.estado === 'Anulado').length}</span>= 
+              <span className="text-gray-500 dark:text-neutral-400 mx-1 underline">{data.length-data.filter(b => b.estado === 'Informe').length} en total</span>
+              |<span className="text-blue-500 dark:text-blue-400 mx-2">Informes: {data.filter(b => b.estado === 'Informe').length}</span>
 
             </div>
-            <span className="text-green-800">Sacos entregados: {totalCantidad}</span> / {totalMeta}
-            <span className="text-black"> ({porcentaje.toFixed(2)}%)</span>
-            <span className="text-blue-800"> (Restantes: {totalMeta - totalCantidad})</span>
+            <span className="text-green-800 dark:text-green-400">Sacos entregados: {totalCantidad}</span> / {totalMeta}
+            <span className="text-black dark:text-gray-200"> ({porcentaje.toFixed(2)}%)</span>
+            <span className="text-blue-800 dark:text-blue-400"> (Restantes: {totalMeta - totalCantidad})</span>
           </div>
           <div className="mt-2">
             <Progress value={porcentaje} className="h-3" />
@@ -90,16 +90,16 @@ export default function EstadisticasBeneficiarios({ data }: Props) {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden border-t"
+              className="overflow-hidden border-t dark:border-neutral-700"
             >
               <div className="p-4 pt-2">
-                <div className="text-gray-500 text-center text-sm mt-2">
+                <div className="text-gray-500 dark:text-neutral-400 text-center text-sm mt-2">
                   Haz clic en las siguientes tarjetas para ver información detallada
                 </div>
                 <div className="flex flex-col md:flex-row gap-4 mt-4">
-                  <div onClick={() => setMostrarTopLugares(true)} className="w-full md:w-3/7 cursor-pointer bg-gray-50 rounded-sm shadow p-4 hover:bg-gray-100 transition">
-                    <h3 className="text-blue-600 text-sm underline font-bold mb-3">🏆 Top 3 lugares</h3>
-                    <div className="flex flex-col gap-2 text-gray-700 text-xs font-extrabold">
+                  <div onClick={() => setMostrarTopLugares(true)} className="w-full md:w-3/7 cursor-pointer bg-gray-50 dark:bg-neutral-800/50 rounded-sm shadow p-4 hover:bg-gray-100 dark:hover:bg-neutral-700/50 transition">
+                    <h3 className="text-blue-600 dark:text-blue-400 text-sm underline font-bold mb-3">🏆 Top 3 lugares</h3>
+                    <div className="flex flex-col gap-2 text-gray-700 dark:text-gray-300 text-xs font-extrabold">
                       {top3.map(([lugar, cantidad], index) => (
                         <div key={lugar} className="flex items-center gap-2">
                           <span>{index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}</span>
@@ -108,17 +108,17 @@ export default function EstadisticasBeneficiarios({ data }: Props) {
                       ))}
                     </div>
                   </div>
-                  <div onClick={() => setMostrarEdadModal(true)} className="w-full md:w-4/7 cursor-pointer bg-gray-50 rounded-sm shadow p-4 hover:bg-gray-100 transition">
-                    <h3 className="text-blue-600 text-sm underline font-bold mb-3">👥 Género y Edades</h3>
+                  <div onClick={() => setMostrarEdadModal(true)} className="w-full md:w-4/7 cursor-pointer bg-gray-50 dark:bg-neutral-800/50 rounded-sm shadow p-4 hover:bg-gray-100 dark:hover:bg-neutral-700/50 transition">
+                    <h3 className="text-blue-600 dark:text-blue-400 text-sm underline font-bold mb-3">👥 Género y Edades</h3>
                     <div className="flex flex-wrap items-center gap-x-6 font-semibold text-sm mb-2">
-                      <span className="text-blue-700">Hombres: {hombres}</span> |
-                      <span className="text-red-500">Mujeres: {mujeres}</span>
+                      <span className="text-blue-700 dark:text-blue-400">Hombres: {hombres}</span> |
+                      <span className="text-red-500 dark:text-red-400">Mujeres: {mujeres}</span>
                     </div>
                     <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs">
-                      <div className="text-gray-600 font-medium">Jóvenes (18–25): <span className="text-black">{jovenes}</span></div>
-                      <div className="text-gray-600 font-medium">Adulto menor (26–35): <span className="text-black">{adultoMenor}</span></div>
-                      <div className="text-gray-600 font-medium">Adulto (36–59): <span className="text-black">{adulto}</span></div>
-                      <div className="text-gray-600 font-medium">Adulto mayor (60+): <span className="text-black">{adultoMayor}</span></div>
+                      <div className="text-gray-600 dark:text-gray-400 font-medium">Jóvenes (18–25): <span className="text-black dark:text-gray-200">{jovenes}</span></div>
+                      <div className="text-gray-600 dark:text-gray-400 font-medium">Adulto menor (26–35): <span className="text-black dark:text-gray-200">{adultoMenor}</span></div>
+                      <div className="text-gray-600 dark:text-gray-400 font-medium">Adulto (36–59): <span className="text-black dark:text-gray-200">{adulto}</span></div>
+                      <div className="text-gray-600 dark:text-gray-400 font-medium">Adulto mayor (60+): <span className="text-black dark:text-gray-200">{adultoMayor}</span></div>
                     </div>
                   </div>
                 </div>

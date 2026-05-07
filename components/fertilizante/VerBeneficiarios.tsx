@@ -4,16 +4,16 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { List, LayoutGrid, FileText, FileWarning, ChevronDown } from 'lucide-react';
 import { FiltroBeneficiarios } from './FiltroBeneficiarios';
 import { TablaBeneficiarios } from './TablaBeneficiarios';
 import EstadisticasBeneficiarios from './EstadisticasBeneficiarios';
 import MISSINGFolioModal from './MISSINGFolioModal';
+import GestionDoctosModal from './GestionDoctosModal';
 import type { Beneficiario, CampoFiltro, OrdenFiltro } from './types';
 import {
   cargarBeneficiariosPorAnio,
   obtenerAniosDisponibles,
-  ingresarFolioAnulado,
-  ingresarFolioInforme,
   filtrarYOrdenarBeneficiarios,
   generarResumenBeneficiarios,
 } from './actions';
@@ -22,19 +22,47 @@ import useUserData from '@/hooks/sesion/useUserData';
 export default function VerBeneficiarios() {
   const [beneficiarios, setBeneficiarios] = useState<Beneficiario[]>([]);
   const [paginaActual, setPaginaActual] = useState(1);
-  const [orden, setOrden] = useState<OrdenFiltro>('codigo_asc');
+  const [orden, setOrden] = useState<OrdenFiltro>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('fertilizanteOrden');
+      if (saved) return saved as OrdenFiltro;
+    }
+    return 'codigo_asc';
+  });
   const [aniosDisponibles, setAniosDisponibles] = useState<string[]>([]);
   const [mostrarModalFolio, setMostrarModalFolio] = useState(false);
   const [beneficiariosPorPagina, setBeneficiariosPorPagina] = useState(20);
-  const [mostrarOpciones, setMostrarOpciones] = useState(false);
+  const [mostrarGestionDoctos, setMostrarGestionDoctos] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  const [filtros, setFiltros] = useState({
-    campo: 'codigo' as CampoFiltro,
-    valor: '',
-    lugar: '',
-    anio: '', // Se inicializa vacío para esperar la respuesta de la DB
+  const [filtros, setFiltros] = useState(() => {
+    const defaults = {
+      campo: 'codigo' as CampoFiltro,
+      valor: '',
+      lugar: '',
+      anio: '',
+    };
+    if (typeof window !== 'undefined') {
+      const savedCampo = localStorage.getItem('fertilizanteCampo');
+      const savedLugar = localStorage.getItem('fertilizanteLugar');
+      if (savedCampo) defaults.campo = savedCampo as CampoFiltro;
+      if (savedLugar) defaults.lugar = savedLugar;
+    }
+    return defaults;
   });
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+
+  useEffect(() => {
+    const savedMode = localStorage.getItem('fertilizanteViewMode');
+    if (savedMode === 'grid' || savedMode === 'table') {
+      setViewMode(savedMode);
+    }
+  }, []);
+
+  const changeViewMode = (mode: 'table' | 'grid') => {
+    setViewMode(mode);
+    localStorage.setItem('fertilizanteViewMode', mode);
+  };
 
   const router = useRouter();
   const { permisos, cargando: cargandoUsuario } = useUserData();
@@ -47,17 +75,31 @@ export default function VerBeneficiarios() {
     setInitialLoading(false);
   }, []);
 
+  // Persistir filtros en localStorage
+  useEffect(() => {
+    localStorage.setItem('fertilizanteCampo', filtros.campo);
+    localStorage.setItem('fertilizanteLugar', filtros.lugar);
+    if (filtros.anio) localStorage.setItem('fertilizanteAnio', filtros.anio);
+  }, [filtros.campo, filtros.lugar, filtros.anio]);
+
+  useEffect(() => {
+    localStorage.setItem('fertilizanteOrden', orden);
+  }, [orden]);
+
   useEffect(() => {
     const inicializar = async () => {
       const anios = await obtenerAniosDisponibles();
       setAniosDisponibles(anios);
 
+      // Intentar restaurar el año guardado, si existe y está disponible
+      const savedAnio = typeof window !== 'undefined' ? localStorage.getItem('fertilizanteAnio') : null;
       const anioActual = new Date().getFullYear().toString();
       
-      // Lógica inteligente: Si el año actual no está en la DB, usar el más reciente disponible
       let anioInicial = anioActual;
-      if (anios.length > 0 && !anios.includes(anioActual)) {
-        anioInicial = anios[0]; // Asumiendo que vienen ordenados desc (2025, 2024...)
+      if (savedAnio && anios.includes(savedAnio)) {
+        anioInicial = savedAnio;
+      } else if (anios.length > 0 && !anios.includes(anioActual)) {
+        anioInicial = anios[0];
       }
 
       setFiltros(prev => ({ ...prev, anio: anioInicial }));
@@ -92,7 +134,7 @@ export default function VerBeneficiarios() {
   if (cargandoUsuario || initialLoading) {
     return (
       <div className="w-full mx-auto p-2 md:px-10">
-        <div className="text-center text-gray-500 my-10 text-lg italic">Cargando beneficiarios...</div>
+        <div className="text-center text-gray-500 dark:text-gray-400 my-10 text-lg italic">Cargando beneficiarios...</div>
       </div>
     );
   }
@@ -101,7 +143,7 @@ export default function VerBeneficiarios() {
     <div className="w-full mx-auto p-2 md:px-10">
       <motion.div initial="hidden" animate="visible" variants={itemVariants} transition={{ duration: 0.5, delay: 0.2 }}>
         <div className="flex flex-col md:flex-row md:items-center justify-between my-6 gap-2">
-          <h1 className="text-2xl font-bold text-left">Beneficiarios de Fertilizante</h1>
+          <h1 className="text-2xl font-bold text-left dark:text-white">Beneficiarios de Fertilizante</h1>
           <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
             {(permisos.includes('CREAR') || permisos.includes('TODO')) ? (
               <Button 
@@ -111,7 +153,7 @@ export default function VerBeneficiarios() {
                 Nuevo Beneficiario
               </Button>
             ) : (
-              <Button disabled className="h-12 bg-gray-400 text-gray-700 cursor-not-allowed px-4 w-full sm:w-auto">
+              <Button disabled className="h-12 bg-gray-400 dark:bg-neutral-700 text-gray-700 dark:text-neutral-400 cursor-not-allowed px-4 w-full sm:w-auto">
                 Nuevo Beneficiario
               </Button>
             )}
@@ -128,53 +170,103 @@ export default function VerBeneficiarios() {
       </motion.div>
 
       <motion.div initial="hidden" animate="visible" variants={itemVariants} transition={{ duration: 0.5, delay: 0.5 }}>
-        <div className="my-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center">
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Ordenar por:</span>
-            <select value={orden} onChange={e => setOrden(e.target.value as OrdenFiltro)} className="border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 rounded px-3 py-2 mt-2 sm:mt-0 sm:ml-2">
-                <optgroup label="Formulario"><option value="codigo_asc">Folio (ascendente)</option><option value="codigo_desc">Folio (descendente)</option></optgroup>
-                <optgroup label="Nombre"><option value="nombre_completo_asc">Nombre (A-Z)</option><option value="nombre_completo_desc">Nombre (Z-A)</option></optgroup>
-                <optgroup label="Fecha"><option value="fecha_desc">Fecha (más reciente)</option><option value="fecha_asc">Fecha (más antigua)</option></optgroup>
-                <optgroup label="Cantidad"><option value="cantidad_desc">Cantidad (mayor a menor)</option></optgroup>
-                <optgroup label="Género"><option value="genero_hombres_primero">Hombres primero</option><option value="genero_mujeres_primero">Mujeres primero</option></optgroup>
-                <optgroup label="Estado"><option value="solo_anulados">Anulados</option><option value="solo_extraviados">Extraviados</option><option value="solo_informes">Informes</option></optgroup>
-            </select>
-          </div>
-          {(permisos.includes('TODO') || permisos.includes('LEER')) && (
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-fit">
-              <div className="relative inline-block text-left">
-                {(permisos.includes('CREAR') || permisos.includes('TODO')) ? (
-                  <Button className="h-12 bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto" onClick={() => setMostrarOpciones(!mostrarOpciones)}>
-                    Gestionar Documentos
-                  </Button>
-                ) : (
-                   <Button disabled className="h-12 bg-gray-400 text-gray-700 cursor-not-allowed px-4 w-full sm:w-auto">
-                    Gestionar Documentos
-                  </Button>
-                )}
-                {mostrarOpciones && (
-                  <div className="absolute z-10 mt-2 w-40 rounded-md shadow-lg bg-white dark:bg-neutral-800 ring-1 ring-black ring-opacity-5">
-                    <div className="py-1">
-                      <button className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-700" onClick={() => { setMostrarOpciones(false); ingresarFolioAnulado(aniosDisponibles, filtros.anio, () => cargarDatos(filtros.anio)); }}>Anular folio</button>
-                      <button className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-neutral-700" onClick={() => { setMostrarOpciones(false); ingresarFolioInforme(aniosDisponibles, filtros.anio, () => cargarDatos(filtros.anio)); }}>Ingresar informe</button>
-                    </div>
-                  </div>
-                )}
+        <div className="my-6 p-4 bg-white dark:bg-neutral-900 rounded-2xl shadow-sm border border-gray-100 dark:border-neutral-800">
+          <div className="grid grid-cols-2 md:flex md:flex-row md:items-center md:justify-between gap-3">
+
+            {/* Izquierda: Ordenar por */}
+            <div className="col-span-2 md:flex-none flex flex-col sm:flex-row sm:items-center gap-2 md:max-w-sm">
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 shrink-0">Ordenar por:</span>
+              <div className="relative w-full md:w-64">
+                <select
+                  value={orden}
+                  onChange={e => setOrden(e.target.value as OrdenFiltro)}
+                  className="w-full appearance-none bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer"
+                >
+                    <optgroup label="Formulario"><option value="codigo_asc">Folio (ascendente)</option><option value="codigo_desc">Folio (descendente)</option></optgroup>
+                    <optgroup label="Nombre"><option value="nombre_completo_asc">Nombre (A-Z)</option><option value="nombre_completo_desc">Nombre (Z-A)</option></optgroup>
+                    <optgroup label="Fecha"><option value="fecha_desc">Fecha (más reciente)</option><option value="fecha_asc">Fecha (más antigua)</option></optgroup>
+                    <optgroup label="Cantidad"><option value="cantidad_desc">Cantidad (mayor a menor)</option></optgroup>
+                    <optgroup label="Género"><option value="genero_hombres_primero">Hombres primero</option><option value="genero_mujeres_primero">Mujeres primero</option></optgroup>
+                    <optgroup label="Estado"><option value="solo_anulados">Anulados</option><option value="solo_extraviados">Extraviados</option><option value="solo_informes">Informes</option></optgroup>
+                </select>
+                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>
-              <Button onClick={() => setMostrarModalFolio(true)} className="h-12 bg-orange-600 hover:bg-orange-700 text-white w-full sm:w-auto">
-                Folios faltantes
-              </Button>
-              <MISSINGFolioModal visible={mostrarModalFolio} onClose={() => setMostrarModalFolio(false)} beneficiarios={beneficiariosFiltrados}/>
             </div>
-          )}
+
+            {/* Centro: Switch Tabla/Tarjetas */}
+            <div className="col-span-2 md:col-span-1 flex bg-gray-100 dark:bg-neutral-800 p-1 rounded-xl w-full md:w-auto md:mx-auto">
+              <button
+                onClick={() => changeViewMode('table')}
+                className={`flex-1 md:w-20 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-bold transition-all ${viewMode === 'table' ? 'bg-white dark:bg-neutral-700 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+              >
+                <List size={18} />
+                <span>Tabla</span>
+              </button>
+              <button
+                onClick={() => changeViewMode('grid')}
+                className={`flex-1 md:w-24 flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-sm font-bold transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-neutral-700 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+              >
+                <LayoutGrid size={18} />
+                <span>Tarjetas</span>
+              </button>
+            </div>
+
+            {/* Derecha: Gestionar doctos. + F. Faltantes */}
+            {(permisos.includes('TODO') || permisos.includes('LEER')) && (
+              <div className="col-span-2 md:flex-none flex flex-row gap-2 w-full md:w-auto">
+                <div className="flex-1 md:w-auto">
+                  {(permisos.includes('CREAR') || permisos.includes('TODO')) ? (
+                    <Button
+                      className="h-11 bg-red-600 hover:bg-red-700 text-white w-full rounded-xl flex items-center justify-center gap-2 px-4 shadow-sm transition-all active:scale-95"
+                      onClick={() => setMostrarGestionDoctos(true)}
+                    >
+                      <FileText size={18} />
+                      <span className="truncate">Gestionar doctos.</span>
+                    </Button>
+                  ) : (
+                    <Button disabled className="h-11 bg-gray-200 dark:bg-neutral-800 text-gray-400 cursor-not-allowed w-full rounded-xl px-4">
+                      <FileText size={18} />
+                      <span className="truncate ml-2">Gestionar doctos.</span>
+                    </Button>
+                  )}
+                </div>
+
+                <div className="flex-1 md:w-auto">
+                  <Button
+                    onClick={() => setMostrarModalFolio(true)}
+                    className="h-11 bg-orange-600 hover:bg-orange-700 text-white w-full rounded-xl flex items-center justify-center gap-2 px-4 shadow-sm transition-all active:scale-95"
+                  >
+                    <FileWarning size={18} />
+                    <span className="truncate">F. Faltantes</span>
+                  </Button>
+                </div>
+              </div>
+            )}
+
+          </div>
         </div>
+        <MISSINGFolioModal visible={mostrarModalFolio} onClose={() => setMostrarModalFolio(false)} beneficiarios={beneficiariosFiltrados}/>
+        <GestionDoctosModal
+          visible={mostrarGestionDoctos}
+          onClose={() => setMostrarGestionDoctos(false)}
+          aniosDisponibles={aniosDisponibles}
+          onGuardado={() => cargarDatos(filtros.anio)}
+        />
       </motion.div>
       
       <motion.div initial="hidden" animate="visible" variants={itemVariants} transition={{ duration: 0.5, delay: 0.6 }}>
         {beneficiariosFiltrados.length === 0 ? (
             <div className="text-center text-gray-600 dark:text-neutral-400 my-8 text-2xl"><strong>No se encontraron beneficiarios en {filtros.anio}.</strong></div>
         ) : (
-            <TablaBeneficiarios data={beneficiariosPaginados} resumen={resumen} isLoading={false} permisos={permisos} />
+            <TablaBeneficiarios 
+                data={beneficiariosPaginados} 
+                resumen={resumen} 
+                isLoading={false} 
+                permisos={permisos} 
+                onDataChange={() => cargarDatos(filtros.anio)} 
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+            />
         )}
       </motion.div>
 

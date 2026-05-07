@@ -40,7 +40,7 @@ export default function MTopLugares({ conteoPorLugar, onClose }: MTopLugaresProp
     if (active && payload?.length > 0) {
       const data = payload[0].payload;
       return (
-        <div className="bg-white border border-gray-300 rounded px-3 py-2 text-xs shadow">
+        <div className="bg-white dark:bg-neutral-900 border border-gray-300 dark:border-neutral-700 rounded px-3 py-2 text-xs shadow dark:text-gray-200">
           <p><strong>{data.name}</strong></p>
           <p>Sacos entregados: {data.value}</p>
         </div>
@@ -75,9 +75,9 @@ export default function MTopLugares({ conteoPorLugar, onClose }: MTopLugaresProp
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <DialogPanel className="w-full max-w-6xl transform overflow-hidden bg-white p-6 text-left align-middle shadow-xl transition-all">
+              <DialogPanel className="w-full max-w-6xl transform overflow-hidden bg-white dark:bg-neutral-900 p-6 text-left align-middle shadow-xl transition-all">
                 <div className="flex justify-between items-center mb-4">
-                  <DialogTitle as="h3" className="text-2xl font-bold text-gray-800">
+                  <DialogTitle as="h3" className="text-2xl font-bold text-gray-800 dark:text-gray-200">
                     Sacos entregados: {totalEntregados}
                   </DialogTitle>
                   <Button onClick={onClose} variant="ghost">Cerrar</Button>

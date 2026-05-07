@@ -1,0 +1,292 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { createClient } from '@/utils/supabase/client';
+import imageCompression from 'browser-image-compression';
+import ImageEditorModal from './ImageEditorModal';
+import { Loader2, Upload, Camera, Trash2 } from 'lucide-react';
+import useUserData from '@/hooks/sesion/useUserData';
+
+interface ImageUploaderProps {
+  bucketName: string;
+  currentImagePath: string | null;
+  onUploadSuccess: (newPath: string) => void | Promise<void>;
+  onDeleteSuccess: () => void | Promise<void>;
+  disabled?: boolean;
+  signedUrlExpiresIn?: number;
+  /** Aspect ratio for the crop editor (default: 3/4 portrait) */
+  aspect?: number;
+  aspectLabel?: string;
+}
+
+export default function ImageUploader({
+  bucketName,
+  currentImagePath,
+  onUploadSuccess,
+  onDeleteSuccess,
+  disabled = false,
+  signedUrlExpiresIn = 3600,
+  aspect = 3 / 4,
+  aspectLabel = 'Vertical 3:4',
+}: ImageUploaderProps) {
+  const supabase = createClient();
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [editingFile, setEditingFile] = useState<File | null>(null);
+  const { rol } = useUserData();
+  const tienePermisoSubir = rol === 'SUPER' || rol === 'ADMINISTRADOR' || rol === 'SECRETARIO';
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [magnifier, setMagnifier] = useState<{ show: boolean; x: number; y: number; bgX: number; bgY: number }>({ show: false, x: 0, y: 0, bgX: 0, bgY: 0 });
+  const MAGNIFIER_SIZE = 250;
+  const ZOOM_LEVEL = 2.5;
+
+  // Generar signed URL para el preview
+  useEffect(() => {
+    if (!currentImagePath) {
+      setPreviewUrl(null);
+      return;
+    }
+
+    setLoadingPreview(true);
+    supabase.storage
+      .from(bucketName)
+      .createSignedUrl(currentImagePath, signedUrlExpiresIn)
+      .then(({ data, error }) => {
+        setPreviewUrl(error ? null : data?.signedUrl ?? null);
+        setLoadingPreview(false);
+      });
+  }, [currentImagePath, bucketName, supabase, signedUrlExpiresIn]);
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert('Solo se permiten imágenes JPG, PNG o WebP.');
+      return;
+    }
+
+    setEditingFile(file);
+    // Reset the input so the same file can be selected again
+    e.target.value = '';
+  };
+
+  const buildUniqueName = (ext: string) => {
+    const timestamp = Date.now();
+    const rand = Math.random().toString(36).substring(2, 10);
+    return `${timestamp}-${rand}.${ext}`;
+  };
+
+  const uploadEditedFile = async (editedFile: File) => {
+    setUploading(true);
+    setEditingFile(null);
+    try {
+      // 1. Comprimir
+      const compressed = await imageCompression(editedFile, {
+        maxSizeMB: 0.1,
+        maxWidthOrHeight: 1024,
+        useWebWorker: true,
+      });
+
+      // 2. Nombre único
+      const ext = compressed.type.split('/')[1] || 'jpg';
+      const newPath = buildUniqueName(ext);
+
+      // 3. Subir
+      const { error: uploadError } = await supabase.storage
+        .from(bucketName)
+        .upload(newPath, compressed, { upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      // 4. Borrar anterior si existe
+      if (currentImagePath) {
+        await supabase.storage.from(bucketName).remove([currentImagePath]);
+      }
+
+      // 5. Callback
+      await onUploadSuccess(newPath);
+    } catch (err: any) {
+      console.error('Error al subir imagen:', err);
+      alert('Error al subir la imagen: ' + (err?.message || 'Error desconocido'));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!currentImagePath) return;
+    const confirmar = confirm('¿Estás seguro de eliminar esta imagen?');
+    if (!confirmar) return;
+
+    setDeleting(true);
+    try {
+      await supabase.storage.from(bucketName).remove([currentImagePath]);
+      await onDeleteSuccess();
+    } catch (err: any) {
+      console.error('Error al eliminar:', err);
+      alert('Error al eliminar: ' + (err?.message || ''));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const isProcessing = uploading || deleting || disabled;
+
+  return (
+    <>
+      {/* Hidden file inputs */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        onChange={handleFileSelected}
+        className="hidden"
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        capture="environment"
+        onChange={handleFileSelected}
+        className="hidden"
+      />
+
+      <div className="border-2 border-dashed border-gray-300 dark:border-neutral-600 rounded-xl p-4 flex flex-col items-center gap-3 bg-gray-50 dark:bg-neutral-800/50 transition-colors">
+        {/* Preview o placeholder */}
+        {currentImagePath ? (
+          loadingPreview ? (
+            <div className="flex items-center justify-center h-32">
+              <Loader2 className="animate-spin text-gray-400" size={28} />
+            </div>
+          ) : previewUrl ? (
+            <div className="w-full flex justify-center">
+              <div 
+                className="relative inline-block cursor-zoom-in"
+                onMouseMove={(e) => {
+                  if (!imgRef.current) return;
+                  const rect = imgRef.current.getBoundingClientRect();
+                  const x = e.clientX - rect.left;
+                  const y = e.clientY - rect.top;
+                  const bgX = (x / rect.width) * 100;
+                  const bgY = (y / rect.height) * 100;
+                  setMagnifier({ show: true, x, y, bgX, bgY });
+                }}
+                onMouseLeave={() => setMagnifier(m => ({ ...m, show: false }))}
+                onTouchMove={(e) => {
+                  if (!imgRef.current) return;
+                  const touch = e.touches[0];
+                  const rect = imgRef.current.getBoundingClientRect();
+                  const x = touch.clientX - rect.left;
+                  const y = touch.clientY - rect.top;
+                  const bgX = (x / rect.width) * 100;
+                  const bgY = (y / rect.height) * 100;
+                  setMagnifier({ show: true, x, y, bgX, bgY });
+                }}
+                onTouchEnd={() => setMagnifier(m => ({ ...m, show: false }))}
+              >
+                <img
+                  ref={imgRef}
+                  src={previewUrl}
+                  alt="Vista previa"
+                  className="max-h-[460px] object-contain rounded-lg shadow-md select-none"
+                  draggable={false}
+                />
+                {magnifier.show && (
+                  <div
+                    className="absolute rounded-full border-2 border-white shadow-xl pointer-events-none z-10"
+                    style={{
+                      width: MAGNIFIER_SIZE,
+                      height: MAGNIFIER_SIZE,
+                      left: magnifier.x - MAGNIFIER_SIZE / 2,
+                      top: magnifier.y - MAGNIFIER_SIZE / 2,
+                      backgroundImage: `url(${previewUrl})`,
+                      backgroundSize: `${(imgRef.current?.width || 300) * ZOOM_LEVEL}px ${(imgRef.current?.height || 400) * ZOOM_LEVEL}px`,
+                      backgroundPosition: `${magnifier.bgX}% ${magnifier.bgY}%`,
+                      backgroundRepeat: 'no-repeat',
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-red-500 italic">
+              No se pudo cargar la vista previa.
+            </p>
+          )
+        ) : null}
+
+        {/* Buttons */}
+        {!currentImagePath && !uploading && (
+          <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+            Selecciona una opción
+          </p>
+        )}
+
+        <div className="flex gap-2 flex-wrap justify-center">
+          {tienePermisoSubir && (
+            <>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isProcessing}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {uploading ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Upload size={14} />
+                )}
+                Galería
+              </button>
+
+              <button
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={isProcessing}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                <Camera size={14} />
+                Cámara
+              </button>
+
+              {currentImagePath && (
+                <button
+                  onClick={handleDelete}
+                  disabled={isProcessing}
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {deleting ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Trash2 size={14} />
+                  )}
+                  Eliminar
+                </button>
+              )}
+            </>
+          )}
+        </div>
+
+        {!currentImagePath && !uploading && (
+          <p className="text-[10px] text-gray-400">JPG · PNG · WEBP</p>
+        )}
+      </div>
+
+      {/* Image Editor Modal */}
+      {editingFile && (
+        <ImageEditorModal
+          file={editingFile}
+          aspect={aspect}
+          aspectLabel={aspectLabel}
+          onApply={uploadEditedFile}
+          onCancel={() => setEditingFile(null)}
+        />
+      )}
+    </>
+  );
+}

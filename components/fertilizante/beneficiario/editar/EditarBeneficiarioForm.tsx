@@ -248,6 +248,10 @@ export default function EditarBeneficiarioForm() {
       return;
     }
 
+    // Agregar datos de auditoría
+    datosActualizar.editado_por = nombre || 'Desconocido';
+    datosActualizar.updated_at = new Date().toISOString();
+
     const descripcion = `<strong>Folio: ${formulario.codigo}</strong>:<br><br>${cambios.join('<br><br>')}`;
 
     const { error } = await supabase

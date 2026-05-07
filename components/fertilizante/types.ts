@@ -12,6 +12,9 @@ export interface Beneficiario {
   estado?: string | null;
   created_at?: string | null;
   creado_por?: string | null;
+  updated_at?: string | null;
+  editado_por?: string | null;
+  img_url?: string | null;
 }
 
 export interface ResumenBeneficiarios {
@@ -24,7 +27,10 @@ export interface TablaBeneficiariosProps {
   data: Beneficiario[];
   resumen: ResumenBeneficiarios;
   isLoading: boolean;
-  permisos: string[]; // ✅ NUEVA PROP
+  permisos: string[];
+  onDataChange?: () => void;
+  viewMode: 'table' | 'grid';
+  setViewMode: (mode: 'table' | 'grid') => void;
 }
 
 export type CampoFiltro = 'nombre_completo' | 'dpi' | 'codigo';

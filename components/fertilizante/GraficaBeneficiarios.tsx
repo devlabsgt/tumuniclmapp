@@ -53,9 +53,9 @@ export function GraficaBeneficiarios({ beneficiarios }: Props) {
         <div className="flex-1">
           <Pie data={data} options={options} />
         </div>
-        <div className="max-h-[400px] overflow-y-auto w-64 border rounded p-2 text-sm bg-white shadow">
+        <div className="max-h-[400px] overflow-y-auto w-64 border dark:border-neutral-700 rounded p-2 text-sm bg-white dark:bg-neutral-900 shadow">
           {lugares.map((lugar, i) => (
-            <div key={lugar} className="flex justify-between py-1 border-b">
+            <div key={lugar} className="flex justify-between py-1 border-b dark:border-neutral-700">
               <span>{lugar}</span>
               <span className="font-semibold">{conteo[lugar]}</span>
             </div>

@@ -54,7 +54,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
 
   return (
-    <div className="bg-white border rounded px-3 py-2 shadow text-2xl">
+    <div className="bg-white dark:bg-neutral-900 dark:text-gray-200 border dark:border-neutral-700 rounded px-3 py-2 shadow text-2xl">
       <p className="font-semibold mb-1">{label}</p>
       {payload.map((entry: any, index: number) => {
         const capital = entry.name.charAt(0).toUpperCase() + entry.name.slice(1);
@@ -103,10 +103,10 @@ const datosGrafica = clavesRango.map((clave) => {
 
   return (
     <Dialog open={true} onClose={onClose} as={Fragment}>
-      <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-        <Dialog.Panel className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-lg">
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <Dialog.Panel className="bg-white dark:bg-neutral-900 rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-lg">
           <div className="flex justify-between items-center mb-4">
-            <Dialog.Title className="text-2xl text-gray-800">
+            <Dialog.Title className="text-2xl text-gray-800 dark:text-gray-200">
               Rangos de Edad{' '}
               <span className="font-bold">
                 ({totalGeneral} Personas |{' '}
@@ -144,41 +144,41 @@ const datosGrafica = clavesRango.map((clave) => {
 
           {/* Tabla */}
           <div className="mt-6">
-            <table className="w-full border-collapse text-sm text-center border border-gray-400">
+            <table className="w-full border-collapse text-sm text-center border border-gray-400 dark:border-neutral-700">
               <thead>
-                <tr className="bg-gray-50 text-xs text-gray-500">
-                  <th rowSpan={2} className="p-2 border border-gray-400 align-middle">Lugar</th>
-                  <th colSpan={3} className="p-2 border border-gray-400">Jóvenes<br /><span className="text-[10px]">(18-25)</span></th>
-                  <th colSpan={3} className="p-2 border border-gray-400">Adulto menor<br /><span className="text-[10px]">(26-35)</span></th>
-                  <th colSpan={3} className="p-2 border border-gray-400">Adultos<br /><span className="text-[10px]">(36-59)</span></th>
-                  <th colSpan={3} className="p-2 border border-gray-400">Adulto mayor<br /><span className="text-[10px]">(60+)</span></th>
+                <tr className="bg-gray-50 dark:bg-neutral-800 text-xs text-gray-500 dark:text-gray-400">
+                  <th rowSpan={2} className="p-2 border border-gray-400 dark:border-neutral-700 align-middle">Lugar</th>
+                  <th colSpan={3} className="p-2 border border-gray-400 dark:border-neutral-700">Jóvenes<br /><span className="text-[10px]">(18-25)</span></th>
+                  <th colSpan={3} className="p-2 border border-gray-400 dark:border-neutral-700">Adulto menor<br /><span className="text-[10px]">(26-35)</span></th>
+                  <th colSpan={3} className="p-2 border border-gray-400 dark:border-neutral-700">Adultos<br /><span className="text-[10px]">(36-59)</span></th>
+                  <th colSpan={3} className="p-2 border border-gray-400 dark:border-neutral-700">Adulto mayor<br /><span className="text-[10px]">(60+)</span></th>
                 </tr>
-                <tr className="bg-gray-100">
+                <tr className="bg-gray-100 dark:bg-neutral-800/80">
                   {[...Array(4)].flatMap((_, i) => [
-                    <th key={`h-${i}`} className="p-2 border border-gray-400">Hombres</th>,
-                    <th key={`m-${i}`} className="p-2 border border-gray-400">Mujeres</th>,
-                    <th key={`t-${i}`} className="p-2 border border-gray-400">Total</th>
+                    <th key={`h-${i}`} className="p-2 border border-gray-400 dark:border-neutral-700">Hombres</th>,
+                    <th key={`m-${i}`} className="p-2 border border-gray-400 dark:border-neutral-700">Mujeres</th>,
+                    <th key={`t-${i}`} className="p-2 border border-gray-400 dark:border-neutral-700">Total</th>
                   ])}
                 </tr>
               </thead>
               <tbody>
-                <tr className="bg-green-50 font-bold hover:bg-green-100">
-                  <td className="p-2 sticky left-0 bg-green-100 z-10 border border-gray-400">Total</td>
+                <tr className="bg-green-50 dark:bg-green-900/20 font-bold hover:bg-green-100 dark:bg-green-900/30">
+                  <td className="p-2 sticky left-0 bg-green-100 dark:bg-green-900/30 z-10 border border-gray-400 dark:border-neutral-700">Total</td>
                   {clavesRango.flatMap((r) => [
-                    <td key={`${r}-h`} className="p-2 border border-gray-400">{totalPorRango[r].hombres}</td>,
-                    <td key={`${r}-m`} className="p-2 border border-gray-400">{totalPorRango[r].mujeres}</td>,
-                    <td key={`${r}-t`} className="p-2 border border-gray-400">{totalPorRango[r].total}</td>
+                    <td key={`${r}-h`} className="p-2 border border-gray-400 dark:border-neutral-700">{totalPorRango[r].hombres}</td>,
+                    <td key={`${r}-m`} className="p-2 border border-gray-400 dark:border-neutral-700">{totalPorRango[r].mujeres}</td>,
+                    <td key={`${r}-t`} className="p-2 border border-gray-400 dark:border-neutral-700">{totalPorRango[r].total}</td>
                   ])}
                 </tr>
                 {Object.entries(detallePorLugar).map(([lugar, rangos]) => (
-                  <tr key={lugar} className="hover:bg-gray-100">
-                    <td className="p-2 font-bold bg-white sticky left-0 z-10 border border-gray-400">{lugar}</td>
+                  <tr key={lugar} className="hover:bg-gray-100 dark:bg-neutral-800/80">
+                    <td className="p-2 font-bold bg-white dark:bg-neutral-900 sticky left-0 z-10 border border-gray-400 dark:border-neutral-700">{lugar}</td>
                     {clavesRango.flatMap((r) => {
                       const datos = rangos[r] ?? { hombres: 0, mujeres: 0, total: 0 };
                       return [
-                        <td key={`${r}-h-${lugar}`} className="p-2 border border-gray-400">{datos.hombres}</td>,
-                        <td key={`${r}-m-${lugar}`} className="p-2 border border-gray-400">{datos.mujeres}</td>,
-                        <td key={`${r}-t-${lugar}`} className="p-2 border border-gray-400">{datos.total}</td>
+                        <td key={`${r}-h-${lugar}`} className="p-2 border border-gray-400 dark:border-neutral-700">{datos.hombres}</td>,
+                        <td key={`${r}-m-${lugar}`} className="p-2 border border-gray-400 dark:border-neutral-700">{datos.mujeres}</td>,
+                        <td key={`${r}-t-${lugar}`} className="p-2 border border-gray-400 dark:border-neutral-700">{datos.total}</td>
                       ];
                     })}
                   </tr>

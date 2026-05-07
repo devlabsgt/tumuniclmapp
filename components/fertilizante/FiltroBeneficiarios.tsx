@@ -45,12 +45,12 @@ export function FiltroBeneficiarios({ filtros, setFiltros, anios }: Props) {
   return (
     <div className="flex flex-col md:flex-row flex-wrap gap-4 mb-6">
       <div className="flex gap-2 items-center flex-1">
-        <span className="text-sm text-gray-700 whitespace-nowrap font-semibold">Buscar por:</span>
+        <span className="text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap font-semibold">Buscar por:</span>
         <select
           name="campo"
           value={filtros.campo}
           onChange={handleChange}
-          className="border border-gray-300 rounded px-3 py-2"
+          className="border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-200 rounded px-3 py-2"
         >
           <option value="codigo">Folio</option>
           <option value="nombre_completo">Nombre</option>
@@ -61,7 +61,7 @@ export function FiltroBeneficiarios({ filtros, setFiltros, anios }: Props) {
           name="valor"
           value={filtros.valor}
           onChange={handleChange}
-          className="w-full"
+          className="w-full dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-200"
         />
       </div>
 
@@ -69,7 +69,7 @@ export function FiltroBeneficiarios({ filtros, setFiltros, anios }: Props) {
         name="lugar"
         value={filtros.lugar}
         onChange={handleChange}
-        className="border border-gray-300 rounded px-3 py-2"
+        className="border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-200 rounded px-3 py-2"
       >
         <option value="">Todos los lugares</option>
         {lugares.map((lugar) => (
@@ -81,7 +81,7 @@ export function FiltroBeneficiarios({ filtros, setFiltros, anios }: Props) {
         name="anio"
         value={filtros.anio}
         onChange={handleChange}
-        className="border border-gray-300 rounded px-3 py-2"
+        className="border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-200 rounded px-3 py-2"
       >
         {anios.map((anio) => (
           <option key={anio} value={anio}>{anio}</option>

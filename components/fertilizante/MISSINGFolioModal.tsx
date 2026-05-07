@@ -81,15 +81,15 @@ const generarPdfFoliosFaltantes = () => {
     <Dialog open={visible} onClose={onClose}>
       <div className="fixed inset-0 bg-black/30 z-40" />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-md shadow-lg p-6 w-full max-w-3xl overflow-auto max-h-[80vh]">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+        <div className="bg-white dark:bg-neutral-900 rounded-md shadow-lg p-6 w-full max-w-3xl overflow-auto max-h-[80vh]">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2 dark:text-gray-200">
             Folios faltantes (0002 - 7095):
             <span className="text-orange-600">({faltantes.length})</span>
           </h2>
 
-          <div className="grid grid-cols-4 gap-2 text-sm max-h-[60vh] overflow-y-auto border rounded p-4 bg-gray-50">
+          <div className="grid grid-cols-4 gap-2 text-sm max-h-[60vh] overflow-y-auto border dark:border-neutral-700 rounded p-4 bg-gray-50 dark:bg-neutral-800">
             {faltantes.map((folio, idx) => (
-              <div key={idx} className="text-center border-b py-1">
+              <div key={idx} className="text-center border-b dark:border-neutral-700 py-1 dark:text-gray-300">
                 {folio}
               </div>
             ))}
