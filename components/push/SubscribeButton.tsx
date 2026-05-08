@@ -8,9 +8,11 @@ import { Bell, BellOff, Loader2, Check } from "lucide-react";
 export default function SubscribeButton({ userId }: { userId: string | null }) {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
+    setMounted(true);
     const checkStatus = async () => {
       if ("serviceWorker" in navigator && userId) {
         try {
@@ -99,7 +101,7 @@ export default function SubscribeButton({ userId }: { userId: string | null }) {
   return (
     <button
       onClick={handleToggle}
-      disabled={loading || !userId}
+      disabled={!mounted || loading || !userId}
       className={`h-14 w-full flex items-center justify-center rounded-md border transition-all duration-200 ${
         isSubscribed
           ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/30"

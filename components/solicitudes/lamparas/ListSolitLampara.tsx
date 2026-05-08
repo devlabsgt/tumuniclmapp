@@ -7,8 +7,9 @@ import { SolitLamparasItem } from './SolitLamparasItem';
 import CrearSolicitud from './modals/CrearSolicitud';
 import CambioEstadoModal from './modals/CambioEstadoModal';
 import ResumenElectricistasView from './modals/ResumenElectricistasModal';
+import ImprimirReporteModal from './modals/ImprimirReporteModal';
 
-import { Search, Calendar as CalendarIcon, SearchX, CalendarDays, Plus, RefreshCw, BarChart2, List, ArrowRight } from 'lucide-react';
+import { Search, Calendar as CalendarIcon, SearchX, CalendarDays, Plus, RefreshCw, BarChart2, List, ArrowRight, Printer } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import Calendario from '@/components/ui/Calendario';
 import { format } from 'date-fns';
@@ -105,6 +106,8 @@ interface Props {
   };
 }
 
+
+
 export default function ListSolitLampara({ initialData, userServerSide }: Props) {
   const userId = userServerSide?.userId;
   const isElectricista = userServerSide?.isElectricista || false;
@@ -117,8 +120,10 @@ export default function ListSolitLampara({ initialData, userServerSide }: Props)
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isCrearOpen, setIsCrearOpen] = useState(false);
   const [isResumenOpen, setIsResumenOpen] = useState(false);
+  const [isImprimirOpen, setIsImprimirOpen] = useState(false);
   const [selectedSolicitud, setSelectedSolicitud] = useState<SolicitudLampara | null>(null);
   const [editingSolicitud, setEditingSolicitud] = useState<SolicitudLampara | null>(null);
+  const [prioridadElectricista, setPrioridadElectricista] = useState<string | null>(null);
 
   const [filtroEstado, setFiltroEstado] = useState('Todos');
   const [searchTerm, setSearchTerm] = useState('');
@@ -223,6 +228,8 @@ export default function ListSolitLampara({ initialData, userServerSide }: Props)
       return coincideFecha && (
         (sol.nombre_responsable || '').toLowerCase().includes(lowerTerm) ||
         (sol.ubicacion || '').toLowerCase().includes(lowerTerm) ||
+        (sol.aldea || '').toLowerCase().includes(lowerTerm) ||
+        (sol.caserio || '').toLowerCase().includes(lowerTerm) ||
         (sol.telefono_contacto || '').toLowerCase().includes(lowerTerm) ||
         (sol.asignado?.nombre || '').toLowerCase().includes(lowerTerm) ||
         sol.id.toLowerCase().includes(lowerTerm)
@@ -356,8 +363,9 @@ export default function ListSolitLampara({ initialData, userServerSide }: Props)
   if (!isMounted) return null;
 
   return (
-    <div className="max-w-[1600px] w-full mx-auto px-2 sm:px-6 lg:px-8 flex flex-col gap-4 pb-20 mt-5 sm:mt-7">
-      <div className="flex flex-col sm:flex-row justify-between items-center sm:items-center gap-3 sm:gap-4 text-center sm:text-left">
+    <>
+      <div className="max-w-[1600px] w-full mx-auto px-2 sm:px-6 lg:px-8 flex flex-col gap-4 pb-20 mt-5 sm:mt-7">
+        <div className="flex flex-col sm:flex-row justify-between items-center sm:items-center gap-3 sm:gap-4 text-center sm:text-left">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Solicitudes de Lámparas Dañadas</h1>
           <p className="text-slate-500 dark:text-gray-400 text-sm font-medium">
@@ -422,7 +430,7 @@ export default function ListSolitLampara({ initialData, userServerSide }: Props)
               <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
               <input
                 type="text"
-                placeholder="Buscar nombre, ubicación..."
+                placeholder="Buscar nombre, ubicación, aldea..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 dark:text-gray-200"
@@ -517,6 +525,7 @@ export default function ListSolitLampara({ initialData, userServerSide }: Props)
             >
               <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
             </button>
+
           </div>
         </div>
       </div>
@@ -530,7 +539,7 @@ export default function ListSolitLampara({ initialData, userServerSide }: Props)
                   <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                   <input
                     type="text"
-                    placeholder="Buscar en mis tareas..."
+                    placeholder="Buscar nombre, aldea, caserío..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 dark:text-gray-200"
@@ -543,6 +552,7 @@ export default function ListSolitLampara({ initialData, userServerSide }: Props)
                 >
                   <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
                 </button>
+
               </div>
             </div>
          </div>
@@ -584,6 +594,10 @@ export default function ListSolitLampara({ initialData, userServerSide }: Props)
                         onCambiarEstado={(item) => handleCambiarEstado(item)}
                         onEditar={(item) => handleEditar(item)}
                         onEliminar={(item) => handleEliminar(item)}
+                        onImprimir={() => {
+                          setPrioridadElectricista(sol.asignado_a_uid || 'sin_asignar');
+                          setIsImprimirOpen(true);
+                        }}
                         isElectricista={isElectricista}
                       />
                     ))}
@@ -616,7 +630,13 @@ export default function ListSolitLampara({ initialData, userServerSide }: Props)
         />
       )}
 
-
+      <ImprimirReporteModal 
+        isOpen={isImprimirOpen}
+        onClose={() => { setIsImprimirOpen(false); setPrioridadElectricista(null); }}
+        solicitudes={listaVisual}
+        prioridadUid={prioridadElectricista}
+      />
     </div>
+    </>
   );
 }

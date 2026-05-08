@@ -4,10 +4,28 @@ import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { SolicitudMobiliario, CrearSolicitudMobiliarioValues, crearSolicitudMobiliarioSchema } from './zod';
 
-/**
- * Obtiene todas las solicitudes de tipo "mobiliario" para la vista de recepcionista.
- * Incluye todos los estados.
- */
+const asegurarComunidadExistente = async (supabase: any, aldea: string | null | undefined, caserio: string | null | undefined) => {
+  if (!aldea) return;
+  const safeAldea = aldea.trim();
+  const safeCaserio = caserio ? caserio.trim() : '';
+
+  const { data } = await supabase
+    .from('comunidades_clm')
+    .select('id')
+    .ilike('aldea_casco', safeAldea)
+    .ilike('barrio_caserio', safeCaserio)
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) {
+    await supabase.from('comunidades_clm').insert({
+      aldea_casco: safeAldea,
+      barrio_caserio: safeCaserio
+    });
+  }
+};
+
+
 export const getSolicitudesMobiliario = async (): Promise<SolicitudMobiliario[]> => {
   const supabase = await createClient();
 
@@ -33,7 +51,7 @@ export const getSolicitudesMobiliario = async (): Promise<SolicitudMobiliario[]>
       .from('info_usuario')
       .select('user_id, nombre')
       .in('user_id', userIds);
-      
+
     if (usersData) {
       usersData.forEach(u => { usersMap[u.user_id] = u.nombre || ''; });
     }
@@ -53,7 +71,7 @@ export const getSolicitudesMobiliario = async (): Promise<SolicitudMobiliario[]>
 export const getSolicitudesOperario = async (): Promise<SolicitudMobiliario[]> => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) return [];
 
   const { data: solicitudesData, error } = await supabase
@@ -80,7 +98,7 @@ export const getSolicitudesOperario = async (): Promise<SolicitudMobiliario[]> =
       .from('info_usuario')
       .select('user_id, nombre')
       .in('user_id', userIds);
-      
+
     if (usersData) {
       usersData.forEach(u => { usersMap[u.user_id] = u.nombre || ''; });
     }
@@ -108,27 +126,31 @@ export const crearSolicitudMobiliario = async (values: CrearSolicitudMobiliarioV
     return { success: false, error: 'Datos inválidos en la solicitud.' };
   }
 
-  const { nombre_responsable, telefono_contacto, ubicacion, fecha_inicio, fecha_fin, checklists } = parsed.data;
+  const { nombre_responsable, telefono_contacto, ubicacion, fecha_inicio, fecha_fin, checklists, aldea, caserio } = parsed.data;
 
-    const { error } = await supabase
-      .from('solicitudes_municipales')
-      .insert({
-        tipo_solicitud: 'mobiliario',
-        estado: 'pendiente',
-        fecha_solicitud: new Date().toISOString(),
-        solicitante_uid: user.id,
-        nombre_responsable,
-        telefono_contacto,
-        ubicacion,
-        fecha_inicio: fecha_inicio || null,
-        fecha_fin: fecha_fin || null,
-        checklists: checklists || null,
-      });
+  const { error } = await supabase
+    .from('solicitudes_municipales')
+    .insert({
+      tipo_solicitud: 'mobiliario',
+      estado: 'pendiente',
+      fecha_solicitud: new Date().toISOString(),
+      solicitante_uid: user.id,
+      nombre_responsable,
+      telefono_contacto,
+      ubicacion,
+      fecha_inicio: fecha_inicio || null,
+      fecha_fin: fecha_fin || null,
+      checklists: checklists || null,
+      aldea: aldea || null,
+      caserio: caserio || null,
+    });
 
   if (error) {
     console.error('Error al crear solicitud de mobiliario:', error);
     return { success: false, error: error.message };
   }
+
+  await asegurarComunidadExistente(supabase, aldea, caserio);
 
   revalidatePath('/solicitudes/mobiliario');
   return { success: true };
@@ -228,6 +250,8 @@ export const editarSolicitudMobiliario = async (
   if (values.fecha_inicio !== undefined) updateData.fecha_inicio = values.fecha_inicio || null;
   if (values.fecha_fin !== undefined) updateData.fecha_fin = values.fecha_fin || null;
   if (values.checklists !== undefined) updateData.checklists = values.checklists || null;
+  if (values.aldea !== undefined) updateData.aldea = values.aldea || null;
+  if (values.caserio !== undefined) updateData.caserio = values.caserio || null;
 
   const { error } = await supabase
     .from('solicitudes_municipales')
@@ -238,6 +262,8 @@ export const editarSolicitudMobiliario = async (
     console.error('Error al editar solicitud:', error);
     return { success: false, error: error.message };
   }
+
+  await asegurarComunidadExistente(supabase, updateData.aldea, updateData.caserio);
 
   revalidatePath('/solicitudes/mobiliario');
   return { success: true };
@@ -269,4 +295,24 @@ export const eliminarSolicitudMobiliario = async (solicitudId: string) => {
  */
 export const getUsuariosAtencionVecino = async (): Promise<{ user_id: string; nombre: string }[]> => {
   return [];
+};
+
+/**
+ * Obtiene el catálogo de comunidades.
+ */
+export const getComunidades = async () => {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('comunidades_clm')
+    .select('id, aldea_casco, barrio_caserio')
+    .order('aldea_casco', { ascending: true })
+    .order('barrio_caserio', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching comunidades:', error);
+    return [];
+  }
+
+  return data || [];
 };

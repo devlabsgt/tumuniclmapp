@@ -33,6 +33,8 @@ export const solicitudLamparaSchema = z.object({
   checklists: z.any().nullable(), // jsonb
   fecha_inicio: z.string().nullable(),
   fecha_fin: z.string().nullable(),
+  aldea: z.string().nullable(),
+  caserio: z.string().nullable(),
 });
 
 export type SolicitudLampara = z.infer<typeof solicitudLamparaSchema>;
@@ -50,6 +52,8 @@ export const crearSolicitudLamparaSchema = z.object({
     revision_lampara: z.boolean().default(false),
     cambio_lampara: z.boolean().default(false),
   }).optional(),
+  aldea: z.string().optional(),
+  caserio: z.string().optional(),
 });
 
 export type CrearSolicitudLamparaValues = z.infer<typeof crearSolicitudLamparaSchema>;

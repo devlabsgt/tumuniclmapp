@@ -16,6 +16,7 @@ import {
     Trash2,
     MoreVertical,
     MessageCircle,
+    Printer,
 } from 'lucide-react';
 
 interface Props {
@@ -26,6 +27,7 @@ interface Props {
     onCambiarEstado?: (sol: SolicitudLampara) => void;
     onEditar?: (sol: SolicitudLampara) => void;
     onEliminar?: (sol: SolicitudLampara) => void;
+    onImprimir?: () => void;
     isElectricista?: boolean;
 }
 
@@ -37,6 +39,7 @@ export const SolitLamparasItem: React.FC<Props> = ({
     onCambiarEstado, 
     onEditar, 
     onEliminar,
+    onImprimir,
     isElectricista = false
 }) => {
 
@@ -66,6 +69,18 @@ export const SolitLamparasItem: React.FC<Props> = ({
 
     const statusConfig = getStatusConfig(sol.estado);
     const color = statusConfig.color;
+
+    const toTitleCase = (str: string) => {
+        return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    };
+
+    const getUbicacionCompleta = () => {
+        const parts = [];
+        if (sol.aldea) parts.push(toTitleCase(sol.aldea));
+        if (sol.caserio) parts.push(toTitleCase(sol.caserio));
+        if (isOpen && sol.ubicacion) parts.push(sol.ubicacion);
+        return parts.length > 0 ? parts.join(' | ') : 'Sin ubicación';
+    };
 
     const getButtonContent = () => {
         switch (sol.estado) {
@@ -137,7 +152,7 @@ export const SolitLamparasItem: React.FC<Props> = ({
                                     CÓD: {sol.id.slice(0, 3)}-{sol.id.slice(3, 6)}
                                 </span>
                                 <h3 className="text-sm sm:text-lg font-bold text-slate-900 dark:text-white truncate">
-                                    {sol.ubicacion || 'Sin ubicación'}
+                                    {getUbicacionCompleta()}
                                 </h3>
                             </div>
                             {!isOpen && (
@@ -196,6 +211,18 @@ export const SolitLamparasItem: React.FC<Props> = ({
                                 >
                                     <Trash2 size={14} className="sm:w-4 sm:h-4" />
                                 </button>
+                                {sol.estado === 'pendiente' && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onImprimir?.();
+                                        }}
+                                        className="p-1.5 sm:p-2 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                                        title="Imprimir Reporte de Pendientes"
+                                    >
+                                        <Printer size={14} className="sm:w-4 sm:h-4" />
+                                    </button>
+                                )}
                             </div>
                         )}
 
@@ -227,6 +254,17 @@ export const SolitLamparasItem: React.FC<Props> = ({
                         >
                             <Trash2 size={14} />
                         </button>
+                        {sol.estado === 'pendiente' && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onImprimir?.();
+                                }}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-purple-600 transition-colors"
+                            >
+                                <Printer size={14} />
+                            </button>
+                        )}
                         <ChevronDown
                             size={18}
                             className={`ml-1 text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180 text-blue-500' : ''}`}
@@ -381,7 +419,7 @@ export const SolitLamparasItem: React.FC<Props> = ({
                                             <div className="flex items-start gap-2">
                                                 <MapPin size={14} className="text-blue-400 dark:text-blue-500 shrink-0 mt-0.5" />
                                                 <span className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 font-medium leading-snug">
-                                                    {sol.ubicacion || 'Sin ubicación registrada'}
+                                                    {getUbicacionCompleta()}
                                                 </span>
                                             </div>
 

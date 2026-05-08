@@ -108,7 +108,7 @@ interface Props {
 export default function ListSoliMobiliario({ initialData, userServerSide }: Props) {
   const userId = userServerSide?.userId;
   const isOperario = userServerSide?.isOperario || false;
-  
+
   const { solicitudes, loading, refresh, updateLocalSolicitud } = useSolicitudesMobiliario(initialData);
   const { asignar, actualizarEstado, eliminar } = useSolicitudMobiliarioMutations();
   const { data: operarios = [] } = useOperarios();
@@ -124,13 +124,13 @@ export default function ListSoliMobiliario({ initialData, userServerSide }: Prop
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilterMode, setDateFilterMode] = useState<'dia' | 'semana' | 'rango'>('semana');
   const [selectedDate, setSelectedDate] = useState<string>(() => {
-    const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
   const [startDate, setStartDate] = useState<string>(() => {
-    const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
   const [endDate, setEndDate] = useState<string>(() => {
-    const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
 
   // Semana mode states
@@ -186,7 +186,7 @@ export default function ListSoliMobiliario({ initialData, userServerSide }: Prop
 
   const solicitudesFiltradasGlobal = useMemo(() => {
     if (!isMounted) return [];
-    
+
     let filtered = solicitudes;
 
     // Si es Operario, solo ve lo asignado a él y que esté pendiente
@@ -373,9 +373,9 @@ export default function ListSoliMobiliario({ initialData, userServerSide }: Prop
               title={isResumenOpen ? "Volver a la lista" : "Ver resumen de actividades"}
             >
               {isResumenOpen ? <List size={16} /> : <BarChart2 size={16} />}
-              <span>{isResumenOpen ? 'VER LISTA' : 'RESUMEN'}</span>
+              <span>{isResumenOpen ? 'VOLVER A LA LISTA' : 'VER TABLA'}</span>
             </button>
-            
+
             <button
               onClick={() => setIsCrearOpen(true)}
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-xl text-xs font-bold text-white transition-all shadow-sm whitespace-nowrap"
@@ -387,7 +387,7 @@ export default function ListSoliMobiliario({ initialData, userServerSide }: Prop
           </div>
         )}
       </div>
-      
+
       {!isOperario && (
         <div className="flex flex-col xl:flex-row gap-3 xl:gap-4 mb-2">
           <div className="overflow-x-auto pb-1 xl:pb-0 flex justify-center xl:justify-start">
@@ -416,141 +416,141 @@ export default function ListSoliMobiliario({ initialData, userServerSide }: Prop
           </div>
 
           <div className="flex flex-col xl:flex-row gap-3 xl:ml-auto w-full xl:w-auto items-center xl:items-start">
-          <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
-            {/* Barra de búsqueda */}
-            <div className="relative flex-1 sm:flex-none sm:w-64 group">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-              <input
-                type="text"
-                placeholder="Buscar nombre, ubicación..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 dark:text-gray-200"
-              />
-            </div>
-
-            {/* Filtros de fecha: Día / Semana / Rango */}
-            <div className="flex items-center bg-slate-100 dark:bg-neutral-800/50 p-1 rounded-xl shrink-0">
-              <button
-                onClick={() => setDateFilterMode('dia')}
-                className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${dateFilterMode === 'dia' ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}
-              >Día</button>
-              <button
-                onClick={() => setDateFilterMode('semana')}
-                className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${dateFilterMode === 'semana' ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}
-              >Semana</button>
-              <button
-                onClick={() => setDateFilterMode('rango')}
-                className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${dateFilterMode === 'rango' ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}
-              >Rango</button>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-
-            {dateFilterMode === 'dia' ? (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-neutral-800 transition-colors shadow-sm">
-                    <CalendarIcon size={16} className="text-blue-500" />
-                    <span className="capitalize">{formatDateLabel(selectedDate)}</span>
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendario fechaSeleccionada={selectedDate} onSelectDate={setSelectedDate} />
-                </PopoverContent>
-              </Popover>
-            ) : dateFilterMode === 'semana' ? (
-              <div className="flex items-center gap-2">
-                <select
-                  value={semanaSeleccionada}
-                  onChange={(e) => setSemanaSeleccionada(e.target.value)}
-                  className="px-3 py-2 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer shadow-sm"
-                >
-                  {weekOptionsData.map((w) => (
-                    <option key={w.id} value={w.id}>{w.label}</option>
-                  ))}
-                </select>
+            <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+              {/* Barra de búsqueda */}
+              <div className="relative flex-1 sm:flex-none sm:w-64 group">
+                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                 <input
-                  type="month"
-                  value={`${semanaAnio}-${String(semanaMes + 1).padStart(2, '0')}`}
-                  onChange={(e) => {
-                    const [y, m] = e.target.value.split('-');
-                    setSemanaAnio(parseInt(y));
-                    setSemanaMes(parseInt(m) - 1);
-                  }}
-                  className="px-3 py-2 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer shadow-sm"
+                  type="text"
+                  placeholder="Buscar nombre, ubicación..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 dark:text-gray-200"
                 />
               </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-neutral-800 transition-colors shadow-sm">
-                      <CalendarIcon size={16} className="text-emerald-500" />
-                      <span className="capitalize">{formatDateLabel(startDate)}</span>
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendario fechaSeleccionada={startDate} onSelectDate={setStartDate} />
-                  </PopoverContent>
-                </Popover>
-                <ArrowRight size={16} className="text-slate-400 shrink-0" />
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-neutral-800 transition-colors shadow-sm">
-                      <CalendarIcon size={16} className="text-red-500" />
-                      <span className="capitalize">{formatDateLabel(endDate)}</span>
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendario fechaSeleccionada={endDate} onSelectDate={setEndDate} />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            )}
 
-            <button
-              onClick={() => refresh()}
-              className="bg-white hover:bg-slate-50 border border-slate-200 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-300 p-2.5 rounded-xl transition-colors shadow-sm shrink-0"
-              title="Actualizar lista"
-            >
-              <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-            </button>
+              {/* Filtros de fecha: Día / Semana / Rango */}
+              <div className="flex items-center bg-slate-100 dark:bg-neutral-800/50 p-1 rounded-xl shrink-0">
+                <button
+                  onClick={() => setDateFilterMode('dia')}
+                  className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${dateFilterMode === 'dia' ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}
+                >Día</button>
+                <button
+                  onClick={() => setDateFilterMode('semana')}
+                  className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${dateFilterMode === 'semana' ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}
+                >Semana</button>
+                <button
+                  onClick={() => setDateFilterMode('rango')}
+                  className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${dateFilterMode === 'rango' ? 'bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}
+                >Rango</button>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+
+              {dateFilterMode === 'dia' ? (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-neutral-800 transition-colors shadow-sm">
+                      <CalendarIcon size={16} className="text-blue-500" />
+                      <span className="capitalize">{formatDateLabel(selectedDate)}</span>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendario fechaSeleccionada={selectedDate} onSelectDate={setSelectedDate} />
+                  </PopoverContent>
+                </Popover>
+              ) : dateFilterMode === 'semana' ? (
+                <div className="flex items-center gap-2">
+                  <select
+                    value={semanaSeleccionada}
+                    onChange={(e) => setSemanaSeleccionada(e.target.value)}
+                    className="px-3 py-2 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer shadow-sm"
+                  >
+                    {weekOptionsData.map((w) => (
+                      <option key={w.id} value={w.id}>{w.label}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="month"
+                    value={`${semanaAnio}-${String(semanaMes + 1).padStart(2, '0')}`}
+                    onChange={(e) => {
+                      const [y, m] = e.target.value.split('-');
+                      setSemanaAnio(parseInt(y));
+                      setSemanaMes(parseInt(m) - 1);
+                    }}
+                    className="px-3 py-2 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer shadow-sm"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-neutral-800 transition-colors shadow-sm">
+                        <CalendarIcon size={16} className="text-emerald-500" />
+                        <span className="capitalize">{formatDateLabel(startDate)}</span>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendario fechaSeleccionada={startDate} onSelectDate={setStartDate} />
+                    </PopoverContent>
+                  </Popover>
+                  <ArrowRight size={16} className="text-slate-400 shrink-0" />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-neutral-800 transition-colors shadow-sm">
+                        <CalendarIcon size={16} className="text-red-500" />
+                        <span className="capitalize">{formatDateLabel(endDate)}</span>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendario fechaSeleccionada={endDate} onSelectDate={setEndDate} />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+
+              <button
+                onClick={() => refresh()}
+                className="bg-white hover:bg-slate-50 border border-slate-200 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-300 p-2.5 rounded-xl transition-colors shadow-sm shrink-0"
+                title="Actualizar lista"
+              >
+                <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
       )}
 
       {isOperario && (
-         <div className="flex flex-col xl:flex-row gap-3 mb-2">
-            <div className="flex flex-col xl:flex-row gap-3 xl:ml-auto w-full xl:w-auto items-center xl:items-start">
-              <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
-                <div className="relative flex-1 sm:flex-none sm:w-64 group">
-                  <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-                  <input
-                    type="text"
-                    placeholder="Buscar en mis tareas..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 dark:text-gray-200"
-                  />
-                </div>
-                <button
-                  onClick={() => refresh()}
-                  className="bg-white hover:bg-slate-50 border border-slate-200 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-300 p-2.5 rounded-xl transition-colors shadow-sm shrink-0"
-                  title="Actualizar lista"
-                >
-                  <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-                </button>
+        <div className="flex flex-col xl:flex-row gap-3 mb-2">
+          <div className="flex flex-col xl:flex-row gap-3 xl:ml-auto w-full xl:w-auto items-center xl:items-start">
+            <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+              <div className="relative flex-1 sm:flex-none sm:w-64 group">
+                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                <input
+                  type="text"
+                  placeholder="Buscar en mis tareas..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 dark:text-gray-200"
+                />
               </div>
+              <button
+                onClick={() => refresh()}
+                className="bg-white hover:bg-slate-50 border border-slate-200 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-300 p-2.5 rounded-xl transition-colors shadow-sm shrink-0"
+                title="Actualizar lista"
+              >
+                <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+              </button>
             </div>
-         </div>
+          </div>
+        </div>
       )}
 
       {isResumenOpen ? (
         <div className="mt-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <ResumenOperariosView solicitudes={solicitudesFiltradasGlobal} />
+          <ResumenOperariosView solicitudes={listaVisual} />
         </div>
       ) : (
         <>

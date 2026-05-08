@@ -4,6 +4,27 @@ import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { SolicitudLampara, CrearSolicitudLamparaValues, crearSolicitudLamparaSchema } from './zod';
 
+const asegurarComunidadExistente = async (supabase: any, aldea: string | null | undefined, caserio: string | null | undefined) => {
+  if (!aldea) return;
+  const safeAldea = aldea.trim();
+  const safeCaserio = caserio ? caserio.trim() : '';
+
+  const { data } = await supabase
+    .from('comunidades_clm')
+    .select('id')
+    .ilike('aldea_casco', safeAldea)
+    .ilike('barrio_caserio', safeCaserio)
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) {
+    await supabase.from('comunidades_clm').insert({
+      aldea_casco: safeAldea,
+      barrio_caserio: safeCaserio
+    });
+  }
+};
+
 /**
  * Obtiene todas las solicitudes de tipo "lamparas" para la vista de recepcionista.
  * Incluye todos los estados.
@@ -33,7 +54,7 @@ export const getSolicitudesLamparas = async (): Promise<SolicitudLampara[]> => {
       .from('info_usuario')
       .select('user_id, nombre')
       .in('user_id', userIds);
-      
+
     if (usersData) {
       usersData.forEach(u => { usersMap[u.user_id] = u.nombre || ''; });
     }
@@ -53,7 +74,7 @@ export const getSolicitudesLamparas = async (): Promise<SolicitudLampara[]> => {
 export const getSolicitudesElectricista = async (): Promise<SolicitudLampara[]> => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) return [];
 
   const { data: solicitudesData, error } = await supabase
@@ -80,7 +101,7 @@ export const getSolicitudesElectricista = async (): Promise<SolicitudLampara[]> 
       .from('info_usuario')
       .select('user_id, nombre')
       .in('user_id', userIds);
-      
+
     if (usersData) {
       usersData.forEach(u => { usersMap[u.user_id] = u.nombre || ''; });
     }
@@ -108,7 +129,7 @@ export const crearSolicitudLampara = async (values: CrearSolicitudLamparaValues)
     return { success: false, error: 'Datos inválidos en la solicitud.' };
   }
 
-  const { nombre_responsable, telefono_contacto, ubicacion, cantidad_elementos, comentarios, asignado_a_uid, checklists } = parsed.data;
+  const { nombre_responsable, telefono_contacto, ubicacion, cantidad_elementos, comentarios, asignado_a_uid, checklists, aldea, caserio } = parsed.data;
 
   const { error } = await supabase
     .from('solicitudes_municipales')
@@ -124,12 +145,16 @@ export const crearSolicitudLampara = async (values: CrearSolicitudLamparaValues)
       comentarios: comentarios || null,
       asignado_a_uid: asignado_a_uid || null,
       checklists: checklists || null,
+      aldea: aldea || null,
+      caserio: caserio || null,
     });
 
   if (error) {
     console.error('Error al crear solicitud de lámparas:', error);
     return { success: false, error: error.message };
   }
+
+  await asegurarComunidadExistente(supabase, aldea, caserio);
 
   revalidatePath('/solicitudes/lamparas');
   return { success: true };
@@ -259,6 +284,8 @@ export const editarSolicitudLampara = async (
   if (values.comentarios !== undefined) updateData.comentarios = values.comentarios || null;
   if (values.asignado_a_uid !== undefined) updateData.asignado_a_uid = values.asignado_a_uid || null;
   if (values.checklists !== undefined) updateData.checklists = values.checklists || null;
+  if (values.aldea !== undefined) updateData.aldea = values.aldea || null;
+  if (values.caserio !== undefined) updateData.caserio = values.caserio || null;
 
   const { error } = await supabase
     .from('solicitudes_municipales')
@@ -269,6 +296,8 @@ export const editarSolicitudLampara = async (
     console.error('Error al editar solicitud:', error);
     return { success: false, error: error.message };
   }
+
+  await asegurarComunidadExistente(supabase, updateData.aldea, updateData.caserio);
 
   revalidatePath('/solicitudes/lamparas');
   return { success: true };
@@ -345,7 +374,7 @@ export const getUsuariosAtencionVecino = async () => {
  */
 export const checkIsAtencionVecino = async (dependenciaId: string | null): Promise<boolean> => {
   if (!dependenciaId) return false;
-  
+
   const supabase = await createClient();
   let currentId: string | null = dependenciaId;
   let depth = 0;
@@ -357,7 +386,7 @@ export const checkIsAtencionVecino = async (dependenciaId: string | null): Promi
       .select('id, nombre, parent_id')
       .eq('id', currentId)
       .single();
-      
+
     if (error || !data) break;
 
     // Buscamos cualquier variación del nombre, sin importar tildes o mayúsculas
@@ -373,3 +402,51 @@ export const checkIsAtencionVecino = async (dependenciaId: string | null): Promi
   return false;
 };
 
+export const checkIsElectricista = async (dependenciaId: string | null): Promise<boolean> => {
+  if (!dependenciaId) return false;
+
+  const supabase = await createClient();
+  let currentId: string | null = dependenciaId;
+  let depth = 0;
+  const MAX_DEPTH = 5;
+
+  while (currentId && depth < MAX_DEPTH) {
+    const { data, error }: { data: any, error: any } = await supabase
+      .from('dependencias')
+      .select('id, nombre, parent_id')
+      .eq('id', currentId)
+      .single();
+
+    if (error || !data) break;
+
+    const nombre = (data.nombre || '').toLowerCase();
+    if (nombre.includes('alumbrado')) {
+      return true;
+    }
+
+    currentId = data.parent_id;
+    depth++;
+  }
+
+  return false;
+};
+
+/**
+ * Obtiene el catálogo de comunidades.
+ */
+export const getComunidades = async () => {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('comunidades_clm')
+    .select('id, aldea_casco, barrio_caserio')
+    .order('aldea_casco', { ascending: true })
+    .order('barrio_caserio', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching comunidades:', error);
+    return [];
+  }
+
+  return data || [];
+};

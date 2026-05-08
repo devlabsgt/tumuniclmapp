@@ -1,9 +1,97 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
-import { useSolicitudMutations, useElectricistas } from '../lib/hooks';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useSolicitudMutations, useElectricistas, useComunidades } from '../lib/hooks';
 import { CrearSolicitudLamparaValues, SolicitudLampara } from '../lib/zod';
 import { toast } from 'react-toastify';
+import { Plus } from 'lucide-react';
+
+function CreatableCombobox({
+  value,
+  onChange,
+  options,
+  placeholder,
+  disabled = false,
+  labelNew = 'Agregar'
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  options: string[];
+  placeholder: string;
+  disabled?: boolean;
+  labelNew?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [inputValue, setInputValue] = useState(value || '');
+
+  useEffect(() => {
+    setInputValue(value || '');
+  }, [value]);
+
+  const filteredOptions = useMemo(() => {
+    if (!inputValue) return options;
+    return options.filter(opt => 
+      opt.toLowerCase().includes(inputValue.toLowerCase())
+    );
+  }, [options, inputValue]);
+
+  return (
+    <div className="relative w-full">
+      <input
+        type="text"
+        value={inputValue}
+        onChange={(e) => {
+          setInputValue(e.target.value);
+          onChange(e.target.value);
+          setIsOpen(true);
+        }}
+        onFocus={() => setIsOpen(true)}
+        onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+        disabled={disabled}
+        placeholder={placeholder}
+        className={`w-full bg-gray-50 dark:bg-neutral-800/50 border border-gray-200 dark:border-neutral-700 rounded-2xl p-3 text-base focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all dark:text-white outline-none ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+      />
+      
+      {isOpen && !disabled && (
+        <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl shadow-xl custom-scrollbar animate-in fade-in zoom-in-95 duration-200">
+          {filteredOptions.length > 0 ? (
+            filteredOptions.map((opt, i) => (
+              <div 
+                key={i}
+                onClick={() => {
+                  setInputValue(opt);
+                  onChange(opt);
+                  setIsOpen(false);
+                }}
+                className="px-4 py-2.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-200 border-b border-gray-50 dark:border-neutral-700/50 last:border-0"
+              >
+                {opt}
+              </div>
+            ))
+          ) : null}
+          
+          {inputValue.length > 0 && !options.some(opt => opt.toLowerCase() === inputValue.toLowerCase()) && (
+            <div 
+              onClick={() => {
+                onChange(inputValue);
+                setIsOpen(false);
+              }}
+              className="px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer text-sm font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2 border-t border-blue-100 dark:border-blue-900/30"
+            >
+              <Plus size={16} />
+              <span>{labelNew}: <span className="underline">{inputValue}</span></span>
+            </div>
+          )}
+
+          {filteredOptions.length === 0 && inputValue.length === 0 && (
+            <div className="px-4 py-3 text-sm text-gray-500 italic">No hay opciones disponibles</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 interface Props {
   isOpen: boolean;
@@ -15,12 +103,15 @@ interface Props {
 export default function CrearSolicitud({ isOpen, onClose, onSuccess, editData }: Props) {
   const { crear, editar } = useSolicitudMutations();
   const { data: electricistas = [] } = useElectricistas();
+  const { data: comunidades = [] } = useComunidades();
   const loading = crear.isPending || editar.isPending;
   const isEditMode = !!editData;
 
   const [formData, setFormData] = useState<CrearSolicitudLamparaValues>({
     nombre_responsable: '',
     telefono_contacto: '',
+    aldea: '',
+    caserio: '',
     ubicacion: '',
     cantidad_elementos: 1,
     comentarios: '',
@@ -39,6 +130,8 @@ export default function CrearSolicitud({ isOpen, onClose, onSuccess, editData }:
         setFormData({
           nombre_responsable: editData.nombre_responsable || '',
           telefono_contacto: editData.telefono_contacto || '',
+          aldea: editData.aldea || '',
+          caserio: editData.caserio || '',
           ubicacion: editData.ubicacion || '',
           cantidad_elementos: editData.cantidad_elementos || 1,
           comentarios: editData.comentarios || '',
@@ -53,6 +146,8 @@ export default function CrearSolicitud({ isOpen, onClose, onSuccess, editData }:
         setFormData({
           nombre_responsable: '',
           telefono_contacto: '',
+          aldea: '',
+          caserio: '',
           ubicacion: '',
           cantidad_elementos: 1,
           comentarios: '',
@@ -73,6 +168,18 @@ export default function CrearSolicitud({ isOpen, onClose, onSuccess, editData }:
   const updateField = (field: keyof CrearSolicitudLamparaValues, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
+
+  const aldeasUnicas = useMemo(() => {
+    return Array.from(new Set(comunidades.map((c: any) => c.aldea_casco))).filter(Boolean) as string[];
+  }, [comunidades]);
+
+  const caseriosDisponibles = useMemo(() => {
+    if (!formData.aldea) return [];
+    return Array.from(new Set(comunidades
+      .filter((c: any) => c.aldea_casco?.toLowerCase() === formData.aldea?.toLowerCase())
+      .map((c: any) => c.barrio_caserio)
+    )).filter(Boolean) as string[];
+  }, [comunidades, formData.aldea]);
 
   const handleSubmit = async () => {
     if (!formData.nombre_responsable.trim()) {
@@ -210,9 +317,39 @@ export default function CrearSolicitud({ isOpen, onClose, onSuccess, editData }:
                 </div>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5 z-50">
+                    <label className="block text-xs font-bold text-gray-500 dark:text-neutral-400 uppercase tracking-widest ml-1">
+                        Aldea / Casco Urbano <span className="text-red-500">*</span>
+                    </label>
+                    <CreatableCombobox 
+                        value={formData.aldea || ''}
+                        onChange={(val) => {
+                            updateField('aldea', val);
+                            if (!val) updateField('caserio', ''); // Reset caserio if aldea is cleared
+                        }}
+                        options={aldeasUnicas}
+                        placeholder="Buscar o escribir aldea..."
+                    />
+                </div>
+
+                <div className="space-y-1.5 z-40">
+                    <label className="block text-xs font-bold text-gray-500 dark:text-neutral-400 uppercase tracking-widest ml-1">
+                        Barrio / Caserío <span className="text-red-500">*</span>
+                    </label>
+                    <CreatableCombobox 
+                        value={formData.caserio || ''}
+                        onChange={(val) => updateField('caserio', val)}
+                        options={caseriosDisponibles}
+                        placeholder="Buscar o escribir caserío..."
+                        disabled={!formData.aldea}
+                    />
+                </div>
+            </div>
+
             <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-gray-500 dark:text-neutral-400 uppercase tracking-widest ml-1">
-                    Ubicación del Reporte <span className="text-red-500">*</span>
+                    Punto de Referencia Exacto <span className="text-red-500">*</span>
                 </label>
                 <input
                     type="text"
