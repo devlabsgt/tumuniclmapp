@@ -9,12 +9,14 @@ import {
   getOperarios,
   editarSolicitudMobiliario,
   eliminarSolicitudMobiliario,
+  getComunidades,
 } from "./actions";
 import { SolicitudMobiliario, CrearSolicitudMobiliarioValues } from "./zod";
 
 const KEYS = {
   solicitudes: ["solicitudes-mobiliario"],
   operarios: ["operarios-mobiliario-disponibles"],
+  comunidades: ["comunidades-clm"],
 };
 
 const FIVE_MINUTES = 1000 * 60 * 5;
@@ -50,6 +52,14 @@ export const useOperarios = () => {
   return useQuery({
     queryKey: KEYS.operarios,
     queryFn: getOperarios,
+    staleTime: FIVE_MINUTES,
+  });
+};
+
+export const useComunidades = () => {
+  return useQuery({
+    queryKey: KEYS.comunidades,
+    queryFn: getComunidades,
     staleTime: FIVE_MINUTES,
   });
 };

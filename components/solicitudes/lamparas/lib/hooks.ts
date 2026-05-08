@@ -9,12 +9,14 @@ import {
   getElectricistas,
   editarSolicitudLampara,
   eliminarSolicitudLampara,
+  getComunidades,
 } from "./actions";
 import { SolicitudLampara, CrearSolicitudLamparaValues } from "./zod";
 
 const KEYS = {
   solicitudes: ["solicitudes-lamparas"],
   electricistas: ["electricistas-disponibles"],
+  comunidades: ["comunidades-clm"],
 };
 
 const FIVE_MINUTES = 1000 * 60 * 5;
@@ -87,4 +89,12 @@ export const useSolicitudMutations = () => {
   });
 
   return { crear, asignar, actualizarEstado, editar, eliminar };
+};
+
+export const useComunidades = () => {
+  return useQuery({
+    queryKey: KEYS.comunidades,
+    queryFn: getComunidades,
+    staleTime: FIVE_MINUTES,
+  });
 };

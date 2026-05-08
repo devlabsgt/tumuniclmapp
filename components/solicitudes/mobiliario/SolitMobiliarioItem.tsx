@@ -95,6 +95,30 @@ export const SolitMobiliarioItem: React.FC<Props> = ({
 
     const btnProps = getButtonContent();
 
+    const getFullAddress = () => {
+        const parts = [sol.aldea, sol.caserio, sol.ubicacion].filter(Boolean);
+        return parts.length > 0 ? parts.join(' | ') : 'Sin ubicación registrada';
+    };
+
+    const formatActivityDate = (dateStr: string | null) => {
+        if (!dateStr) return '-';
+
+        try {
+            // Extraer solo la parte de la fecha YYYY-MM-DD para asegurar consistencia
+            const cleanDateStr = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.split(' ')[0];
+            const date = new Date(cleanDateStr + 'T00:00:00');
+
+            if (isNaN(date.getTime())) return '--';
+
+            const dayName = date.toLocaleDateString('es-GT', { weekday: 'short' }).replace('.', '').toLowerCase();
+            const day = String(date.getDate()).padStart(2, '0');
+            const year = String(date.getFullYear()).slice(-2);
+            return `${dayName}/${day}/${year}`;
+        } catch (e) {
+            return '--';
+        }
+    };
+
     return (
         <div className={`
         group w-full bg-white dark:bg-neutral-900 rounded-2xl border transition-all duration-300 overflow-hidden
@@ -128,7 +152,10 @@ export const SolitMobiliarioItem: React.FC<Props> = ({
                                     CÓD: {sol.id.slice(0, 3)}-{sol.id.slice(3, 6)}
                                 </span>
                                 <h3 className="text-sm sm:text-lg font-bold text-slate-900 dark:text-white truncate">
-                                    {sol.ubicacion || 'Sin ubicación'}
+                                    {isOpen
+                                        ? getFullAddress()
+                                        : [sol.aldea, sol.caserio].filter(Boolean).join(' | ') || 'Sin ubicación'
+                                    }
                                 </h3>
                             </div>
                             {!isOpen && (
@@ -295,7 +322,7 @@ export const SolitMobiliarioItem: React.FC<Props> = ({
                                 </div>
                                 <div className="bg-gradient-to-r from-slate-50 to-slate-100/50 dark:from-neutral-800/60 dark:to-neutral-800/30 p-2.5 rounded-lg border border-slate-100 dark:border-neutral-700/50">
                                     <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 font-medium leading-tight text-justify break-words">
-                                        {sol.ubicacion || 'Sin ubicación registrada'}
+                                        {getFullAddress()}
                                     </div>
                                 </div>
                             </div>
@@ -360,8 +387,8 @@ export const SolitMobiliarioItem: React.FC<Props> = ({
                                                     {(sol.fecha_inicio || sol.fecha_fin) && (
                                                         <div className="text-xs text-slate-600 dark:text-slate-300">
                                                             <span className="font-bold">Actividad: </span>
-                                                            {sol.fecha_inicio ? new Date(sol.fecha_inicio).toLocaleDateString('es-GT') : '-'}
-                                                            {sol.fecha_fin ? ` al ${new Date(sol.fecha_fin).toLocaleDateString('es-GT')}` : ''}
+                                                            {formatActivityDate(sol.fecha_inicio)}
+                                                            {sol.fecha_fin ? ` al ${formatActivityDate(sol.fecha_fin)}` : ''}
                                                         </div>
                                                     )}
                                                     {sol.checklists?.items && Array.isArray(sol.checklists.items) && sol.checklists.items.length > 0 && (
