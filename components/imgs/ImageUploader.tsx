@@ -35,6 +35,8 @@ export default function ImageUploader({
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [editingFile, setEditingFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragCounter, setDragCounter] = useState(0);
   const { rol } = useUserData();
   const tienePermisoSubir = rol === 'SUPER' || rol === 'ADMINISTRADOR' || rol === 'SECRETARIO';
 
@@ -75,6 +77,50 @@ export default function ImageUploader({
     setEditingFile(file);
     // Reset the input so the same file can be selected again
     e.target.value = '';
+  };
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!tienePermisoSubir || isProcessing || currentImagePath) return;
+    setDragCounter(prev => prev + 1);
+    setIsDragging(true);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!tienePermisoSubir || isProcessing || currentImagePath) return;
+    // Necesario para permitir el drop
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragCounter(prev => prev - 1);
+    if (dragCounter - 1 === 0) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragCounter(0);
+    setIsDragging(false);
+    
+    if (!tienePermisoSubir || isProcessing || currentImagePath) return;
+
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert('Solo se permiten imágenes JPG, PNG o WebP.');
+      return;
+    }
+
+    setEditingFile(file);
   };
 
   const buildUniqueName = (ext: string) => {
@@ -158,7 +204,17 @@ export default function ImageUploader({
         className="hidden"
       />
 
-      <div className="border-2 border-dashed border-gray-300 dark:border-neutral-600 rounded-xl p-4 flex flex-col items-center gap-3 bg-gray-50 dark:bg-neutral-800/50 transition-colors">
+      <div 
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center gap-3 transition-colors ${
+          isDragging 
+            ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20' 
+            : 'border-gray-300 dark:border-neutral-600 bg-gray-50 dark:bg-neutral-800/50'
+        }`}
+      >
         {/* Preview o placeholder */}
         {currentImagePath ? (
           loadingPreview ? (
@@ -224,9 +280,11 @@ export default function ImageUploader({
 
         {/* Buttons */}
         {!currentImagePath && !uploading && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-            Selecciona una opción
-          </p>
+          <div className="text-center pointer-events-none">
+            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+              Arrastra una imagen o selecciona una opción
+            </p>
+          </div>
         )}
 
         <div className="flex gap-2 flex-wrap justify-center">

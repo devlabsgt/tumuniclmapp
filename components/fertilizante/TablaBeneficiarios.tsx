@@ -255,7 +255,7 @@ const formatearTimestamp = (ts?: string | null) => {
                   <div className="flex flex-row items-stretch gap-3 lg:contents">
                   {/* Image */}
                 <div
-                  className={`w-[35%] aspect-square lg:w-[115px] lg:h-[115px] lg:aspect-auto ml-2 bg-gray-100 dark:bg-neutral-800 relative flex-shrink-0 flex items-center justify-center rounded-lg overflow-hidden border border-gray-200 dark:border-neutral-700 shadow-sm ${b.estado === 'Anulado' || (!b.img_url && !tienePermisoEspecial) ? 'cursor-default' : 'cursor-pointer'}`}
+                  className={`w-[35%] aspect-[3/4] lg:w-[115px] lg:h-auto lg:aspect-[3/4] ml-2 bg-gray-100 dark:bg-neutral-800 relative flex-shrink-0 flex items-center justify-center rounded-lg overflow-hidden border border-gray-200 dark:border-neutral-700 shadow-sm ${b.estado === 'Anulado' || (!b.img_url && !tienePermisoEspecial) ? 'cursor-default' : 'cursor-pointer'}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     if (b.estado === 'Anulado') return;
