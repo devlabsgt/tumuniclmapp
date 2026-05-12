@@ -43,7 +43,7 @@ export function TablaBeneficiarios({
         pathsToFetch.map(path =>
           supabase.storage
             .from('Fertilizante2026')
-            .createSignedUrl(path, 3600) // <-- Pide solo la URL firmada normal
+            .createSignedUrl(path, 3600)
         )
       );
 
@@ -189,9 +189,9 @@ export function TablaBeneficiarios({
               >
                 {/* Decorative border line */}
                 <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${b.estado === 'Entregado' ? 'bg-green-500' :
-                    b.estado === 'Anulado' ? 'bg-red-500' :
-                      b.estado === 'Extraviado' ? 'bg-amber-500' :
-                        'bg-blue-500'
+                  b.estado === 'Anulado' ? 'bg-red-500' :
+                    b.estado === 'Extraviado' ? 'bg-amber-500' :
+                      'bg-blue-500'
                   }`} />
 
                 {/* Mobile-only header: Nombre + DPI/F.Nacim/Sexo/Telefono */}
@@ -284,9 +284,9 @@ export function TablaBeneficiarios({
                         <span className="font-black text-[18px] leading-none mt-0.5">{mostrar(b.cantidad)}</span>
                       </div>
                       <span className={`px-1.5 py-0.5 rounded text-[8px] uppercase font-bold border text-center w-full truncate ${b.estado === 'Entregado' ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50' :
-                          b.estado === 'Anulado' ? 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50' :
-                            b.estado === 'Extraviado' ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50' :
-                              'bg-gray-100 text-gray-600 border-gray-200 dark:bg-neutral-800 dark:text-gray-300 dark:border-neutral-700'
+                        b.estado === 'Anulado' ? 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50' :
+                          b.estado === 'Extraviado' ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50' :
+                            'bg-gray-100 text-gray-600 border-gray-200 dark:bg-neutral-800 dark:text-gray-300 dark:border-neutral-700'
                         }`}>
                         {mostrar(b.estado)}
                       </span>
@@ -640,9 +640,9 @@ export function TablaBeneficiarios({
           >
             {/* Decorative border line */}
             <div className={`absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl ${verBeneficiario.estado === 'Entregado' ? 'bg-green-500' :
-                verBeneficiario.estado === 'Anulado' ? 'bg-red-500' :
-                  verBeneficiario.estado === 'Extraviado' ? 'bg-amber-500' :
-                    'bg-blue-500'
+              verBeneficiario.estado === 'Anulado' ? 'bg-red-500' :
+                verBeneficiario.estado === 'Extraviado' ? 'bg-amber-500' :
+                  'bg-blue-500'
               }`} />
 
             <button
@@ -734,9 +734,9 @@ export function TablaBeneficiarios({
                         <span className="font-black text-[20px] leading-tight mt-0">{mostrar(verBeneficiario.cantidad)}</span>
                       </div>
                       <span className={`px-1.5 py-1.5 rounded text-[9px] uppercase font-bold border text-center w-full truncate leading-snug ${verBeneficiario.estado === 'Entregado' ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50' :
-                          verBeneficiario.estado === 'Anulado' ? 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50' :
-                            verBeneficiario.estado === 'Extraviado' ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50' :
-                              'bg-gray-100 text-gray-600 border-gray-200 dark:bg-neutral-800 dark:text-gray-300 dark:border-neutral-700'
+                        verBeneficiario.estado === 'Anulado' ? 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50' :
+                          verBeneficiario.estado === 'Extraviado' ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50' :
+                            'bg-gray-100 text-gray-600 border-gray-200 dark:bg-neutral-800 dark:text-gray-300 dark:border-neutral-700'
                         }`}>
                         {mostrar(verBeneficiario.estado)}
                       </span>
@@ -766,9 +766,9 @@ export function TablaBeneficiarios({
                     <div>
                       <span className="text-[13px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider block mb-2">Estado</span>
                       <span className={`inline-block px-3 py-1.5 rounded text-[14px] uppercase font-bold border ${verBeneficiario.estado === 'Entregado' ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50' :
-                          verBeneficiario.estado === 'Anulado' ? 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50' :
-                            verBeneficiario.estado === 'Extraviado' ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50' :
-                              'bg-gray-100 text-gray-600 border-gray-200 dark:bg-neutral-800 dark:text-gray-300 dark:border-neutral-700'
+                        verBeneficiario.estado === 'Anulado' ? 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50' :
+                          verBeneficiario.estado === 'Extraviado' ? 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50' :
+                            'bg-gray-100 text-gray-600 border-gray-200 dark:bg-neutral-800 dark:text-gray-300 dark:border-neutral-700'
                         }`}>
                         {mostrar(verBeneficiario.estado)}
                       </span>

@@ -206,7 +206,7 @@ const [formulario, setFormulario] = useState({
       .from('beneficiarios_fertilizante')
       .select('*')
       .eq('anio', anio)
-      .or(`dpi.eq.${dpi},codigo.eq.${codigo},telefono.eq.${telefono}`);
+      .or(`dpi.eq.${dpi},codigo.eq.${codigo}`);
   
     if (errorCheck) {
       Swal.fire('Error', 'Error al verificar duplicados.', 'error');
@@ -216,7 +216,6 @@ const [formulario, setFormulario] = useState({
     if (duplicados && duplicados.length > 0) {
       const duplicadoCodigo = duplicados.find((b) => b.codigo === codigo);
       const duplicadoDPI = duplicados.find((b) => b.dpi === dpi);
-      const duplicadoTelefono = duplicados.find((b) => b.telefono === telefono);
   
       let campo = '';
       let valor = '';
@@ -230,10 +229,6 @@ const [formulario, setFormulario] = useState({
         campo = 'DPI';
         valor = dpi;
         b = duplicadoDPI;
-      } else if (duplicadoTelefono) {
-        campo = 'Teléfono';
-        valor = telefono;
-        b = duplicadoTelefono;
       }
   
       Swal.fire({
