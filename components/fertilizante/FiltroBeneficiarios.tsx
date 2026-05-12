@@ -13,12 +13,14 @@ interface Props {
     valor: string;
     lugar: string;
     anio: string;
+    sinImagen: boolean;
   };
   setFiltros: (filtros: {
     campo: CampoFiltro;
     valor: string;
     lugar: string;
     anio: string;
+    sinImagen: boolean;
   }) => void;
   anios: string[];
 }

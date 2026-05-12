@@ -318,6 +318,7 @@ export const filtrarYOrdenarBeneficiarios = (
     valor: string;
     lugar: string;
     anio: string;
+    sinImagen?: boolean;
   },
   orden: OrdenFiltro
 ): Beneficiario[] => {
@@ -330,10 +331,11 @@ export const filtrarYOrdenarBeneficiarios = (
         orden === 'solo_anulados' ? b.estado === 'Anulado' :
         orden === 'solo_extraviados' ? b.estado === 'Extraviado' :
         orden === 'solo_informes' ? b.estado === 'Informe' :
-
         true;
 
-      return cumpleCampo && cumpleLugar && cumpleEstado;
+      const cumpleSinImagen = !filtros.sinImagen || !b.img_url;
+
+      return cumpleCampo && cumpleLugar && cumpleEstado && cumpleSinImagen;
     })
     .sort((a, b) => {
       switch (orden) {

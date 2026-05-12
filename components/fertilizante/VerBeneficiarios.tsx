@@ -41,6 +41,7 @@ export default function VerBeneficiarios() {
       valor: '',
       lugar: '',
       anio: '',
+      sinImagen: false,
     };
     if (typeof window !== 'undefined') {
       const savedCampo = localStorage.getItem('fertilizanteCampo');
@@ -191,6 +192,27 @@ export default function VerBeneficiarios() {
                 </select>
                 <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>
+            </div>
+
+            {/* Filtro: Sin Imágenes (Checkbox) */}
+            <div 
+              onClick={() => setFiltros({ ...filtros, sinImagen: !filtros.sinImagen })}
+              className={`col-span-2 md:flex-none flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all cursor-pointer select-none ${
+                filtros.sinImagen 
+                ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800 text-blue-600 dark:text-blue-400' 
+                : 'bg-gray-50 border-gray-200 dark:bg-neutral-800 dark:border-neutral-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700'
+              }`}
+            >
+              <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
+                filtros.sinImagen 
+                ? 'bg-blue-600 border-blue-600 text-white' 
+                : 'bg-white dark:bg-neutral-900 border-gray-300 dark:border-neutral-600'
+              }`}>
+                {filtros.sinImagen && (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                )}
+              </div>
+              <span className="text-sm font-bold">Sin Imágenes</span>
             </div>
 
             {/* Centro: Switch Tabla/Tarjetas */}
