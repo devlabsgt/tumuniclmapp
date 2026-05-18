@@ -6,6 +6,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { obtenerLugares } from '@/lib/obtenerLugares';
 import { registrarLog } from '@/utils/registrarLog';
 import Swal from 'sweetalert2';
+import useUserData from '@/hooks/sesion/useUserData';
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,6 +24,7 @@ type Tab = 'anular' | 'informe';
 
 export default function GestionDoctosModal({ visible, onClose, aniosDisponibles, onGuardado }: Props) {
   const anioActual = new Date().getFullYear().toString();
+  const { nombre } = useUserData();
   const [tab, setTab] = useState<Tab>('anular');
   const [lugares, setLugares] = useState<string[]>([]);
   const [guardando, setGuardando] = useState(false);
@@ -94,6 +96,7 @@ export default function GestionDoctosModal({ visible, onClose, aniosDisponibles,
       dpi: null,
       telefono: null,
       sexo: null,
+      creado_por: nombre || 'Desconocido',
     });
 
     if (error) {
@@ -147,6 +150,7 @@ export default function GestionDoctosModal({ visible, onClose, aniosDisponibles,
       dpi: null,
       telefono: null,
       sexo: null,
+      creado_por: nombre || 'Desconocido',
     });
 
     if (error) {

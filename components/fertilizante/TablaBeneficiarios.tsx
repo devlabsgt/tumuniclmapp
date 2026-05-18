@@ -22,7 +22,7 @@ export function TablaBeneficiarios({
   const router = useRouter();
 
   const { rol } = useUserData();
-  const tienePermisoEspecial = ['SUPER', 'ADMIN', 'SECRETARIO'].includes(rol);
+  const tienePermisoEspecial = ['SUPER', 'ADMIN', 'SECRETARIO', 'DAFIM'].includes(rol);
   const [modalBeneficiario, setModalBeneficiario] = useState<Beneficiario | null>(null);
   const [verBeneficiario, setVerBeneficiario] = useState<Beneficiario | null>(null);
   const [mostrarRegistros, setMostrarRegistros] = useState(false);
