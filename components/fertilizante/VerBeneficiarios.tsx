@@ -4,12 +4,13 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { List, LayoutGrid, FileText, FileWarning, ChevronDown } from 'lucide-react';
+import { List, LayoutGrid, FileText, FileWarning, ChevronDown, UserCog } from 'lucide-react';
 import { FiltroBeneficiarios } from './FiltroBeneficiarios';
 import { TablaBeneficiarios } from './TablaBeneficiarios';
 import EstadisticasBeneficiarios from './EstadisticasBeneficiarios';
 import MISSINGFolioModal from './MISSINGFolioModal';
 import GestionDoctosModal from './GestionDoctosModal';
+import EncargadosFoliosModal from './EncargadosFoliosModal';
 import type { Beneficiario, CampoFiltro, OrdenFiltro } from './types';
 import {
   cargarBeneficiariosPorAnio,
@@ -33,6 +34,7 @@ export default function VerBeneficiarios() {
   const [mostrarModalFolio, setMostrarModalFolio] = useState(false);
   const [beneficiariosPorPagina, setBeneficiariosPorPagina] = useState(20);
   const [mostrarGestionDoctos, setMostrarGestionDoctos] = useState(false);
+  const [mostrarEncargadosFolios, setMostrarEncargadosFolios] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
   const [filtros, setFiltros] = useState(() => {
@@ -233,10 +235,20 @@ export default function VerBeneficiarios() {
               </button>
             </div>
 
-            {/* Derecha: Gestionar doctos. + F. Faltantes */}
+            {/* Derecha: Encargados + Gestionar doctos. + F. Faltantes */}
             {(permisos.includes('TODO') || permisos.includes('LEER')) && (
-              <div className="col-span-2 md:flex-none flex flex-row gap-2 w-full md:w-auto">
-                <div className="flex-1 md:w-auto">
+              <div className="col-span-2 md:flex-none flex flex-row flex-wrap gap-2 w-full md:w-auto">
+                <div className="flex-1 md:w-auto min-w-[140px]">
+                  <Button
+                    className="h-11 bg-emerald-600 hover:bg-emerald-700 text-white w-full rounded-xl flex items-center justify-center gap-2 px-4 shadow-sm transition-all active:scale-95"
+                    onClick={() => setMostrarEncargadosFolios(true)}
+                  >
+                    <UserCog size={18} />
+                    <span className="truncate">Encargados</span>
+                  </Button>
+                </div>
+
+                <div className="flex-1 md:w-auto min-w-[140px]">
                   {(permisos.includes('CREAR') || permisos.includes('TODO')) ? (
                     <Button
                       className="h-11 bg-red-600 hover:bg-red-700 text-white w-full rounded-xl flex items-center justify-center gap-2 px-4 shadow-sm transition-all active:scale-95"
@@ -253,7 +265,7 @@ export default function VerBeneficiarios() {
                   )}
                 </div>
 
-                <div className="flex-1 md:w-auto">
+                <div className="flex-1 md:w-auto min-w-[140px]">
                   <Button
                     onClick={() => setMostrarModalFolio(true)}
                     className="h-11 bg-orange-600 hover:bg-orange-700 text-white w-full rounded-xl flex items-center justify-center gap-2 px-4 shadow-sm transition-all active:scale-95"
@@ -273,6 +285,10 @@ export default function VerBeneficiarios() {
           onClose={() => setMostrarGestionDoctos(false)}
           aniosDisponibles={aniosDisponibles}
           onGuardado={() => cargarDatos(filtros.anio)}
+        />
+        <EncargadosFoliosModal
+          visible={mostrarEncargadosFolios}
+          onClose={() => setMostrarEncargadosFolios(false)}
         />
       </motion.div>
       

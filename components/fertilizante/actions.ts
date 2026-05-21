@@ -1,5 +1,6 @@
 // components/fertilizante/actions.ts
 import Swal from 'sweetalert2';
+import { toast } from 'react-toastify';
 import { obtenerLugares } from '@/lib/obtenerLugares';
 import { createBrowserClient } from '@supabase/ssr';
 import type { Beneficiario, CampoFiltro, OrdenFiltro } from './types';
@@ -368,3 +369,234 @@ export const generarResumenBeneficiarios = (lista: Beneficiario[]) => ({
   hombres: lista.filter((b) => b.sexo?.toUpperCase() === 'M').length,
   mujeres: lista.filter((b) => b.sexo?.toUpperCase() === 'F').length,
 });
+
+export type UsuarioEncargado = {
+  id: string;
+  nombre: string;
+};
+
+export type EncargadoFolio = {
+  id: number;
+  lugar: string;
+  fecha: string;
+  folio_ini: string;
+  folio_fin: string;
+  encargado: string;
+  encargado_nombre?: string;
+};
+
+export const obtenerUsuariosParaEncargado = async (): Promise<UsuarioEncargado[]> => {
+  const { data, error } = await supabase
+    .from('info_usuario')
+    .select('user_id, nombre')
+    .eq('activo', true)
+    .order('nombre');
+
+  if (error || !data) {
+    console.error('Error al obtener usuarios:', error?.message);
+    return [];
+  }
+
+  return data
+    .filter((u): u is { user_id: string; nombre: string } => Boolean(u.user_id && u.nombre))
+    .map((u) => ({ id: u.user_id, nombre: u.nombre }));
+};
+
+const folioNumericoDesdeCodigo = (codigo: string): number | null => {
+  const digitos = codigo.replace(/\D/g, '');
+  if (!digitos) return null;
+  const folio = parseInt(digitos, 10);
+  return Number.isNaN(folio) ? null : folio;
+};
+
+const folioEnRangoEncargado = (folio: number, ini: string, fin: string): boolean => {
+  const desde = parseInt(ini, 10);
+  const hasta = parseInt(fin, 10);
+  if (Number.isNaN(desde) || Number.isNaN(hasta)) return false;
+  return folio >= desde && folio <= hasta;
+};
+
+const resolverAsignacionEncargadoInterno = (
+  encargados: EncargadoFolio[],
+  lugar: string | null | undefined,
+  codigo: string,
+): EncargadoFolio | null => {
+  if (!lugar) return null;
+
+  const folio = folioNumericoDesdeCodigo(codigo);
+  if (folio === null) return null;
+
+  const candidatos = encargados.filter(
+    (e) => e.lugar === lugar && folioEnRangoEncargado(folio, e.folio_ini, e.folio_fin),
+  );
+
+  if (candidatos.length === 0) return null;
+
+  candidatos.sort((a, b) => b.fecha.localeCompare(a.fecha));
+  return candidatos[0];
+};
+
+export const resolverAsignacionEncargado = resolverAsignacionEncargadoInterno;
+
+export const resolverEncargadoBeneficiario = (
+  encargados: EncargadoFolio[],
+  lugar: string | null | undefined,
+  codigo: string,
+): string | null => {
+  return resolverAsignacionEncargadoInterno(encargados, lugar, codigo)?.encargado_nombre ?? null;
+};
+
+export const cargarEncargadosFolios = async (): Promise<EncargadoFolio[]> => {
+  const { data, error } = await supabase
+    .from('encargados_folios_fertilizante')
+    .select('id, lugar, fecha, folio_ini, folio_fin, encargado')
+    .order('fecha', { ascending: false });
+
+  if (error || !data) {
+    console.error('Error al cargar encargados:', error?.message);
+    return [];
+  }
+
+  const { data: usuarios } = await supabase
+    .from('info_usuario')
+    .select('user_id, nombre');
+
+  const nombres = new Map(
+    (usuarios ?? []).map((u) => [u.user_id, u.nombre]),
+  );
+
+  return data.map((row) => ({
+    ...row,
+    encargado_nombre: nombres.get(row.encargado) ?? undefined,
+  }));
+};
+
+type GuardarEncargadoInput = {
+  lugar: string;
+  fecha: string;
+  folio_ini: string;
+  folio_fin: string;
+  encargado: string;
+};
+
+const validarFolioEncargado = (folio: string): boolean =>
+  /^\d{4}$/.test(folio) && parseInt(folio, 10) > 0;
+
+const validarDatosEncargado = (input: GuardarEncargadoInput): boolean => {
+  const { lugar, fecha, folio_ini, folio_fin, encargado } = input;
+
+  if (!lugar || !fecha || !encargado) {
+    toast.warning('Complete todos los campos requeridos.');
+    return false;
+  }
+
+  if (!validarFolioEncargado(folio_ini) || !validarFolioEncargado(folio_fin)) {
+    toast.warning('Los folios deben tener 4 dígitos numéricos y ser mayores a 0000.');
+    return false;
+  }
+
+  if (parseInt(folio_fin, 10) < parseInt(folio_ini, 10)) {
+    toast.warning('El folio final debe ser mayor o igual al folio inicial.');
+    return false;
+  }
+
+  return true;
+};
+
+export const guardarEncargadoFolio = async (input: GuardarEncargadoInput): Promise<boolean> => {
+  if (!validarDatosEncargado(input)) return false;
+
+  const { lugar, fecha, folio_ini, folio_fin, encargado } = input;
+
+  const { error } = await supabase.from('encargados_folios_fertilizante').insert({
+    lugar,
+    fecha,
+    folio_ini,
+    folio_fin,
+    encargado,
+  });
+
+  if (error) {
+    await registrarLog({
+      accion: 'ERROR_ENCARGADO_FOLIO',
+      nombreModulo: 'FERTILIZANTE',
+      descripcion: error.message,
+    });
+    toast.error(`Error al guardar: ${error.message}`);
+    return false;
+  }
+
+  const msg = `Encargado registrado: ${lugar}, folios ${folio_ini}–${folio_fin}, fecha ${fecha}`;
+  await registrarLog({
+    accion: 'GUARDAR_ENCARGADO_FOLIO',
+    nombreModulo: 'FERTILIZANTE',
+    descripcion: msg,
+  });
+  toast.success('Encargado guardado correctamente.');
+  return true;
+};
+
+export const actualizarEncargadoFolio = async (
+  id: number,
+  input: GuardarEncargadoInput,
+): Promise<boolean> => {
+  if (!validarDatosEncargado(input)) return false;
+
+  const { lugar, fecha, folio_ini, folio_fin, encargado } = input;
+
+  const { error } = await supabase
+    .from('encargados_folios_fertilizante')
+    .update({ lugar, fecha, folio_ini, folio_fin, encargado })
+    .eq('id', id);
+
+  if (error) {
+    await registrarLog({
+      accion: 'ERROR_ACTUALIZAR_ENCARGADO_FOLIO',
+      nombreModulo: 'FERTILIZANTE',
+      descripcion: error.message,
+    });
+    toast.error(`Error al actualizar: ${error.message}`);
+    return false;
+  }
+
+  const msg = `Encargado actualizado: ${lugar}, folios ${folio_ini}–${folio_fin}, fecha ${fecha}`;
+  await registrarLog({
+    accion: 'ACTUALIZAR_ENCARGADO_FOLIO',
+    nombreModulo: 'FERTILIZANTE',
+    descripcion: msg,
+  });
+  toast.success('Encargado actualizado correctamente.');
+  return true;
+};
+
+export const eliminarEncargadoFolio = async (registro: EncargadoFolio): Promise<boolean> => {
+  const confirmado = window.confirm(
+    `¿Eliminar registro?\n\nSe eliminará la asignación de ${registro.encargado_nombre || 'encargado'} para ${registro.lugar}, folios ${registro.folio_ini}–${registro.folio_fin}.`,
+  );
+
+  if (!confirmado) return false;
+
+  const { error } = await supabase
+    .from('encargados_folios_fertilizante')
+    .delete()
+    .eq('id', registro.id);
+
+  if (error) {
+    await registrarLog({
+      accion: 'ERROR_ELIMINAR_ENCARGADO_FOLIO',
+      nombreModulo: 'FERTILIZANTE',
+      descripcion: error.message,
+    });
+    toast.error(`Error al eliminar: ${error.message}`);
+    return false;
+  }
+
+  const msg = `Encargado eliminado: ${registro.lugar}, folios ${registro.folio_ini}–${registro.folio_fin}`;
+  await registrarLog({
+    accion: 'ELIMINAR_ENCARGADO_FOLIO',
+    nombreModulo: 'FERTILIZANTE',
+    descripcion: msg,
+  });
+  toast.success('Registro eliminado.');
+  return true;
+};

@@ -4,12 +4,37 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import Swal from 'sweetalert2';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { registrarLog } from '@/utils/registrarLog';
 import { buscarHistorialDPI } from './actions';
 import { obtenerLugares } from '@/lib/obtenerLugares';
 import useUserData from '@/hooks/sesion/useUserData';
+import { BuscadorLugar } from '@/components/fertilizante/BuscadorLugar';
+import { btnSubmitClass, formFieldsClass, formPageClass, formSectionsGridClass, inputClass, inputErrorClass, inputMonoClass, labelClass, sectionClass } from '@/components/fertilizante/formStyles';
+
+const completarFolioConCeros = (valor: string): string => {
+  const digitos = valor.replace(/\D/g, '').slice(0, 4);
+  if (!digitos) return digitos;
+  return digitos.padStart(4, '0');
+};
+
+const ULTIMO_LUGAR_KEY = 'fertilizante.beneficiarios.ultimo_lugar';
+const ULTIMA_FECHA_KEY = 'fertilizante.beneficiarios.ultima_fecha';
+
+const leerUltimoLugar = (): string => {
+  if (typeof window === 'undefined') return '';
+  return sessionStorage.getItem(ULTIMO_LUGAR_KEY) ?? '';
+};
+
+const leerUltimaFecha = (): string => {
+  if (typeof window === 'undefined') return new Date().toISOString().slice(0, 10);
+  return sessionStorage.getItem(ULTIMA_FECHA_KEY) ?? new Date().toISOString().slice(0, 10);
+};
+
+const guardarPreferenciasEntrega = (lugar: string, fecha: string) => {
+  if (typeof window === 'undefined') return;
+  if (lugar) sessionStorage.setItem(ULTIMO_LUGAR_KEY, lugar);
+  if (fecha) sessionStorage.setItem(ULTIMA_FECHA_KEY, fecha);
+};
 
 export function CrearBeneficiario() {
   const { nombre } = useUserData();
@@ -134,13 +159,15 @@ const [formulario, setFormulario] = useState({
     } else {
       if (respuesta.data) {
         const historial = respuesta.data;
+        const ultimoLugar = leerUltimoLugar();
+        const ultimaFecha = leerUltimaFecha();
         setAnioHistorial(historial.anio.toString());
         setFormulario((prev) => ({
           ...prev,
           dpi,
           nombre_completo: historial.nombre_completo || '',
-          lugar: historial.lugar || '',
-          fecha: '',
+          lugar: ultimoLugar || historial.lugar || '',
+          fecha: ultimaFecha,
           fecha_nacimiento: historial.fecha_nacimiento || '',
           codigo: '',
           telefono: historial.telefono === 'N/A' ? '' : (historial.telefono || ''),
@@ -148,7 +175,12 @@ const [formulario, setFormulario] = useState({
         }));
       } else {
         setAnioHistorial(null);
-        setFormulario((prev) => ({ ...prev, dpi }));
+        setFormulario((prev) => ({
+          ...prev,
+          dpi,
+          lugar: leerUltimoLugar(),
+          fecha: leerUltimaFecha(),
+        }));
       }
       
       setMostrarFormulario(true);
@@ -276,284 +308,295 @@ if (error) {
         descripcion: `Se ingresó:<br><br><strong>Folio:</strong> ${formulario.codigo}<br><br><strong>Nombre:</strong> ${formulario.nombre_completo}<br><br><strong>DPI:</strong> ${formulario.dpi}`,
       });
       Swal.fire('Éxito', 'Beneficiario registrado correctamente.', 'success').then(() => {
-      setFormulario({
-        nombre_completo: '',
-        dpi: '',
-        lugar: '',
-        fecha: '',
-        fecha_nacimiento: '',
-        codigo: '',
-        telefono: '',
-        sexo: 'M',
-        cantidad: '1',
+        guardarPreferenciasEntrega(formulario.lugar, formulario.fecha);
+        const lugarRecordado = formulario.lugar;
+        const fechaRecordada = formulario.fecha;
+        setFormulario({
+          nombre_completo: '',
+          dpi: '',
+          lugar: lugarRecordado,
+          fecha: fechaRecordada,
+          fecha_nacimiento: '',
+          codigo: '',
+          telefono: '',
+          sexo: 'M',
+          cantidad: '1',
           estado: 'Entregado',
+        });
+        setDpi('');
+        setAnioHistorial(null);
+        setMostrarFormulario(false);
       });
-      setDpi('');
-      setAnioHistorial(null);
-      setMostrarFormulario(false);
-    });
 
     }
   };
   
 return (
-  <div className="max-w-xl mx-auto p-6 bg-white rounded shadow">
-    {/* Botón atrás */}
-    <div className="flex items-center h-full">
+  <div className={formPageClass}>
+    <button
+      type="button"
+      onClick={() => router.push('/protected/fertilizante/beneficiarios')}
+      className="text-emerald-600 dark:text-emerald-400 text-sm underline p-0 m-0 h-auto min-h-0 bg-transparent border-0 shadow-none cursor-pointer font-medium"
+    >
+      Volver
+    </button>
 
-      <Button
-          variant="ghost"
-        onClick={() => router.push('/protected/fertilizante/beneficiarios')}
-          className="text-blue-600 text-base underline"
-        >
-          Volver
-      </Button>
-    </div>
-
-    <h1 className="text-2xl font-bold text-center mb-4">
+    <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-6 mt-2">
       Registrar Beneficiario de Fertilizante
     </h1>
 
     {mostrarFormulario && anioHistorial && (
-      <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4">
-        <div className="flex">
-          <div className="ml-3">
-            <p className="text-sm text-blue-700">
-              Datos recuperados del año <strong>{anioHistorial}</strong>. Por favor complete la fecha y el folio actual.
-            </p>
-          </div>
-        </div>
+      <div className="mb-4 px-4 py-3 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
+        <p className="text-xs text-blue-700 dark:text-blue-300">
+          Datos recuperados del año <strong>{anioHistorial}</strong>. Complete la fecha y el folio actual.
+        </p>
       </div>
     )}
 
     {!mostrarFormulario && (
-      <>
-        {/* Año y DPI */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Año:</label>
-          <select
-            value={anio}
-            onChange={(e) => setAnio(e.target.value)}
-            className="border border-gray-300 rounded px-3 py-2 w-full"
-          >
-            {aniosDisponibles.map((a) => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </select>
-        </div>
-
+      <section className={sectionClass}>
+        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Verificar DPI</p>
         <div className="flex flex-col gap-4">
-          <Input
-            type="text"
-            placeholder="Ingrese el DPI del beneficiario"
-            value={dpi}
-            onChange={(e) => {
-              const soloNumeros = e.target.value.replace(/\D/g, '').slice(0, 13);
-              setDpi(soloNumeros);
-            }}
-          />
-          <Button onClick={verificarDPI} className="h-11 text-lg">
-            Ingresar DPI
-          </Button>
+          <div className="grid grid-cols-4 lg:grid-cols-5 gap-3 items-end">
+            <div className="col-span-1 min-w-0">
+              <label className={labelClass}>Año</label>
+              <select value={anio} onChange={(e) => setAnio(e.target.value)} className={inputClass}>
+                {aniosDisponibles.map((a) => (
+                  <option key={a} value={a}>{a}</option>
+                ))}
+              </select>
+            </div>
+            <div className="col-span-3 min-w-0">
+              <label className={labelClass}>DPI</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="13 dígitos"
+                value={dpi}
+                onChange={(e) => {
+                  const soloNumeros = e.target.value.replace(/\D/g, '').slice(0, 13);
+                  setDpi(soloNumeros);
+                }}
+                className={inputClass}
+              />
+            </div>
+            <div className="col-span-4 lg:col-span-1 min-w-0">
+              <button type="button" onClick={verificarDPI} className={`${btnSubmitClass} w-full lg:text-xs lg:px-2`}>
+                Ingresar DPI
+              </button>
+            </div>
+          </div>
         </div>
-      </>
+      </section>
     )}
 
     {mostrarFormulario && (
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-4">
-        {/* Nombre completo */}
-        <div>
-          <label className="font-semibold block mb-1">
-            Nombre completo
-            {errores.nombre_completo && <span className="text-red-500 ml-2 text-sm">{errores.nombre_completo}</span>}
-          </label>
-          <input
-            type="text"
-            name="nombre_completo"
-            value={formulario.nombre_completo}
-            onChange={handleChange}
-            className={`w-full border rounded px-3 py-2 ${errores.nombre_completo ? 'border-red-500' : 'border-gray-300'}`}
-          />
-        </div>
-
-        {/* DPI */}
-        <div>
-          <label className="font-semibold block mb-1">
-            DPI
-            {errores.dpi && <span className="text-red-500 ml-2 text-sm">{errores.dpi}</span>}
-          </label>
-          <input
-            type="text"
-            name="dpi"
-            value={formulario.dpi}
-            onChange={handleChange}
-            className={`w-full border rounded px-3 py-2 ${errores.dpi ? 'border-red-500' : 'border-gray-300'}`}
-          />
-        </div>
-
-        {/* Lugar */}
-        <div>
-          <label className="font-semibold block mb-1">
-            Lugar
-            {errores.lugar && <span className="text-red-500 ml-2 text-sm">{errores.lugar}</span>}
-          </label>
-          <select
-            name="lugar"
-            value={formulario.lugar}
-            onChange={handleChange}
-            className={`w-full border rounded px-3 py-2 ${errores.lugar ? 'border-red-500' : 'border-gray-300'}`}
-          >
-            <option value="">Seleccione un lugar...</option>
-            {lugares.map((lugar) => (
-              <option key={lugar} value={lugar}>
-                {lugar}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Fecha */}
-        <div>
-          <label className="font-semibold block mb-1">
-            Fecha de entrega
-            {errores.fecha && <span className="text-red-500 ml-2 text-sm">{errores.fecha}</span>}
-          </label>
-          <input
-            type="date"
-            name="fecha"
-            value={formulario.fecha}
-            onChange={handleChange}
-            className={`w-full border rounded px-3 py-2 ${errores.fecha ? 'border-red-500' : 'border-gray-300'}`}
-          />
-        </div>
-
-        {/* Fecha de nacimiento */}
-        <div>
-          <label className="font-semibold block mb-1">
-            Fecha de nacimiento
-          </label>
-          <input
-            type="date"
-            name="fecha_nacimiento"
-            value={formulario.fecha_nacimiento}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2 border-gray-300"
-          />
-        </div>
-
-        {/* Folio */}
-        <div>
-          <label className="font-semibold block mb-1">
-            Folio
-            {errores.codigo && <span className="text-red-500 ml-2 text-sm">{errores.codigo}</span>}
-          </label>
-          <input
-            type="text"
-            name="codigo"
-            value={formulario.codigo}
-            onChange={handleChange}
-            className={`w-full border rounded px-3 py-2 ${errores.codigo ? 'border-red-500' : 'border-gray-300'}`}
-          />
-        </div>
-
-        {/* Cantidad de sacos */}
-        <div>
-          <label className="font-semibold block mb-1">
-            Cantidad de sacos
-            {errores.cantidad && <span className="text-red-500 ml-2 text-sm">{errores.cantidad}</span>}
-          </label>
-          <input
-            type="number"
-            name="cantidad"
-            min="1"
-            step="1"
-            value={formulario.cantidad}
-            onChange={handleChange}
-            className={`w-full border rounded px-3 py-2 ${errores.cantidad ? 'border-red-500' : 'border-gray-300'}`}
-          />
-        </div>
-
-        {/* Teléfono */}
-        <div>
-          <label className="font-semibold block mb-1">
-            Teléfono
-            {errores.telefono && <span className="text-red-500 ml-2 text-sm">{errores.telefono}</span>}
-          </label>
-          <input
-            type="tel"
-            name="telefono"
-            value={formulario.telefono}
-            onChange={handleChange}
-            placeholder="Ingrese 8 dígitos"
-            className={`w-full border rounded px-3 py-2 ${errores.telefono ? 'border-red-500' : 'border-gray-300'}`}
-          />
-        </div>
-
-        {/* Sexo */}
-        <div className="flex items-center gap-4">
-          <label className="text-lg font-medium">
-            Sexo:
-            {errores.sexo && <span className="text-red-500 ml-2 text-sm">{errores.sexo}</span>}
-          </label>
-          <div className="flex gap-4">
-            <label className="flex items-center gap-2">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className={formSectionsGridClass}>
+        <section className={sectionClass}>
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Datos personales</p>
+          <div className={formFieldsClass}>
+            <div>
+              <label className={labelClass}>
+                Nombre completo
+                {errores.nombre_completo && (
+                  <span className="text-red-500 normal-case tracking-normal ml-1">{errores.nombre_completo}</span>
+                )}
+              </label>
               <input
-                type="radio"
-                name="sexo"
-                value="M"
-                checked={formulario.sexo === 'M'}
+                type="text"
+                name="nombre_completo"
+                value={formulario.nombre_completo}
                 onChange={handleChange}
-                className="accent-blue-600"
+                className={`${inputClass} ${errores.nombre_completo ? inputErrorClass : ''}`}
               />
-              Masculino
-            </label>
-            <label className="flex items-center gap-2">
+            </div>
+
+            <div>
+              <label className={labelClass}>
+                DPI
+                {errores.dpi && (
+                  <span className="text-red-500 normal-case tracking-normal ml-1">{errores.dpi}</span>
+                )}
+              </label>
               <input
-                type="radio"
-                name="sexo"
-                value="F"
-                checked={formulario.sexo === 'F'}
+                type="text"
+                name="dpi"
+                inputMode="numeric"
+                value={formulario.dpi}
                 onChange={handleChange}
-                className="accent-pink-500"
+                className={`${inputClass} ${errores.dpi ? inputErrorClass : ''}`}
               />
-              Femenino
-            </label>
+            </div>
+
+            <div>
+              <label className={labelClass}>
+                Teléfono
+                {errores.telefono && (
+                  <span className="text-red-500 normal-case tracking-normal ml-1">{errores.telefono}</span>
+                )}
+              </label>
+              <input
+                type="tel"
+                name="telefono"
+                value={formulario.telefono}
+                onChange={handleChange}
+                placeholder="8 dígitos"
+                className={`${inputClass} ${errores.telefono ? inputErrorClass : ''}`}
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Fecha de nacimiento</label>
+              <input
+                type="date"
+                name="fecha_nacimiento"
+                value={formulario.fecha_nacimiento}
+                onChange={handleChange}
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <span className={labelClass}>
+                Sexo
+                {errores.sexo && (
+                  <span className="text-red-500 normal-case tracking-normal ml-1">{errores.sexo}</span>
+                )}
+              </span>
+              <div className="flex gap-4 mt-1">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <input
+                    type="radio"
+                    name="sexo"
+                    value="M"
+                    checked={formulario.sexo === 'M'}
+                    onChange={handleChange}
+                    className="accent-emerald-600"
+                  />
+                  Masculino
+                </label>
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <input
+                    type="radio"
+                    name="sexo"
+                    value="F"
+                    checked={formulario.sexo === 'F'}
+                    onChange={handleChange}
+                    className="accent-pink-500"
+                  />
+                  Femenino
+                </label>
+              </div>
+            </div>
           </div>
-        </div>
+        </section>
 
-        {/* Estado */}
-        <div className="flex items-center gap-4">
-          <label className="text-lg font-medium">Estado:</label>
-          <div className="flex gap-4 flex-wrap">
-            <label className="flex items-center gap-2 text-green-700 font-medium">
-              <input
-                type="radio"
-                name="estado"
-                value="Entregado"
-                checked={formulario.estado === 'Entregado'}
-                onChange={handleChange}
-                className="accent-green-600"
-              />
-              Entregado
-            </label>
+        <section className={sectionClass}>
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Datos de entrega</p>
+          <div className={formFieldsClass}>
+            <BuscadorLugar
+              value={formulario.lugar}
+              onChange={(lugar) => {
+                setFormulario((prev) => ({ ...prev, lugar }));
+                if (errores.lugar) setErrores((prev) => ({ ...prev, lugar: '' }));
+              }}
+              lugares={lugares}
+              error={errores.lugar}
+            />
 
-            <label className="flex items-center gap-2 text-yellow-600 font-medium">
+            <div>
+              <label className={labelClass}>
+                Fecha de entrega
+                {errores.fecha && (
+                  <span className="text-red-500 normal-case tracking-normal ml-1">{errores.fecha}</span>
+                )}
+              </label>
               <input
-                type="radio"
-                name="estado"
-                value="Extraviado"
-                checked={formulario.estado === 'Extraviado'}
+                type="date"
+                name="fecha"
+                value={formulario.fecha}
                 onChange={handleChange}
-                className="accent-yellow-500"
+                className={`${inputClass} ${errores.fecha ? inputErrorClass : ''}`}
               />
-              Extraviado
-            </label>
+            </div>
+
+            <div>
+              <label className={labelClass}>
+                Folio
+                {errores.codigo && (
+                  <span className="text-red-500 normal-case tracking-normal ml-1">{errores.codigo}</span>
+                )}
+              </label>
+              <input
+                type="text"
+                name="codigo"
+                inputMode="numeric"
+                value={formulario.codigo}
+                onChange={handleChange}
+                onBlur={() =>
+                  setFormulario((prev) => ({ ...prev, codigo: completarFolioConCeros(prev.codigo) }))
+                }
+                maxLength={4}
+                placeholder="0001"
+                className={`${inputMonoClass} ${errores.codigo ? inputErrorClass : ''}`}
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>
+                Cantidad de sacos
+                {errores.cantidad && (
+                  <span className="text-red-500 normal-case tracking-normal ml-1">{errores.cantidad}</span>
+                )}
+              </label>
+              <input
+                type="number"
+                name="cantidad"
+                min="1"
+                step="1"
+                value={formulario.cantidad}
+                onChange={handleChange}
+                className={`${inputClass} ${errores.cantidad ? inputErrorClass : ''}`}
+              />
+            </div>
+
+            <div>
+              <span className={labelClass}>Estado</span>
+              <div className="flex gap-4 flex-wrap mt-1">
+                <label className="flex items-center gap-2 text-sm font-medium text-green-700 dark:text-green-400">
+                  <input
+                    type="radio"
+                    name="estado"
+                    value="Entregado"
+                    checked={formulario.estado === 'Entregado'}
+                    onChange={handleChange}
+                    className="accent-green-600"
+                  />
+                  Entregado
+                </label>
+                <label className="flex items-center gap-2 text-sm font-medium text-yellow-600 dark:text-yellow-400">
+                  <input
+                    type="radio"
+                    name="estado"
+                    value="Extraviado"
+                    checked={formulario.estado === 'Extraviado'}
+                    onChange={handleChange}
+                    className="accent-yellow-500"
+                  />
+                  Extraviado
+                </label>
+              </div>
+            </div>
           </div>
+        </section>
         </div>
 
-        <Button type="submit" className="mt-4 h-11 text-lg">
-          Crear Beneficiario
-        </Button>
+        <div className="flex justify-end pt-1">
+          <button type="submit" className={btnSubmitClass}>
+            Crear Beneficiario
+          </button>
+        </div>
       </form>
     )}
   </div>

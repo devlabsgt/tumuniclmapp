@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, type CSSProperties } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,71 @@ import Swal from 'sweetalert2';
 import type { Route } from 'next';
 import type { TablaBeneficiariosProps, Beneficiario } from './types';
 import GestionBeneficiarioImgModal from './GestionBeneficiarioImgModal';
+import {
+  cargarEncargadosFolios,
+  resolverAsignacionEncargado,
+  type EncargadoFolio,
+} from './actions';
+
+const ANCHO_COLUMNA_ENCARGADO = 34;
+
+const estiloTextoVertical180: CSSProperties = {
+  writingMode: 'vertical-rl',
+  textOrientation: 'mixed',
+  transform: 'rotate(180deg)',
+};
+
+const claveGrupoEncargado = (asignacion: EncargadoFolio | null): string =>
+  asignacion
+    ? `${asignacion.id}|${asignacion.lugar}|${asignacion.folio_ini}|${asignacion.folio_fin}`
+    : '__sin_encargado__';
+
+type FilaTablaEncargado = {
+  beneficiario: Beneficiario;
+  nombreEncargado: string | null;
+  mostrarCeldaEncargado: boolean;
+  rowspanEncargado: number;
+};
+
+const calcularFilasConEncargado = (
+  beneficiarios: Beneficiario[],
+  encargados: EncargadoFolio[],
+): FilaTablaEncargado[] => {
+  const filas = beneficiarios.map((beneficiario) => {
+    const asignacion = resolverAsignacionEncargado(encargados, beneficiario.lugar, beneficiario.codigo);
+    return {
+      beneficiario,
+      asignacion,
+      grupoKey: claveGrupoEncargado(asignacion),
+      nombreEncargado: asignacion?.encargado_nombre ?? null,
+    };
+  });
+
+  return filas.map((fila, index) => {
+    const esInicioGrupo = index === 0 || filas[index - 1].grupoKey !== fila.grupoKey;
+    if (!esInicioGrupo) {
+      return {
+        beneficiario: fila.beneficiario,
+        nombreEncargado: fila.nombreEncargado,
+        mostrarCeldaEncargado: false,
+        rowspanEncargado: 1,
+      };
+    }
+
+    let rowspan = 1;
+    for (let j = index + 1; j < filas.length; j++) {
+      if (filas[j].grupoKey === fila.grupoKey) rowspan++;
+      else break;
+    }
+
+    return {
+      beneficiario: fila.beneficiario,
+      nombreEncargado: fila.nombreEncargado,
+      mostrarCeldaEncargado: true,
+      rowspanEncargado: rowspan,
+    };
+  });
+};
 
 export function TablaBeneficiarios({
   data,
@@ -28,7 +93,40 @@ export function TablaBeneficiarios({
   const [mostrarRegistros, setMostrarRegistros] = useState(false);
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const [expandedFooter, setExpandedFooter] = useState<Record<string, boolean>>({});
+  const [encargadosFolios, setEncargadosFolios] = useState<EncargadoFolio[]>([]);
 
+  useEffect(() => {
+    cargarEncargadosFolios().then(setEncargadosFolios);
+  }, [data]);
+
+  const filasConEncargado = useMemo(
+    () => calcularFilasConEncargado(data, encargadosFolios),
+    [data, encargadosFolios],
+  );
+
+  const anchoMinimoTabla = useMemo(() => {
+    const colsFijas = 1215 + ANCHO_COLUMNA_ENCARGADO;
+    const foto = 115;
+    const acciones = tienePermisoEspecial ? 180 : 0;
+    const registros = mostrarRegistros ? 400 : 0;
+    return colsFijas + registros + acciones + foto;
+  }, [mostrarRegistros, tienePermisoEspecial]);
+
+  const renderEncargadoVertical = (nombre: string | null) => {
+    if (!nombre?.trim()) {
+      return <span className="text-gray-300 dark:text-neutral-600 text-[10px]">—</span>;
+    }
+
+    return (
+      <span
+        className="font-bold text-gray-800 dark:text-gray-300 text-[10px] tracking-wide inline-block max-h-full"
+        style={estiloTextoVertical180}
+        title={nombre}
+      >
+        {nombre}
+      </span>
+    );
+  };
 
   useEffect(() => {
     const fetchThumbnails = async () => {
@@ -165,7 +263,7 @@ export function TablaBeneficiarios({
       )}
 
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
           {isLoading ? (
             Array.from({ length: 10 }).map((_, i) => (
               <div key={i} className="bg-white dark:bg-neutral-900 rounded-xl border border-gray-200 dark:border-neutral-800 animate-pulse flex flex-col p-3 gap-3">
@@ -434,9 +532,13 @@ export function TablaBeneficiarios({
       ) : (
         <div className="w-full overflow-x-auto max-w-full flex justify-start md:justify-center">
 
-          <table className={`w-full border-collapse text-xs border-[2.5px] border-gray-400 dark:border-neutral-600 table-fixed ${mostrarRegistros ? 'min-w-[1850px]' : 'min-w-[1370px]'}`}>
+          <table
+            className="w-full border-collapse text-xs border-[2.5px] border-gray-400 dark:border-neutral-600 table-fixed"
+            style={{ minWidth: `${anchoMinimoTabla}px` }}
+          >
 
             <colgroup>
+              <col style={{ width: `${ANCHO_COLUMNA_ENCARGADO}px` }} />
               <col style={{ width: '50px' }} />
               <col style={{ width: '150px' }} />
               <col style={{ width: '100px' }} />
@@ -458,7 +560,7 @@ export function TablaBeneficiarios({
 
             <thead>
               <tr className="text-left text-[13px] font-semibold bg-gray-200 dark:bg-neutral-800 dark:text-gray-200">
-                <th colSpan={5} className="p-2 border-b-[2.5px] border-r-[2.5px] border-gray-400 dark:border-neutral-600 text-center uppercase tracking-wider">Datos de entrega</th>
+                <th colSpan={6} className="p-2 border-b-[2.5px] border-r-[2.5px] border-gray-400 dark:border-neutral-600 text-center uppercase tracking-wider">Datos de entrega</th>
                 <th colSpan={6} className="p-2 border-b-[2.5px] border-r-[2.5px] border-gray-400 dark:border-neutral-600 text-center uppercase tracking-wider text-blue-800 dark:text-blue-400">Datos del beneficiario</th>
                 <th
                   colSpan={(mostrarRegistros ? 2 : 0) + (tienePermisoEspecial ? 1 : 0) + 1}
@@ -470,6 +572,7 @@ export function TablaBeneficiarios({
                 </th>
               </tr>
               <tr className="bg-gray-100 dark:bg-neutral-900/80 text-left border-b-[2.5px] border-gray-400 dark:border-neutral-600 font-bold dark:text-gray-300">
+                <th className="p-2 border-[1.5px] border-gray-300 dark:border-neutral-700 text-center">Enc.</th>
                 <th className="p-2 border-[1.5px] border-gray-300 dark:border-neutral-700">Folio</th>
                 <th className="p-2 border-[1.5px] border-gray-300 dark:border-neutral-700">Lugar</th>
                 <th className="p-2 border-[1.5px] border-gray-300 dark:border-neutral-700">F. Entrega</th>
@@ -493,15 +596,23 @@ export function TablaBeneficiarios({
               {isLoading
                 ? Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i} className="animate-pulse bg-gray-50 dark:bg-neutral-800/40 border-[1.5px] border-gray-300 dark:border-neutral-700">
-                    {Array.from({ length: 12 + (mostrarRegistros ? 2 : 0) + (tienePermisoEspecial ? 1 : 0) }).map((_, j) => (
+                    {Array.from({ length: 13 + (mostrarRegistros ? 2 : 0) + (tienePermisoEspecial ? 1 : 0) }).map((_, j) => (
                       <td key={j} className="p-2 border-[1.5px] border-gray-300 dark:border-neutral-700">
                         <div className="h-4 bg-gray-400 dark:bg-neutral-600 rounded w-full"></div>
                       </td>
                     ))}
                   </tr>
                 ))
-                : data.map((b) => (
+                : filasConEncargado.map(({ beneficiario: b, nombreEncargado, mostrarCeldaEncargado, rowspanEncargado }) => (
                   <tr key={b.id} className="hover:bg-green-50 dark:hover:bg-neutral-800 bg-white dark:bg-neutral-900 border-[2.5px] border-gray-300 dark:border-neutral-700 dark:text-gray-300">
+                    {mostrarCeldaEncargado && (
+                      <td
+                        rowSpan={rowspanEncargado}
+                        className="px-0.5 py-2 border-[1.5px] border-gray-300 dark:border-neutral-700 text-center align-middle"
+                      >
+                        {renderEncargadoVertical(nombreEncargado)}
+                      </td>
+                    )}
                     <td className="pl-2 border-[1.5px] text-center border-gray-300 dark:border-neutral-700">{mostrar(b.codigo)}</td>
                     <td className="pl-2 border-[1.5px] border-gray-300 dark:border-neutral-700">{mostrar(b.lugar)}</td>
                     <td className="pl-2 border-[1.5px] border-gray-300 dark:border-neutral-700">{formatearFecha(b.fecha)}</td>

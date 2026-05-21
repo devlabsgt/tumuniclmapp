@@ -2,12 +2,19 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import Swal from 'sweetalert2';
 import { createClient } from '@/utils/supabase/client';
 import { registrarLog } from '@/utils/registrarLog';
 import { obtenerLugares } from '@/lib/obtenerLugares';
 import useUserData from '@/hooks/sesion/useUserData';
+import { BuscadorLugar } from '@/components/fertilizante/BuscadorLugar';
+import { btnPrimaryClass, btnSubmitClass, formFieldsClass, formSectionsGridClass, inputClass, inputErrorClass, inputMonoClass, labelClass, sectionClass } from '@/components/fertilizante/formStyles';
+
+const completarFolioConCeros = (valor: string): string => {
+  const digitos = valor.replace(/\D/g, '').slice(0, 4);
+  if (!digitos) return digitos;
+  return digitos.padStart(4, '0');
+};
 
 export default function EditarBeneficiarioForm() {
   const searchParams = useSearchParams();
@@ -281,254 +288,257 @@ export default function EditarBeneficiarioForm() {
     }
   };
 
-  if (!id) return <p className="p-4 text-center">ID de beneficiario no proporcionado.</p>;
+  if (!id) return <p className="p-4 text-center text-sm text-gray-500">ID de beneficiario no proporcionado.</p>;
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Campos de beneficiario (ocultos si Anulado/Informe) */}
+        <div className={!estaAnulado && !estaInforme ? formSectionsGridClass : 'flex flex-col gap-6'}>
       {!estaAnulado && !estaInforme && (
-        <>
-          {/* Nombre completo */}
-          <div>
-            <label className="font-semibold block mb-1">
-              Nombre completo
-              {errores.nombre_completo && <span className="text-red-500 ml-2 text-sm">{errores.nombre_completo}</span>}
-            </label>
-            <input
-              type="text"
-              name="nombre_completo"
-              value={formulario.nombre_completo}
-              onChange={handleChange}
-              className={`w-full border rounded px-3 py-2 ${errores.nombre_completo ? 'border-red-500' : 'border-gray-300'}`}
-            />
-          </div>
+        <section className={sectionClass}>
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Datos personales</p>
+          <div className={formFieldsClass}>
+            <div>
+              <label className={labelClass}>
+                Nombre completo
+                {errores.nombre_completo && (
+                  <span className="text-red-500 normal-case tracking-normal ml-1">{errores.nombre_completo}</span>
+                )}
+              </label>
+              <input
+                type="text"
+                name="nombre_completo"
+                value={formulario.nombre_completo}
+                onChange={handleChange}
+                className={`${inputClass} ${errores.nombre_completo ? inputErrorClass : ''}`}
+              />
+            </div>
 
-          {/* DPI */}
-          <div>
-            <label className="font-semibold block mb-1">
-              DPI
-              {errores.dpi && <span className="text-red-500 ml-2 text-sm">{errores.dpi}</span>}
-            </label>
-            <input
-              type="text"
-              name="dpi"
-              value={formulario.dpi}
-              onChange={handleChange}
-              className={`w-full border rounded px-3 py-2 ${errores.dpi ? 'border-red-500' : 'border-gray-300'}`}
-            />
-          </div>
+            <div>
+              <label className={labelClass}>
+                DPI
+                {errores.dpi && (
+                  <span className="text-red-500 normal-case tracking-normal ml-1">{errores.dpi}</span>
+                )}
+              </label>
+              <input
+                type="text"
+                name="dpi"
+                inputMode="numeric"
+                value={formulario.dpi}
+                onChange={handleChange}
+                className={`${inputClass} ${errores.dpi ? inputErrorClass : ''}`}
+              />
+            </div>
 
-          {/* Teléfono */}
-          <div>
-            <label className="font-semibold block mb-1">
-              Teléfono
-              {errores.telefono && <span className="text-red-500 ml-2 text-sm">{errores.telefono}</span>}
-            </label>
-            <input
-              type="tel"
-              name="telefono"
-              value={formulario.telefono}
-              onChange={handleChange}
-              placeholder="Ingrese 8 dígitos"
-              className={`w-full border rounded px-3 py-2 ${errores.telefono ? 'border-red-500' : 'border-gray-300'}`}
-            />
+            <div>
+              <label className={labelClass}>
+                Teléfono
+                {errores.telefono && (
+                  <span className="text-red-500 normal-case tracking-normal ml-1">{errores.telefono}</span>
+                )}
+              </label>
+              <input
+                type="tel"
+                name="telefono"
+                value={formulario.telefono}
+                onChange={handleChange}
+                placeholder="8 dígitos"
+                className={`${inputClass} ${errores.telefono ? inputErrorClass : ''}`}
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Fecha de nacimiento</label>
+              <input
+                type="date"
+                name="fecha_nacimiento"
+                value={formulario.fecha_nacimiento}
+                onChange={handleChange}
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <span className={labelClass}>
+                Sexo
+                {errores.sexo && (
+                  <span className="text-red-500 normal-case tracking-normal ml-1">{errores.sexo}</span>
+                )}
+              </span>
+              <div className="flex gap-4 mt-1">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <input
+                    type="radio"
+                    name="sexo"
+                    value="M"
+                    checked={formulario.sexo === 'M'}
+                    onChange={handleChange}
+                    className="accent-emerald-600"
+                  />
+                  Masculino
+                </label>
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <input
+                    type="radio"
+                    name="sexo"
+                    value="F"
+                    checked={formulario.sexo === 'F'}
+                    onChange={handleChange}
+                    className="accent-pink-500"
+                  />
+                  Femenino
+                </label>
+              </div>
+            </div>
           </div>
-        </>
+        </section>
       )}
 
-      {/* Campos visibles excepto en Anulado */}
-      {!estaAnulado && (
-        <>
-          {/* Folio */}
+      <section className={sectionClass}>
+        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Datos de entrega</p>
+        <div className={formFieldsClass}>
+          <BuscadorLugar
+            value={formulario.lugar}
+            onChange={(lugar) => {
+              setFormulario((prev) => ({ ...prev, lugar }));
+              if (errores.lugar) setErrores((prev) => ({ ...prev, lugar: '' }));
+            }}
+            lugares={lugares}
+            error={errores.lugar}
+          />
+
           <div>
-            <label className="font-semibold block mb-1">
-              Folio
-              {errores.codigo && <span className="text-red-500 ml-2 text-sm">{errores.codigo}</span>}
-            </label>
-            <input
-              type="text"
-              name="codigo"
-              value={formulario.codigo}
-              onChange={handleChange}
-              className={`w-full border rounded px-3 py-2 ${errores.codigo ? 'border-red-500' : 'border-gray-300'}`}
-            />
-          </div>
-
-          {/* Cantidad de sacos */}
-          <div>
-            <label className="font-semibold block mb-1">
-              Cantidad de sacos
-              {errores.cantidad && <span className="text-red-500 ml-2 text-sm">{errores.cantidad}</span>}
-            </label>
-            <input
-              type="number"
-              name="cantidad"
-              min="1"
-              step="1"
-              value={formulario.cantidad}
-              onChange={handleChange}
-              className={`w-full border rounded px-3 py-2 ${errores.cantidad ? 'border-red-500' : 'border-gray-300'}`}
-            />
-          </div>
-        </>
-      )}
-
-      {/* Lugar */}
-      <div>
-        <label className="font-semibold block mb-1">
-          Lugar
-          {errores.lugar && <span className="text-red-500 ml-2 text-sm">{errores.lugar}</span>}
-        </label>
-        <select
-          name="lugar"
-          value={formulario.lugar}
-          onChange={handleChange}
-          className={`w-full border rounded px-3 py-2 ${errores.lugar ? 'border-red-500' : 'border-gray-300'}`}
-        >
-          <option value="">Seleccione un lugar...</option>
-          {lugares.map((lugar) => (
-            <option key={lugar} value={lugar}>
-              {lugar}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Fecha de entrega */}
-      <div>
-        <label className="font-semibold block mb-1">
-          Fecha de entrega
-          {errores.fecha && <span className="text-red-500 ml-2 text-sm">{errores.fecha}</span>}
-        </label>
-        <input
-          type="date"
-          name="fecha"
-          value={formulario.fecha}
-          onChange={handleChange}
-          className={`w-full border rounded px-3 py-2 ${errores.fecha ? 'border-red-500' : 'border-gray-300'}`}
-        />
-      </div>
-
-      {/* Campos adicionales (ocultos si Anulado/Informe) */}
-      {!estaAnulado && !estaInforme && (
-        <>
-          {/* Fecha de nacimiento */}
-          <div>
-            <label className="font-semibold block mb-1">
-              Fecha de nacimiento
+            <label className={labelClass}>
+              Fecha de entrega
+              {errores.fecha && (
+                <span className="text-red-500 normal-case tracking-normal ml-1">{errores.fecha}</span>
+              )}
             </label>
             <input
               type="date"
-              name="fecha_nacimiento"
-              value={formulario.fecha_nacimiento}
+              name="fecha"
+              value={formulario.fecha}
               onChange={handleChange}
-              className="w-full border rounded px-3 py-2 border-gray-300"
+              className={`${inputClass} ${errores.fecha ? inputErrorClass : ''}`}
             />
           </div>
 
-          {/* Sexo */}
-          <div className="flex items-center gap-4">
-            <label className="text-lg font-medium">
-              Sexo:
-              {errores.sexo && <span className="text-red-500 ml-2 text-sm">{errores.sexo}</span>}
-            </label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2">
+          {!estaAnulado && (
+            <>
+              <div>
+                <label className={labelClass}>
+                  Folio
+                  {errores.codigo && (
+                    <span className="text-red-500 normal-case tracking-normal ml-1">{errores.codigo}</span>
+                  )}
+                </label>
                 <input
-                  type="radio"
-                  name="sexo"
-                  value="M"
-                  checked={formulario.sexo === 'M'}
+                  type="text"
+                  name="codigo"
+                  inputMode="numeric"
+                  value={formulario.codigo}
                   onChange={handleChange}
-                  className="accent-blue-600"
+                  onBlur={() =>
+                    setFormulario((prev) => ({ ...prev, codigo: completarFolioConCeros(prev.codigo) }))
+                  }
+                  maxLength={4}
+                  className={`${inputMonoClass} ${errores.codigo ? inputErrorClass : ''}`}
                 />
-                Masculino
-              </label>
-              <label className="flex items-center gap-2">
+              </div>
+
+              <div>
+                <label className={labelClass}>
+                  Cantidad de sacos
+                  {errores.cantidad && (
+                    <span className="text-red-500 normal-case tracking-normal ml-1">{errores.cantidad}</span>
+                  )}
+                </label>
                 <input
-                  type="radio"
-                  name="sexo"
-                  value="F"
-                  checked={formulario.sexo === 'F'}
+                  type="number"
+                  name="cantidad"
+                  min="1"
+                  step="1"
+                  value={formulario.cantidad}
                   onChange={handleChange}
-                  className="accent-pink-500"
+                  className={`${inputClass} ${errores.cantidad ? inputErrorClass : ''}`}
                 />
-                Femenino
-              </label>
+              </div>
+            </>
+          )}
+
+          <div>
+            <span className={labelClass}>Estado</span>
+            <div className="flex gap-4 flex-wrap mt-1">
+              {(formulario.estado === 'Entregado' || formulario.estado === 'Extraviado') && (
+                <>
+                  <label className="flex items-center gap-2 text-sm font-medium text-green-700 dark:text-green-400">
+                    <input
+                      type="radio"
+                      name="estado"
+                      value="Entregado"
+                      checked={formulario.estado === 'Entregado'}
+                      onChange={handleChange}
+                      className="accent-green-600"
+                    />
+                    Entregado
+                  </label>
+                  <label className="flex items-center gap-2 text-sm font-medium text-yellow-600 dark:text-yellow-400">
+                    <input
+                      type="radio"
+                      name="estado"
+                      value="Extraviado"
+                      checked={formulario.estado === 'Extraviado'}
+                      onChange={handleChange}
+                      className="accent-yellow-500"
+                    />
+                    Extraviado
+                  </label>
+                </>
+              )}
+              {(formulario.estado === 'Anulado' || formulario.estado === 'Informe') && (
+                <>
+                  <label className="flex items-center gap-2 text-sm font-medium text-red-600 dark:text-red-400">
+                    <input
+                      type="radio"
+                      name="estado"
+                      value="Anulado"
+                      checked={formulario.estado === 'Anulado'}
+                      onChange={handleChange}
+                      disabled={estaAnulado || estaInforme}
+                      className="accent-red-600"
+                    />
+                    Anulado
+                  </label>
+                  <label className="flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400">
+                    <input
+                      type="radio"
+                      name="estado"
+                      value="Informe"
+                      checked={formulario.estado === 'Informe'}
+                      onChange={handleChange}
+                      disabled={estaAnulado || estaInforme}
+                      className="accent-blue-600"
+                    />
+                    Informe
+                  </label>
+                </>
+              )}
             </div>
           </div>
-        </>
-      )}
-
-      {/* Estado */}
-      <div className="flex items-center gap-4">
-        <label className="text-lg font-medium">Estado:</label>
-        <div className="flex gap-4 flex-wrap">
-          {(formulario.estado === 'Entregado' || formulario.estado === 'Extraviado') && (
-            <>
-              <label className="flex items-center gap-2 text-green-700 font-medium">
-                <input
-                  type="radio"
-                  name="estado"
-                  value="Entregado"
-                  checked={formulario.estado === 'Entregado'}
-                  onChange={handleChange}
-                  className="accent-green-600"
-                />
-                Entregado
-              </label>
-              <label className="flex items-center gap-2 text-yellow-600 font-medium">
-                <input
-                  type="radio"
-                  name="estado"
-                  value="Extraviado"
-                  checked={formulario.estado === 'Extraviado'}
-                  onChange={handleChange}
-                  className="accent-yellow-500"
-                />
-                Extraviado
-              </label>
-            </>
-          )}
-
-          {(formulario.estado === 'Anulado' || formulario.estado === 'Informe') && (
-            <>
-              <label className="flex items-center gap-2 text-red-600 font-semibold">
-                <input
-                  type="radio"
-                  name="estado"
-                  value="Anulado"
-                  checked={formulario.estado === 'Anulado'}
-                  onChange={handleChange}
-                  disabled={estaAnulado || estaInforme}
-                  className="accent-red-600"
-                />
-                Anulado
-              </label>
-              <label className="flex items-center gap-2 text-blue-600 font-semibold">
-                <input
-                  type="radio"
-                  name="estado"
-                  value="Informe"
-                  checked={formulario.estado === 'Informe'}
-                  onChange={handleChange}
-                  disabled={estaAnulado || estaInforme}
-                  className="accent-blue-600"
-                />
-                Informe
-              </label>
-            </>
-          )}
         </div>
+      </section>
       </div>
 
-      <Button
-        onClick={actualizar}
-        disabled={!hayCambios || cargando}
-        className="h-12 text-lg bg-blue-600 hover:bg-blue-700 text-white mt-4"
-      >
-        {cargando ? 'Guardando...' : 'Guardar Cambios'}
-      </Button>
+      <div className="flex justify-end pt-1">
+        <button
+          type="button"
+          onClick={actualizar}
+          disabled={!hayCambios || cargando}
+          className={btnSubmitClass}
+        >
+          {cargando ? 'Guardando...' : 'Guardar Cambios'}
+        </button>
+      </div>
     </div>
   );
 }

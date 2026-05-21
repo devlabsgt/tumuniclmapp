@@ -7,6 +7,14 @@ import { obtenerLugares } from '@/lib/obtenerLugares';
 import { registrarLog } from '@/utils/registrarLog';
 import Swal from 'sweetalert2';
 import useUserData from '@/hooks/sesion/useUserData';
+import { BuscadorLugar } from '@/components/fertilizante/BuscadorLugar';
+import { inputClass, inputMonoClass, labelClass, sectionClass } from '@/components/fertilizante/formStyles';
+
+const completarFolioConCeros = (valor: string): string => {
+  const digitos = valor.replace(/\D/g, '').slice(0, 4);
+  if (!digitos) return digitos;
+  return digitos.padStart(4, '0');
+};
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,49 +37,57 @@ export default function GestionDoctosModal({ visible, onClose, aniosDisponibles,
   const [lugares, setLugares] = useState<string[]>([]);
   const [guardando, setGuardando] = useState(false);
 
-  // Form anular
+  // Formularios (lugar compartido entre pestañas)
   const [folio, setFolio] = useState('');
-  const [lugarA, setLugarA] = useState('');
+  const [lugar, setLugar] = useState('');
   const [anioA, setAnioA] = useState(anioActual);
-
-  // Form informe
   const [codigo, setCodigo] = useState('');
-  const [lugarI, setLugarI] = useState('');
   const [anioI, setAnioI] = useState(anioActual);
   const [cantidad, setCantidad] = useState<number | ''>('');
   const [notas, setNotas] = useState('');
+  const [formKey, setFormKey] = useState(0);
+
+  const limpiarFormulario = () => {
+    setFolio('');
+    setCodigo('');
+    setCantidad('');
+    setNotas('');
+    setLugar('');
+    setAnioA(anioActual);
+    setAnioI(anioActual);
+    setTab('anular');
+    setFormKey((k) => k + 1);
+  };
 
   useEffect(() => {
     if (!visible) return;
-    obtenerLugares().then((l) => {
-      setLugares(l);
-      if (l.length > 0) {
-        setLugarA((prev) => prev || l[0]);
-        setLugarI((prev) => prev || l[0]);
-      }
-    });
-    setAnioA(anioActual);
-    setAnioI(anioActual);
+    limpiarFormulario();
+    obtenerLugares().then(setLugares);
   }, [visible, anioActual]);
 
   if (!visible) return null;
 
   const aniosLista = Array.from(new Set([...aniosDisponibles, anioActual])).sort();
 
-  const reset = () => {
-    setFolio('');
-    setCodigo('');
-    setCantidad('');
-    setNotas('');
+  const cerrarModal = () => {
+    limpiarFormulario();
+    onClose();
   };
 
   const guardarAnulado = async () => {
-    if (!/^\d{4}$/.test(folio)) {
+    const folioNorm = completarFolioConCeros(folio);
+    setFolio(folioNorm);
+
+    if (!/^\d{4}$/.test(folioNorm)) {
       Swal.fire({ icon: 'warning', title: 'Folio inválido', text: 'Ingrese un folio de 4 dígitos' });
       return;
     }
+    if (!lugar) {
+      Swal.fire({ icon: 'warning', title: 'Lugar requerido', text: 'Seleccione un lugar' });
+      return;
+    }
     setGuardando(true);
-    const cod = folio.padStart(4, '0');
+    const cod = folioNorm;
     const { data: existente } = await supabase
       .from('beneficiarios_fertilizante')
       .select('id')
@@ -87,7 +103,7 @@ export default function GestionDoctosModal({ visible, onClose, aniosDisponibles,
 
     const { error } = await supabase.from('beneficiarios_fertilizante').insert({
       codigo: cod,
-      lugar: lugarA,
+      lugar: lugar,
       anio: anioA,
       fecha: new Date().toISOString(),
       cantidad: 0,
@@ -106,18 +122,25 @@ export default function GestionDoctosModal({ visible, onClose, aniosDisponibles,
       return;
     }
 
-    const msg = `Se anuló correctamente el folio ${cod} para ${lugarA}, año ${anioA}`;
+    const msg = `Se anuló correctamente el folio ${cod} para ${lugar}, año ${anioA}`;
     await registrarLog({ accion: 'ANULAR_FOLIO', nombreModulo: 'FERTILIZANTE', descripcion: msg });
     setGuardando(false);
-    reset();
+    limpiarFormulario();
     Swal.fire({ icon: 'success', title: 'Folio anulado', text: msg, timer: 2000, showConfirmButton: false });
     onGuardado();
-    onClose();
+    cerrarModal();
   };
 
   const guardarInforme = async () => {
-    if (!/^\d{4}$/.test(codigo)) {
+    const codigoNorm = completarFolioConCeros(codigo);
+    setCodigo(codigoNorm);
+
+    if (!/^\d{4}$/.test(codigoNorm)) {
       Swal.fire({ icon: 'warning', title: 'Código inválido', text: 'El código debe tener 4 dígitos' });
+      return;
+    }
+    if (!lugar) {
+      Swal.fire({ icon: 'warning', title: 'Lugar requerido', text: 'Seleccione un lugar' });
       return;
     }
     if (!cantidad || cantidad <= 0) {
@@ -125,7 +148,7 @@ export default function GestionDoctosModal({ visible, onClose, aniosDisponibles,
       return;
     }
     setGuardando(true);
-    const cod = `I-${codigo}`;
+    const cod = `I-${codigoNorm}`;
     const { data: existente } = await supabase
       .from('beneficiarios_fertilizante')
       .select('id')
@@ -141,7 +164,7 @@ export default function GestionDoctosModal({ visible, onClose, aniosDisponibles,
 
     const { error } = await supabase.from('beneficiarios_fertilizante').insert({
       codigo: cod,
-      lugar: lugarI,
+      lugar: lugar,
       anio: anioI,
       fecha: new Date().toISOString(),
       cantidad,
@@ -160,26 +183,26 @@ export default function GestionDoctosModal({ visible, onClose, aniosDisponibles,
       return;
     }
 
-    const msg = `Informe registrado con código ${cod} para ${lugarI}, año ${anioI}, cantidad: ${cantidad}`;
+    const msg = `Informe registrado con código ${cod} para ${lugar}, año ${anioI}, cantidad: ${cantidad}`;
     await registrarLog({ accion: 'GUARDAR_INFORME', nombreModulo: 'FERTILIZANTE', descripcion: msg });
     setGuardando(false);
-    reset();
+    limpiarFormulario();
     Swal.fire({ icon: 'success', title: 'Informe registrado', text: msg, timer: 2000, showConfirmButton: false });
     onGuardado();
-    onClose();
+    cerrarModal();
   };
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4"
-      onClick={onClose}
+      onClick={cerrarModal}
     >
       <div
         className="bg-white dark:bg-neutral-900 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[95vh] sm:max-h-[90vh] overflow-y-auto relative"
         onClick={(e) => e.stopPropagation()}
       >
         <button
-          onClick={onClose}
+          onClick={cerrarModal}
           className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors"
           title="Cerrar"
         >
@@ -208,116 +231,110 @@ export default function GestionDoctosModal({ visible, onClose, aniosDisponibles,
           </div>
 
           {tab === 'anular' ? (
-            <div className="flex flex-col gap-3">
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-1">Folio (4 dígitos)</label>
-                <input
-                  inputMode="numeric"
-                  value={folio}
-                  onChange={(e) => setFolio(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  maxLength={4}
-                  placeholder="0234"
-                  className="w-full bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl px-4 py-2.5 text-center text-lg font-mono tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-red-500/30"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-1">Lugar</label>
-                <select
-                  value={lugarA}
-                  onChange={(e) => setLugarA(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/30"
+            <section className={sectionClass}>
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label className={labelClass}>Folio</label>
+                  <input
+                    inputMode="numeric"
+                    value={folio}
+                    onChange={(e) => setFolio(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    onBlur={() => setFolio((v) => completarFolioConCeros(v))}
+                    maxLength={4}
+                    placeholder="0001"
+                    className={inputMonoClass}
+                  />
+                </div>
+
+                <BuscadorLugar key={`anular-${formKey}`} value={lugar} onChange={setLugar} lugares={lugares} />
+
+                <div>
+                  <label className={labelClass}>Año</label>
+                  <select
+                    value={anioA}
+                    onChange={(e) => setAnioA(e.target.value)}
+                    className={inputClass}
+                  >
+                    {aniosLista.map((a) => (
+                      <option key={a} value={a}>{a}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={guardarAnulado}
+                  disabled={guardando}
+                  className="h-10 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold w-full transition-all active:scale-95"
                 >
-                  {lugares.map((l) => (
-                    <option key={l} value={l}>{l}</option>
-                  ))}
-                </select>
+                  {guardando ? 'Guardando...' : 'Anular folio'}
+                </button>
               </div>
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-1">Año</label>
-                <select
-                  value={anioA}
-                  onChange={(e) => setAnioA(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/30"
-                >
-                  {aniosLista.map((a) => (
-                    <option key={a} value={a}>{a}</option>
-                  ))}
-                </select>
-              </div>
-              <button
-                onClick={guardarAnulado}
-                disabled={guardando}
-                className="mt-3 h-11 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all active:scale-95"
-              >
-                {guardando ? 'Guardando...' : 'Anular folio'}
-              </button>
-            </div>
+            </section>
           ) : (
-            <div className="flex flex-col gap-3">
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-1">Código (4 dígitos)</label>
-                <input
-                  inputMode="numeric"
-                  value={codigo}
-                  onChange={(e) => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  maxLength={4}
-                  placeholder="0234"
-                  className="w-full bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl px-4 py-2.5 text-center text-lg font-mono tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-1">Lugar</label>
-                <select
-                  value={lugarI}
-                  onChange={(e) => setLugarI(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            <section className={sectionClass}>
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label className={labelClass}>Código</label>
+                  <input
+                    inputMode="numeric"
+                    value={codigo}
+                    onChange={(e) => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    onBlur={() => setCodigo((v) => completarFolioConCeros(v))}
+                    maxLength={4}
+                    placeholder="0001"
+                    className={inputMonoClass}
+                  />
+                </div>
+
+                <BuscadorLugar key={`informe-${formKey}`} value={lugar} onChange={setLugar} lugares={lugares} />
+
+                <div>
+                  <label className={labelClass}>Año</label>
+                  <select
+                    value={anioI}
+                    onChange={(e) => setAnioI(e.target.value)}
+                    className={inputClass}
+                  >
+                    {aniosLista.map((a) => (
+                      <option key={a} value={a}>{a}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className={labelClass}>Cantidad entregada</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={cantidad}
+                    onChange={(e) => setCantidad(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="Ej. 1"
+                    className={inputClass}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelClass}>Notas / descripción</label>
+                  <textarea
+                    value={notas}
+                    onChange={(e) => setNotas(e.target.value)}
+                    rows={3}
+                    placeholder="Anotaciones..."
+                    className={`${inputClass} h-auto py-2 resize-none`}
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={guardarInforme}
+                  disabled={guardando}
+                  className="h-10 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold w-full transition-all active:scale-95"
                 >
-                  {lugares.map((l) => (
-                    <option key={l} value={l}>{l}</option>
-                  ))}
-                </select>
+                  {guardando ? 'Guardando...' : 'Guardar informe'}
+                </button>
               </div>
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-1">Año</label>
-                <select
-                  value={anioI}
-                  onChange={(e) => setAnioI(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                >
-                  {aniosLista.map((a) => (
-                    <option key={a} value={a}>{a}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-1">Cantidad entregada</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={cantidad}
-                  onChange={(e) => setCantidad(e.target.value === '' ? '' : Number(e.target.value))}
-                  placeholder="Ej. 1"
-                  className="w-full bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-1">Notas / descripción</label>
-                <textarea
-                  value={notas}
-                  onChange={(e) => setNotas(e.target.value)}
-                  rows={3}
-                  placeholder="Anotaciones..."
-                  className="w-full bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 resize-none"
-                />
-              </div>
-              <button
-                onClick={guardarInforme}
-                disabled={guardando}
-                className="mt-3 h-11 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all active:scale-95"
-              >
-                {guardando ? 'Guardando...' : 'Guardar informe'}
-              </button>
-            </div>
+            </section>
           )}
         </div>
       </div>
