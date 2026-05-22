@@ -6,7 +6,6 @@ import { es } from "date-fns/locale";
 import {
   ChevronDown,
   Search,
-  Building2,
   Plus,
   Trash2,
   CalendarDays,
@@ -20,7 +19,12 @@ import {
   ChevronsUpDown,
   AlertCircle,
   ArrowRight,
+  ArrowUpDown,
   Calendar,
+  Shield,
+  Umbrella,
+  GraduationCap,
+  type LucideIcon,
 } from "lucide-react";
 import PreviewPermiso from "./modals/PreviewPermiso";
 import GestionAsueto from "./modals/GestionAsueto";
@@ -63,6 +67,16 @@ function getSemanasDelMes(yyyyMM: string) {
   }
   return semanas;
 }
+
+type CategoriaPermiso = "igss" | "vacaciones" | "academicas" | "extras" | "permisos";
+
+const CATEGORIA_ORDEN: Record<CategoriaPermiso, number> = {
+  extras: 0,
+  igss: 1,
+  academicas: 2,
+  vacaciones: 3,
+  permisos: 4,
+};
 
 interface Props {
   tipoVista: TipoVistaPermisos;
@@ -209,25 +223,76 @@ export default function VerPermisos({ tipoVista }: Props) {
     }
   };
 
+  const esAcademicasTexto = (t: string, d: string) =>
+    t.includes("académ") ||
+    t.includes("academ") ||
+    d.includes("académ") ||
+    d.includes("academ");
+
+  const getCategoriaFromTexto = (t: string, d: string): CategoriaPermiso => {
+    if (t.includes("igss") || d.includes("igss")) return "igss";
+    if (t.includes("vacaciones") || d.includes("vacaciones")) return "vacaciones";
+    if (esAcademicasTexto(t, d)) return "academicas";
+    if (
+      t.includes("reposicion") ||
+      t.includes("reposición") ||
+      t.includes("horas") ||
+      t.includes("extra") ||
+      d.includes("reposicion") ||
+      d.includes("reposición") ||
+      d.includes("horas") ||
+      d.includes("extra")
+    )
+      return "extras";
+    return "permisos";
+  };
+
   const getCategoriaBorderClass = (tipo: string, descripcion: string | null) => {
     const t = tipo.toLowerCase();
     const d = (descripcion || "").toLowerCase();
-    const esExtra = t.includes("reposicion") || t.includes("reposición") || t.includes("horas") || t.includes("extra") || 
-                   d.includes("reposicion") || d.includes("reposición") || d.includes("horas") || d.includes("extra");
-    const esVacas = t.includes("vacaciones") || d.includes("vacaciones");
+    const cat = getCategoriaFromTexto(t, d);
 
-    if (esVacas) return "border-l-4 border-l-purple-500";
-    if (esExtra) return "border-l-4 border-l-slate-500";
+    if (cat === "igss") return "border-l-4 border-l-yellow-500";
+    if (cat === "vacaciones") return "border-l-4 border-l-purple-500";
+    if (cat === "academicas") return "border-l-4 border-l-green-500";
+    if (cat === "extras") return "border-l-4 border-l-slate-500";
     return "border-l-4 border-l-blue-500";
   };
 
-  const getCategoria = (p: PermisoEmpleado) => {
+  const getCategoria = (p: PermisoEmpleado): CategoriaPermiso => {
     const t = p.tipo.toLowerCase();
     const d = (p.descripcion || "").toLowerCase();
-    if (t.includes("vacaciones") || d.includes("vacaciones")) return "vacaciones";
-    if (t.includes("reposicion") || t.includes("reposición") || t.includes("horas") || t.includes("extra") || 
-        d.includes("reposicion") || d.includes("reposición") || d.includes("horas") || d.includes("extra")) return "extras";
-    return "permisos";
+    return getCategoriaFromTexto(t, d);
+  };
+
+  const getCategoriaIcon = (cat: CategoriaPermiso): LucideIcon => {
+    switch (cat) {
+      case "igss":
+        return Shield;
+      case "vacaciones":
+        return Umbrella;
+      case "academicas":
+        return GraduationCap;
+      case "extras":
+        return Clock;
+      default:
+        return FileText;
+    }
+  };
+
+  const getCategoriaBadgeClass = (cat: CategoriaPermiso) => {
+    switch (cat) {
+      case "igss":
+        return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400";
+      case "vacaciones":
+        return "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400";
+      case "academicas":
+        return "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400";
+      case "extras":
+        return "bg-slate-100 text-slate-700 dark:bg-slate-900/40 dark:text-slate-400";
+      default:
+        return "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400";
+    }
   };
 
   const getDiasContados = (start: Date, end: Date) => {
@@ -574,7 +639,6 @@ export default function VerPermisos({ tipoVista }: Props) {
                         className="bg-slate-50 dark:bg-neutral-800/50 hover:bg-slate-100 dark:hover:bg-neutral-800 cursor-pointer transition-colors py-3 px-4 text-sm font-semibold text-blue-600 dark:text-blue-400 flex items-center justify-between"
                       >
                         <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4" />
                           <span>
                             {grupo.oficina_nombre}{" "}
                             <span className="text-gray-400 text-xs ml-1 font-normal">
@@ -621,6 +685,8 @@ export default function VerPermisos({ tipoVista }: Props) {
                                     handleEliminarPermiso={handleEliminarPermiso}
                                     getCategoriaBorderClass={getCategoriaBorderClass}
                                     getCategoria={getCategoria}
+                                    getCategoriaIcon={getCategoriaIcon}
+                                    getCategoriaBadgeClass={getCategoriaBadgeClass}
                                     getEstadoBadge={getEstadoBadge}
                                     getDiasContados={getDiasContados}
                                   />
@@ -668,6 +734,8 @@ function UsuarioGrupoPermisos({
   handleEliminarPermiso,
   getCategoriaBorderClass,
   getCategoria,
+  getCategoriaIcon,
+  getCategoriaBadgeClass,
   getEstadoBadge,
   getDiasContados,
 }: {
@@ -677,20 +745,33 @@ function UsuarioGrupoPermisos({
   handleClickFila: (p: PermisoEmpleado) => void;
   handleEliminarPermiso: (e: React.MouseEvent, id: string) => void;
   getCategoriaBorderClass: (t: string, d: string | null) => string;
-  getCategoria: (p: PermisoEmpleado) => string;
+  getCategoria: (p: PermisoEmpleado) => CategoriaPermiso;
+  getCategoriaIcon: (cat: CategoriaPermiso) => LucideIcon;
+  getCategoriaBadgeClass: (cat: CategoriaPermiso) => string;
   getEstadoBadge: (e: string) => React.ReactNode;
   getDiasContados: (start: Date, end: Date) => number;
 }) {
-  const [filtro, setFiltro] = React.useState<"todos" | "extras" | "vacaciones" | "permisos">("todos");
+  const [filtro, setFiltro] = React.useState<
+    "todos" | "extras" | "vacaciones" | "permisos" | "igss" | "academicas"
+  >("todos");
+  const [orden, setOrden] = React.useState<"fecha" | "tipo">("fecha");
 
   const stats = React.useMemo(() => {
     return usuarioGrupo.permisos.reduce(
       (acc, p) => {
         const cat = getCategoria(p);
         const d = getDiasContados(parseISO(p.inicio), parseISO(p.fin));
-        if (cat === "vacaciones") {
+        if (cat === "igss") {
+          acc.i++;
+          acc.id += d;
+          acc.td += d;
+        } else if (cat === "vacaciones") {
           acc.v++;
           acc.vd += d;
+          acc.td += d;
+        } else if (cat === "academicas") {
+          acc.a++;
+          acc.ad += d;
           acc.td += d;
         } else if (cat === "extras") {
           acc.e++;
@@ -702,14 +783,29 @@ function UsuarioGrupoPermisos({
         }
         return acc;
       },
-      { v: 0, vd: 0, e: 0, ed: 0, o: 0, od: 0, td: 0 }
+      { v: 0, vd: 0, e: 0, i: 0, id: 0, a: 0, ad: 0, o: 0, od: 0, td: 0 }
     );
   }, [usuarioGrupo.permisos, getCategoria, getDiasContados]);
 
   const permisosFiltrados = React.useMemo(() => {
-    if (filtro === "todos") return usuarioGrupo.permisos;
-    return usuarioGrupo.permisos.filter((p) => getCategoria(p) === filtro);
-  }, [filtro, usuarioGrupo.permisos, getCategoria]);
+    const lista =
+      filtro === "todos"
+        ? [...usuarioGrupo.permisos]
+        : usuarioGrupo.permisos.filter((p) => getCategoria(p) === filtro);
+
+    if (orden === "tipo") {
+      return lista.sort((a, b) => {
+        const catA = CATEGORIA_ORDEN[getCategoria(a)];
+        const catB = CATEGORIA_ORDEN[getCategoria(b)];
+        if (catA !== catB) return catA - catB;
+        return parseISO(a.inicio).getTime() - parseISO(b.inicio).getTime();
+      });
+    }
+
+    return lista.sort(
+      (a, b) => parseISO(a.inicio).getTime() - parseISO(b.inicio).getTime()
+    );
+  }, [filtro, orden, usuarioGrupo.permisos, getCategoria]);
 
   return (
     <div className="flex flex-col gap-2">
@@ -735,13 +831,46 @@ function UsuarioGrupoPermisos({
             <button
               onClick={() => setFiltro(filtro === "extras" ? "todos" : "extras")}
               className={cn(
-                "text-[9px] lg:text-xs font-bold px-1.5 lg:px-2 py-0.5 lg:py-1 rounded transition-all border",
+                "text-[9px] lg:text-xs font-bold px-1.5 lg:px-2 py-0.5 lg:py-1 rounded transition-all border inline-flex items-center gap-1",
                 filtro === "extras"
                   ? "bg-slate-600 text-white border-slate-700 scale-105"
                   : "bg-slate-100 text-slate-700 dark:bg-slate-900/40 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-200"
               )}
             >
+              <Clock className="w-3 h-3 shrink-0" />
               {stats.e} Ext
+            </button>
+          )}
+          {stats.i > 0 && (
+            <button
+              onClick={() =>
+                setFiltro(filtro === "igss" ? "todos" : "igss")
+              }
+              className={cn(
+                "text-[9px] lg:text-xs font-bold px-1.5 lg:px-2 py-0.5 lg:py-1 rounded transition-all border inline-flex items-center gap-1",
+                filtro === "igss"
+                  ? "bg-yellow-500 text-yellow-950 border-yellow-600 scale-105"
+                  : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-400 border-yellow-300 dark:border-yellow-800 hover:bg-yellow-200"
+              )}
+            >
+              <Shield className="w-3 h-3 shrink-0" />
+              {stats.i} IGSS {stats.id > 0 && `= ${stats.id}d`}
+            </button>
+          )}
+          {stats.a > 0 && (
+            <button
+              onClick={() =>
+                setFiltro(filtro === "academicas" ? "todos" : "academicas")
+              }
+              className={cn(
+                "text-[9px] lg:text-xs font-bold px-1.5 lg:px-2 py-0.5 lg:py-1 rounded transition-all border inline-flex items-center gap-1",
+                filtro === "academicas"
+                  ? "bg-green-600 text-white border-green-700 scale-105"
+                  : "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 border-green-200 dark:border-green-800 hover:bg-green-200"
+              )}
+            >
+              <GraduationCap className="w-3 h-3 shrink-0" />
+              {stats.a} Educ {stats.ad > 0 && `= ${stats.ad}d`}
             </button>
           )}
           {stats.v > 0 && (
@@ -750,13 +879,14 @@ function UsuarioGrupoPermisos({
                 setFiltro(filtro === "vacaciones" ? "todos" : "vacaciones")
               }
               className={cn(
-                "text-[9px] lg:text-xs font-bold px-1.5 lg:px-2 py-0.5 lg:py-1 rounded transition-all border",
+                "text-[9px] lg:text-xs font-bold px-1.5 lg:px-2 py-0.5 lg:py-1 rounded transition-all border inline-flex items-center gap-1",
                 filtro === "vacaciones"
                   ? "bg-purple-600 text-white border-purple-700 scale-105"
                   : "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400 border-purple-200 dark:border-purple-800 hover:bg-purple-200"
               )}
             >
-              {stats.v} Vac {stats.vd > 0 && `• ${stats.vd}d`}
+              <Umbrella className="w-3 h-3 shrink-0" />
+              {stats.v} Vac {stats.vd > 0 && `= ${stats.vd}d`}
             </button>
           )}
           {stats.o > 0 && (
@@ -765,13 +895,14 @@ function UsuarioGrupoPermisos({
                 setFiltro(filtro === "permisos" ? "todos" : "permisos")
               }
               className={cn(
-                "text-[9px] lg:text-xs font-bold px-1.5 lg:px-2 py-0.5 lg:py-1 rounded transition-all border",
+                "text-[9px] lg:text-xs font-bold px-1.5 lg:px-2 py-0.5 lg:py-1 rounded transition-all border inline-flex items-center gap-1",
                 filtro === "permisos"
                   ? "bg-blue-600 text-white border-blue-700 scale-105"
                   : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-200"
               )}
             >
-              {stats.o} Perm {stats.od > 0 && `• ${stats.od}d`}
+              <FileText className="w-3 h-3 shrink-0" />
+              {stats.o} Perm {stats.od > 0 && `= ${stats.od}d`}
             </button>
           )}
           <button
@@ -783,13 +914,38 @@ function UsuarioGrupoPermisos({
                 : "bg-white text-slate-500 border-slate-100 dark:bg-neutral-900 dark:border-neutral-800 hover:bg-slate-50"
             )}
           >
-            Total: {usuarioGrupo.permisos.length} {stats.td > 0 && `• ${stats.td}d`}
+            Total: {usuarioGrupo.permisos.length} {stats.td > 0 && `= ${stats.td}d`}
+          </button>
+          <button
+            type="button"
+            onClick={() => setOrden(orden === "fecha" ? "tipo" : "fecha")}
+            title={
+              orden === "fecha"
+                ? "Ordenado por fecha. Clic para ordenar por tipo"
+                : "Ordenado por tipo. Clic para ordenar por fecha"
+            }
+            className={cn(
+              "text-[9px] lg:text-xs font-bold px-1.5 lg:px-2 py-0.5 lg:py-1 rounded border shrink-0 transition-all inline-flex items-center gap-1",
+              "bg-white text-slate-600 border-slate-200 dark:bg-neutral-900 dark:text-slate-300 dark:border-neutral-700 hover:bg-slate-50 dark:hover:bg-neutral-800"
+            )}
+          >
+            {orden === "fecha" ? (
+              <>
+                <CalendarDays className="w-3 h-3 shrink-0" />
+                Fecha
+              </>
+            ) : (
+              <>
+                <ArrowUpDown className="w-3 h-3 shrink-0" />
+                Tipo
+              </>
+            )}
           </button>
         </div>
       </div>
 
       {/* Listado de permisos para este usuario (Filtrado) */}
-      <div className="flex flex-col gap-3 pl-2 md:pl-4 border-l-2 border-slate-100 dark:border-neutral-800 ml-3">
+      <div className="grid grid-cols-1 2xl:grid-cols-2 gap-3 pl-2 md:pl-4 border-l-2 border-slate-100 dark:border-neutral-800 ml-3">
         <AnimatePresence mode="popLayout">
           {permisosFiltrados.map((permiso) => {
             const esPendiente = permiso.estado === "pendiente";
@@ -835,18 +991,21 @@ function UsuarioGrupoPermisos({
                 )}
               >
                 <div className="flex justify-between items-start mb-2">
+                  {(() => {
+                    const cat = getCategoria(permiso);
+                    const CatIcon = getCategoriaIcon(cat);
+                    return (
                   <span
                     className={cn(
-                      "text-[10px] lg:text-sm px-2 lg:px-3 py-0.5 lg:py-1 rounded font-mono font-bold tracking-wider",
-                      getCategoria(permiso) === "vacaciones"
-                        ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400"
-                        : getCategoria(permiso) === "extras"
-                          ? "bg-slate-100 text-slate-700 dark:bg-slate-900/40 dark:text-slate-400"
-                          : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"
+                      "inline-flex items-center gap-1 text-[10px] lg:text-sm px-2 lg:px-3 py-0.5 lg:py-1 rounded font-mono font-bold tracking-wider",
+                      getCategoriaBadgeClass(cat)
                     )}
                   >
+                    <CatIcon className="w-3 h-3 lg:w-3.5 lg:h-3.5 shrink-0" />
                     Cód: <span className="font-black">{`${permiso.id.substring(0, 3)}-${permiso.id.substring(3, 6)}`.toUpperCase()}</span>
                   </span>
+                    );
+                  })()}
                   <span className="text-[9px] lg:text-xs text-gray-400 font-medium">
                     {format(parseISO(permiso.created_at), "d MMM yy", {
                       locale: es,
@@ -894,13 +1053,13 @@ function UsuarioGrupoPermisos({
                   )}
                 </div>
 
-                <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-50 dark:border-neutral-800">
-                  <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex flex-col gap-2 mt-auto pt-2 border-t border-gray-50 dark:border-neutral-800 md:flex-row md:items-center md:justify-between md:gap-3">
+                  <div className="flex items-center gap-1.5 flex-nowrap overflow-x-auto">
                     {getEstadoBadge(permiso.estado)}
                     {permiso.estado === "aprobado" && permiso.remunerado !== null && (
                       <span
                         className={cn(
-                          "text-[9px] lg:text-xs font-bold px-1.5 lg:px-2.5 py-0.5 lg:py-1 rounded border inline-flex items-center",
+                          "text-[9px] lg:text-xs font-bold px-1.5 lg:px-2.5 py-0.5 lg:py-1 rounded border inline-flex items-center shrink-0",
                           permiso.remunerado
                             ? "text-emerald-700 bg-emerald-50 border-emerald-100 dark:text-emerald-400 dark:bg-emerald-900/20 dark:border-emerald-800"
                             : "text-gray-600 bg-gray-100 border-gray-200 dark:text-gray-400 dark:bg-neutral-800 dark:border-neutral-700"
@@ -910,21 +1069,21 @@ function UsuarioGrupoPermisos({
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <button
                       onClick={(e) => handleVerPreview(e, permiso)}
-                      className="flex items-center gap-1.5 px-2.5 lg:px-3 py-1 lg:py-1.5 text-[10px] lg:text-sm font-bold text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-md transition-colors border border-blue-100 dark:border-blue-800"
+                      className="flex items-center justify-center gap-1.5 px-2.5 lg:px-3 py-1.5 lg:py-1.5 text-[10px] lg:text-sm font-bold text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-md transition-colors border border-blue-100 dark:border-blue-800"
                     >
-                      <Eye className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                      <Eye className="w-3.5 h-3.5 lg:w-4 lg:h-4 shrink-0" />
                       Ver
                     </button>
 
                     {puedeEditar && (
                       <button
                         onClick={() => handleClickFila(permiso)}
-                        className="flex items-center gap-1.5 px-2.5 lg:px-3 py-1 lg:py-1.5 text-[10px] lg:text-sm font-bold text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 rounded-md transition-colors border border-amber-100 dark:border-amber-800"
+                        className="flex items-center justify-center gap-1.5 px-2.5 lg:px-3 py-1.5 lg:py-1.5 text-[10px] lg:text-sm font-bold text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 rounded-md transition-colors border border-amber-100 dark:border-amber-800"
                       >
-                        <Pencil className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                        <Pencil className="w-3.5 h-3.5 lg:w-4 lg:h-4 shrink-0" />
                         Editar / Aprobar
                       </button>
                     )}
@@ -932,11 +1091,12 @@ function UsuarioGrupoPermisos({
                     {puedeEliminar && (
                       <button
                         onClick={(e) => handleEliminarPermiso(e, permiso.id)}
-                        className="flex items-center gap-1.5 px-2.5 lg:px-3 py-1 lg:py-1.5 text-[10px] lg:text-sm font-bold text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-md transition-colors border border-red-100 dark:border-red-800"
+                        className="flex items-center justify-center gap-1.5 px-2 lg:px-3 py-1.5 lg:py-1.5 text-[10px] lg:text-sm font-bold text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-md transition-colors border border-red-100 dark:border-red-800"
                         title="Borrar"
+                        aria-label="Borrar"
                       >
-                        <Trash2 className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-                        Borrar
+                        <Trash2 className="w-3.5 h-3.5 lg:w-4 lg:h-4 shrink-0" />
+                        <span className="hidden md:inline">Borrar</span>
                       </button>
                     )}
                   </div>
