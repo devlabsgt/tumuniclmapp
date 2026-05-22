@@ -19,6 +19,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PullToRefresh from 'react-simple-pull-to-refresh';
 import { ArrowDown, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  fetchRegistrosComisiones,
+  generarPdfComisiones,
+} from '@/components/comisiones/downloads/generarPdfComisiones';
 
 // Helper exportado para reutilizar en hijos
 export const getUsuarioNombre = (id: string, usuarios: Usuario[]) => {
@@ -43,6 +47,7 @@ export default function Ver({ modo }: VerProps) {
   const [comisionAVer, setComisionAVer] = useState<ComisionConFechaYHoraSeparada | null>(null);
   const [comisionesSeleccionadas, setComisionesSeleccionadas] = useState<ComisionConFechaYHoraSeparada[]>([]);
   const [comisionesAVerMultiples, setComisionesAVerMultiples] = useState<ComisionConFechaYHoraSeparada[] | null>(null);
+  const [generandoPdf, setGenerandoPdf] = useState(false);
   const [registrosParaMapa, setRegistrosParaMapa] = useState<{ entrada: any | null, salida: any | null }>({ entrada: null, salida: null });
   const [nombreParaMapa, setNombreParaMapa] = useState('');
 
@@ -311,6 +316,25 @@ export default function Ver({ modo }: VerProps) {
     setComisionesAVerMultiples([...comisionesSeleccionadas].sort((a, b) => new Date(a.fecha_hora).getTime() - new Date(b.fecha_hora).getTime()));
   };
 
+  const handleGenerarPdf = async () => {
+    if (!comisionesSeleccionadas.length) return;
+    setGenerandoPdf(true);
+    try {
+      const ids = comisionesSeleccionadas.map((c) => c.id);
+      const registrosPorComision = await fetchRegistrosComisiones(ids);
+      await generarPdfComisiones(
+        comisionesSeleccionadas,
+        usuariosFiltrados,
+        registrosPorComision,
+      );
+    } catch (e) {
+      console.error(e);
+      Swal.fire('Error', 'No se pudo generar el PDF.', 'error');
+    } finally {
+      setGenerandoPdf(false);
+    }
+  };
+
   if (loading || cargandoSesion || cargandoUsuarios || !haCargadoVistaInicial) return <Cargando texto='Cargando comisiones...' />;
   if (error) return <p className="text-center text-red-500 py-8">Error: {error}</p>;
 
@@ -334,6 +358,8 @@ export default function Ver({ modo }: VerProps) {
         countProximas={counts.proximas} countTerminadas={counts.terminadas}
         onAprobarComision={handleAprobarComision}
         onEliminarComisiones={handleEliminarComisionesSeleccionadas}
+        onGenerarPdf={handleGenerarPdf}
+        generandoPdf={generandoPdf}
       />
     </motion.div>
   );

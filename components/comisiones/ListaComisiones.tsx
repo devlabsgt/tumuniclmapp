@@ -6,7 +6,7 @@ import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, CalendarClock, CheckSquare, Square, CalendarCheck, ClipboardCheck, Trash2, ArrowUp } from 'lucide-react';
+import { Users, CalendarClock, CheckSquare, Square, CalendarCheck, ClipboardCheck, Trash2, ArrowUp, FileText, Loader2 } from 'lucide-react';
 import { toZonedTime } from 'date-fns-tz';
 import { ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
 
@@ -30,6 +30,8 @@ interface Props {
   onVerMultiplesComisiones: () => void;
   onAprobarComision: (comisionId: string) => void;
   onEliminarComisiones: () => void;
+  onGenerarPdf?: () => void;
+  generandoPdf?: boolean;
   countPendientes: number;
   countHoy: number;
   countProximas: number;
@@ -52,7 +54,7 @@ export default function ListaComisiones({
   comisionesFiltradas = [], comisionesAgrupadasPorFecha = {},
   onVerComision, onCrearComision, comisionesSeleccionadas = [],
   onSeleccionarComision, onSeleccionarTodas, onVerMultiplesComisiones,
-  onAprobarComision, onEliminarComisiones,
+  onAprobarComision, onEliminarComisiones, onGenerarPdf, generandoPdf = false,
   countPendientes = 0, countHoy = 0, countProximas = 0, countTerminadas = 0,
 }: Props) {
   
@@ -218,6 +220,16 @@ export default function ListaComisiones({
         {comisionesSeleccionadas.length > 0 && vista !== 'pendientes' && (
           <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 0 }} className="fixed bottom-8 right-8 z-50 flex flex-col gap-2 items-end">
             <Button onClick={onVerMultiplesComisiones} className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg">Ver {comisionesSeleccionadas.length} comisiones</Button>
+            {onGenerarPdf && (
+              <Button
+                onClick={onGenerarPdf}
+                disabled={generandoPdf}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg flex items-center gap-2"
+              >
+                {generandoPdf ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
+                {generandoPdf ? 'Generando...' : 'Generar PDF'}
+              </Button>
+            )}
             {esRRHH && <Button onClick={onEliminarComisiones} className="bg-red-600 hover:bg-red-700 text-white shadow-lg flex items-center gap-2"><Trash2 size={16} /> Eliminar {comisionesSeleccionadas.length}</Button>}
           </motion.div>
         )}
