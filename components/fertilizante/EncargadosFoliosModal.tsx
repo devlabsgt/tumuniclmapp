@@ -344,8 +344,8 @@ export default function EncargadosFoliosModal({ visible, onClose }: Props) {
               </button>
             </div>
 
-            <div className="flex flex-wrap items-end gap-2">
-              <div className="flex-1 min-w-[160px]">
+            <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-end">
+              <div className="w-full md:flex-1 md:min-w-[160px]">
                 <BuscadorOpciones
                   label="Encargado"
                   placeholder="Buscar usuario..."
@@ -360,11 +360,11 @@ export default function EncargadosFoliosModal({ visible, onClose }: Props) {
                 />
               </div>
 
-              <div className="flex-1 min-w-[130px]">
+              <div className="w-full md:flex-1 md:min-w-[130px]">
                 <BuscadorLugar value={lugar} onChange={setLugar} lugares={lugares} />
               </div>
 
-              <div className="w-[130px]">
+              <div className="w-full md:w-[130px]">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-0.5">
                   Fecha
                 </label>
@@ -376,40 +376,42 @@ export default function EncargadosFoliosModal({ visible, onClose }: Props) {
                 />
               </div>
 
-              <div className="w-[72px]">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-0.5">
-                  Folio ini
-                </label>
-                <input
-                  inputMode="numeric"
-                  value={folioIni}
-                  onChange={(e) => setFolioIni(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  onBlur={() => setFolioIni((v) => completarFolioConCeros(v))}
-                  maxLength={4}
-                  placeholder="0001"
-                  className="w-full h-10 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg px-1 text-center text-sm font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                />
-              </div>
+              <div className="flex w-full gap-2 md:contents">
+                <div className="w-1/2 md:w-[72px]">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-0.5">
+                    Folio ini
+                  </label>
+                  <input
+                    inputMode="numeric"
+                    value={folioIni}
+                    onChange={(e) => setFolioIni(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    onBlur={() => setFolioIni((v) => completarFolioConCeros(v))}
+                    maxLength={4}
+                    placeholder="0001"
+                    className="w-full h-10 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg px-1 text-center text-sm font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                  />
+                </div>
 
-              <div className="w-[72px]">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-0.5">
-                  Folio fin
-                </label>
-                <input
-                  inputMode="numeric"
-                  value={folioFin}
-                  onChange={(e) => setFolioFin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  onBlur={() => setFolioFin((v) => completarFolioConCeros(v))}
-                  maxLength={4}
-                  placeholder="0100"
-                  className="w-full h-10 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg px-1 text-center text-sm font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                />
+                <div className="w-1/2 md:w-[72px]">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block mb-0.5">
+                    Folio fin
+                  </label>
+                  <input
+                    inputMode="numeric"
+                    value={folioFin}
+                    onChange={(e) => setFolioFin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    onBlur={() => setFolioFin((v) => completarFolioConCeros(v))}
+                    maxLength={4}
+                    placeholder="0100"
+                    className="w-full h-10 bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg px-1 text-center text-sm font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                  />
+                </div>
               </div>
 
               <button
                 onClick={handleGuardar}
                 disabled={guardando || !formularioValido}
-                className="h-10 px-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold whitespace-nowrap transition-all active:scale-95"
+                className="w-full md:w-auto h-10 px-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold whitespace-nowrap transition-all active:scale-95"
               >
                 {guardando ? 'Guardando...' : editandoId ? 'Actualizar' : 'Guardar'}
               </button>

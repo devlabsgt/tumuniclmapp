@@ -104,13 +104,21 @@ export function TablaBeneficiarios({
     [data, encargadosFolios],
   );
 
+  const hayAlgunaEdicion = useMemo(
+    () => data.some((b) => b.editado_por && b.editado_por.toString().trim() !== ''),
+    [data],
+  );
+
+  const mostrarColumnaEdicion = mostrarRegistros && hayAlgunaEdicion;
+
   const anchoMinimoTabla = useMemo(() => {
     const colsFijas = 1215 + ANCHO_COLUMNA_ENCARGADO;
     const foto = 115;
     const acciones = tienePermisoEspecial ? 180 : 0;
-    const registros = mostrarRegistros ? 400 : 0;
-    return colsFijas + registros + acciones + foto;
-  }, [mostrarRegistros, tienePermisoEspecial]);
+    const colRegistrado = mostrarRegistros ? 200 : 0;
+    const colEdicion = mostrarColumnaEdicion ? 200 : 0;
+    return colsFijas + colRegistrado + colEdicion + acciones + foto;
+  }, [mostrarRegistros, mostrarColumnaEdicion, tienePermisoEspecial]);
 
   const renderEncargadoVertical = (nombre: string | null) => {
     if (!nombre?.trim()) {
@@ -551,7 +559,7 @@ export function TablaBeneficiarios({
               <col style={{ width: '50px' }} />
               <col style={{ width: '50px' }} />
               {mostrarRegistros && <col style={{ width: '200px' }} />}
-              {mostrarRegistros && <col style={{ width: '200px' }} />}
+              {mostrarColumnaEdicion && <col style={{ width: '200px' }} />}
               {tienePermisoEspecial && (
                 <col style={{ width: '180px' }} />
               )}
@@ -563,7 +571,7 @@ export function TablaBeneficiarios({
                 <th colSpan={6} className="p-2 border-b-[2.5px] border-r-[2.5px] border-gray-400 dark:border-neutral-600 text-center uppercase tracking-wider">Datos de entrega</th>
                 <th colSpan={6} className="p-2 border-b-[2.5px] border-r-[2.5px] border-gray-400 dark:border-neutral-600 text-center uppercase tracking-wider text-blue-800 dark:text-blue-400">Datos del beneficiario</th>
                 <th
-                  colSpan={(mostrarRegistros ? 2 : 0) + (tienePermisoEspecial ? 1 : 0) + 1}
+                  colSpan={(mostrarRegistros ? 1 : 0) + (mostrarColumnaEdicion ? 1 : 0) + (tienePermisoEspecial ? 1 : 0) + 1}
                   className="p-2 border-b-[2.5px] border-gray-400 dark:border-neutral-600 text-center uppercase tracking-wider text-green-800 dark:text-green-400 cursor-pointer hover:bg-gray-300 dark:hover:bg-neutral-700 select-none transition-colors"
                   onClick={() => setMostrarRegistros(!mostrarRegistros)}
                   title="Clic para mostrar/ocultar detalles de registro y foto"
@@ -585,7 +593,7 @@ export function TablaBeneficiarios({
                 <th className="p-2 border-[1.5px] border-gray-300 dark:border-neutral-700 text-center">Edad</th>
                 <th className="p-2 border-r-[2.5px] border-gray-400 dark:border-neutral-600 text-center">Sexo</th>
                 {mostrarRegistros && <th className="p-2 border-[1.5px] border-gray-300 dark:border-neutral-700">Registrado por:</th>}
-                {mostrarRegistros && <th className="p-2 border-[1.5px] border-gray-300 dark:border-neutral-700">Última Edición por:</th>}
+                {mostrarColumnaEdicion && <th className="p-2 border-[1.5px] border-gray-300 dark:border-neutral-700">Última Edición por:</th>}
                 {tienePermisoEspecial && (
                   <th className={`p-2 border-[1.5px] border-gray-300 dark:border-neutral-700 ${mostrarRegistros ? '' : 'border-l-[2.5px] border-l-gray-400 dark:border-l-neutral-600'} text-center`}>Acciones</th>
                 )}
@@ -596,7 +604,7 @@ export function TablaBeneficiarios({
               {isLoading
                 ? Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i} className="animate-pulse bg-gray-50 dark:bg-neutral-800/40 border-[1.5px] border-gray-300 dark:border-neutral-700">
-                    {Array.from({ length: 13 + (mostrarRegistros ? 2 : 0) + (tienePermisoEspecial ? 1 : 0) }).map((_, j) => (
+                    {Array.from({ length: 13 + (mostrarRegistros ? 1 : 0) + (mostrarColumnaEdicion ? 1 : 0) + (tienePermisoEspecial ? 1 : 0) }).map((_, j) => (
                       <td key={j} className="p-2 border-[1.5px] border-gray-300 dark:border-neutral-700">
                         <div className="h-4 bg-gray-400 dark:bg-neutral-600 rounded w-full"></div>
                       </td>
@@ -646,7 +654,7 @@ export function TablaBeneficiarios({
                         </div>
                       </td>
                     )}
-                    {mostrarRegistros && (
+                    {mostrarColumnaEdicion && (
                       <td className="pl-2 border-[1.5px] border-gray-300 dark:border-neutral-700">
                         {b.editado_por ? (
                           <div className="flex flex-col">

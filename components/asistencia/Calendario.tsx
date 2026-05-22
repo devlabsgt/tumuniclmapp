@@ -26,6 +26,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { PermisoEmpleado } from '@/components/permisos/types';
 import PreviewPermiso from '@/components/permisos/modals/PreviewPermiso';
+import VerComision from '@/components/comisiones/VerComision';
+import Mapa from '@/components/ui/modals/Mapa';
 import { useAsuetos, getAsuetoPorFecha } from '@/hooks/asistencia/useAsuetos';
 import {
   getCategoriaIcon,
@@ -105,6 +107,9 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
   const [fechaInicialRango, setFechaInicialRango] = useState('');
   const [fechaFinalRango, setFechaFinalRango] = useState('');
   const [permisoPreview, setPermisoPreview] = useState<PermisoEmpleado | null>(null);
+  const [comisionPreview, setComisionPreview] = useState<ComisionConFechaYHoraSeparada | null>(null);
+  const [mapaComisionRegistros, setMapaComisionRegistros] = useState<any>(null);
+  const [mapaComisionNombre, setMapaComisionNombre] = useState('');
 
   const diasDeLaSemana = useMemo(() => getWeekDays(fechaDeReferencia), [fechaDeReferencia]);
 
@@ -314,10 +319,14 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
 
     if (comision) {
       return (
-        <div className={`w-full py-1 px-1.5 rounded font-bold flex items-center justify-center gap-1 text-center text-[9px] leading-tight border shadow-sm cursor-default ${COMISION_BADGE_CLASS}`}>
+        <button
+          onClick={(e) => { e.stopPropagation(); setComisionPreview(comision); }}
+          title={comision.titulo}
+          className={`w-full py-1 px-1.5 rounded font-bold flex items-center justify-center gap-1 text-center text-[9px] leading-tight border shadow-sm cursor-pointer transition-colors hover:opacity-80 ${COMISION_BADGE_CLASS}`}
+        >
           <Briefcase className="w-2.5 h-2.5 flex-shrink-0" />
           Comisión
-        </div>
+        </button>
       );
     }
 
@@ -633,6 +642,38 @@ export default function Calendario({ todosLosRegistros = [], onAbrirMapa, fechaH
         onClose={() => setPermisoPreview(null)}
         permiso={permisoPreview}
       />
+
+      {comisionPreview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setComisionPreview(null); }}
+        >
+          <div className="bg-white dark:bg-neutral-950 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <VerComision
+              comision={comisionPreview}
+              usuarios={(comisionPreview.asistentes || []) as any}
+              onClose={() => setComisionPreview(null)}
+              onAbrirMapa={(registros, nombre) => {
+                setMapaComisionRegistros(registros);
+                setMapaComisionNombre(nombre);
+              }}
+              onEdit={() => {}}
+              onDelete={() => {}}
+              onAprobar={() => {}}
+            />
+          </div>
+        </div>
+      )}
+
+      {mapaComisionRegistros && (
+        <Mapa
+          isOpen={!!mapaComisionRegistros}
+          onClose={() => { setMapaComisionRegistros(null); setMapaComisionNombre(''); }}
+          registros={mapaComisionRegistros}
+          nombreUsuario={mapaComisionNombre}
+          titulo="Comisión"
+        />
+      )}
     </div>
   );
 }
