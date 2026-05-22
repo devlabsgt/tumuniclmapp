@@ -4,9 +4,9 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { AnimatePresence } from 'framer-motion';
 import Mapa from '@/components/ui/modals/Mapa';
-import { format, endOfDay, parseISO, startOfWeek, endOfWeek, addWeeks, eachDayOfInterval } from 'date-fns';
+import { format, endOfDay, parseISO, startOfWeek, endOfWeek, addWeeks, eachDayOfInterval, isAfter, startOfToday } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronsDown, ChevronsUp, AlertCircle, AlertTriangle, XCircle, Calendar } from 'lucide-react';
+import { ChevronsDown, ChevronsUp, AlertCircle, AlertTriangle, XCircle, Calendar, Clock } from 'lucide-react';
 import { useDependencias } from '@/hooks/dependencias/useDependencias';
 import Cargando from '@/components/ui/animations/Cargando';
 import { AsistenciaEnriquecida } from '@/hooks/asistencia/useObtenerAsistencias';
@@ -16,7 +16,9 @@ import PreviewPermiso from '@/components/permisos/modals/PreviewPermiso';
 import { PermisoEmpleado } from '@/components/permisos/types';
 import { createClient } from '@/utils/supabase/client';
 import { useListaUsuarios } from '@/hooks/usuarios/useListarUsuarios';
-import { useAsuetos } from '@/hooks/asistencia/useAsuetos';
+import { useAsuetos, getAsuetoPorFecha } from '@/hooks/asistencia/useAsuetos';
+import { ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
+import VerComision from '@/components/comisiones/VerComision';
 
 type Props = {
   registros: AsistenciaEnriquecida[];
@@ -63,6 +65,11 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
   const [nombreUsuarioModal, setNombreUsuarioModal] = useState<string>('');
   const [permisoPreview, setPermisoPreview] = useState<PermisoEmpleado | null>(null);
   const [permisosMap, setPermisosMap] = useState<Record<string, PermisoEmpleado[]>>({});
+  /** userId → lista de comisiones aprobadas en el rango (objetos completos para el modal) */
+  const [comisionesMap, setComisionesMap] = useState<Record<string, ComisionConFechaYHoraSeparada[]>>({});
+  const [comisionPreview, setComisionPreview] = useState<ComisionConFechaYHoraSeparada | null>(null);
+  const [mapaComisionRegistros, setMapaComisionRegistros] = useState<any>(null);
+  const [mapaComisionNombre, setMapaComisionNombre] = useState('');
   
   const [fechaInicialRango, setFechaInicialRango] = useState(() => format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'));
   const [fechaFinalRango, setFechaFinalRango] = useState(() => format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd'));
@@ -76,13 +83,21 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
   const [oficinasAbiertas, setOficinasAbiertas] = useState<Record<string, boolean>>({});
   const [todosAbiertos, setTodosAbiertos] = useState(false);
   
-  const [vistaAgrupada, setVistaAgrupada] = useState<'nombre' | 'fecha'>('fecha');
+  const [vistaAgrupada, setVistaAgrupada] = useState<'nombre' | 'fecha'>(() =>
+    typeof window !== 'undefined'
+      ? ((localStorage.getItem('asistencia_vista') as 'nombre' | 'fecha') || 'fecha')
+      : 'fecha'
+  );
   const [weekLabel, setWeekLabel] = useState(() => getWeekLabel(startOfWeek(new Date(), { weekStartsOn: 1 })));
   const [isNextWeekFuture, setIsNextWeekFuture] = useState(true);
 
   const [incluirFinesSemana, setIncluirFinesSemana] = useState(false);
   const [ordenDescendente, setOrdenDescendente] = useState(false); 
-  const [filtroRapido, setFiltroRapido] = useState<'todos' | 'inasistencia' | 'sin_entrada' | 'sin_salida'>('todos');
+  const [filtroRapido, setFiltroRapido] = useState<'todos' | 'inasistencia' | 'sin_entrada' | 'sin_salida' | 'entrada_tarde'>(() =>
+    typeof window !== 'undefined'
+      ? ((localStorage.getItem('asistencia_filtro') as any) || 'todos')
+      : 'todos'
+  );
 
   useEffect(() => {
     aplicarFiltros(fechaInicialRango, fechaFinalRango);
@@ -92,6 +107,9 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
     document.body.style.overflow = modalMapaAbierto ? 'hidden' : 'unset';
     return () => { document.body.style.overflow = 'unset'; };
   }, [modalMapaAbierto]);
+
+  useEffect(() => { localStorage.setItem('asistencia_vista', vistaAgrupada); }, [vistaAgrupada]);
+  useEffect(() => { localStorage.setItem('asistencia_filtro', filtroRapido); }, [filtroRapido]);
 
   // Cargar permisos del rango actual para todos los usuarios
   useEffect(() => {
@@ -127,6 +145,48 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
     };
     fetchPermisos();
   }, [fechaInicialRango, fechaFinalRango, todosLosUsuarios]);
+
+  // Cargar comisiones del rango para todos los usuarios (con asistentes completos)
+  useEffect(() => {
+    const fetchComisiones = async () => {
+      if (!fechaInicialRango || !fechaFinalRango) return;
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('comisiones')
+        .select('id, titulo, fecha_hora, aprobado, comentarios, comision_asistentes(asistente_id, encargado)')
+        .eq('aprobado', true)
+        .gte('fecha_hora', fechaInicialRango)
+        .lte('fecha_hora', fechaFinalRango + 'T23:59:59');
+      if (!data) return;
+      const map: Record<string, ComisionConFechaYHoraSeparada[]> = {};
+      data.forEach((c: any) => {
+        const date = new Date(c.fecha_hora);
+        const comisionObj: ComisionConFechaYHoraSeparada = {
+          id: c.id,
+          titulo: c.titulo,
+          fecha_hora: c.fecha_hora,
+          aprobado: c.aprobado,
+          comentarios: c.comentarios || [],
+          asistentes: (c.comision_asistentes || []).map((a: any) => ({
+            id: a.asistente_id,
+            encargado: a.encargado,
+            // campos requeridos por Usuario — los nombres se resuelven con todosLosUsuarios
+            email: '', nombre: '', activo: true, rol: '', permisos: [], programas_asignados: [],
+          })),
+          fecha: date.toLocaleDateString('es-ES', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+          hora: date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+        };
+        (c.comision_asistentes || []).forEach((a: any) => {
+          if (!map[a.asistente_id]) map[a.asistente_id] = [];
+          if (!map[a.asistente_id].some(x => x.id === comisionObj.id)) {
+            map[a.asistente_id].push(comisionObj);
+          }
+        });
+      });
+      setComisionesMap(map);
+    };
+    fetchComisiones();
+  }, [fechaInicialRango, fechaFinalRango]);
 
   const oficinasNivel2 = useMemo(() => {
     const rootIds = new Set(dependencias.filter(d => d.parent_id === null).map(d => d.id));
@@ -344,18 +404,36 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
     return agrupadosPorOficina;
   }, [usuariosPorOficina, registrosDiariosBase, diasIntervalo, ordenDescendente]);
 
+  /** Devuelve true si el usuario tiene permiso/asueto/comisión justificando la ausencia ese día */
+  const tieneJustificacion = useMemo(() => {
+    return (userId: string, diaString: string): boolean => {
+      const tieneComision = (comisionesMap[userId] || []).some(c => c.fecha_hora.startsWith(diaString));
+      if (tieneComision) return true;
+      const tienePermiso = (permisosMap[userId] || []).some(p => {
+        if (p.estado !== 'aprobado') return false;
+        return diaString >= p.inicio.substring(0, 10) && diaString <= p.fin.substring(0, 10);
+      });
+      if (tienePermiso) return true;
+      return !!getAsuetoPorFecha(asuetos, diaString);
+    };
+  }, [comisionesMap, permisosMap, asuetos]);
+
   const estadisticas = useMemo(() => {
     let inasistencias = 0;
     let salidasSinMarcaje = 0;
     let entradasSinMarcaje = 0;
+    let entradasTarde = 0;
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
 
     const contarEnArray = (arr: RegistrosAgrupados[]) => {
         arr.forEach(r => {
+            if (r.diaString > todayStr) return; // ignorar fechas futuras
             if (r.esDiaVacio || r.esAusencia) {
-                inasistencias++;
+                if (!tieneJustificacion(r.userId, r.diaString)) inasistencias++;
             } else {
-                if (r.entrada && !r.salida) salidasSinMarcaje++; 
-                if (!r.entrada && r.salida) entradasSinMarcaje++; 
+                if (r.entrada?.notas?.toLowerCase().includes('entrada tarde')) entradasTarde++;
+                if (r.entrada && !r.salida) salidasSinMarcaje++;
+                if (!r.entrada && r.salida) entradasSinMarcaje++;
             }
         });
     };
@@ -368,15 +446,18 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
         });
     }
 
-    return { inasistencias, salidasSinMarcaje, entradasSinMarcaje };
-  }, [datosCompletosFecha, datosCompletosUsuario, vistaAgrupada]);
+    return { inasistencias, salidasSinMarcaje, entradasSinMarcaje, entradasTarde };
+  }, [datosCompletosFecha, datosCompletosUsuario, vistaAgrupada, tieneJustificacion]);
 
   const registrosFiltradosFinales = useMemo(() => {
+     const todayStr = format(new Date(), 'yyyy-MM-dd');
      const filterFn = (r: RegistrosAgrupados) => {
         if (filtroRapido === 'todos') return true;
-        if (filtroRapido === 'inasistencia') return r.esDiaVacio || r.esAusencia;
-        if (filtroRapido === 'sin_salida') return r.entrada && !r.salida; 
-        if (filtroRapido === 'sin_entrada') return !r.entrada && r.salida; 
+        if (filtroRapido === 'inasistencia')
+          return (r.esDiaVacio || r.esAusencia) && r.diaString <= todayStr && !tieneJustificacion(r.userId, r.diaString);
+        if (filtroRapido === 'sin_salida') return !!r.entrada && !r.salida;
+        if (filtroRapido === 'sin_entrada') return !r.entrada && !!r.salida;
+        if (filtroRapido === 'entrada_tarde') return !!r.entrada?.notas?.toLowerCase().includes('entrada tarde');
         return true;
      };
 
@@ -399,7 +480,7 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
         });
         return resultado;
      }
-  }, [datosCompletosFecha, datosCompletosUsuario, vistaAgrupada, filtroRapido]);
+  }, [datosCompletosFecha, datosCompletosUsuario, vistaAgrupada, filtroRapido, tieneJustificacion]);
 
   const oficinasOrdenadas = useMemo(() => {
     return Object.keys(registrosFiltradosFinales).sort((a, b) => {
@@ -492,14 +573,15 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
   const handleBorrarFiltro = () => {
     setFechaInicialRango('');
     setFechaFinalRango('');
-    setSearchTerm(''); 
+    setSearchTerm('');
     setNivel2Id(null);
     setNivel3Id(null);
-    aplicarFiltros(null, null); 
+    aplicarFiltros(null, null);
     setWeekLabel("Mostrando Todos");
     setIsNextWeekFuture(false);
     setIncluirFinesSemana(false);
     setFiltroRapido('todos');
+    localStorage.removeItem('asistencia_filtro');
   };
 
   const toggleOficina = (nombreOficina: string) => {
@@ -562,13 +644,13 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
                         Incluir fines de semana
                     </Button>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <Button
                            size="sm"
                            onClick={() => setFiltroRapido(prev => prev === 'inasistencia' ? 'todos' : 'inasistencia')}
                            className={`h-7 px-3 text-[10px] rounded-sm border transition-all ${
-                               filtroRapido === 'inasistencia' 
-                                ? 'bg-red-600 text-white border-red-600 hover:bg-red-700' 
+                               filtroRapido === 'inasistencia'
+                                ? 'bg-red-600 text-white border-red-600 hover:bg-red-700'
                                 : 'bg-red-50 text-red-600 border-red-100 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30'
                            }`}
                         >
@@ -578,28 +660,41 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
 
                         <Button
                            size="sm"
-                           onClick={() => setFiltroRapido(prev => prev === 'sin_entrada' ? 'todos' : 'sin_entrada')}
+                           onClick={() => setFiltroRapido(prev => prev === 'entrada_tarde' ? 'todos' : 'entrada_tarde')}
                            className={`h-7 px-3 text-[10px] rounded-sm border transition-all ${
-                               filtroRapido === 'sin_entrada' 
-                                ? 'bg-orange-500 text-white border-orange-500 hover:bg-orange-600' 
+                               filtroRapido === 'entrada_tarde'
+                                ? 'bg-orange-600 text-white border-orange-600 hover:bg-orange-700'
                                 : 'bg-orange-50 text-orange-600 border-orange-100 hover:bg-orange-100 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-900/30'
                            }`}
                         >
+                           <Clock className="w-3 h-3 mr-1.5" />
+                           Entrada tarde: {estadisticas.entradasTarde}
+                        </Button>
+
+                        <Button
+                           size="sm"
+                           onClick={() => setFiltroRapido(prev => prev === 'sin_entrada' ? 'todos' : 'sin_entrada')}
+                           className={`h-7 px-3 text-[10px] rounded-sm border transition-all ${
+                               filtroRapido === 'sin_entrada'
+                                ? 'bg-amber-500 text-white border-amber-500 hover:bg-amber-600'
+                                : 'bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/30'
+                           }`}
+                        >
                            <AlertCircle className="w-3 h-3 mr-1.5" />
-                           Entradas sin marcaje: {estadisticas.entradasSinMarcaje}
+                           Sin entrada: {estadisticas.entradasSinMarcaje}
                         </Button>
 
                         <Button
                            size="sm"
                            onClick={() => setFiltroRapido(prev => prev === 'sin_salida' ? 'todos' : 'sin_salida')}
                            className={`h-7 px-3 text-[10px] rounded-sm border transition-all ${
-                               filtroRapido === 'sin_salida' 
-                                ? 'bg-yellow-500 text-white border-yellow-500 hover:bg-yellow-600' 
+                               filtroRapido === 'sin_salida'
+                                ? 'bg-yellow-500 text-white border-yellow-500 hover:bg-yellow-600'
                                 : 'bg-yellow-50 text-yellow-700 border-yellow-100 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30'
                            }`}
                         >
                            <AlertTriangle className="w-3 h-3 mr-1.5" />
-                           Salidas sin marcaje: {estadisticas.salidasSinMarcaje}
+                           Sin salida: {estadisticas.salidasSinMarcaje}
                         </Button>
                     </div>
                   </div>
@@ -646,8 +741,11 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
                           onToggle={() => toggleOficina(nombreOficina)}
                           onAbrirModal={handleAbrirModalMapa}
                           permisosMap={permisosMap}
+                          comisionesMap={comisionesMap}
                           onVerPermiso={setPermisoPreview}
+                          onVerComision={setComisionPreview}
                           asuetos={asuetos}
+                          usuarios={todosLosUsuarios as any}
                         />
                       ))}
                       {oficinasOrdenadas.length === 0 && (
@@ -681,6 +779,39 @@ export default function AsistenciaTable({ registros, loading, setOficinaId, setF
         onClose={() => setPermisoPreview(null)}
         permiso={permisoPreview}
       />
+
+      {/* Modal de detalle de comisión */}
+      {comisionPreview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setComisionPreview(null); }}
+        >
+          <div className="bg-white dark:bg-neutral-950 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <VerComision
+              comision={comisionPreview}
+              usuarios={todosLosUsuarios as any}
+              onClose={() => setComisionPreview(null)}
+              onAbrirMapa={(registros, nombre) => {
+                setMapaComisionRegistros(registros);
+                setMapaComisionNombre(nombre);
+              }}
+              onEdit={() => {}}
+              onDelete={() => {}}
+              onAprobar={() => {}}
+            />
+          </div>
+        </div>
+      )}
+
+      {mapaComisionRegistros && (
+        <Mapa
+          isOpen={!!mapaComisionRegistros}
+          onClose={() => { setMapaComisionRegistros(null); setMapaComisionNombre(''); }}
+          registros={mapaComisionRegistros}
+          nombreUsuario={mapaComisionNombre}
+          titulo="Comisión"
+        />
+      )}
     </>
   );
 }

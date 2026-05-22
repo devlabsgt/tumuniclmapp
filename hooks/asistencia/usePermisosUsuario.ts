@@ -6,7 +6,7 @@ import { PermisoEmpleado } from '@/components/permisos/types';
 
 export function usePermisosUsuario(userId: string | null) {
   const [permisos, setPermisos] = useState<PermisoEmpleado[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(!!userId);
 
   useEffect(() => {
     if (!userId) return;

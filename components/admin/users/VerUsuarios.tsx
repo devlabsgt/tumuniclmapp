@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import UsersTable from '@/components/admin/users/UsersTable';
@@ -17,7 +17,16 @@ export default function VerUsuarios() {
   const router = useRouter();
   const { rol: rolActual, cargando: cargandoUsuario } = useUserData();
   
-  const [vistaActiva, setVistaActiva] = useState<Vistas>('usuarios');
+  const [vistaActiva, setVistaActiva] = useState<Vistas>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('admin_tab') as Vistas) || 'usuarios';
+    }
+    return 'usuarios';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('admin_tab', vistaActiva);
+  }, [vistaActiva]);
   const [fechaInicio, setFechaInicio] = useState<string | null>(null);
   const [fechaFinal, setFechaFinal] = useState<string | null>(null);
   const [oficinaId, setOficinaId] = useState<string | null>(null);

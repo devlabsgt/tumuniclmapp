@@ -4,6 +4,7 @@ import { es } from 'date-fns/locale';
 import { List, FileCheck, AlertCircle } from 'lucide-react';
 import { RegistrosAgrupadosPorUsuario, RegistrosAgrupadosDiarios, AsistenciaEnriquecida } from './types';
 import { PermisoEmpleado } from '@/components/permisos/types';
+import { getMensajeSinMarcaje } from '@/components/permisos/categorias';
 
 interface ListaAsistenciasProps {
     vista: 'nombre' | 'fecha';
@@ -162,9 +163,12 @@ const ListaAsistencias: React.FC<ListaAsistenciasProps> = ({
                                                                     multiple: esMultiple ? asistencia.multiple : undefined
                                                                 }, usuario.nombre)}
                                                             >
-                                                                 {sinRegistros ? (
-                                                                    <span className={`text-[9px] font-medium ${permiso ? (permiso.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-400 dark:text-red-400'}`}>Sin registros</span>
-                                                                ) : esMultiple || totalRegistros > 2 ? (
+                                                                 {sinRegistros ? (() => {
+                                                                    const msg = getMensajeSinMarcaje({ permiso });
+                                                                    return (
+                                                                    <span className={`text-[9px] font-medium ${msg.className}`}>{msg.texto}</span>
+                                                                    );
+                                                                 })() : esMultiple || totalRegistros > 2 ? (
                                                                     <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold flex items-center gap-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[9px]">
                                                                         <List size={12} /> Ver Asistencia ({totalRegistros})
                                                                     </div>
@@ -251,9 +255,12 @@ const ListaAsistencias: React.FC<ListaAsistenciasProps> = ({
                                                             multiple: esMultiple ? registro.multiple : undefined
                                                         }, registro.nombre)}
                                                     >
-                                                        {sinRegistros ? (
-                                                            <span className={`text-[9px] font-medium ${permiso ? (permiso.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-400'}`}>Sin registros</span>
-                                                        ) : esMultiple || totalRegistros > 2 ? (
+                                                        {sinRegistros ? (() => {
+                                                            const msg = getMensajeSinMarcaje({ permiso });
+                                                            return (
+                                                            <span className={`text-[9px] font-medium ${msg.className}`}>{msg.texto}</span>
+                                                            );
+                                                        })() : esMultiple || totalRegistros > 2 ? (
                                                             <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold flex items-center gap-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[9px]">
                                                                 <List size={12} /> Ver Asistencia ({totalRegistros})
                                                             </div>

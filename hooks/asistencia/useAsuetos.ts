@@ -10,7 +10,7 @@ export type { Asueto };
  */
 export function useAsuetos(fechaInicio: string, fechaFin: string) {
   const [asuetos, setAsuetos] = useState<Asueto[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(!!(fechaInicio && fechaFin));
 
   const cargar = useCallback(async () => {
     if (!fechaInicio || !fechaFin) return;

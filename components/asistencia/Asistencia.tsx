@@ -8,6 +8,8 @@ import {
   format,
   isSameDay,
   getDay,
+  getMonth,
+  getYear,
   set,
   addMinutes,
   isBefore,
@@ -19,10 +21,9 @@ import {
   Clock,
   CalendarCheck,
   CalendarDays,
-  List,
   MapPin,
   AlertCircle,
-  FileCheck,
+  Briefcase,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Calendario from "./Calendario";
@@ -37,6 +38,19 @@ import useFechaHora from "@/hooks/utility/useFechaHora";
 import { useAsistenciaUsuario } from "@/hooks/asistencia/useAsistenciaUsuario";
 import { usePermisosUsuario } from "@/hooks/asistencia/usePermisosUsuario";
 import { useObtenerUbicacion } from "@/hooks/ubicacion/useObtenerUbicacion";
+import {
+  getCategoriaIcon,
+  getCategoriaJustificacionClass,
+  getCategoriaLabel,
+  getCategoriaPermiso,
+  getCategoriaTextClass,
+  COMISION_TEXT_CLASS,
+  COMISION_BADGE_CLASS,
+} from "@/components/permisos/categorias";
+import {
+  useObtenerComisiones,
+  type ComisionConFechaYHoraSeparada,
+} from "@/hooks/comisiones/useObtenerComisiones";
 
 const formatScheduleTime = (timeString: string | null | undefined) => {
   if (!timeString) return "--";
@@ -110,8 +124,13 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
     loading: cargandoRegistros,
     fetchAsistencias,
   } = useAsistenciaUsuario(userId, null, null);
-  const { permisos: permisosEmpleado } = usePermisosUsuario(userId);
+  const { permisos: permisosEmpleado, loading: cargandoPermisos } = usePermisosUsuario(userId);
   const fechaHoraGt = useFechaHora();
+  const { comisiones: comisionesEmpleado, loading: cargandoComisiones } = useObtenerComisiones(
+    getMonth(fechaHoraGt),
+    getYear(fechaHoraGt),
+    cargandoUsuario ? null : userId || null,
+  );
 
   const {
     ubicacion,
@@ -141,13 +160,18 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
     if (!permisosEmpleado) return null;
     const hoyStr = format(fechaHoraGt, 'yyyy-MM-dd');
     return permisosEmpleado.find(p => {
-      // Solo consideramos el permiso si está aprobado por RRHH
       if (p.estado !== 'aprobado') return false;
       const inicioDia = p.inicio.substring(0, 10);
       const finDia = p.fin.substring(0, 10);
       return hoyStr >= inicioDia && hoyStr <= finDia;
     }) || null;
   }, [permisosEmpleado, fechaHoraGt]);
+
+  const comisionHoy = useMemo((): ComisionConFechaYHoraSeparada | null => {
+    if (!comisionesEmpleado || comisionesEmpleado.length === 0) return null;
+    const hoyStr = format(fechaHoraGt, 'yyyy-MM-dd');
+    return comisionesEmpleado.find(c => c.aprobado && c.fecha_hora.startsWith(hoyStr)) || null;
+  }, [comisionesEmpleado, fechaHoraGt]);
 
   const {
     estaFueraDeHorario,
@@ -239,6 +263,20 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
     horario_nombre,
     permisoHoy,
   ]);
+
+  // Determina si la comisión de hoy "toca" la hora de entrada o salida
+  const { comisionTocaEntrada, comisionTocaSalida } = useMemo(() => {
+    if (!comisionHoy)
+      return { comisionTocaEntrada: false, comisionTocaSalida: false };
+    const comisionDate = parseISO(comisionHoy.fecha_hora.replace(' ', 'T'));
+    const comisionMin = comisionDate.getHours() * 60 + comisionDate.getMinutes();
+    const entradaMin = scheduleEntrada.getHours() * 60 + scheduleEntrada.getMinutes();
+    const salidaMin = scheduleSalida.getHours() * 60 + scheduleSalida.getMinutes();
+    return {
+      comisionTocaEntrada: comisionMin <= entradaMin,
+      comisionTocaSalida: comisionMin >= salidaMin,
+    };
+  }, [comisionHoy, scheduleEntrada, scheduleSalida]);
 
   const registroEntradaHoy = useMemo(() => {
     if (!todosLosRegistros) return null;
@@ -556,6 +594,45 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
     }
   };
 
+  const getEntradaTextClass = () => {
+    if (permisoHoy) return getCategoriaTextClass(getCategoriaPermiso(permisoHoy));
+    if (comisionHoy && comisionTocaEntrada) return COMISION_TEXT_CLASS;
+    return "text-red-400";
+  };
+
+  const getSalidaTextClass = () => {
+    if (permisoHoy) return getCategoriaTextClass(getCategoriaPermiso(permisoHoy));
+    if (comisionHoy && comisionTocaSalida) return COMISION_TEXT_CLASS;
+    return "text-red-400";
+  };
+
+  const renderComisionHoyBtn = () => (
+    <div
+      className={`w-full py-1.5 px-1 rounded font-bold flex items-center justify-center gap-1 text-center text-[9px] leading-tight border shadow-sm cursor-default ${COMISION_BADGE_CLASS}`}
+    >
+      <Briefcase className="w-2.5 h-2.5 flex-shrink-0" />
+      Comisión
+    </div>
+  );
+
+  const renderPermisoHoyBtn = (permiso: PermisoEmpleado) => {
+    const categoria = getCategoriaPermiso(permiso);
+    const Icono = getCategoriaIcon(categoria);
+
+    return (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setPermisoParaPreview(permiso);
+        }}
+        className={`w-full py-1.5 px-1 rounded font-bold flex items-center justify-center gap-1 text-center transition-colors text-[9px] leading-tight border shadow-sm cursor-pointer ${getCategoriaJustificacionClass(categoria)}`}
+      >
+        <Icono className="w-2.5 h-2.5 flex-shrink-0" />
+        {getCategoriaLabel(categoria)}
+      </button>
+    );
+  };
+
   return (
     <>
       <div className="w-full xl:max-w-3xl mx-auto">
@@ -658,14 +735,14 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
                                   <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
                                   {registroEntradaHoy 
                                     ? format(new Date(registroEntradaHoy.created_at), 'hh:mm aa', { locale: es }) 
-                                    : <span className={`${permisoHoy ? (permisoHoy.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-400'} font-bold`}>--:--</span>}
+                                    : <span className={`${getEntradaTextClass()} font-bold`}>--:--</span>}
                                 </span>
                                 <span className="text-gray-300 dark:text-neutral-700">|</span>
                                 <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                   <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
                                   {registroSalidaHoy 
                                     ? format(new Date(registroSalidaHoy.created_at), 'hh:mm aa', { locale: es }) 
-                                    : <span className={`${permisoHoy ? (permisoHoy.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-400'} font-bold`}>--:--</span>}
+                                    : <span className={`${getSalidaTextClass()} font-bold`}>--:--</span>}
                                 </span>
                               </div>
                             )}
@@ -673,16 +750,9 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
 
                           <div className="w-1/4 cursor-pointer">
                             {permisoHoy ? (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setPermisoParaPreview(permisoHoy); }}
-                                className={`w-full py-1.5 px-1 rounded font-bold flex items-center justify-center text-center transition-colors text-[9px] leading-tight border shadow-sm cursor-pointer ${
-                                  permisoHoy.tipo.toLowerCase().includes('vacaciones')
-                                    ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 border-purple-100 dark:border-purple-900/30'
-                                    : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 border-blue-100 dark:border-blue-900/30'
-                                }`}
-                              >
-                                {permisoHoy.tipo.toLowerCase().includes('vacaciones') ? 'Vacaciones' : 'Permiso'}
-                              </button>
+                              renderPermisoHoyBtn(permisoHoy)
+                            ) : comisionHoy ? (
+                              renderComisionHoyBtn()
                             ) : registrosHoyMultiple.length >= 2 ? (
                               <div className="w-full py-1.5 px-1 rounded bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400 font-bold flex items-center justify-center text-center text-[9px] leading-tight border border-green-100 dark:border-green-900/30 cursor-default transition-colors shadow-sm">
                                 Correcto
@@ -708,26 +778,19 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
                           <div className="w-3/4 flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center justify-left px-2">
                              <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
-                               <span className={`${permisoHoy ? (permisoHoy.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-400'} font-bold`}>--:--</span>
+                               <span className={`${getEntradaTextClass()} font-bold`}>--:--</span>
                              </span>
                              <span className="text-gray-300 dark:text-neutral-700">|</span>
                              <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
-                               <span className={`${permisoHoy ? (permisoHoy.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-400'} font-bold`}>--:--</span>
+                               <span className={`${getSalidaTextClass()} font-bold`}>--:--</span>
                              </span>
                           </div>
                           <div className="w-1/4 cursor-pointer">
                             {permisoHoy ? (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setPermisoParaPreview(permisoHoy); }}
-                                className={`w-full py-1.5 px-1 rounded font-bold flex items-center justify-center text-center transition-colors text-[9px] leading-tight border shadow-sm cursor-pointer ${
-                                  permisoHoy.tipo.toLowerCase().includes('vacaciones')
-                                    ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 border-purple-100 dark:border-purple-900/30'
-                                    : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 border-blue-100 dark:border-blue-900/30'
-                                }`}
-                              >
-                                {permisoHoy.tipo.toLowerCase().includes('vacaciones') ? 'Vacaciones' : 'Permiso'}
-                              </button>
+                              renderPermisoHoyBtn(permisoHoy)
+                            ) : comisionHoy ? (
+                              renderComisionHoyBtn()
                             ) : registrosHoyMultiple.length >= 2 ? (
                               <div className="w-full py-1.5 px-1 rounded bg-green-50 dark:bg-green-900/10 text-green-600 dark:text-green-400 font-bold flex items-center justify-center text-center text-[9px] leading-tight border border-green-100 dark:border-green-900/30 cursor-default transition-colors shadow-sm">
                                 Correcto
@@ -758,7 +821,11 @@ export default function Asistencia({ onFinalizar }: AsistenciaProps) {
                 onAbrirMapa={handleAbrirMapa}
                 fechaHoraGt={fechaHoraGt}
                 permisosEmpleado={permisosEmpleado}
+                comisionesEmpleado={comisionesEmpleado}
                 horarioDias={horario_dias}
+                horarioEntrada={horario_entrada}
+                horarioSalida={horario_salida}
+                cargandoJustificaciones={cargandoPermisos || cargandoComisiones}
               />
             </motion.div>
           )}

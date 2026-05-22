@@ -2,11 +2,25 @@
 
 import React, { Fragment } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, AlertCircle, LogIn, LogOut, FileCheck, PartyPopper, Umbrella, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { ChevronDown, AlertCircle, LogIn, LogOut, PartyPopper, Clock, CheckCircle2, XCircle, Briefcase } from 'lucide-react';
 import { format, parseISO, isAfter, isToday, startOfToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { PermisoEmpleado } from '@/components/permisos/types';
+import {
+  getMensajeSinMarcaje,
+  getCategoriaPermiso,
+  getCategoriaIcon,
+  getCategoriaLabel,
+  getCategoriaJustificacionClass,
+  getCategoriaTextClass,
+  COMISION_TEXT_CLASS,
+  COMISION_BADGE_CLASS,
+} from '@/components/permisos/categorias';
 import { Asueto, getAsuetoPorFecha } from '@/hooks/asistencia/useAsuetos';
+import type { ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
+import type { Usuario } from '@/lib/usuarios/esquemas';
+
+type ComisionInfo = ComisionConFechaYHoraSeparada;
 
 interface OficinaAccordionProps {
   nombreOficina: string;
@@ -16,8 +30,11 @@ interface OficinaAccordionProps {
   onToggle: () => void;
   onAbrirModal: (reg: any, nombre?: string) => void;
   permisosMap?: Record<string, PermisoEmpleado[]>;
+  comisionesMap?: Record<string, ComisionInfo[]>;
   onVerPermiso?: (permiso: PermisoEmpleado) => void;
+  onVerComision?: (comision: ComisionInfo) => void;
   asuetos?: Asueto[];
+  usuarios?: Usuario[];
 }
 
 export default function OficinaAccordion({
@@ -28,7 +45,9 @@ export default function OficinaAccordion({
   onToggle,
   onAbrirModal,
   permisosMap = {},
+  comisionesMap = {},
   onVerPermiso,
+  onVerComision,
   asuetos = [],
 }: OficinaAccordionProps) {
 
@@ -36,10 +55,17 @@ export default function OficinaAccordion({
 
   const formatTime = (iso: string | null | undefined, permiso: PermisoEmpleado | null) => {
     if (!iso) {
-      const isVacaciones = permiso?.tipo.toLowerCase().includes('vacaciones');
-      return <span className={`${permiso ? (isVacaciones ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400') : 'text-red-500'} font-bold`}>--:--</span>;
+      const colorClass = permiso
+        ? getCategoriaTextClass(getCategoriaPermiso(permiso))
+        : 'text-red-500';
+      return <span className={`${colorClass} font-bold`}>--:--</span>;
     }
     return format(parseISO(iso), 'hh:mm aa', { locale: es });
+  };
+
+  const getComisionParaDia = (userId: string, diaString: string): ComisionInfo | null => {
+    const comisiones = comisionesMap[userId] || [];
+    return comisiones.find(c => c.fecha_hora.startsWith(diaString)) || null;
   };
 
   const getPermisoParaDia = (userId: string, diaString: string): PermisoEmpleado | null => {
@@ -53,14 +79,14 @@ export default function OficinaAccordion({
     }) || null;
   };
 
-  /** Botón de justificación con íconos — igual que en Calendario.tsx */
-  const JustificacionBtn = ({ permiso, asueto, totalRegistros, fechaStr }: {
+  /** Botón de justificación con íconos */
+  const JustificacionBtn = ({ permiso, asueto, comision, totalRegistros, fechaStr }: {
     permiso: PermisoEmpleado | null;
     asueto: Asueto | null;
+    comision: ComisionInfo | null;
     totalRegistros: number;
     fechaStr: string;
   }) => {
-    // Asueto — prioridad máxima
     if (asueto) {
       return (
         <div
@@ -74,19 +100,29 @@ export default function OficinaAccordion({
     }
 
     if (permiso) {
-      const esVacaciones = permiso.tipo.toLowerCase().includes('vacaciones');
+      const categoria = getCategoriaPermiso(permiso);
+      const Icono = getCategoriaIcon(categoria);
       return (
         <button
           onClick={(e) => { e.stopPropagation(); onVerPermiso?.(permiso); }}
-          className={`w-full py-1 px-1 rounded font-bold flex items-center justify-center gap-1 text-center text-[9px] leading-tight transition-colors shadow-sm border cursor-pointer ${
-            esVacaciones
-              ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 border-purple-100 dark:border-purple-900/30'
-              : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 border-blue-100 dark:border-blue-900/30'
-          }`}
+          className={`w-full py-1 px-1 rounded font-bold flex items-center justify-center gap-1 text-center text-[9px] leading-tight transition-colors shadow-sm border cursor-pointer ${getCategoriaJustificacionClass(categoria)}`}
         >
-          {esVacaciones
-            ? <><Umbrella className="w-2.5 h-2.5 flex-shrink-0" /> Vacaciones</>
-            : <><FileCheck className="w-2.5 h-2.5 flex-shrink-0" /> Permiso</>}
+          <Icono className="w-2.5 h-2.5 flex-shrink-0" />
+          {getCategoriaLabel(categoria)}
+        </button>
+      );
+    }
+
+    // Comisión — siempre tiene prioridad sobre Correcto/Sin Permiso
+    if (comision) {
+      return (
+        <button
+          onClick={(e) => { e.stopPropagation(); onVerComision?.(comision); }}
+          title={comision.titulo}
+          className={`w-full py-1 px-1 rounded font-bold flex items-center justify-center gap-1 text-center text-[9px] leading-tight border shadow-sm cursor-pointer transition-colors hover:opacity-80 ${COMISION_BADGE_CLASS}`}
+        >
+          <Briefcase className="w-2.5 h-2.5 flex-shrink-0" />
+          Comisión
         </button>
       );
     }
@@ -166,9 +202,10 @@ export default function OficinaAccordion({
                       const esVacio = registro.esDiaVacio || registro.esAusencia;
                       const permiso = getPermisoParaDia(registro.userId, registro.diaString);
                       const asueto = getAsuetoPorFecha(asuetos, registro.diaString);
+                      const comision = !asueto && !permiso ? getComisionParaDia(registro.userId, registro.diaString) : null;
                       const esMultiple = registro.multiple && registro.multiple.length > 0;
                       const totalRegistros = (registro.entrada ? 1 : 0) + (registro.salida ? 1 : 0) + (registro.multiple?.length || 0);
-                      if (isAfter(parseISO(registro.diaString + 'T00:00:00'), startOfToday()) && totalRegistros === 0 && !permiso && !asueto) return null;
+                      if (isAfter(parseISO(registro.diaString + 'T00:00:00'), startOfToday()) && totalRegistros === 0 && !permiso && !asueto && !comision) return null;
 
                       return (
                         <Fragment key={`${registro.userId}-${registro.diaString}-${index}`}>
@@ -196,19 +233,20 @@ export default function OficinaAccordion({
                                       <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold flex items-center justify-center text-center hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[9px]">
                                         Ver Asistencia ({totalRegistros})
                                       </div>
-                                    ) : esVacio ? (
+                                    ) : esVacio ? (() => {
+                                      const msg = getMensajeSinMarcaje({
+                                        asueto: !!asueto,
+                                        permiso,
+                                        comision: !asueto && !permiso && !!comision,
+                                      });
+                                      return (
                                       <div className="flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center">
-                                        <span className={`text-[9px] md:text-sm font-medium italic whitespace-nowrap ${
-                                          asueto
-                                            ? 'text-amber-600 dark:text-amber-400'
-                                            : permiso
-                                              ? (permiso.tipo.toLowerCase().includes('vacaciones') ? 'text-purple-500 dark:text-purple-400' : 'text-blue-500 dark:text-blue-400')
-                                              : 'text-red-500 dark:text-red-400'
-                                        }`}>
-                                          {asueto ? asueto.nombre : 'Sin registros de asistencia'}
+                                        <span className={`text-[9px] md:text-sm font-medium italic whitespace-nowrap ${msg.className}`}>
+                                          {msg.texto}
                                         </span>
                                       </div>
-                                    ) : (
+                                      );
+                                    })() : (
                                       <div className="flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center">
                                         <span className="text-[9px] md:text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                           <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
@@ -217,13 +255,16 @@ export default function OficinaAccordion({
                                         <span className="text-gray-300 dark:text-neutral-700">|</span>
                                         <span className="text-[9px] md:text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                           <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
-                                          {formatTime(registro.salida?.created_at || registro.salida?.fecha_hora, permiso)}
+                                          {/* si hay comisión y no hay salida, mostrar azul en vez de rojo */}
+                                          {registro.salida
+                                            ? formatTime(registro.salida?.created_at || registro.salida?.fecha_hora, permiso)
+                                            : <span className={`${permiso ? getCategoriaTextClass(getCategoriaPermiso(permiso)) : comision ? COMISION_TEXT_CLASS : 'text-red-500'} font-bold`}>--:--</span>}
                                         </span>
                                       </div>
                                     )}
                                   </div>
                                   <div className="w-1/4 flex-shrink-0 cursor-pointer">
-                                    <JustificacionBtn permiso={permiso} asueto={asueto} totalRegistros={totalRegistros} fechaStr={registro.diaString} />
+                                    <JustificacionBtn permiso={permiso} asueto={asueto} comision={comision} totalRegistros={totalRegistros} fechaStr={registro.diaString} />
                                   </div>
                                 </div>
                               </td>
@@ -233,11 +274,25 @@ export default function OficinaAccordion({
                     })
                   ) : (
                     registros.map((usuario: any) => {
-                      const totalAusencias = usuario.asistencias.filter((a: any) => a.esAusencia).length;
+                      const todayStr = format(new Date(), 'yyyy-MM-dd');
+                      const totalAusencias = usuario.asistencias.filter((a: any) => {
+                        if (!a.esAusencia) return false;
+                        if (a.diaString > todayStr) return false; // excluir futuro
+                        // Excluir si tiene cualquier justificación
+                        const tieneComision = (comisionesMap[usuario.userId] || []).some(c => c.fecha_hora.startsWith(a.diaString));
+                        if (tieneComision) return false;
+                        const tienePermiso = (permisosMap[usuario.userId] || []).some(p => {
+                          if (p.estado !== 'aprobado') return false;
+                          return a.diaString >= p.inicio.substring(0, 10) && a.diaString <= p.fin.substring(0, 10);
+                        });
+                        if (tienePermiso) return false;
+                        const tieneAsueto = !!getAsuetoPorFecha(asuetos, a.diaString);
+                        return !tieneAsueto;
+                      }).length;
                       const totalSinEntrada = usuario.asistencias.filter((a: any) => !a.esAusencia && !a.entrada && (!a.multiple || a.multiple.length === 0)).length;
                       const totalSinSalida = usuario.asistencias.filter((a: any) => !a.esAusencia && !a.salida && (!a.multiple || a.multiple.length === 0)).length;
 
-                      return (
+                        return (
                         <Fragment key={usuario.userId}>
                           {/* Encabezado usuario */}
                           <tr>
@@ -247,7 +302,7 @@ export default function OficinaAccordion({
                                 <div className="flex items-center gap-3 text-[9px] md:text-sm">
                                   {totalAusencias > 0 && (
                                     <span className="flex items-center gap-1 text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-1.5 py-0.5 rounded border border-red-200 dark:border-red-800">
-                                      <AlertCircle size={10} /> {totalAusencias} Inasistencias
+                                      <AlertCircle size={10} /> {totalAusencias} Inasistencia{totalAusencias !== 1 ? 's' : ''}
                                     </span>
                                   )}
                                   {totalSinEntrada > 0 && (
@@ -271,7 +326,8 @@ export default function OficinaAccordion({
                              const totalRegistros = (asistencia.entrada ? 1 : 0) + (asistencia.salida ? 1 : 0) + (asistencia.multiple?.length || 0);
                              const permiso = getPermisoParaDia(usuario.userId, asistencia.diaString);
                              const asueto = getAsuetoPorFecha(asuetos, asistencia.diaString);
-                             if (isAfter(parseISO(asistencia.diaString + 'T00:00:00'), startOfToday()) && totalRegistros === 0 && !permiso && !asueto) return null;
+                             const comision = !asueto && !permiso ? getComisionParaDia(usuario.userId, asistencia.diaString) : null;
+                             if (isAfter(parseISO(asistencia.diaString + 'T00:00:00'), startOfToday()) && totalRegistros === 0 && !permiso && !asueto && !comision) return null;
 
                             return (
                               <tr
@@ -279,11 +335,30 @@ export default function OficinaAccordion({
                                 className="border-b border-slate-100 dark:border-neutral-800 transition-colors"
                               >
                                 {/* Fecha */}
-                                 <td className={`py-2 px-3 text-xs w-[45%] pl-8 capitalize ${esAusencia && !asueto ? 'text-red-500 font-medium' : 'text-slate-700 dark:text-slate-300'}`}>
-                                  {format(parseISO(asistencia.diaString + 'T00:00:00'), "eee d 'de' MMM", { locale: es })}
-                                  {esAusencia && !asueto && <span className={`ml-1 text-[9px] italic ${permiso ? 'text-blue-500' : 'text-red-500'}`}>— Sin registros</span>}
-                                  {asueto && <span className="ml-1 text-[9px] italic text-amber-600">— {asueto.nombre}</span>}
-                                </td>
+                                {(() => {
+                                  const ausenciaColor = esAusencia && !asueto
+                                    ? permiso
+                                      ? getCategoriaTextClass(getCategoriaPermiso(permiso))
+                                      : comision ? COMISION_TEXT_CLASS : 'text-red-500'
+                                    : 'text-slate-700 dark:text-slate-300';
+                                  const sinRegistrosLabel = permiso
+                                    ? getCategoriaLabel(getCategoriaPermiso(permiso))
+                                    : comision ? 'Comisión' : 'Sin registros';
+                                  const sinRegistrosColor = permiso
+                                    ? getCategoriaTextClass(getCategoriaPermiso(permiso))
+                                    : comision ? COMISION_TEXT_CLASS : 'text-red-500';
+                                  return (
+                                    <td className={`py-2 px-3 text-xs w-[45%] pl-8 capitalize font-medium ${ausenciaColor}`}>
+                                      {format(parseISO(asistencia.diaString + 'T00:00:00'), "eee d 'de' MMM", { locale: es })}
+                                      {esAusencia && !asueto && (
+                                        <span className={`ml-1 text-[9px] italic ${sinRegistrosColor}`}>
+                                          — {sinRegistrosLabel}
+                                        </span>
+                                      )}
+                                      {asueto && <span className="ml-1 text-[9px] italic text-amber-600">— {asueto.nombre}</span>}
+                                    </td>
+                                  );
+                                })()}
 
                                 {/* Asistencia + Permiso */}
                                 <td colSpan={2} className="py-2 px-3">
@@ -292,19 +367,26 @@ export default function OficinaAccordion({
                                       className={`w-3/4 ${!esAusencia ? 'cursor-pointer' : ''}`}
                                       onClick={() => !esAusencia && onAbrirModal(asistencia, usuario.nombre)}
                                     >
-                                      {esAusencia ? (
-                                        <div className="flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center">
-                                          <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                            <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
-                                            <span className="text-red-400">--:--</span>
-                                          </span>
-                                          <span className="text-gray-300 dark:text-neutral-700">|</span>
-                                          <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                            <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
-                                            <span className="text-red-400">--:--</span>
-                                          </span>
-                                        </div>
-                                      ) : esMultiple || totalRegistros > 2 ? (
+                                      {esAusencia ? (() => {
+                                        const msg = getMensajeSinMarcaje({ asueto: !!asueto, permiso, comision: !asueto && !permiso && !!comision });
+                                        const dashClass = permiso
+                                          ? getCategoriaTextClass(getCategoriaPermiso(permiso))
+                                          : asueto ? 'text-amber-500 dark:text-amber-400'
+                                          : comision ? COMISION_TEXT_CLASS : 'text-red-400';
+                                        return (
+                                          <div className="flex flex-row flex-wrap gap-x-2 gap-y-0.5 items-center">
+                                            <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                              <span className="font-bold text-gray-700 dark:text-gray-300">Ent: </span>
+                                              <span className={`${dashClass} font-bold`}>--:--</span>
+                                            </span>
+                                            <span className="text-gray-300 dark:text-neutral-700">|</span>
+                                            <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                              <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
+                                              <span className={`${dashClass} font-bold`}>--:--</span>
+                                            </span>
+                                          </div>
+                                        );
+                                      })() : esMultiple || totalRegistros > 2 ? (
                                         <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold flex items-center justify-center text-center hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[9px]">
                                           Ver Asistencia ({totalRegistros})
                                         </div>
@@ -317,13 +399,15 @@ export default function OficinaAccordion({
                                           <span className="text-gray-300 dark:text-neutral-700">|</span>
                                           <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                             <span className="font-bold text-gray-700 dark:text-gray-300">Sal: </span>
-                                            {formatTime(asistencia.salida?.created_at || asistencia.salida?.fecha_hora, permiso)}
+                                            {asistencia.salida
+                                              ? formatTime(asistencia.salida?.created_at || asistencia.salida?.fecha_hora, permiso)
+                                              : <span className={`${permiso ? getCategoriaTextClass(getCategoriaPermiso(permiso)) : comision ? COMISION_TEXT_CLASS : 'text-red-500'} font-bold`}>--:--</span>}
                                           </span>
                                         </div>
                                       )}
                                     </div>
                                     <div className="w-1/4 flex-shrink-0 cursor-pointer">
-                                      <JustificacionBtn permiso={permiso} asueto={asueto} totalRegistros={totalRegistros} fechaStr={asistencia.diaString} />
+                                      <JustificacionBtn permiso={permiso} asueto={asueto} comision={comision} totalRegistros={totalRegistros} fechaStr={asistencia.diaString} />
                                     </div>
                                   </div>
                                 </td>
