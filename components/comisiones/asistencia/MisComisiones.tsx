@@ -63,15 +63,13 @@ export default function MisComisiones() {
     let countTerminadas = 0;
     let countHoy = 0;
 
-    const aprobadasYSorteadas = comisiones
-      .filter((c) => c.aprobado === true)
-      .sort(
-        (a, b) =>
-          parseISO(a.fecha_hora.replace(" ", "T")).getTime() -
-          parseISO(b.fecha_hora.replace(" ", "T")).getTime(),
-      );
+    const comisionesSorteadas = [...comisiones].sort(
+      (a, b) =>
+        parseISO(a.fecha_hora.replace(" ", "T")).getTime() -
+        parseISO(b.fecha_hora.replace(" ", "T")).getTime(),
+    );
 
-    aprobadasYSorteadas.forEach((c) => {
+    comisionesSorteadas.forEach((c) => {
       const fechaComisionObj = parseISO(c.fecha_hora.replace(" ", "T"));
       const diffDias = differenceInCalendarDays(
         toZonedTime(fechaComisionObj, TIMEZONE_GUATE),
@@ -88,7 +86,7 @@ export default function MisComisiones() {
     });
 
     return {
-      lista: aprobadasYSorteadas,
+      lista: comisionesSorteadas,
       countProximas,
       countTerminadas,
       countHoy,

@@ -77,9 +77,7 @@ export default function ListaMisComisiones({
     const grupos: { [key: string]: ComisionConFechaYHoraSeparada[] } = {};
     if (!comisionesParaMostrar) return grupos;
 
-    const comisionesAprobadas = comisionesParaMostrar.filter(comision => comision.aprobado === true);
-    
-    comisionesAprobadas.forEach(comision => {
+    comisionesParaMostrar.forEach(comision => {
       // Usamos fecha normalizada a Guate para la clave del grupo
       const fechaObj = parseISO(comision.fecha_hora.replace(' ', 'T'));
       const fechaGuate = toZonedTime(fechaObj, TIMEZONE_GUATE);
@@ -226,11 +224,21 @@ export default function ListaMisComisiones({
                     colorDias = 'text-red-500 dark:text-red-400';
                   }
 
-                  let textoEstado = null;
                   const creador = formatNombreCorto(comision.creador_nombre);
                   const aprobador = formatNombreCorto(comision.aprobador_nombre);
+                  const pendienteAprobacion = !comision.aprobado;
 
-                  if (comision.creado_por && comision.aprobado_por && comision.creado_por === comision.aprobado_por) {
+                  let textoEstado = null;
+                  if (pendienteAprobacion) {
+                    textoEstado = (
+                      <>
+                        <span className="text-orange-600 dark:text-orange-400 font-semibold">Pendiente de aprobación</span>
+                        {comision.creador_nombre && (
+                          <> · Por: <span className="font-bold">{creador}</span></>
+                        )}
+                      </>
+                    );
+                  } else if (comision.creado_por && comision.aprobado_por && comision.creado_por === comision.aprobado_por) {
                     textoEstado = (<>Creado y Aprobado por: <span className="font-bold">{creador}</span></>);
                   } else if (comision.aprobador_nombre) {
                     textoEstado = (<>Aprobado por: <span className="font-bold">{aprobador}</span></>);
@@ -252,7 +260,9 @@ export default function ListaMisComisiones({
                         <div className="flex justify-between items-center">
                           {isOpen ? (
                             <div className='flex-grow'>
-                              {esHoy ? (
+                              {pendienteAprobacion ? (
+                                <p className="text-lg font-semibold text-orange-600 dark:text-orange-400">Pendiente de aprobación</p>
+                              ) : esHoy ? (
                                 <p className="text-lg font-semibold text-gray-600 dark:text-gray-300">Recuerda marcar tu asistencia</p>
                               ) : (
                                 <p className="text-lg font-semibold text-gray-600 dark:text-gray-300">Detalles de la comisión</p>
@@ -306,13 +316,20 @@ export default function ListaMisComisiones({
                                   onDelete={() => {}}
                                 />
                               </div>
-                              {esHoy && (
+                              {esHoy && comision.aprobado && (
                                 <AsistenciaComision
                                   comision={comision}
                                   userId={userId}
                                   nombreUsuario={nombreUsuario}
                                   onAsistenciaMarcada={onAsistenciaMarcada}
                                 />
+                              )}
+                              {esHoy && pendienteAprobacion && (
+                                <div className="px-4 pb-4 border-t border-gray-200 dark:border-neutral-800 pt-4">
+                                  <p className="text-sm text-center text-orange-600 dark:text-orange-400">
+                                    No puede marcar asistencia hasta que Recursos Humanos apruebe esta comisión.
+                                  </p>
+                                </div>
                               )}
                             </div>
                           </motion.div>
