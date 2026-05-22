@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   X,
   Save,
@@ -47,7 +47,7 @@ const TIPOS_SEGURIDAD_SOCIAL = [
   "Consultas Médicas y/o Odontológicas",
   "Exámenes Médicos y/o Odontológicos",
   "Enfermedad Común",
-  "Consulta IGSS",
+  "IGSS",
   "Accidente de trabajo",
   "Enfermedad Profesional",
   "Licencias de Maternidad / Paternidad",
@@ -81,6 +81,10 @@ export default function CrearEditarPermiso({
   const esRRHH = ["RRHH", "SUPER", "SECRETARIO"].includes(
     perfilUsuario?.rol || "",
   );
+  const tiposGeneralesDisponibles = useMemo(
+    () => TIPOS_GENERAL.filter((t) => t !== "Vacaciones" || esRRHH),
+    [esRRHH],
+  );
   // RRHH ve el check en su vista de gestión
   const mostrarOpcionRemunerado = esRRHH && tipoVista === "gestion_rrhh";
 
@@ -107,14 +111,22 @@ export default function CrearEditarPermiso({
   const nombreEmpleado =
     permisoAEditar?.usuario?.nombre || perfilUsuario?.nombre || "";
   const userId = permisoAEditar?.user_id || perfilUsuario?.id || "";
+  const requiereDescripcion =
+    selectedTipo === "IGSS" ||
+    selectedTipo === "Asuntos Personales" ||
+    selectedTipo === "Situaciones Académicas";
 
   useEffect(() => {
     if (isOpen) {
       if (permisoAEditar) {
         setEsRemunerado(permisoAEditar.remunerado || false);
         setDescripcion(permisoAEditar.descripcion || "");
+        const tipoGuardado =
+          permisoAEditar.tipo.toLowerCase() === "consulta igss"
+            ? "IGSS"
+            : permisoAEditar.tipo;
         const tipo = [...TIPOS_GENERAL, ...TIPOS_SEGURIDAD_SOCIAL].find(
-          (t) => t.toLowerCase() === permisoAEditar.tipo.toLowerCase(),
+          (t) => t.toLowerCase() === tipoGuardado.toLowerCase(),
         );
         if (tipo) {
           setSelectedTipo(tipo);
@@ -180,8 +192,12 @@ export default function CrearEditarPermiso({
     if (contieneBloqueo && !esRRHH) return;
 
     if (!selectedTipo) return toast.error("Selecciona un tipo.");
+    if (selectedTipo === "Vacaciones" && !esRRHH)
+      return toast.error("No tiene permiso para solicitar vacaciones.");
     if (selectedTipo === "Otros" && !otroTipoManual.trim())
       return toast.error("Especifique el tipo.");
+    if (requiereDescripcion && !descripcion.trim())
+      return toast.error("La descripción es obligatoria para este tipo de permiso.");
 
     const form = e.currentTarget;
     const inicioVal = (form.querySelector('input[name="inicio"]') as HTMLInputElement).value;
@@ -247,7 +263,7 @@ export default function CrearEditarPermiso({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-neutral-900 rounded-lg shadow-xl w-full max-w-md border border-gray-200 dark:border-neutral-800 flex flex-col max-h-[90vh]">
+      <div className="bg-white dark:bg-neutral-900 rounded-lg shadow-xl w-full max-w-md border border-gray-200 dark:border-neutral-800 flex flex-col max-h-[90vh] overflow-hidden">
         <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-neutral-800">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
             {puedeGestionar
@@ -266,7 +282,7 @@ export default function CrearEditarPermiso({
 
         <form
           onSubmit={handleSubmit}
-          className="p-4 flex flex-col gap-4 overflow-y-auto"
+          className="p-4 flex flex-col gap-4 overflow-y-auto overflow-x-hidden min-w-0"
         >
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-gray-600 dark:text-gray-400">
@@ -316,13 +332,13 @@ export default function CrearEditarPermiso({
                       <CommandList>
                         <div className="max-h-60 overflow-y-auto">
                           <CommandGroup heading="General">
-                            {TIPOS_GENERAL.map((t) => (
+                            {tiposGeneralesDisponibles.map((t) => (
                               <CommandItem
                                 key={t}
                                 value={t}
                                 onSelect={(val) => {
                                   const orig =
-                                    TIPOS_GENERAL.find(
+                                    tiposGeneralesDisponibles.find(
                                       (x) =>
                                         x.toLowerCase() === val.toLowerCase(),
                                     ) || val;
@@ -388,8 +404,8 @@ export default function CrearEditarPermiso({
             )}
           </div>
 
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-4 min-w-0">
+            <div className="flex flex-col gap-1.5 min-w-0">
               <label className="text-xs text-gray-600 dark:text-gray-400">
                 Inicio
               </label>
@@ -399,14 +415,14 @@ export default function CrearEditarPermiso({
                 readOnly={esSoloLectura}
                 defaultValue={defaultInicio}
                 className={cn(
-                  "p-2 text-sm rounded-md border outline-none w-full",
+                  "p-2 px-1.5 sm:px-2 text-xs sm:text-sm rounded-md border outline-none w-full min-w-0 max-w-full box-border",
                   esSoloLectura
                     ? "border-gray-300 bg-gray-100 text-gray-500 dark:bg-neutral-900 dark:border-neutral-800 dark:text-gray-400"
                     : "border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 dark:text-gray-200 focus:ring-1 focus:ring-blue-500",
                 )}
               />
             </div>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 min-w-0">
               <label className="text-xs text-gray-600 dark:text-gray-400">
                 Fin
               </label>
@@ -416,7 +432,7 @@ export default function CrearEditarPermiso({
                 readOnly={esSoloLectura}
                 defaultValue={defaultFin}
                 className={cn(
-                  "p-2 text-sm rounded-md border outline-none w-full",
+                  "p-2 px-1.5 sm:px-2 text-xs sm:text-sm rounded-md border outline-none w-full min-w-0 max-w-full box-border",
                   esSoloLectura
                     ? "border-gray-300 bg-gray-100 text-gray-500 dark:bg-neutral-900 dark:border-neutral-800 dark:text-gray-400"
                     : "border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 dark:text-gray-200 focus:ring-1 focus:ring-blue-500",
@@ -425,19 +441,33 @@ export default function CrearEditarPermiso({
             </div>
           </div>
 
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 min-w-0">
             <label className="text-xs font-medium text-gray-600 dark:text-gray-400">
               Descripción{" "}
-              <span className="text-gray-400 font-normal italic">
-                (Opcional)
-              </span>
+              {!requiereDescripcion && (
+                <span className="text-gray-400 font-normal italic">
+                  (Opcional)
+                </span>
+              )}
+              {requiereDescripcion && (
+                <span className="text-red-500 font-normal">*</span>
+              )}
             </label>
             <textarea
               name="descripcion"
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
               readOnly={esSoloLectura}
-              placeholder="Añadir detalles adicionales..."
+              required={requiereDescripcion && !esSoloLectura}
+              placeholder={
+                selectedTipo === "IGSS"
+                  ? "Describa el motivo de la consulta IGSS..."
+                  : selectedTipo === "Asuntos Personales"
+                    ? "Describa el motivo del permiso..."
+                    : selectedTipo === "Situaciones Académicas"
+                      ? "Describa la situación académica..."
+                      : "Añadir detalles adicionales..."
+              }
               className={cn(
                 "p-2 text-sm rounded-md border outline-none w-full min-h-[80px] resize-none",
                 esSoloLectura
