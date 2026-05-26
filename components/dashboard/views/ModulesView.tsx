@@ -125,12 +125,29 @@ export default function ModulesView({
     [rol, esAtencionVecino, esElectricista],
   );
 
-  const renderModuleCard = (modulo: any) => (
+  const MODULOS_NAVEGACION_DELAY_MS = 1500;
+  const MODULOS_CON_DELAY = new Set([
+    "SOLICITUDCOMBUSTIBLE",
+    "GESTION_COMBUSTIBLE",
+    "CONTRATOS_COMBUSTIBLE",
+    "SOLICITUDES_LAMARAS",
+    "SOLICITUDES_MOBILIARIO",
+    "SOLICITUDES_JEFE",
+    "RECEPCION_DOCS",
+  ]);
+
+  const getNavigationDelay = (modulo: (typeof TODOS_LOS_MODULOS)[number]) =>
+    MODULOS_CON_DELAY.has(modulo.id) || modulo.subgrupo === "Recepción"
+      ? MODULOS_NAVEGACION_DELAY_MS
+      : 0;
+
+  const renderModuleCard = (modulo: (typeof TODOS_LOS_MODULOS)[number]) => (
     <ModuleCard
       key={modulo.id}
       modulo={modulo}
       loadingModule={loadingModule}
       setLoadingModule={setLoadingModule}
+      navigationDelay={getNavigationDelay(modulo)}
     />
   );
 
@@ -144,19 +161,8 @@ export default function ModulesView({
       <div
         className={`${tienePoliticas && tieneGestion ? "grid grid-cols-1 md:grid-cols-2 gap-x-8 items-start" : "max-w-3xl mx-auto flex flex-col justify-center"}`}
       >
-        {tienePoliticas && (
-          <div className={`space-y-4 mb-4 ${!tieneGestion ? "w-full" : ""}`}>
-            <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4 text-center md:text-left">
-              Políticas Públicas
-            </h2>
-            <div className="space-y-4">
-              {modulosPoliticas.map(renderModuleCard)}
-            </div>
-          </div>
-        )}
-
         {tieneGestion && (
-          <div className={`space-y-4 ${!tienePoliticas ? "w-full" : ""}`}>
+          <div className={`space-y-4 mb-4 ${!tienePoliticas ? "w-full" : ""}`}>
             <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4 text-center md:text-left">
               Gestión Administrativa
             </h2>
@@ -250,6 +256,17 @@ export default function ModulesView({
                     !m.subgrupo && !["ACTIVIDADES", "PERMISOS"].includes(m.id),
                 )
                 .map(renderModuleCard)}
+            </div>
+          </div>
+        )}
+
+        {tienePoliticas && (
+          <div className={`space-y-4 ${!tieneGestion ? "w-full" : ""}`}>
+            <h2 className="text-2xl font-bold text-blue-600 dark:text-gray-100 mb-4 text-center md:text-left">
+              Políticas Públicas
+            </h2>
+            <div className="space-y-4">
+              {modulosPoliticas.map(renderModuleCard)}
             </div>
           </div>
         )}

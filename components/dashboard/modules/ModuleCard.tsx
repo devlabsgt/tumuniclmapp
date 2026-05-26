@@ -13,9 +13,10 @@ interface ModuleCardProps {
   modulo: typeof TODOS_LOS_MODULOS[0];
   loadingModule: string | null;
   setLoadingModule: (id: string) => void;
+  navigationDelay?: number;
 }
 
-export default function ModuleCard({ modulo, loadingModule, setLoadingModule }: ModuleCardProps) {
+export default function ModuleCard({ modulo, loadingModule, setLoadingModule, navigationDelay = 0 }: ModuleCardProps) {
   const router = useRouter();
   const [hoveredModule, setHoveredModule] = useState<string | null>(null);
 
@@ -26,7 +27,7 @@ export default function ModuleCard({ modulo, loadingModule, setLoadingModule }: 
       registrarLog({ accion: 'INGRESO_MODULO', descripcion: `Accedió al módulo de ${nombreModulo.toLowerCase()}`, nombreModulo });
       setTimeout(() => {
         router.push(ruta);
-      }, 0);
+      }, navigationDelay);
     }
   };
 
@@ -52,6 +53,7 @@ export default function ModuleCard({ modulo, loadingModule, setLoadingModule }: 
 
   const isLoadingThisModule = loadingModule === modulo.id;
   const isDummy = modulo.ruta === '#';
+  const animarIcono = hoveredModule === modulo.id || (isLoadingThisModule && navigationDelay > 0);
 
   return (
     <motion.div
@@ -89,7 +91,7 @@ export default function ModuleCard({ modulo, loadingModule, setLoadingModule }: 
           <AnimatedIcon
             iconKey={modulo.iconoKey}
             className="w-14 h-14"
-            trigger={hoveredModule === modulo.id ? 'loop' : undefined}
+            trigger={animarIcono ? 'loop' : undefined}
             {...modulo.colorProps} 
           />
       </div>
