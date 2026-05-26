@@ -111,7 +111,10 @@ export default function TareaList({ initialData, tipoVista }: Props) {
 
     return tareas.filter((t: Tarea) => {
       if (!t.due_date) return false;
-      const [tYear, tMonth, tDay] = t.due_date.split('T')[0].split('-').map(Number);
+      const d = new Date(t.due_date);
+      const tYear = d.getFullYear();
+      const tMonth = d.getMonth() + 1;
+      const tDay = d.getDate();
       const tDate = new Date(tYear, tMonth - 1, tDay);
 
       let coincideFecha = false;
@@ -164,7 +167,11 @@ export default function TareaList({ initialData, tipoVista }: Props) {
       if (tipoVista === 'mis_actividades') {
           const grupos: any[] = [];
           tareasRenderizadas.forEach((t: Tarea) => {
-              const fechaKey = t.due_date.split('T')[0];
+              const d = new Date(t.due_date);
+              const localYear = d.getFullYear();
+              const localMonth = String(d.getMonth() + 1).padStart(2, '0');
+              const localDay = String(d.getDate()).padStart(2, '0');
+              const fechaKey = `${localYear}-${localMonth}-${localDay}`;
               let g = grupos.find(x => x.key === fechaKey);
               if (!g) { g = { key: fechaKey, titulo: getFechaCabecera(fechaKey), tareas: [] }; grupos.push(g); }
               g.tareas.push(t);
@@ -267,6 +274,7 @@ export default function TareaList({ initialData, tipoVista }: Props) {
 
       <div className="pb-20 space-y-4">
         {!expandedId && tareasRenderizadas.length > 0 && (
+
            <div className="text-slate-500 dark:text-slate-400 text-sm font-semibold mb-2">
                Total en {semanaSeleccionada === -1 ? 'el mes' : 'la semana'}: {tareasRenderizadas.length} actividades
            </div>

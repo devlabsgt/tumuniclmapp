@@ -138,10 +138,10 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
   const filteredUsuarios = usuarios.filter(u => u.nombre.toLowerCase().includes(searchTerm.toLowerCase()));
   const selectedUser = usuarios.find(u => u.user_id === assignedTo);
   const nombreAsignado = selectedUser?.nombre || 'Seleccionar...';
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-[#1e1e1e] w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      <div className="fixed -inset-[100vmax] bg-black/5 dark:bg-black/20 backdrop-blur-md -z-10 pointer-events-none" />
+      <div className="bg-white dark:bg-[#1e1e1e] w-full sm:max-w-4xl lg:max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
         
         <div className="px-6 py-4 border-b border-gray-100 dark:border-neutral-800 flex justify-between items-center bg-gray-50 dark:bg-neutral-900/50">
             <div className="flex items-center gap-3">
@@ -156,144 +156,149 @@ export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuario
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
-            
-            <div>
-                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Título</label>
-                <input 
-                    className="w-full px-4 py-3 border border-gray-200 dark:border-neutral-700 rounded-xl bg-gray-50 dark:bg-neutral-800 text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-medium"
-                    value={title} 
-                    onChange={e => setTitle(e.target.value)} 
-                    placeholder="Título de la tarea"
-                    autoFocus
-                />
-            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="space-y-5">
+                    <div>
+                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Título</label>
+                        <input 
+                            className="w-full px-4 py-3 border border-gray-200 dark:border-neutral-700 rounded-xl bg-gray-50 dark:bg-neutral-800 text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-medium"
+                            value={title} 
+                            onChange={e => setTitle(e.target.value)} 
+                            placeholder="Título de la tarea"
+                            autoFocus
+                        />
+                    </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div>
-                    <label className=" text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
-                        <Calendar size={14} /> Fecha
-                    </label>
-                    <input 
-                        type="datetime-local"
-                        className="w-full px-4 py-2.5 border border-gray-200 dark:border-neutral-700 rounded-xl bg-gray-50 dark:bg-neutral-800 text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                        value={dueDate} 
-                        onChange={e => setDueDate(e.target.value)} 
-                    />
-                </div>
+                    <div>
+                        <label className=" text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
+                            <Calendar size={14} /> Fecha
+                        </label>
+                        <input 
+                            type="datetime-local"
+                            className="w-full px-4 py-2.5 border border-gray-200 dark:border-neutral-700 rounded-xl bg-gray-50 dark:bg-neutral-800 text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                            value={dueDate} 
+                            onChange={e => setDueDate(e.target.value)} 
+                        />
+                    </div>
 
-                <div>
-                      <label className=" text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
-                        <User size={14} /> Asignado
-                      </label>
-                      <div className="relative">
-                        <button 
-                            type="button" 
-                            disabled={!esJefe}
-                            onClick={() => setShowDropdown(!showDropdown)} 
-                            className={`w-full px-4 py-2.5 border border-gray-200 dark:border-neutral-700 rounded-xl bg-gray-50 dark:bg-neutral-800 text-left flex justify-between items-center text-sm ${!esJefe ? 'opacity-70 cursor-not-allowed' : 'hover:border-indigo-300 dark:hover:border-neutral-600'}`}
-                        >
-                            <span className="text-gray-800 dark:text-white truncate">{nombreAsignado}</span>
-                            {esJefe && <span className="text-gray-400 text-xs">▼</span>}
-                        </button>
+                    <div>
+                          <label className=" text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
+                            <User size={14} /> Asignado
+                          </label>
+                          <div className="relative">
+                            <button 
+                                type="button" 
+                                disabled={!esJefe}
+                                onClick={() => setShowDropdown(!showDropdown)} 
+                                className={`w-full px-4 py-2.5 border border-gray-200 dark:border-neutral-700 rounded-xl bg-gray-50 dark:bg-neutral-800 text-left flex justify-between items-center text-sm ${!esJefe ? 'opacity-70 cursor-not-allowed' : 'hover:border-indigo-300 dark:hover:border-neutral-600'}`}
+                            >
+                                <span className="text-gray-800 dark:text-white truncate">{nombreAsignado}</span>
+                                {esJefe && <span className="text-gray-400 text-xs">▼</span>}
+                            </button>
 
-                        {showDropdown && esJefe && (
-                            <div className="absolute top-full left-0 w-full mt-1 bg-white dark:bg-[#252525] border border-gray-100 dark:border-neutral-700 rounded-xl shadow-xl z-20 max-h-48 overflow-y-auto">
-                                <div className="p-2 sticky top-0 bg-white dark:bg-[#252525] border-b dark:border-neutral-700">
-                                    <input
-                                      type="text"
-                                      placeholder="Buscar..."
-                                      className="w-full px-3 py-1.5 bg-gray-50 dark:bg-neutral-800 rounded-lg text-sm outline-none focus:ring-1 focus:ring-indigo-500 dark:text-white"
-                                      value={searchTerm}
-                                      onChange={(e) => setSearchTerm(e.target.value)}
-                                      autoFocus
-                                    />
-                                </div>
-                                {filteredUsuarios.map(u => (
-                                    <div 
-                                        key={u.user_id} 
-                                        onClick={() => { setAssignedTo(u.user_id); setShowDropdown(false);}} 
-                                        className={`px-4 py-2.5 text-sm cursor-pointer transition-colors flex items-center gap-2 ${assignedTo === u.user_id ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 font-medium' : 'hover:bg-gray-50 dark:hover:bg-neutral-800 text-gray-700 dark:text-gray-300'}`}
-                                    >
-                                        <div className={`w-2 h-2 rounded-full ${u.activo ? 'bg-emerald-500' : 'bg-gray-300'}`} />
-                                        {u.nombre}
+                            {showDropdown && esJefe && (
+                                <div className="absolute top-full left-0 w-full mt-1 bg-white dark:bg-[#252525] border border-gray-100 dark:border-neutral-700 rounded-xl shadow-xl z-20 max-h-48 overflow-y-auto">
+                                    <div className="p-2 sticky top-0 bg-white dark:bg-[#252525] border-b dark:border-neutral-700">
+                                        <input
+                                          type="text"
+                                          placeholder="Buscar..."
+                                          className="w-full px-3 py-1.5 bg-gray-50 dark:bg-neutral-800 rounded-lg text-sm outline-none focus:ring-1 focus:ring-indigo-500 dark:text-white"
+                                          value={searchTerm}
+                                          onChange={(e) => setSearchTerm(e.target.value)}
+                                          autoFocus
+                                        />
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                      </div>
-                </div>
-            </div>
-
-            <div>
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
-                    <AlignLeft size={14} /> Descripción
-                </label>
-                <textarea 
-                    className="w-full px-4 py-3 border border-gray-200 dark:border-neutral-700 rounded-xl bg-gray-50 dark:bg-neutral-800 text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none text-sm resize-none"
-                    rows={3}
-                    value={description} 
-                    onChange={e => setDescription(e.target.value)} 
-                    placeholder="Detalles de la tarea..."
-                />
-            </div>
-
-             <div>
-                <label className=" text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-                    <CheckSquare size={14} /> Pendientes ({checklist.length})
-                </label>
-                <div className="border border-gray-200 dark:border-neutral-700 rounded-xl bg-gray-50 dark:bg-neutral-800/50 overflow-hidden">
-                    {checklist.length > 0 ? (
-                        <div className="divide-y divide-gray-100 dark:divide-neutral-700">
-                            {checklist.map((item, idx) => (
-                                <div key={idx} className="flex gap-3 items-center p-3 hover:bg-white dark:hover:bg-neutral-800 transition-colors group">
-                                    <span className="text-gray-400 dark:text-gray-600 self-center">•</span>
-                                    
-                                    {editingIndex === idx ? (
-                                        <div className="flex-1 flex gap-2 items-center animate-in fade-in duration-200">
-                                            <input 
-                                                type="text"
-                                                className="flex-1 px-2 py-1 bg-white dark:bg-neutral-900 border border-indigo-300 dark:border-indigo-700 rounded-md outline-none text-sm text-gray-800 dark:text-white"
-                                                value={editingText}
-                                                onChange={(e) => setEditingText(e.target.value)}
-                                                autoFocus
-                                                onKeyDown={(e) => {
-                                                    if(e.key === 'Enter') { e.preventDefault(); saveEditing(); }
-                                                    if(e.key === 'Escape') cancelEditing();
-                                                }}
-                                            />
-                                            <button type="button" onClick={saveEditing} className="p-1.5 text-green-600 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-900/30 rounded-lg"><Check size={16}/></button>
-                                            <button type="button" onClick={cancelEditing} className="p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg"><X size={16}/></button>
+                                    {filteredUsuarios.map(u => (
+                                        <div 
+                                            key={u.user_id} 
+                                            onClick={() => { setAssignedTo(u.user_id); setShowDropdown(false);}} 
+                                            className={`px-4 py-2.5 text-sm cursor-pointer transition-colors flex items-center gap-2 ${assignedTo === u.user_id ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 font-medium' : 'hover:bg-gray-50 dark:hover:bg-neutral-800 text-gray-700 dark:text-gray-300'}`}
+                                        >
+                                            <div className={`w-2 h-2 rounded-full ${u.activo ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                                            {u.nombre}
                                         </div>
-                                    ) : (
-                                        <>
-                                            <span className="flex-1 text-sm text-gray-700 dark:text-gray-200 cursor-pointer" onClick={() => startEditing(idx, item.title)}>{item.title}</span>
-                                            <div className="flex items-center gap-1">
-                                                <button type="button" onClick={() => startEditing(idx, item.title)} className="text-gray-400 hover:text-indigo-600 p-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"><Edit2 size={16}/></button>
-                                                <button type="button" onClick={() => handleRemoveItem(idx)} className="text-gray-400 hover:text-red-500 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"><Trash2 size={16}/></button>
-                                            </div>
-                                        </>
-                                    )}
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="p-4 text-center text-gray-400 text-sm italic">Sin pendientes</div>
-                    )}
-                    
-                    <div className="p-2 flex gap-2 border-t border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800">
-                        <input className="flex-1 px-3 py-2 bg-transparent text-sm text-gray-700 dark:text-white outline-none placeholder:text-gray-400" placeholder="Añadir..." value={newItemText} onChange={e => setNewItemText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddItem())} />
-                        <button type="button" onClick={handleAddItem} disabled={!newItemText.trim()} className="p-2 bg-gray-100 dark:bg-neutral-700 text-gray-500 dark:text-gray-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors disabled:opacity-50"><Plus size={18}/></button>
+                            )}
+                          </div>
+                    </div>
+
+                    <div>
+                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
+                            <AlignLeft size={14} /> Descripción
+                        </label>
+                        <textarea 
+                            className="w-full px-4 py-3 border border-gray-200 dark:border-neutral-700 rounded-xl bg-gray-50 dark:bg-neutral-800 text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none text-sm resize-none"
+                            rows={3}
+                            value={description} 
+                            onChange={e => setDescription(e.target.value)} 
+                            placeholder="Detalles de la tarea..."
+                        />
                     </div>
                 </div>
-            </div>
 
+                <div className="flex flex-col justify-stretch">
+                     <div className="h-full flex flex-col min-h-[260px] lg:min-h-full">
+                        <label className=" text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <CheckSquare size={14} /> Pendientes ({checklist.length})
+                        </label>
+                        <div className="border border-gray-200 dark:border-neutral-700 rounded-xl bg-gray-50 dark:bg-neutral-800/50 overflow-hidden flex-1 flex flex-col justify-between">
+                            {checklist.length > 0 ? (
+                                <div className="divide-y divide-gray-100 dark:divide-neutral-700 overflow-y-auto max-h-[300px] lg:max-h-none flex-1">
+                                    {checklist.map((item, idx) => (
+                                        <div key={idx} className="flex gap-3 items-center p-3 hover:bg-white dark:hover:bg-neutral-800 transition-colors group">
+                                            <span className="text-gray-400 dark:text-gray-600 self-center">•</span>
+                                            
+                                            {editingIndex === idx ? (
+                                                <div className="flex-1 flex gap-2 items-center animate-in fade-in duration-200">
+                                                    <input 
+                                                        type="text"
+                                                        className="flex-1 px-2 py-1 bg-white dark:bg-neutral-900 border border-indigo-300 dark:border-indigo-700 rounded-md outline-none text-sm text-gray-800 dark:text-white"
+                                                        value={editingText}
+                                                        onChange={(e) => setEditingText(e.target.value)}
+                                                        autoFocus
+                                                        onKeyDown={(e) => {
+                                                            if(e.key === 'Enter') { e.preventDefault(); saveEditing(); }
+                                                            if(e.key === 'Escape') cancelEditing();
+                                                        }}
+                                                    />
+                                                    <button type="button" onClick={saveEditing} className="p-1.5 text-green-600 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-900/30 rounded-lg"><Check size={16}/></button>
+                                                    <button type="button" onClick={cancelEditing} className="p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg"><X size={16}/></button>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <span className="flex-1 text-sm text-gray-700 dark:text-gray-200 cursor-pointer" onClick={() => startEditing(idx, item.title)}>{item.title}</span>
+                                                    <div className="flex items-center gap-1">
+                                                        <button type="button" onClick={() => startEditing(idx, item.title)} className="text-gray-400 hover:text-indigo-600 p-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"><Edit2 size={16}/></button>
+                                                        <button type="button" onClick={() => handleRemoveItem(idx)} className="text-gray-400 hover:text-red-500 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"><Trash2 size={16}/></button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="p-8 text-center text-gray-400 text-sm italic my-auto">Sin pendientes</div>
+                            )}
+                            
+                            <div className="p-2 flex gap-2 border-t border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800">
+                                <input className="flex-1 px-3 py-2 bg-transparent text-sm text-gray-700 dark:text-white outline-none placeholder:text-gray-400" placeholder="Añadir..." value={newItemText} onChange={e => setNewItemText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddItem())} />
+                                <button type="button" onClick={handleAddItem} disabled={!newItemText.trim()} className="p-2 bg-gray-100 dark:bg-neutral-700 text-gray-500 dark:text-gray-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors disabled:opacity-50"><Plus size={18}/></button>
+                            </div>
+                        </div>
+                     </div>
+                </div>
+            </div>
         </form>
 
-        <div className="px-6 py-4 border-t border-gray-100 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 flex justify-end gap-3">
-            <button onClick={onClose} className="px-5 py-2.5 rounded-xl font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-neutral-800 transition-colors text-sm">Cancelar</button>
-            <button onClick={handleSubmit} disabled={isSubmitting} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed text-sm">
-                {isSubmitting ? 'Duplicando...' : 'Crear Duplicado'}
-            </button>
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="hidden lg:block"></div>
+            <div className="flex justify-end gap-3 w-full">
+                <button onClick={onClose} className="px-5 py-2.5 rounded-xl font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-neutral-800 transition-colors text-sm">Cancelar</button>
+                <button onClick={handleSubmit} disabled={isSubmitting} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed text-sm w-full sm:w-auto">
+                    {isSubmitting ? 'Duplicando...' : 'Crear Duplicado'}
+                </button>
+            </div>
         </div>
 
       </div>

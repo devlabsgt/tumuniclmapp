@@ -226,6 +226,25 @@ export async function eliminarPermiso(id: string) {
   revalidatePath("/protected/permisos");
 }
 
+export async function actualizarComprobantePermiso(
+  permisoId: string,
+  path: string | null,
+) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("permisos_empleado")
+    .update({ comprobante_url: path })
+    .eq("id", permisoId);
+
+  if (error) {
+    throw new Error(`Error al actualizar el comprobante: ${error.message}`);
+  }
+
+  revalidatePath("/protected/permisos");
+  return { path };
+}
+
 export async function obtenerPermisosDelUsuario(userId: string): Promise<PermisoEmpleado[]> {
   const supabase = await createClient();
   

@@ -23,6 +23,7 @@ export type PermisoEmpleado = {
   aprobado_jefe_at: string | null
   aprobado_rrhh_nombre: string | null
   aprobado_rrhh_at: string | null
+  comprobante_url: string | null
   usuario?: UsuarioConJerarquia
 }
 

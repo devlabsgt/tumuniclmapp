@@ -14,6 +14,7 @@ import {
   User,
   Briefcase,
   Eye,
+  Upload,
   Pencil,
   PartyPopper,
   ChevronsUpDown,
@@ -27,6 +28,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import PreviewPermiso from "./modals/PreviewPermiso";
+import JustificacionPermiso from "./modals/JustificacionPermiso";
 import GestionAsueto from "./modals/GestionAsueto";
 import { PermisoEmpleado } from "./types";
 import { Button } from "@/components/ui/button";
@@ -119,6 +121,8 @@ export default function VerPermisos({ tipoVista }: Props) {
 
   const [modalPreviewAbierto, setModalPreviewAbierto] = React.useState(false);
   const [permisoParaImagen, setPermisoParaImagen] = React.useState<PermisoEmpleado | null>(null);
+  const [modalJustificacionAbierto, setModalJustificacionAbierto] = React.useState(false);
+  const [permisoParaJustificar, setPermisoParaJustificar] = React.useState<PermisoEmpleado | null>(null);
   const [modalAsuetoAbierto, setModalAsuetoAbierto] = React.useState(false);
   const [calendarOpen, setCalendarOpen] = React.useState(false);
   const [calendarSemanaOpen, setCalendarSemanaOpen] = React.useState(false);
@@ -166,6 +170,12 @@ export default function VerPermisos({ tipoVista }: Props) {
     e.stopPropagation();
     setPermisoParaImagen(permiso);
     setModalPreviewAbierto(true);
+  };
+
+  const handleAbrirJustificacion = (e: React.MouseEvent, permiso: PermisoEmpleado) => {
+    e.stopPropagation();
+    setPermisoParaJustificar(permiso);
+    setModalJustificacionAbierto(true);
   };
 
   // FILTRO VISUAL
@@ -681,6 +691,7 @@ export default function VerPermisos({ tipoVista }: Props) {
                                     usuarioGrupo={usuarioGrupo}
                                     tipoVista={tipoVista}
                                     handleVerPreview={handleVerPreview}
+                                    handleAbrirJustificacion={handleAbrirJustificacion}
                                     handleClickFila={handleClickFila}
                                     handleEliminarPermiso={handleEliminarPermiso}
                                     getCategoriaBorderClass={getCategoriaBorderClass}
@@ -709,6 +720,12 @@ export default function VerPermisos({ tipoVista }: Props) {
         onClose={() => setModalPreviewAbierto(false)}
         permiso={permisoParaImagen}
       />
+      <JustificacionPermiso
+        isOpen={modalJustificacionAbierto}
+        onClose={() => setModalJustificacionAbierto(false)}
+        permiso={permisoParaJustificar}
+        onSaved={cargarDatos}
+      />
       <CrearEditarPermiso
         isOpen={modalAbierto}
         onClose={() => setModalAbierto(false)}
@@ -730,6 +747,7 @@ function UsuarioGrupoPermisos({
   usuarioGrupo,
   tipoVista,
   handleVerPreview,
+  handleAbrirJustificacion,
   handleClickFila,
   handleEliminarPermiso,
   getCategoriaBorderClass,
@@ -742,6 +760,7 @@ function UsuarioGrupoPermisos({
   usuarioGrupo: { usuario: any; permisos: PermisoEmpleado[] };
   tipoVista: TipoVistaPermisos;
   handleVerPreview: (e: React.MouseEvent, p: PermisoEmpleado) => void;
+  handleAbrirJustificacion: (e: React.MouseEvent, p: PermisoEmpleado) => void;
   handleClickFila: (p: PermisoEmpleado) => void;
   handleEliminarPermiso: (e: React.MouseEvent, id: string) => void;
   getCategoriaBorderClass: (t: string, d: string | null) => string;
@@ -1076,6 +1095,24 @@ function UsuarioGrupoPermisos({
                     >
                       <Eye className="w-3.5 h-3.5 lg:w-4 lg:h-4 shrink-0" />
                       Ver
+                    </button>
+
+                    <button
+                      onClick={(e) => handleAbrirJustificacion(e, permiso)}
+                      className={cn(
+                        "flex items-center justify-center gap-1.5 px-2.5 lg:px-3 py-1.5 lg:py-1.5 text-[10px] lg:text-sm font-bold rounded-md transition-colors border",
+                        permiso.comprobante_url
+                          ? "text-emerald-700 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border-emerald-200 dark:border-emerald-800"
+                          : "text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 border-indigo-100 dark:border-indigo-800"
+                      )}
+                      title={permiso.comprobante_url ? "Ver comprobante" : "Subir comprobante"}
+                    >
+                      {permiso.comprobante_url ? (
+                        <Eye className="w-3.5 h-3.5 lg:w-4 lg:h-4 shrink-0" />
+                      ) : (
+                        <Upload className="w-3.5 h-3.5 lg:w-4 lg:h-4 shrink-0" />
+                      )}
+                      Justificación
                     </button>
 
                     {puedeEditar && (
