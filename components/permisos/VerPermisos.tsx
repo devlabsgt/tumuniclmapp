@@ -305,13 +305,47 @@ export default function VerPermisos({ tipoVista }: Props) {
     }
   };
 
-  const getDiasContados = (start: Date, end: Date) => {
+  // Calcula horas laborales (jornada 8AM-4PM = 8h)
+  const getHorasTrabajo = (start: Date, end: Date): number => {
+    const WORK_START = 8;
+    const WORK_END = 16;
+    const HOURS_PER_DAY = 8;
     try {
       const allDays = eachDayOfInterval({ start, end });
-      return allDays.filter(day => !isWeekend(day)).length;
-    } catch (e) {
+      const weekdays = allDays.filter(day => !isWeekend(day));
+      if (weekdays.length === 0) return 0;
+
+      if (isSameDay(start, end)) {
+        const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+        return Math.min(Math.max(hours, 0), HOURS_PER_DAY);
+      }
+
+      let totalHours = 0;
+      for (const day of weekdays) {
+        if (isSameDay(day, start)) {
+          const startHour = start.getHours() + start.getMinutes() / 60;
+          totalHours += Math.max(0, Math.min(WORK_END - Math.max(startHour, WORK_START), HOURS_PER_DAY));
+        } else if (isSameDay(day, end)) {
+          const endHour = end.getHours() + end.getMinutes() / 60;
+          totalHours += Math.max(0, Math.min(endHour - WORK_START, HOURS_PER_DAY));
+        } else {
+          totalHours += HOURS_PER_DAY;
+        }
+      }
+      return totalHours;
+    } catch {
       return 0;
     }
+  };
+
+  // Formatea horas acumuladas como días (8h = 1d)
+  const formatHorasLabel = (horas: number): string => {
+    if (horas <= 0) return "";
+    const dias = Math.floor(horas / 8);
+    const horasRestantes = Math.round(horas % 8);
+    if (dias === 0) return `${horasRestantes}h`;
+    if (horasRestantes === 0) return `${dias}d`;
+    return `${dias}d ${horasRestantes}h`;
   };
 
   const esRRHH = tipoVista === "gestion_rrhh";
@@ -699,7 +733,8 @@ export default function VerPermisos({ tipoVista }: Props) {
                                     getCategoriaIcon={getCategoriaIcon}
                                     getCategoriaBadgeClass={getCategoriaBadgeClass}
                                     getEstadoBadge={getEstadoBadge}
-                                    getDiasContados={getDiasContados}
+                                    getHorasTrabajo={getHorasTrabajo}
+                                    formatHorasLabel={formatHorasLabel}
                                   />
                                 ))}
                               </div>
@@ -755,7 +790,8 @@ function UsuarioGrupoPermisos({
   getCategoriaIcon,
   getCategoriaBadgeClass,
   getEstadoBadge,
-  getDiasContados,
+  getHorasTrabajo,
+  formatHorasLabel,
 }: {
   usuarioGrupo: { usuario: any; permisos: PermisoEmpleado[] };
   tipoVista: TipoVistaPermisos;
@@ -768,7 +804,8 @@ function UsuarioGrupoPermisos({
   getCategoriaIcon: (cat: CategoriaPermiso) => LucideIcon;
   getCategoriaBadgeClass: (cat: CategoriaPermiso) => string;
   getEstadoBadge: (e: string) => React.ReactNode;
-  getDiasContados: (start: Date, end: Date) => number;
+  getHorasTrabajo: (start: Date, end: Date) => number;
+  formatHorasLabel: (horas: number) => string;
 }) {
   const [filtro, setFiltro] = React.useState<
     "todos" | "extras" | "vacaciones" | "permisos" | "igss" | "academicas"
@@ -779,7 +816,7 @@ function UsuarioGrupoPermisos({
     return usuarioGrupo.permisos.reduce(
       (acc, p) => {
         const cat = getCategoria(p);
-        const d = getDiasContados(parseISO(p.inicio), parseISO(p.fin));
+        const d = getHorasTrabajo(parseISO(p.inicio), parseISO(p.fin));
         if (cat === "igss") {
           acc.i++;
           acc.id += d;
@@ -794,7 +831,8 @@ function UsuarioGrupoPermisos({
           acc.td += d;
         } else if (cat === "extras") {
           acc.e++;
-          // No sumamos días para extras
+          acc.ed += d;
+          acc.td += d;
         } else {
           acc.o++;
           acc.od += d;
@@ -802,9 +840,9 @@ function UsuarioGrupoPermisos({
         }
         return acc;
       },
-      { v: 0, vd: 0, e: 0, i: 0, id: 0, a: 0, ad: 0, o: 0, od: 0, td: 0 }
+      { v: 0, vd: 0, e: 0, ed: 0, i: 0, id: 0, a: 0, ad: 0, o: 0, od: 0, td: 0 }
     );
-  }, [usuarioGrupo.permisos, getCategoria, getDiasContados]);
+  }, [usuarioGrupo.permisos, getCategoria, getHorasTrabajo]);
 
   const permisosFiltrados = React.useMemo(() => {
     const lista =
@@ -857,7 +895,7 @@ function UsuarioGrupoPermisos({
               )}
             >
               <Clock className="w-3 h-3 shrink-0" />
-              {stats.e} Ext
+              {stats.e} Ext {stats.ed > 0 && `= ${formatHorasLabel(stats.ed)}`}
             </button>
           )}
           {stats.i > 0 && (
@@ -873,7 +911,7 @@ function UsuarioGrupoPermisos({
               )}
             >
               <Shield className="w-3 h-3 shrink-0" />
-              {stats.i} IGSS {stats.id > 0 && `= ${stats.id}d`}
+              {stats.i} IGSS {stats.id > 0 && `= ${formatHorasLabel(stats.id)}`}
             </button>
           )}
           {stats.a > 0 && (
@@ -889,7 +927,7 @@ function UsuarioGrupoPermisos({
               )}
             >
               <GraduationCap className="w-3 h-3 shrink-0" />
-              {stats.a} Educ {stats.ad > 0 && `= ${stats.ad}d`}
+              {stats.a} Educ {stats.ad > 0 && `= ${formatHorasLabel(stats.ad)}`}
             </button>
           )}
           {stats.v > 0 && (
@@ -905,7 +943,7 @@ function UsuarioGrupoPermisos({
               )}
             >
               <Umbrella className="w-3 h-3 shrink-0" />
-              {stats.v} Vac {stats.vd > 0 && `= ${stats.vd}d`}
+              {stats.v} Vac {stats.vd > 0 && `= ${formatHorasLabel(stats.vd)}`}
             </button>
           )}
           {stats.o > 0 && (
@@ -921,7 +959,7 @@ function UsuarioGrupoPermisos({
               )}
             >
               <FileText className="w-3 h-3 shrink-0" />
-              {stats.o} Perm {stats.od > 0 && `= ${stats.od}d`}
+              {stats.o} Perm {stats.od > 0 && `= ${formatHorasLabel(stats.od)}`}
             </button>
           )}
           <button
@@ -933,7 +971,7 @@ function UsuarioGrupoPermisos({
                 : "bg-white text-slate-500 border-slate-100 dark:bg-neutral-900 dark:border-neutral-800 hover:bg-slate-50"
             )}
           >
-            Total: {usuarioGrupo.permisos.length} {stats.td > 0 && `= ${stats.td}d`}
+            Total: {stats.td > 0 ? formatHorasLabel(stats.td) : "0h"}
           </button>
           <button
             type="button"
@@ -972,12 +1010,13 @@ function UsuarioGrupoPermisos({
               tipoVista === "gestion_rrhh" ||
               (tipoVista === "mis_permisos" && esPendiente);
             const puedeEditar = tipoVista === "gestion_rrhh" || esPendiente;
-            // Fecha sin hora (para comparación de días)
-            const fechaInicio = new Date(permiso.inicio.split('T')[0] + 'T00:00:00');
-            const fechaFin = new Date(permiso.fin.split('T')[0] + 'T00:00:00');
             // Fecha completa con hora real (para mostrar el horario)
             const fechaInicioConHora = parseISO(permiso.inicio);
             const fechaFinConHora = parseISO(permiso.fin);
+            // Fecha sin hora (para comparación de días) - extraemos componentes LOCALES
+            // para evitar desfase UTC (ej: UTC 2026-06-02T00:00Z = local 2026-06-01T18:00 en GT)
+            const fechaInicio = new Date(fechaInicioConHora.getFullYear(), fechaInicioConHora.getMonth(), fechaInicioConHora.getDate());
+            const fechaFin = new Date(fechaFinConHora.getFullYear(), fechaFinConHora.getMonth(), fechaFinConHora.getDate());
             const esMismoDia = isSameDay(fechaInicio, fechaFin);
             
             const formatCustom = (date: Date) => {
@@ -1050,9 +1089,9 @@ function UsuarioGrupoPermisos({
                             {(() => {
                               const cat = getCategoria(permiso);
                               if (cat === "extras") return null;
-                              const d = getDiasContados(fechaInicio, fechaFin);
-                              if (d <= 0) return null;
-                              return `• ${d}d`;
+                              const h = getHorasTrabajo(fechaInicioConHora, fechaFinConHora);
+                              if (h <= 0) return null;
+                              return `• ${formatHorasLabel(h)}`;
                             })()}
                           </span>
                         </div>

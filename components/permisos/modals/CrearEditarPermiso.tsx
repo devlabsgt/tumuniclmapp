@@ -226,8 +226,20 @@ export default function CrearEditarPermiso({
 
     const inicio = formData.get("inicio") as string;
     const fin = formData.get("fin") as string;
-    if (inicio) formData.set("inicio", new Date(inicio).toISOString());
-    if (fin) formData.set("fin", new Date(fin).toISOString());
+    // Guardamos en formato ISO con offset local para preservar la fecha/hora
+    // tal cual la seleccionó el usuario (evita desfase UTC que cambia el día)
+    const toLocalISO = (datetimeLocal: string) => {
+      const d = new Date(datetimeLocal);
+      const offsetMin = d.getTimezoneOffset();
+      const sign = offsetMin <= 0 ? "+" : "-";
+      const absOffset = Math.abs(offsetMin);
+      const hh = String(Math.floor(absOffset / 60)).padStart(2, "0");
+      const mm = String(absOffset % 60).padStart(2, "0");
+      const pad = (n: number) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${sign}${hh}:${mm}`;
+    };
+    if (inicio) formData.set("inicio", toLocalISO(inicio));
+    if (fin) formData.set("fin", toLocalISO(fin));
 
     // Aseguramos enviar el estado correcto
     if (esRRHH) {
