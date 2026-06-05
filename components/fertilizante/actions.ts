@@ -317,6 +317,7 @@ export const filtrarYOrdenarBeneficiarios = (
   filtros: {
     campo: CampoFiltro;
     valor: string;
+    valorFin?: string;
     lugar: string;
     anio: string;
     sinImagen?: boolean;
@@ -325,8 +326,29 @@ export const filtrarYOrdenarBeneficiarios = (
 ): Beneficiario[] => {
   return beneficiarios
     .filter((b) => {
-      const campo = b[filtros.campo] || '';
-      const cumpleCampo = campo.toLowerCase().includes(filtros.valor.toLowerCase());
+      let cumpleCampo = true;
+      if (filtros.campo === 'rango_folio') {
+        const vInicio = filtros.valor ? filtros.valor.padStart(4, '0') : '';
+        const vFin = filtros.valorFin ? filtros.valorFin.padStart(4, '0') : '';
+        const codigoB = b.codigo || '';
+        
+        // Extraemos solo el número para evitar que folios como 'I-0234' se comporten de forma inesperada
+        const numB = parseInt(codigoB.replace(/\D/g, ''), 10) || 0;
+        const numInicio = vInicio ? parseInt(vInicio, 10) : 0;
+        const numFin = vFin ? parseInt(vFin, 10) : Infinity;
+
+        if (vInicio && vFin) {
+          cumpleCampo = numB >= numInicio && numB <= numFin;
+        } else if (vInicio) {
+          cumpleCampo = numB >= numInicio;
+        } else if (vFin) {
+          cumpleCampo = numB <= numFin;
+        }
+      } else {
+        const campo = b[filtros.campo] || '';
+        cumpleCampo = campo.toLowerCase().includes(filtros.valor.toLowerCase());
+      }
+
       const cumpleLugar = filtros.lugar === '' || b.lugar === filtros.lugar;
       const cumpleEstado =
         orden === 'solo_anulados' ? b.estado === 'Anulado' :

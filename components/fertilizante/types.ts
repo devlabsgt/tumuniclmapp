@@ -33,7 +33,7 @@ export interface TablaBeneficiariosProps {
   setViewMode: (mode: 'table' | 'grid') => void;
 }
 
-export type CampoFiltro = 'nombre_completo' | 'dpi' | 'codigo';
+export type CampoFiltro = 'nombre_completo' | 'dpi' | 'codigo' | 'rango_folio';
 
 export type OrdenFiltro =
   | 'nombre_completo_asc'

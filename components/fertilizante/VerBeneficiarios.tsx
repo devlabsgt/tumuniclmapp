@@ -41,6 +41,7 @@ export default function VerBeneficiarios() {
     const defaults = {
       campo: 'codigo' as CampoFiltro,
       valor: '',
+      valorFin: '',
       lugar: '',
       anio: '',
       sinImagen: false,

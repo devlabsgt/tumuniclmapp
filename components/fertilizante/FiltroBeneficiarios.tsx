@@ -5,23 +5,18 @@ import { createClient } from '@/utils/supabase/client';
 import { Input } from '@/components/ui/input';
 import { obtenerLugares } from '@/lib/obtenerLugares';
 
-type CampoFiltro = 'codigo' | 'dpi' | 'nombre_completo' ;
+type CampoFiltro = 'codigo' | 'dpi' | 'nombre_completo' | 'rango_folio';
 
 interface Props {
   filtros: {
     campo: CampoFiltro;
     valor: string;
+    valorFin?: string;
     lugar: string;
     anio: string;
     sinImagen: boolean;
   };
-  setFiltros: (filtros: {
-    campo: CampoFiltro;
-    valor: string;
-    lugar: string;
-    anio: string;
-    sinImagen: boolean;
-  }) => void;
+  setFiltros: (filtros: any) => void;
   anios: string[];
 }
 
@@ -34,6 +29,13 @@ export function FiltroBeneficiarios({ filtros, setFiltros, anios }: Props) {
   ) => {
     const { name, value } = e.target;
     setFiltros({ ...filtros, [name]: value });
+  };
+
+  const handleBlurRango = (e: React.FocusEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    if (value && /^\d+$/.test(value) && value.length < 4) {
+      setFiltros({ ...filtros, [name]: value.padStart(4, '0') });
+    }
   };
 
   useEffect(() => {
@@ -55,16 +57,39 @@ export function FiltroBeneficiarios({ filtros, setFiltros, anios }: Props) {
           className="border border-gray-300 dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-200 rounded px-3 py-2"
         >
           <option value="codigo">Folio</option>
+          <option value="rango_folio">Rango de folios</option>
           <option value="nombre_completo">Nombre</option>
           <option value="dpi">DPI</option>
         </select>
 
-        <Input
-          name="valor"
-          value={filtros.valor}
-          onChange={handleChange}
-          className="w-full dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-200"
-        />
+        {filtros.campo === 'rango_folio' ? (
+          <div className="flex w-full gap-2 items-center">
+            <Input
+              name="valor"
+              placeholder="Inicio"
+              value={filtros.valor}
+              onChange={handleChange}
+              onBlur={handleBlurRango}
+              className="w-full dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-200"
+            />
+            <span className="text-gray-500">-</span>
+            <Input
+              name="valorFin"
+              placeholder="Fin"
+              value={filtros.valorFin || ''}
+              onChange={handleChange}
+              onBlur={handleBlurRango}
+              className="w-full dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-200"
+            />
+          </div>
+        ) : (
+          <Input
+            name="valor"
+            value={filtros.valor}
+            onChange={handleChange}
+            className="w-full dark:border-neutral-700 dark:bg-neutral-800 dark:text-gray-200"
+          />
+        )}
       </div>
 
       <select
