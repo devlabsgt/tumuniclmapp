@@ -356,7 +356,7 @@ export const filtrarYOrdenarBeneficiarios = (
         orden === 'solo_informes' ? b.estado === 'Informe' :
         true;
 
-      const cumpleSinImagen = !filtros.sinImagen || !b.img_url;
+      const cumpleSinImagen = !filtros.sinImagen || (b.estado !== 'Anulado' && !b.img_url);
 
       return cumpleCampo && cumpleLugar && cumpleEstado && cumpleSinImagen;
     })
