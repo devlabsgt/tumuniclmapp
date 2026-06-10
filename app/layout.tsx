@@ -50,7 +50,7 @@ export default async function RootLayout({
 }>) {
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") || "";
-  const isStandalonePage = pathname === "/" || pathname.startsWith("/albergue");
+  const isStandalonePage = pathname === "/" || pathname.startsWith("/albergues");
 
   return (
     <html lang="es" className={geistSans.className} suppressHydrationWarning>

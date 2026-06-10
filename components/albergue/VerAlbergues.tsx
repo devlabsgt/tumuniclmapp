@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -11,6 +11,7 @@ import {
   Home,
   ChevronRight,
   ExternalLink,
+  LayoutGrid,
 } from 'lucide-react';
 import { albergues, CENTRO_ALBERGUES, type Albergue } from './data';
 
@@ -104,7 +105,8 @@ function AccionesRapidas({ a, compacto = false }: { a: Albergue; compacto?: bool
 
 export default function VerAlbergues() {
   const [busqueda, setBusqueda] = useState('');
-  const [seleccionado, setSeleccionado] = useState<Albergue | null>(albergues[0]);
+  const [seleccionado, setSeleccionado] = useState<Albergue | null>(null);
+  const [verTodas, setVerTodas] = useState(true);
 
   const alberguesFiltrados = useMemo(() => {
     const texto = busqueda.toLowerCase().trim();
@@ -117,29 +119,41 @@ export default function VerAlbergues() {
     );
   }, [busqueda]);
 
+  const alberguesVisibles = useMemo(() => {
+    if (verTodas || !seleccionado) return alberguesFiltrados;
+    return alberguesFiltrados.filter((a) => a.id === seleccionado.id);
+  }, [verTodas, seleccionado, alberguesFiltrados]);
+
+  useEffect(() => {
+    setVerTodas(true);
+  }, [busqueda]);
+
   const seleccionar = (a: Albergue) => {
     setSeleccionado(a);
+    setVerTodas(false);
     document.getElementById('mapa-albergues')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   };
 
   return (
     <div className="w-full min-h-screen bg-slate-50 dark:bg-neutral-950">
+      {/* Logo municipal */}
+      <div className="w-full bg-white py-2 flex justify-center">
+        <Image
+          src="/images/logo-muni.png"
+          alt="Municipalidad de Concepción Las Minas"
+          width={400}
+          height={120}
+          priority
+          className="w-[80%] max-w-[320px] md:max-w-[180px] h-auto object-contain"
+        />
+      </div>
+
       {/* Hero */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-700 px-4 pt-8 pb-10 text-white">
+      <div className="relative overflow-hidden bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-700 px-4 pt-6 pb-10 text-white">
         <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
         <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
 
         <div className="relative max-w-lg mx-auto flex flex-col items-center text-center gap-3">
-          <div className="bg-white rounded-2xl p-3 shadow-lg">
-            <Image
-              src="/images/logo-muni.png"
-              alt="Municipalidad de Concepción Las Minas"
-              width={120}
-              height={120}
-              priority
-              className="object-contain w-[120px] h-[120px]"
-            />
-          </div>
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-blue-100">
               Municipalidad de Concepción Las Minas
@@ -162,7 +176,7 @@ export default function VerAlbergues() {
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 mt-5 pb-28">
+      <div className="max-w-lg mx-auto px-4 mt-5 pb-10">
         {/* Mapa */}
         <motion.div
           id="mapa-albergues"
@@ -224,61 +238,82 @@ export default function VerAlbergues() {
 
         {/* Listado */}
         <div className="mt-4 space-y-3">
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 px-1">
-            {alberguesFiltrados.length} resultado{alberguesFiltrados.length !== 1 ? 's' : ''}
-          </p>
+          <div className="flex items-center justify-between gap-2 px-1">
+            <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              {!verTodas && seleccionado
+                ? 'Albergue seleccionado'
+                : `${alberguesFiltrados.length} resultado${alberguesFiltrados.length !== 1 ? 's' : ''}`}
+            </p>
+            {!verTodas && (
+              <button
+                type="button"
+                onClick={() => {
+                  setVerTodas(true);
+                  setSeleccionado(null);
+                }}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-full active:scale-95 transition-transform"
+              >
+                <LayoutGrid size={14} />
+                Ver todas
+              </button>
+            )}
+          </div>
 
-          {alberguesFiltrados.length === 0 ? (
+          {alberguesVisibles.length === 0 ? (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
               <Home size={40} className="mx-auto mb-3 opacity-30" />
               <p className="font-medium">No se encontraron albergues</p>
             </div>
           ) : (
-            alberguesFiltrados.map((a, i) => {
-              const activo = seleccionado?.id === a.id;
+            alberguesVisibles.map((a, i) => {
+              const activo = verTodas ? seleccionado?.id === a.id : true;
               return (
-                <motion.button
+                <motion.div
                   key={a.id}
-                  type="button"
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
-                  onClick={() => seleccionar(a)}
-                  className={`w-full text-left rounded-3xl p-4 transition-all active:scale-[0.98] ${
+                  className={`w-full rounded-3xl p-4 transition-all ${
                     activo
                       ? 'bg-white dark:bg-neutral-900 ring-2 ring-blue-500 shadow-lg'
                       : 'bg-white dark:bg-neutral-900 shadow-sm border border-gray-100 dark:border-neutral-800'
                   }`}
                 >
-                  <div className="flex gap-3">
-                    <div
-                      className={`w-11 h-11 shrink-0 rounded-2xl flex items-center justify-center text-sm font-extrabold ${
-                        activo
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                      }`}
-                    >
-                      {a.id}
+                  <button
+                    type="button"
+                    onClick={() => seleccionar(a)}
+                    className="w-full text-left active:scale-[0.98] transition-transform"
+                  >
+                    <div className="flex gap-3">
+                      <div
+                        className={`w-11 h-11 shrink-0 rounded-2xl flex items-center justify-center text-sm font-extrabold ${
+                          activo
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                        }`}
+                      >
+                        {a.id}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h2 className="font-bold text-base leading-snug dark:text-white pr-2">{a.nombre}</h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 flex items-start gap-1 mt-1">
+                          <MapPin size={14} className="shrink-0 mt-0.5 text-red-400" />
+                          <span className="line-clamp-2">{a.direccion}</span>
+                        </p>
+                        {a.encargado && (
+                          <p className="text-xs text-gray-400 mt-1">Encargado: {a.encargado}</p>
+                        )}
+                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mt-2 flex items-center gap-1.5">
+                          <Phone size={14} className="text-blue-500" />
+                          {formatearTelefono(a.telefono)}
+                        </p>
+                      </div>
+                      <ChevronRight
+                        size={18}
+                        className={`shrink-0 mt-1 transition-colors ${activo ? 'text-blue-500' : 'text-gray-300'}`}
+                      />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h2 className="font-bold text-base leading-snug dark:text-white pr-2">{a.nombre}</h2>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 flex items-start gap-1 mt-1">
-                        <MapPin size={14} className="shrink-0 mt-0.5 text-red-400" />
-                        <span className="line-clamp-2">{a.direccion}</span>
-                      </p>
-                      {a.encargado && (
-                        <p className="text-xs text-gray-400 mt-1">Encargado: {a.encargado}</p>
-                      )}
-                      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mt-2 flex items-center gap-1.5">
-                        <Phone size={14} className="text-blue-500" />
-                        {formatearTelefono(a.telefono)}
-                      </p>
-                    </div>
-                    <ChevronRight
-                      size={18}
-                      className={`shrink-0 mt-1 transition-colors ${activo ? 'text-blue-500' : 'text-gray-300'}`}
-                    />
-                  </div>
+                  </button>
 
                   <AnimatePresence>
                     {activo && (
@@ -294,31 +329,12 @@ export default function VerAlbergues() {
                       </motion.div>
                     )}
                   </AnimatePresence>
-                </motion.button>
+                </motion.div>
               );
             })
           )}
         </div>
       </div>
-
-      {/* Barra fija inferior — acciones del seleccionado (móvil) */}
-      <AnimatePresence>
-        {seleccionado && (
-          <motion.div
-            initial={{ y: 80, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 80, opacity: 0 }}
-            className="fixed bottom-0 left-0 right-0 z-30 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-white/90 dark:bg-neutral-900/95 backdrop-blur-xl border-t border-gray-200 dark:border-neutral-800 shadow-[0_-8px_30px_rgba(0,0,0,0.12)]"
-          >
-            <div className="max-w-lg mx-auto">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 text-center mb-2 truncate px-2">
-                {seleccionado.nombre}
-              </p>
-              <AccionesRapidas a={seleccionado} compacto />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
