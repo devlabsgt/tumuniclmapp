@@ -50,7 +50,7 @@ export default async function RootLayout({
 }>) {
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") || "";
-  const isLoginPage = pathname === "/";
+  const isStandalonePage = pathname === "/" || pathname.startsWith("/albergue");
 
   return (
     <html lang="es" className={geistSans.className} suppressHydrationWarning>
@@ -68,7 +68,7 @@ export default async function RootLayout({
               <div className="flex flex-col min-h-screen">
                 <DevBanner />
 
-                {isLoginPage ? (
+                {isStandalonePage ? (
                   <main className="flex-grow w-full">{children}</main>
                 ) : (
                   <>
