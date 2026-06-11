@@ -24,10 +24,10 @@ const estiloTextoVertical180: CSSProperties = {
   transform: 'rotate(180deg)',
 };
 
-const claveGrupoEncargado = (asignacion: EncargadoFolio | null): string =>
+const claveGrupoEncargado = (asignacion: EncargadoFolio | null, beneficiarioId: string): string =>
   asignacion
     ? `${asignacion.id}|${asignacion.lugar}|${asignacion.folio_ini}|${asignacion.folio_fin}`
-    : '__sin_encargado__';
+    : `__sin_encargado__${beneficiarioId}`;
 
 type FilaTablaEncargado = {
   beneficiario: Beneficiario;
@@ -45,7 +45,7 @@ const calcularFilasConEncargado = (
     return {
       beneficiario,
       asignacion,
-      grupoKey: claveGrupoEncargado(asignacion),
+      grupoKey: claveGrupoEncargado(asignacion, beneficiario.id),
       nombreEncargado: asignacion?.encargado_nombre ?? null,
     };
   });
@@ -122,7 +122,15 @@ export function TablaBeneficiarios({
 
   const renderEncargadoVertical = (nombre: string | null) => {
     if (!nombre?.trim()) {
-      return <span className="text-gray-300 dark:text-neutral-600 text-[10px]">—</span>;
+      return (
+        <span
+          className="text-gray-400 dark:text-neutral-500 text-[8px] tracking-wide inline-block max-h-full italic"
+          style={estiloTextoVertical180}
+          title="Sin encargado asignado"
+        >
+          sin encargado asignado
+        </span>
+      );
     }
 
     return (
@@ -287,9 +295,9 @@ export function TablaBeneficiarios({
               </div>
             ))
           ) : (
-            data.map((b) => (
+            data.map((b, index) => (
               <div
-                key={b.id}
+                key={`${b.id}-${index}`}
                 onClick={() => setExpandedFooter(prev => ({ ...prev, [b.id]: !prev[b.id] }))}
                 className="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-800 flex flex-col p-3 hover:shadow-md transition-shadow gap-3 relative overflow-hidden group cursor-pointer"
               >
@@ -611,12 +619,13 @@ export function TablaBeneficiarios({
                     ))}
                   </tr>
                 ))
-                : filasConEncargado.map(({ beneficiario: b, nombreEncargado, mostrarCeldaEncargado, rowspanEncargado }) => (
-                  <tr key={b.id} className="hover:bg-green-50 dark:hover:bg-neutral-800 bg-white dark:bg-neutral-900 border-[2.5px] border-gray-300 dark:border-neutral-700 dark:text-gray-300">
+                : filasConEncargado.map(({ beneficiario: b, nombreEncargado, mostrarCeldaEncargado, rowspanEncargado }, index) => (
+                  <tr key={`${b.id}-${index}`} className="hover:bg-green-50 dark:hover:bg-neutral-800 bg-white dark:bg-neutral-900 border-[2.5px] border-gray-300 dark:border-neutral-700 dark:text-gray-300">
                     {mostrarCeldaEncargado && (
                       <td
                         rowSpan={rowspanEncargado}
-                        className="px-0.5 py-2 border-[1.5px] border-gray-300 dark:border-neutral-700 text-center align-middle"
+                        className="px-0.5 py-2 border-[1.5px] border-gray-300 dark:border-neutral-700 text-center align-middle min-h-[2.5rem]"
+                        style={{ width: `${ANCHO_COLUMNA_ENCARGADO}px`, minWidth: `${ANCHO_COLUMNA_ENCARGADO}px` }}
                       >
                         {renderEncargadoVertical(nombreEncargado)}
                       </td>

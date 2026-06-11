@@ -29,7 +29,8 @@ export const cargarBeneficiariosPorAnio = async (anio: string): Promise<Benefici
       .from('beneficiarios_fertilizante')
       .select('*')
       .eq('anio', anio)
-      .range(inicio, fin); // <-- Se usa .range() para la paginación
+      .order('id', { ascending: true })
+      .range(inicio, fin);
 
     if (error) {
       console.error('Error al cargar beneficiarios por página:', error.message);
@@ -50,7 +51,8 @@ export const cargarBeneficiariosPorAnio = async (anio: string): Promise<Benefici
     paginaActual++;
   }
 
-  return todosLosBeneficiarios as Beneficiario[];
+  const unicosPorId = new Map(todosLosBeneficiarios.map((b) => [b.id, b]));
+  return Array.from(unicosPorId.values()) as Beneficiario[];
 };
 
 export const obtenerAniosDisponibles = async (): Promise<string[]> => {
