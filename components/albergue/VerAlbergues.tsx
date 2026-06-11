@@ -13,12 +13,41 @@ import {
   ChevronLeft,
   ExternalLink,
   X,
+  Copy,
+  Check,
 } from "lucide-react";
 import AnimatedIcon from "@/components/ui/AnimatedIcon";
 import { albergues, CENTRO_ALBERGUES, type Albergue } from "./data";
 
 const formatearTelefono = (tel: string) =>
   tel.replace(/(\d{4})(\d{4})/, "$1-$2");
+
+function BotonCopiarTelefono({ telefono }: { telefono: string }) {
+  const [copiado, setCopiado] = useState(false);
+
+  const copiar = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(`+502${telefono}`);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      /* clipboard no disponible */
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={copiar}
+      aria-label={copiado ? "Número copiado" : "Copiar número"}
+      className="p-1 rounded-md text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 active:scale-95 transition-all"
+    >
+      {copiado ? <Check size={13} /> : <Copy size={13} />}
+    </button>
+  );
+}
 
 const textoModalVariant: Variants = {
   hidden: { opacity: 0, y: 12 },
@@ -213,7 +242,10 @@ export default function VerAlbergues() {
     <div className="w-full min-h-screen bg-slate-50 dark:bg-neutral-950">
       {/* Hero */}
       <div className="relative overflow-hidden rounded-b-3xl lg:rounded-b-[2rem] bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-700 px-4 lg:px-8 pb-4 lg:pb-0 text-white">
-        <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden>
+        <div
+          className="absolute inset-0 pointer-events-none overflow-hidden"
+          aria-hidden
+        >
           <div
             className="absolute inset-0 opacity-[0.14]"
             style={{
@@ -528,9 +560,10 @@ export default function VerAlbergues() {
                                 </span>
                               )}
                             </p>
-                            <p className="shrink-0 text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                            <p className="shrink-0 text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-0.5">
                               <Phone size={13} className="text-blue-500" />
                               {formatearTelefono(a.telefono)}
+                              <BotonCopiarTelefono telefono={a.telefono} />
                             </p>
                           </div>
                         </button>
