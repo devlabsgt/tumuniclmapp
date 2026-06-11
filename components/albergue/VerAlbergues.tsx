@@ -25,7 +25,7 @@ const formatearTelefono = (tel: string) =>
 function BotonCopiarTelefono({ telefono }: { telefono: string }) {
   const [copiado, setCopiado] = useState(false);
 
-  const copiar = async (e: React.MouseEvent) => {
+  const copiar = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     e.stopPropagation();
     try {
@@ -38,14 +38,20 @@ function BotonCopiarTelefono({ telefono }: { telefono: string }) {
   };
 
   return (
-    <button
-      type="button"
+    <span
+      role="button"
+      tabIndex={0}
       onClick={copiar}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          void copiar(e);
+        }
+      }}
       aria-label={copiado ? "Número copiado" : "Copiar número"}
-      className="p-1 rounded-md text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 active:scale-95 transition-all"
+      className="inline-flex p-1 rounded-md text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 active:scale-95 transition-all cursor-pointer"
     >
       {copiado ? <Check size={13} /> : <Copy size={13} />}
-    </button>
+    </span>
   );
 }
 
@@ -153,7 +159,11 @@ function AccionesRapidas({
   ];
 
   return (
-    <div className="grid grid-cols-4 gap-2 lg:gap-3">
+    <div>
+      <p className="text-[11px] text-blue-600 dark:text-blue-400 text-center mb-2.5 leading-snug">
+        Toca un botón para ver la ubicación o contactar al encargado 📲
+      </p>
+      <div className="grid grid-cols-4 gap-2 lg:gap-3">
       {acciones.map((accion, j) => (
         <motion.button
           key={accion.label}
@@ -176,6 +186,7 @@ function AccionesRapidas({
           {accion.label}
         </motion.button>
       ))}
+      </div>
     </div>
   );
 }
