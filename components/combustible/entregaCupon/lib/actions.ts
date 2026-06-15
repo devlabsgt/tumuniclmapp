@@ -8,29 +8,39 @@ import {
   EntregaCuponFormValues 
 } from './schemas';
 
+const SOLICITUD_ENTREGA_SELECT = `
+  id,
+  created_at,
+  placa,
+  municipio_destino,
+  justificacion,
+  kilometraje_inicial,
+  estado,
+  correlativo,
+  solvente,
+  usuario:info_usuario (
+    nombre,
+    dependencia:dependencias!info_usuario_dependencia_id_fkey ( nombre )
+  ),
+  vehiculo:vehiculos ( modelo, tipo_combustible, tipo_vehiculo ),
+  detalles:datos_comision_combustible ( lugar_visitar, kilometros_recorrer, fecha_inicio, fecha_fin ),
+  liquidacion:liquidacion ( correlativo, lote_masivo_id )
+`;
+
+const mapSolicitudEntrega = (item: any): SolicitudEntrega => ({
+  ...item,
+  usuario: Array.isArray(item.usuario) ? item.usuario[0] : item.usuario,
+  vehiculo: Array.isArray(item.vehiculo) ? item.vehiculo[0] : item.vehiculo,
+  liquidacion: Array.isArray(item.liquidacion) ? item.liquidacion[0] : item.liquidacion,
+  detalles: item.detalles || [],
+} as SolicitudEntrega);
+
 export const getSolicitudesParaEntrega = async (): Promise<SolicitudEntrega[]> => {
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from('solicitud_combustible')
-    .select(`
-      id,
-      created_at,
-      placa,
-      municipio_destino,
-      justificacion,
-      kilometraje_inicial,
-      estado,
-      correlativo,
-      solvente, 
-      usuario:info_usuario ( 
-          nombre,
-          dependencia:dependencias!info_usuario_dependencia_id_fkey ( nombre ) 
-      ),
-      vehiculo:vehiculos ( modelo, tipo_combustible, tipo_vehiculo ),
-      detalles:datos_comision_combustible ( lugar_visitar, kilometros_recorrer, fecha_inicio, fecha_fin ),
-      liquidacion:liquidacion ( correlativo, lote_masivo_id )
-    `)
+    .select(SOLICITUD_ENTREGA_SELECT)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -38,13 +48,26 @@ export const getSolicitudesParaEntrega = async (): Promise<SolicitudEntrega[]> =
     return [];
   }
 
-  return (data || []).map((item: any) => ({
-      ...item,
-      usuario: Array.isArray(item.usuario) ? item.usuario[0] : item.usuario,
-      vehiculo: Array.isArray(item.vehiculo) ? item.vehiculo[0] : item.vehiculo,
-      liquidacion: Array.isArray(item.liquidacion) ? item.liquidacion[0] : item.liquidacion,
-      detalles: item.detalles || []
-  })) as unknown as SolicitudEntrega[];
+  return (data || []).map((item: any) => mapSolicitudEntrega(item)) as unknown as SolicitudEntrega[];
+};
+
+export const getSolicitudDetalleEntrega = async (
+  id: number
+): Promise<SolicitudEntrega | null> => {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from('solicitud_combustible')
+    .select(SOLICITUD_ENTREGA_SELECT)
+    .eq('id', id)
+    .single();
+
+  if (error || !data) {
+    console.error('Error fetching solicitud detalle:', error);
+    return null;
+  }
+
+  return mapSolicitudEntrega(data);
 };
 
 export const getInventarioPorTipo = async (tipo: 'Gasolina' | 'Diesel') => {
@@ -323,6 +346,323 @@ export const getDatosReporteMensual = async (mes: number, anio: number, correlat
     }
     return acc;
   }, {});
+};
+
+export interface SolicitudReporteItem {
+  id: number;
+  correlativo: number | null;
+  created_at: string;
+  placa: string;
+  municipio_destino: string;
+  justificacion: string | null;
+  monto: number;
+  tipo_combustible: string;
+}
+
+export interface ParamsReporteCombustible {
+  modoRango: boolean;
+  mes: number;
+  anio: number;
+  mesInicio: number;
+  mesFin: number;
+  anioInicio: number;
+  anioFin: number;
+}
+
+export interface FilaReporteDependencia {
+  id: string;
+  prefix: string;
+  level: number;
+  tipo: 'dependencia' | 'empleado' | 'solicitud';
+  nombre: string;
+  total: number;
+  esPuesto: boolean;
+  branchPrefix: string;
+  rutaDependencia: string;
+  userId?: string;
+  solicitudes?: SolicitudReporteItem[];
+  solicitud?: SolicitudReporteItem;
+}
+
+export interface ReporteJerarquicoCombustible {
+  filas: FilaReporteDependencia[];
+  filasPorPersona: FilaReporteDependencia[];
+  granTotal: number;
+}
+
+const getRangoFechas = (params: ParamsReporteCombustible) => {
+  if (!params.modoRango) {
+    return {
+      inicio: new Date(params.anio, params.mes, 1, 0, 0, 0).toISOString(),
+      fin: new Date(params.anio, params.mes + 1, 0, 23, 59, 59).toISOString(),
+    };
+  }
+
+  let inicio = new Date(params.anioInicio, params.mesInicio, 1, 0, 0, 0);
+  let fin = new Date(params.anioFin, params.mesFin + 1, 0, 23, 59, 59);
+
+  if (inicio > fin) {
+    const tmpInicio = inicio;
+    inicio = new Date(params.anioFin, params.mesFin, 1, 0, 0, 0);
+    fin = new Date(tmpInicio.getFullYear(), tmpInicio.getMonth() + 1, 0, 23, 59, 59);
+  }
+
+  return { inicio: inicio.toISOString(), fin: fin.toISOString() };
+};
+
+export const getReporteJerarquicoCombustible = async (
+  params: ParamsReporteCombustible
+): Promise<ReporteJerarquicoCombustible> => {
+  const supabase = await createClient();
+  const { inicio, fin } = getRangoFechas(params);
+
+  const [depsRes, infosRes, solsRes] = await Promise.all([
+    supabase.from('dependencias').select('id, nombre, parent_id, no, es_puesto'),
+    supabase.from('info_usuario').select('user_id, nombre, dependencia_id'),
+    supabase
+      .from('solicitud_combustible')
+      .select(`
+        id,
+        user_id,
+        created_at,
+        correlativo,
+        placa,
+        municipio_destino,
+        justificacion,
+        vehiculo:vehiculos ( tipo_combustible ),
+        vales:entrega_cupones (
+          cantidad_entregada,
+          detalle:DetalleContrato ( denominacion )
+        )
+      `)
+      .eq('estado', 'aprobado')
+      .gte('created_at', inicio)
+      .lte('created_at', fin),
+  ]);
+
+  const deps = depsRes.data || [];
+  const infos = infosRes.data || [];
+  const sols = solsRes.data || [];
+
+  // 1. Solicitudes y totales por usuario
+  const totalPorUsuario = new Map<string, number>();
+  const solicitudesPorUsuario = new Map<string, SolicitudReporteItem[]>();
+
+  (sols as any[]).forEach((s) => {
+    if (!s.user_id) return;
+    const monto = (s.vales || []).reduce((acc: number, v: any) => {
+      const det = Array.isArray(v.detalle) ? v.detalle[0] : v.detalle;
+      return acc + (v.cantidad_entregada || 0) * (det?.denominacion || 0);
+    }, 0);
+    if (monto <= 0) return;
+
+    const vehiculo = Array.isArray(s.vehiculo) ? s.vehiculo[0] : s.vehiculo;
+    const item: SolicitudReporteItem = {
+      id: s.id,
+      correlativo: s.correlativo,
+      created_at: s.created_at,
+      placa: s.placa,
+      municipio_destino: s.municipio_destino,
+      justificacion: s.justificacion ?? null,
+      monto,
+      tipo_combustible: vehiculo?.tipo_combustible || 'N/A',
+    };
+
+    if (!solicitudesPorUsuario.has(s.user_id)) {
+      solicitudesPorUsuario.set(s.user_id, []);
+    }
+    solicitudesPorUsuario.get(s.user_id)!.push(item);
+    totalPorUsuario.set(s.user_id, (totalPorUsuario.get(s.user_id) || 0) + monto);
+  });
+
+  // 2. Construir el árbol de dependencias
+  interface Nodo {
+    id: string;
+    nombre: string;
+    no: number;
+    parent_id: string | null;
+    es_puesto: boolean;
+    children: Nodo[];
+    empleados: { user_id: string; nombre: string; total: number }[];
+    total: number;
+  }
+
+  const nodeMap = new Map<string, Nodo>();
+  (deps as any[]).forEach((d) => {
+    nodeMap.set(d.id, {
+      id: d.id,
+      nombre: d.nombre,
+      no: d.no ?? 0,
+      parent_id: d.parent_id,
+      es_puesto: !!d.es_puesto,
+      children: [],
+      empleados: [],
+      total: 0,
+    });
+  });
+
+  const roots: Nodo[] = [];
+  (deps as any[]).forEach((d) => {
+    const nodo = nodeMap.get(d.id)!;
+    if (d.parent_id && nodeMap.has(d.parent_id)) {
+      nodeMap.get(d.parent_id)!.children.push(nodo);
+    } else {
+      roots.push(nodo);
+    }
+  });
+
+  // 3. Asignar empleados (con consumo) a su dependencia
+  const usuariosUbicados = new Set<string>();
+  const sinDependencia: { user_id: string; nombre: string; total: number }[] = [];
+
+  (infos as any[]).forEach((info) => {
+    const total = totalPorUsuario.get(info.user_id) || 0;
+    if (total <= 0) return;
+    usuariosUbicados.add(info.user_id);
+    const nodo = info.dependencia_id ? nodeMap.get(info.dependencia_id) : null;
+    if (nodo) {
+      nodo.empleados.push({ user_id: info.user_id, nombre: info.nombre || 'Sin nombre', total });
+    } else {
+      sinDependencia.push({ user_id: info.user_id, nombre: info.nombre || 'Sin nombre', total });
+    }
+  });
+
+  // Usuarios con consumo que no aparecen en info_usuario
+  totalPorUsuario.forEach((total, userId) => {
+    if (!usuariosUbicados.has(userId)) {
+      sinDependencia.push({ user_id: userId, nombre: 'Usuario sin información', total });
+    }
+  });
+
+  // 4. Totales acumulados (de abajo hacia arriba)
+  const computarTotal = (nodo: Nodo): number => {
+    let t = nodo.empleados.reduce((acc, e) => acc + e.total, 0);
+    nodo.children.forEach((c) => {
+      t += computarTotal(c);
+    });
+    nodo.total = t;
+    return t;
+  };
+  roots.forEach(computarTotal);
+
+  // 5. Aplanar el árbol respetando jerarquía y podando ramas sin consumo
+  const filas: FilaReporteDependencia[] = [];
+
+  const recorrer = (nodo: Nodo, prefix: string, level: number, ruta: string[]) => {
+    if (nodo.total <= 0) return;
+
+    const rutaActual = [...ruta, nodo.nombre];
+    const mostrarNumero = !nodo.es_puesto;
+
+    // Puesto con empleado: solo la persona, sin repetir el nombre del puesto
+    if (nodo.es_puesto && nodo.empleados.length > 0) {
+      [...nodo.empleados]
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+        .forEach((e, i) => {
+          filas.push({
+            id: `${nodo.id}-emp-${i}`,
+            prefix: '',
+            level,
+            tipo: 'empleado',
+            nombre: e.nombre,
+            total: e.total,
+            esPuesto: false,
+            branchPrefix: prefix,
+            rutaDependencia: rutaActual.join(' › '),
+            userId: e.user_id,
+          });
+        });
+    } else {
+      filas.push({
+        id: nodo.id,
+        prefix: mostrarNumero ? prefix : '',
+        level,
+        tipo: 'dependencia',
+        nombre: nodo.nombre,
+        total: nodo.total,
+        esPuesto: nodo.es_puesto,
+        branchPrefix: prefix,
+        rutaDependencia: rutaActual.join(' › '),
+      });
+
+      if (!nodo.es_puesto) {
+        [...nodo.empleados]
+          .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+          .forEach((e, i) => {
+            filas.push({
+              id: `${nodo.id}-emp-${i}`,
+              prefix: '',
+              level: level + 1,
+              tipo: 'empleado',
+              nombre: e.nombre,
+              total: e.total,
+              esPuesto: false,
+              branchPrefix: prefix,
+              rutaDependencia: rutaActual.join(' › '),
+              userId: e.user_id,
+            });
+          });
+      }
+    }
+
+    const hijosOrdenados = [...nodo.children].sort((a, b) => a.no - b.no);
+    hijosOrdenados.forEach((c) => {
+      const hijoPrefix = mostrarNumero ? `${prefix}.${c.no}` : prefix;
+      recorrer(c, hijoPrefix, level + 1, rutaActual);
+    });
+  };
+
+  [...roots].sort((a, b) => a.no - b.no).forEach((r) => recorrer(r, `${r.no}`, 0, []));
+
+  // 6. Grupo de usuarios sin dependencia asignada
+  if (sinDependencia.length > 0) {
+    const totalSin = sinDependencia.reduce((acc, e) => acc + e.total, 0);
+    filas.push({
+      id: 'sin-dependencia',
+      prefix: '—',
+      level: 0,
+      tipo: 'dependencia',
+      nombre: 'SIN DEPENDENCIA ASIGNADA',
+      total: totalSin,
+      esPuesto: false,
+      branchPrefix: 'sin-dependencia',
+      rutaDependencia: 'SIN DEPENDENCIA ASIGNADA',
+    });
+    sinDependencia
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+      .forEach((e, i) => {
+        filas.push({
+          id: `sin-dependencia-emp-${i}`,
+          prefix: '',
+          level: 1,
+          tipo: 'empleado',
+          nombre: e.nombre,
+          total: e.total,
+          esPuesto: false,
+          branchPrefix: 'sin-dependencia',
+          rutaDependencia: 'SIN DEPENDENCIA ASIGNADA',
+          userId: e.user_id,
+        });
+      });
+  }
+
+  filas.forEach((f) => {
+    if (f.tipo === 'empleado' && f.userId) {
+      f.solicitudes = (solicitudesPorUsuario.get(f.userId) || []).sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    }
+  });
+
+  const filasPorPersona = filas
+    .filter((f) => f.tipo === 'empleado')
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+
+  const granTotal = filas
+    .filter((f) => f.level === 0 && f.tipo === 'dependencia')
+    .reduce((acc, f) => acc + f.total, 0);
+
+  return { filas, filasPorPersona, granTotal };
 };
 
 export const getLiquidacionAdmin = async (solicitud_id: number) => {

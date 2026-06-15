@@ -11,7 +11,8 @@ import InformeLiquidacionCupones from '@/components/combustible/solicitudes/moda
 import CrearLoteMasivo from './modals/CrearLoteMasivo';
 import InformeLoteMasivo from './modals/InformeLoteMasivo';
 
-import { Search, Calendar as CalendarIcon, SearchX, CalendarDays, FileDown, Loader2, Layers, ChevronDown, RefreshCcw } from 'lucide-react'; 
+import { Search, Calendar as CalendarIcon, SearchX, CalendarDays, FileDown, Loader2, Layers, ChevronDown, RefreshCcw, Table2 } from 'lucide-react'; 
+import Link from 'next/link';
 import Swal from 'sweetalert2';
 
 const MESES = [ 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre' ];
@@ -237,6 +238,15 @@ export default function ListSolicitud({ initialData }: Props) {
                         
                         {/* Botones de Acción (Fila 1 en Movil) */}
                         <div className="flex gap-2 w-full sm:w-auto order-1 sm:order-none">
+                           <Link
+                               href="/protected/combustible/reporte"
+                               className="flex-1 sm:w-auto flex items-center justify-center gap-2 px-3 py-2.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all shadow-sm whitespace-nowrap"
+                               title="Ver reporte en tabla por departamento y nombre con totales"
+                           >
+                               <Table2 size={16} />
+                               <span className="hidden sm:inline">POR DEPARTAMENTO</span>
+                           </Link>
+
                            <button 
                                onClick={() => setIsCrearLoteOpen(true)}
                                className="flex-1 sm:w-auto flex items-center justify-center gap-2 px-3 py-2.5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl text-[11px] font-bold text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-all shadow-sm whitespace-nowrap"
