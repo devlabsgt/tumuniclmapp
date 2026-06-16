@@ -1,7 +1,13 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { cargarLogoMunicipal, dibujarEncabezadoMunicipalPdf } from './encabezadoMunicipalPdf';
-import { formatoLineaSolicitud } from './formatoSolicitudReporte';
+import {
+  datosSolicitudReporte,
+  formatoLineaSolicitud,
+  colorCombustiblePdf,
+  colorDatosVehiculoPdf,
+} from './formatoSolicitudReporte';
+import { debeSubrayarTotalReporte } from './formatoSolicitudReporte';
 
 const formatearQ = (monto: number) =>
   new Intl.NumberFormat('es-GT', { style: 'currency', currency: 'GTQ' }).format(monto);
@@ -11,6 +17,7 @@ type PdfColoresFila = {
   text: [number, number, number];
   badgeFill?: [number, number, number];
   badgeText?: [number, number, number];
+  underlineRgb?: [number, number, number];
 };
 
 const getPdfColorNivel = (fila: FilaPdfReporte): PdfColoresFila => {
@@ -21,12 +28,21 @@ const getPdfColorNivel = (fila: FilaPdfReporte): PdfColoresFila => {
     };
   }
 
+  if (fila.tipo === 'total-empleado') {
+    return {
+      rowFill: [248, 250, 252],
+      text: [133, 77, 14],
+      underlineRgb: [202, 138, 4],
+    };
+  }
+
   if (fila.tipo === 'empleado' || fila.esPuesto) {
     return {
       rowFill: [254, 252, 232],
       text: [133, 77, 14],
       badgeFill: [254, 249, 195],
       badgeText: [133, 77, 14],
+      underlineRgb: [202, 138, 4],
     };
   }
 
@@ -37,6 +53,7 @@ const getPdfColorNivel = (fila: FilaPdfReporte): PdfColoresFila => {
         text: [30, 64, 175],
         badgeFill: [219, 234, 254],
         badgeText: [30, 64, 175],
+        underlineRgb: [59, 130, 246],
       };
     case 1:
       return {
@@ -44,6 +61,7 @@ const getPdfColorNivel = (fila: FilaPdfReporte): PdfColoresFila => {
         text: [153, 27, 27],
         badgeFill: [254, 226, 226],
         badgeText: [153, 27, 27],
+        underlineRgb: [239, 68, 68],
       };
     case 2:
       return {
@@ -51,6 +69,7 @@ const getPdfColorNivel = (fila: FilaPdfReporte): PdfColoresFila => {
         text: [107, 33, 168],
         badgeFill: [243, 232, 255],
         badgeText: [107, 33, 168],
+        underlineRgb: [168, 85, 247],
       };
     default:
       return {
@@ -58,6 +77,7 @@ const getPdfColorNivel = (fila: FilaPdfReporte): PdfColoresFila => {
         text: [154, 52, 18],
         badgeFill: [255, 237, 213],
         badgeText: [154, 52, 18],
+        underlineRgb: [249, 115, 22],
       };
   }
 };
@@ -65,14 +85,20 @@ const getPdfColorNivel = (fila: FilaPdfReporte): PdfColoresFila => {
 export interface FilaPdfReporte {
   prefix: string;
   nombre: string;
+  nombrePuesto?: string;
   total: number;
-  tipo: 'dependencia' | 'empleado' | 'solicitud';
+  tipo: 'dependencia' | 'empleado' | 'solicitud' | 'total-empleado';
   esPuesto?: boolean;
   level: number;
+  ocultarTotalFila?: boolean;
   solicitud?: {
     correlativo?: number | null;
+    id?: number;
     placa?: string;
+    vehiculo?: string;
+    tipo_combustible?: string;
     justificacion?: string | null;
+    created_at?: string;
   };
 }
 
@@ -83,7 +109,11 @@ export interface OpcionesPdfReporte {
   granTotal: number;
 }
 
-type SegmentoPdf = { texto: string; negrita: boolean };
+type SegmentoPdf = {
+  texto: string;
+  negrita: boolean;
+  color?: [number, number, number];
+};
 
 const paddingCelda = (
   cellPadding: unknown,
@@ -96,20 +126,39 @@ const paddingCelda = (
   return 2.5;
 };
 
-const segmentosSolicitudPdf = (
+const segmentosSolicitudLinea1 = (
   sol: NonNullable<FilaPdfReporte['solicitud']>
 ): SegmentoPdf[] => {
-  const numero = String(sol.correlativo ?? sol.id ?? '—');
-  const placa = sol.placa?.trim() || '—';
-  const justificacion = sol.justificacion?.trim() || 'Sin justificación';
+  const { fecha, vehiculo, placa, combustible } = datosSolicitudReporte(sol);
+  const azul = colorDatosVehiculoPdf();
+  const colorComb = colorCombustiblePdf(combustible);
+  const negro: [number, number, number] = [15, 23, 42];
   return [
-    { texto: 'No.:', negrita: false },
-    { texto: ` ${numero}, `, negrita: true },
-    { texto: 'Placa:', negrita: false },
-    { texto: ` ${placa}, `, negrita: true },
-    { texto: 'Just.', negrita: false },
-    { texto: ` ${justificacion}`, negrita: true },
+    { texto: `${fecha} `, negrita: true, color: negro },
+    { texto: `${vehiculo}, `, negrita: true, color: azul },
+    { texto: `${placa}, `, negrita: true, color: azul },
+    { texto: combustible, negrita: true, color: colorComb },
   ];
+};
+
+const segmentosSolicitudLinea2 = (
+  sol: NonNullable<FilaPdfReporte['solicitud']>
+): SegmentoPdf[] => {
+  const { justificacion } = datosSolicitudReporte(sol);
+  return [{ texto: justificacion, negrita: false }];
+};
+
+const subrayarTextoPdf = (
+  pdf: jsPDF,
+  texto: string,
+  x: number,
+  baselineY: number,
+  color: [number, number, number]
+) => {
+  const ancho = pdf.getTextWidth(texto);
+  pdf.setDrawColor(color[0], color[1], color[2]);
+  pdf.setLineWidth(0.35);
+  pdf.line(x, baselineY + 0.6, x + ancho, baselineY + 0.6);
 };
 
 const dibujarSegmentosConSalto = (
@@ -131,6 +180,8 @@ const dibujarSegmentosConSalto = (
     const partes = seg.texto.match(/\S+|\s+/g) ?? [];
     for (const parte of partes) {
       pdf.setFont('helvetica', seg.negrita ? 'bold' : 'normal');
+      const rgb = seg.color ?? color;
+      pdf.setTextColor(rgb[0], rgb[1], rgb[2]);
       const ancho = pdf.getTextWidth(parte);
       if (cx + ancho > x + maxWidth && cx > x) {
         cx = x;
@@ -164,12 +215,19 @@ const construirPdfReporte = async (opts: OpcionesPdfReporte) => {
 
   const body = opts.filas.map((f) => {
     const no =
-      f.tipo === 'dependencia' && f.prefix && f.prefix !== '—' && !f.esPuesto ? f.prefix : '';
+      f.tipo === 'dependencia' && f.prefix && f.prefix !== '—' && !f.esPuesto
+        ? f.prefix
+        : f.tipo === 'solicitud' && f.solicitud
+          ? datosSolicitudReporte(f.solicitud).noEtiqueta
+          : '';
     const nombre =
       f.tipo === 'solicitud' && f.solicitud
         ? formatoLineaSolicitud(f.solicitud)
-        : f.nombre;
-    return [no, nombre, formatearQ(f.total)];
+        : f.tipo === 'empleado' && f.nombrePuesto
+          ? `${f.nombrePuesto}\n${f.nombre}`
+          : f.nombre;
+    const totalCelda = f.ocultarTotalFila ? '' : formatearQ(f.total);
+    return [no, nombre, totalCelda];
   });
 
   autoTable(doc, {
@@ -230,6 +288,11 @@ const construirPdfReporte = async (opts: OpcionesPdfReporte) => {
         data.cell.styles.valign = 'top';
       }
 
+      if (fila.tipo === 'total-empleado') {
+        data.cell.styles.cellPadding = { top: 2.5, right: 2.5, bottom: 7, left: 2.5 };
+        data.cell.styles.valign = 'top';
+      }
+
       if (data.column.index === 0) {
         data.cell.styles.halign = 'left';
         if (fila.tipo === 'dependencia' && fila.prefix && fila.prefix !== '—' && !fila.esPuesto) {
@@ -237,12 +300,35 @@ const construirPdfReporte = async (opts: OpcionesPdfReporte) => {
           data.cell.styles.textColor = colores.badgeText ?? colores.text;
           data.cell.styles.fontStyle = 'bold';
         }
+        if (fila.tipo === 'solicitud' && fila.solicitud) {
+          data.cell.text = [datosSolicitudReporte(fila.solicitud).noEtiqueta];
+          data.cell.styles.halign = 'center';
+          data.cell.styles.fontStyle = 'normal';
+          data.cell.styles.fontSize = 7;
+          data.cell.styles.valign = 'middle';
+        }
         return;
       }
 
       if (data.column.index === 1) {
         data.cell.styles.halign = 'left';
-        data.cell.styles.fontStyle = fila.tipo === 'empleado' || fila.esPuesto ? 'bold' : 'normal';
+        if (fila.tipo === 'total-empleado') {
+          data.cell.text = [''];
+          return;
+        }
+        if (fila.tipo === 'empleado' && fila.nombrePuesto) {
+          data.cell.text = [fila.nombrePuesto, fila.nombre];
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.textColor = colores.rowFill;
+          return;
+        }
+        data.cell.styles.fontStyle =
+          fila.tipo === 'empleado' ||
+          fila.tipo === 'total-empleado' ||
+          fila.esPuesto ||
+          fila.tipo === 'dependencia'
+            ? 'bold'
+            : 'normal';
         if (fila.tipo === 'solicitud' && fila.solicitud) {
           const fontSize = 7;
           const padX =
@@ -270,26 +356,125 @@ const construirPdfReporte = async (opts: OpcionesPdfReporte) => {
       if (data.column.index === 2) {
         data.cell.styles.fontStyle = 'bold';
         data.cell.styles.halign = 'right';
+        data.cell.styles.textColor = colores.text;
       }
     },
     didDrawCell: (data) => {
-      if (data.section !== 'body' || data.column.index !== 1) return;
+      if (data.section !== 'body') return;
 
       const fila = opts.filas[data.row.index];
-      if (fila?.tipo !== 'solicitud' || !fila.solicitud) return;
+      if (!fila) return;
 
       const colores = getPdfColorNivel(fila);
+      const pdf = data.doc;
+
+      if (data.column.index === 2 && debeSubrayarTotalReporte(fila) && !fila.ocultarTotalFila) {
+        const texto = formatearQ(fila.total);
+        const padRight = paddingCelda(data.cell.styles.cellPadding, 'right');
+        const padTop = paddingCelda(data.cell.styles.cellPadding, 'top');
+        const padBottom = paddingCelda(data.cell.styles.cellPadding, 'bottom');
+        const fontSize = typeof data.cell.styles.fontSize === 'number' ? data.cell.styles.fontSize : 8;
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(fontSize);
+        const textWidth = pdf.getTextWidth(texto);
+        const x = data.cell.x + data.cell.width - padRight - textWidth;
+        const baselineY =
+          data.cell.y + padTop + (data.cell.height - padTop - padBottom) / 2 + fontSize * 0.15;
+        const [ur, ug, ub] = colores.underlineRgb ?? colores.text;
+        pdf.setDrawColor(ur, ug, ub);
+        pdf.setLineWidth(0.35);
+        pdf.line(x, baselineY + 0.6, x + textWidth, baselineY + 0.6);
+        return;
+      }
+
+      if (data.column.index !== 1) return;
+
+      if (fila.tipo === 'total-empleado') {
+        const fontSize = typeof data.cell.styles.fontSize === 'number' ? data.cell.styles.fontSize : 8;
+        const padLeft = paddingCelda(data.cell.styles.cellPadding, 'left');
+        const padTop = paddingCelda(data.cell.styles.cellPadding, 'top');
+        const padBottom = paddingCelda(data.cell.styles.cellPadding, 'bottom');
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(fontSize);
+        pdf.setTextColor(colores.text[0], colores.text[1], colores.text[2]);
+        const baselineY =
+          data.cell.y + padTop + (data.cell.height - padTop - padBottom) / 2 + fontSize * 0.15;
+        pdf.text('Total', data.cell.x + padLeft, baselineY);
+        subrayarTextoPdf(
+          pdf,
+          'Total',
+          data.cell.x + padLeft,
+          baselineY,
+          colores.underlineRgb ?? colores.text
+        );
+        return;
+      }
+
+      if (fila.tipo === 'empleado' && fila.nombrePuesto) {
+        const fontSize = 8;
+        const padLeft = paddingCelda(data.cell.styles.cellPadding, 'left');
+        const padTop = paddingCelda(data.cell.styles.cellPadding, 'top');
+        const nombreY = data.cell.y + padTop + 7;
+        pdf.setFontSize(fontSize);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(colores.text[0], colores.text[1], colores.text[2]);
+        pdf.text(fila.nombrePuesto, data.cell.x + padLeft, data.cell.y + padTop + 3);
+        pdf.text(fila.nombre, data.cell.x + padLeft, nombreY);
+        subrayarTextoPdf(
+          pdf,
+          fila.nombre,
+          data.cell.x + padLeft,
+          nombreY,
+          colores.underlineRgb ?? colores.text
+        );
+        return;
+      }
+
+      if (fila.tipo === 'empleado') {
+        const fontSize = typeof data.cell.styles.fontSize === 'number' ? data.cell.styles.fontSize : 8;
+        const padLeft = paddingCelda(data.cell.styles.cellPadding, 'left');
+        const padTop = paddingCelda(data.cell.styles.cellPadding, 'top');
+        const padBottom = paddingCelda(data.cell.styles.cellPadding, 'bottom');
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(fontSize);
+        const baselineY =
+          data.cell.y + padTop + (data.cell.height - padTop - padBottom) / 2 + fontSize * 0.15;
+        subrayarTextoPdf(
+          pdf,
+          fila.nombre,
+          data.cell.x + padLeft,
+          baselineY,
+          colores.underlineRgb ?? colores.text
+        );
+        return;
+      }
+
+      if (fila.tipo !== 'solicitud' || !fila.solicitud) return;
+
       const fontSize = 7;
       const padLeft = paddingCelda(data.cell.styles.cellPadding, 'left');
       const padRight = paddingCelda(data.cell.styles.cellPadding, 'right');
       const padTop = paddingCelda(data.cell.styles.cellPadding, 'top');
+      const x = data.cell.x + padLeft;
+      const y = data.cell.y + padTop + 1.5;
+      const maxW = data.cell.width - padLeft - padRight;
+      const lineHeight = 3.2;
 
       dibujarSegmentosConSalto(
-        data.doc,
-        segmentosSolicitudPdf(fila.solicitud),
-        data.cell.x + padLeft,
-        data.cell.y + padTop + 1.5,
-        data.cell.width - padLeft - padRight,
+        pdf,
+        segmentosSolicitudLinea1(fila.solicitud),
+        x,
+        y,
+        maxW,
+        fontSize,
+        colores.text
+      );
+      dibujarSegmentosConSalto(
+        pdf,
+        segmentosSolicitudLinea2(fila.solicitud),
+        x,
+        y + lineHeight,
+        maxW,
         fontSize,
         colores.text
       );

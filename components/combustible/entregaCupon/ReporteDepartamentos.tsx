@@ -5,8 +5,16 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import DetalleSolicitudModal from './modals/DetalleSolicitudModal';
 import ExportarReportePdfModal from './modals/ExportarReportePdfModal';
+import EstadisticasReporteModal from './modals/EstadisticasReporteModal';
 import { FiltroConSugerencias } from './FiltroBusquedaReporte';
 import { crearUrlPdfReporteDepartamento } from './lib/ReporteDepartamentoPdf';
+import {
+  debeSubrayarTotalReporte,
+  datosSolicitudReporte,
+  clasesColorDatoVehiculo,
+  clasesColorCombustible,
+  clasesColorFechaSolicitud,
+} from './lib/formatoSolicitudReporte';
 import {
   guardarParamsReporte,
   leerParamsReporte,
@@ -18,125 +26,36 @@ import {
   FilaReporteDependencia,
   ParamsReporteCombustible,
 } from './lib/actions';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import SelectorPeriodoReporte, {
+  BTN_TOOLBAR,
+  paramsDesdeMeses,
+  toMonthValue,
+  etiquetaPeriodo,
+} from './SelectorPeriodoReporte';
 import {
   ArrowLeft,
   Loader2,
   ExternalLink,
-  User,
   SearchX,
-  Calendar,
+  BarChart3,
+  ChevronsLeftRight,
 } from 'lucide-react';
-
-const MESES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-];
-const MESES_CORTOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
 const formatearQ = (monto: number) =>
   new Intl.NumberFormat('es-GT', { style: 'currency', currency: 'GTQ' }).format(monto);
 
-const toMonthValue = (anio: number, mes: number) =>
-  `${anio}-${String(mes + 1).padStart(2, '0')}`;
+const GRID_TABLA = 'grid grid-cols-[5rem_1fr_8.5rem] items-stretch';
+const BORDE_TABLA = 'border-slate-300 dark:border-neutral-500';
+const FILA_TABLA = `border-b ${BORDE_TABLA}`;
+const CELDA_NO = `px-3 py-2.5 border-r ${BORDE_TABLA} min-h-full`;
+const CELDA_NOMBRE = `px-3 py-2.5 border-r ${BORDE_TABLA} min-w-0 min-h-full`;
+const CELDA_TOTAL = `px-3 py-2.5 text-right min-h-full`;
 
-const fromMonthValue = (val: string) => {
-  const [y, m] = val.split('-').map(Number);
-  return { anio: y, mes: m - 1 };
-};
-
-const formatRangoLabel = (inicio: string, fin: string) => {
-  const { anio: y1, mes: m1 } = fromMonthValue(inicio);
-  const { anio: y2, mes: m2 } = fromMonthValue(fin);
-  const mesIni = MESES_CORTOS[m1].toLowerCase();
-  const mesFin = MESES_CORTOS[m2].toLowerCase();
-  if (inicio === fin) return `${mesIni} ${y1}`;
-  return `De ${mesIni} ${y1} a ${mesFin} ${y2}`;
-};
-
-const BTN_TOOLBAR =
-  'flex items-center gap-1.5 px-3 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-neutral-800 transition-all shadow-sm whitespace-nowrap';
-
-const INPUT_MES =
-  'text-sm border border-slate-200 dark:border-neutral-700 rounded-lg px-2 py-1.5 bg-white dark:bg-neutral-900 text-slate-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-blue-500/20 w-full';
-
-const paramsDesdeMeses = (inicio: string, fin: string): ParamsReporteCombustible => {
-  const ini = fromMonthValue(inicio);
-  const end = fromMonthValue(fin);
-  if (inicio === fin) {
-    return {
-      modoRango: false,
-      anio: ini.anio,
-      mes: ini.mes,
-      mesInicio: ini.mes,
-      mesFin: ini.mes,
-      anioInicio: ini.anio,
-      anioFin: ini.anio,
-    };
-  }
-  return {
-    modoRango: true,
-    anio: ini.anio,
-    mes: ini.mes,
-    mesInicio: ini.mes,
-    mesFin: end.mes,
-    anioInicio: ini.anio,
-    anioFin: end.anio,
-  };
-};
-
-function SelectorPeriodo({
-  inicio,
-  fin,
-  onChange,
-}: {
-  inicio: string;
-  fin: string;
-  onChange: (ini: string, fin: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button type="button" className={BTN_TOOLBAR} title="Seleccionar periodo">
-          <Calendar size={15} className="text-blue-500 shrink-0" />
-          <span>{formatRangoLabel(inicio, fin)}</span>
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-3" align="end">
-        <div className="flex flex-col gap-3 min-w-[12rem]">
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
-              Desde
-            </label>
-            <input
-              type="month"
-              value={inicio}
-              onChange={(e) => onChange(e.target.value, fin)}
-              className={INPUT_MES}
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
-              Hasta
-            </label>
-            <input
-              type="month"
-              value={fin}
-              onChange={(e) => onChange(inicio, e.target.value)}
-              className={INPUT_MES}
-            />
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-interface NodoFila extends FilaReporteDependencia {
+interface NodoFila extends Omit<FilaReporteDependencia, 'tipo'> {
+  tipo: FilaReporteDependencia['tipo'] | 'total-empleado';
   children: NodoFila[];
   tieneHijos: boolean;
+  ocultarTotalFila?: boolean;
 }
 
 interface Props {
@@ -171,7 +90,7 @@ const getColorNivel = (fila: FilaReporteDependencia) => {
     };
   }
 
-  if (fila.tipo === 'empleado' || fila.esPuesto) {
+  if (fila.tipo === 'empleado' || fila.tipo === 'total-empleado' || fila.esPuesto) {
     return {
       badge: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
       underline: 'border-b-2 border-yellow-500',
@@ -222,6 +141,15 @@ const empleadoEnRamaMatch = (branchPrefix: string, ramasMatcheadas: Set<string>)
   [...ramasMatcheadas].some(
     (p) => branchPrefix === p || branchPrefix.startsWith(`${p}.`)
   );
+
+const agregarPrefijosCadena = (prefix: string, set: Set<string>) => {
+  if (!prefix || prefix === '—') return;
+  set.add(prefix);
+  const partes = prefix.split('.');
+  for (let i = partes.length - 1; i > 0; i--) {
+    set.add(partes.slice(0, i).join('.'));
+  }
+};
 
 const filtrarPorDepartamento = (filas: FilaReporteDependencia[], term: string) => {
   if (!term.trim()) return filas;
@@ -275,7 +203,7 @@ const filtrarPorNombre = (filas: FilaReporteDependencia[], term: string) => {
   filas.forEach((f) => {
     if (f.tipo === 'empleado' && f.nombre.toLowerCase().includes(lower)) {
       empleadosVisibles.add(f.id);
-      if (f.branchPrefix) visiblePrefixes.add(f.branchPrefix);
+      if (f.branchPrefix) agregarPrefijosCadena(f.branchPrefix, visiblePrefixes);
     }
   });
 
@@ -375,6 +303,25 @@ const recalcularTotales = (nodos: NodoFila[]): void => {
   });
 };
 
+const quitarIdsExpandibles = (nodos: NodoFila[], ids: Set<string>) => {
+  nodos.forEach((n) => {
+    if (n.tieneHijos) ids.delete(n.id);
+    quitarIdsExpandibles(n.children, ids);
+  });
+};
+
+/** Expande todas las dependencias en cascada; empleados/cupones quedan colapsados. */
+const recogerSubdependenciasExpandibles = (nodos: NodoFila[], ids: Set<string>) => {
+  nodos.forEach((n) => {
+    if (n.tipo === 'dependencia' && n.tieneHijos) {
+      ids.add(n.id);
+    }
+    if (n.children.length > 0) {
+      recogerSubdependenciasExpandibles(n.children, ids);
+    }
+  });
+};
+
 const recogerIdsExpandibles = (nodos: NodoFila[], ids: Set<string>) => {
   nodos.forEach((n) => {
     if (n.tieneHijos) ids.add(n.id);
@@ -382,10 +329,30 @@ const recogerIdsExpandibles = (nodos: NodoFila[], ids: Set<string>) => {
   });
 };
 
-const aplanarTodo = (nodos: NodoFila[]): NodoFila[] => {
+const aplanarParaPdf = (nodos: NodoFila[]): NodoFila[] => {
   const resultado: NodoFila[] = [];
   const recorrer = (lista: NodoFila[]) => {
     lista.forEach((n) => {
+      const tieneCupones =
+        n.tipo === 'empleado' && n.children.some((c) => c.tipo === 'solicitud');
+
+      if (tieneCupones) {
+        resultado.push({ ...n, ocultarTotalFila: true });
+        n.children.forEach((c) => recorrer([c]));
+        resultado.push({
+          ...n,
+          id: `${n.id}-total`,
+          tipo: 'total-empleado',
+          nombre: 'Total',
+          nombrePuesto: undefined,
+          prefix: '',
+          children: [],
+          tieneHijos: false,
+          ocultarTotalFila: false,
+        });
+        return;
+      }
+
       resultado.push(n);
       if (n.children.length) recorrer(n.children);
     });
@@ -397,7 +364,7 @@ const aplanarTodo = (nodos: NodoFila[]): NodoFila[] => {
 interface NodoItemProps {
   nodo: NodoFila;
   expandidos: Set<string>;
-  toggleExpand: (id: string) => void;
+  toggleExpand: (nodo: NodoFila) => void;
   onVerSolicitud: (id: number) => void;
 }
 
@@ -408,28 +375,31 @@ function NodoItem({ nodo, expandidos, toggleExpand, onVerSolicitud }: NodoItemPr
   const esSolicitud = nodo.tipo === 'solicitud';
   const mostrarNumero = nodo.tipo === 'dependencia' && nodo.prefix && !nodo.esPuesto;
   const sol = nodo.solicitud;
+  const datosSol = esSolicitud && sol ? datosSolicitudReporte(sol) : null;
+
+  const esEmpleado = nodo.tipo === 'empleado';
+  const tieneCupones = esEmpleado && nodo.children.some((c) => c.tipo === 'solicitud');
+  const mostrarTotalEnLinea = !tieneCupones || !expandido;
 
   const handleClick = () => {
     if (esSolicitud && sol) {
       onVerSolicitud(sol.id);
       return;
     }
-    if (esExpandible) toggleExpand(nodo.id);
+    if (esExpandible) toggleExpand(nodo);
   };
 
   return (
-    <div className="border-t border-slate-100 dark:border-neutral-800 first:border-t-0">
+    <div>
       <div
         onClick={handleClick}
-        className={`grid grid-cols-[5rem_1fr_8.5rem] gap-2 px-4 py-2.5 ${colores.row} ${
-          esSolicitud ? 'items-start' : 'items-center'
-        } ${
+        className={`${GRID_TABLA} ${FILA_TABLA} ${colores.row} ${
           esExpandible || esSolicitud
             ? 'cursor-pointer hover:brightness-[0.98] dark:hover:brightness-110'
             : ''
         }`}
       >
-        <div>
+        <div className={`${CELDA_NO} flex items-center justify-center`}>
           {mostrarNumero && (
             <span
               className={`inline-flex items-center justify-center min-w-[2rem] h-7 px-2 rounded-md font-mono font-bold text-[11px] ${colores.badge} ${colores.underline}`}
@@ -437,32 +407,60 @@ function NodoItem({ nodo, expandidos, toggleExpand, onVerSolicitud }: NodoItemPr
               {nodo.prefix}
             </span>
           )}
+          {datosSol && (
+            <span className={`text-sm text-center leading-snug ${colores.text}`}>
+              {datosSol.noEtiqueta}
+            </span>
+          )}
         </div>
 
-        <div className="min-w-0 overflow-hidden text-left">
-          {esSolicitud && sol ? (
-            <p className={`text-sm leading-relaxed break-words ${colores.text}`}>
-              <span>No.:</span>{' '}
-              <span className="font-bold">{sol.correlativo ?? sol.id}</span>,{' '}
-              <span>Placa:</span>{' '}
-              <span className="font-bold">{sol.placa}</span>,{' '}
-              <span>Just.</span>{' '}
-              <span className="font-bold">
-                {sol.justificacion?.trim() || 'Sin justificación'}
-              </span>
-            </p>
+        <div
+          className={`${CELDA_NOMBRE} overflow-hidden text-left ${
+            esSolicitud ? 'flex flex-col justify-center' : 'flex items-center'
+          }`}
+        >
+          {datosSol ? (
+            <div className={`text-sm leading-snug break-words space-y-0.5 ${colores.text}`}>
+              <p>
+                <span className={clasesColorFechaSolicitud()}>{datosSol.fecha}</span>{' '}
+                <span className={clasesColorDatoVehiculo()}>{datosSol.vehiculo}</span>,{' '}
+                <span className={clasesColorDatoVehiculo()}>{datosSol.placa}</span>,{' '}
+                <span className={clasesColorCombustible(datosSol.combustible)}>
+                  {datosSol.combustible}
+                </span>
+              </p>
+              <p>{datosSol.justificacion}</p>
+            </div>
+          ) : nodo.tipo === 'total-empleado' ? (
+            <span className={`font-bold ${colores.text}`}>Total</span>
+          ) : nodo.tipo === 'empleado' ? (
+            <div className="min-w-0 text-left leading-snug">
+              {nodo.nombrePuesto && (
+                <div className={`font-bold truncate ${colores.text}`}>{nodo.nombrePuesto}</div>
+              )}
+              <div
+                className={`font-bold truncate underline decoration-2 underline-offset-[3px] decoration-current ${colores.text}`}
+              >
+                {nodo.nombre}
+              </div>
+            </div>
           ) : (
             <div className="flex items-center gap-2">
-              {nodo.tipo === 'empleado' && (
-                <User size={14} className={`shrink-0 ${colores.text}`} />
-              )}
               <span className={`font-bold truncate ${colores.text}`}>{nodo.nombre}</span>
             </div>
           )}
         </div>
 
-        <div className={`text-right font-mono font-extrabold whitespace-nowrap ${colores.price}`}>
-          {formatearQ(nodo.total)}
+        <div
+          className={`${CELDA_TOTAL} flex items-center justify-end font-mono font-extrabold whitespace-nowrap ${colores.price} ${
+            debeSubrayarTotalReporte(nodo) && (nodo.tipo !== 'empleado' || mostrarTotalEnLinea)
+              ? 'underline decoration-2 underline-offset-[3px] decoration-current'
+              : ''
+          }`}
+        >
+          {mostrarTotalEnLinea || nodo.tipo === 'total-empleado' || nodo.tipo === 'solicitud'
+            ? formatearQ(nodo.total)
+            : null}
         </div>
       </div>
 
@@ -485,21 +483,29 @@ function NodoItem({ nodo, expandidos, toggleExpand, onVerSolicitud }: NodoItemPr
                 onVerSolicitud={onVerSolicitud}
               />
             ))}
+            {tieneCupones && (
+              <div
+                className={`${GRID_TABLA} ${FILA_TABLA} bg-slate-50/70 dark:bg-slate-900/20`}
+              >
+                <div className={`${CELDA_NO} pb-5`} />
+                <div
+                  className={`${CELDA_NOMBRE} pb-5 flex items-start font-bold underline decoration-2 underline-offset-[3px] decoration-current ${colores.text}`}
+                >
+                  Total
+                </div>
+                <div
+                  className={`${CELDA_TOTAL} pb-5 flex items-start justify-end font-mono font-extrabold whitespace-nowrap underline decoration-2 underline-offset-[3px] decoration-current ${colores.price}`}
+                >
+                  {formatearQ(nodo.total)}
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
 }
-
-const etiquetaPeriodo = (params: ParamsReporteCombustible) => {
-  if (!params.modoRango) {
-    return `${MESES[params.mes]} ${params.anio}`;
-  }
-  const ini = toMonthValue(params.anioInicio, params.mesInicio);
-  const fin = toMonthValue(params.anioFin, params.mesFin);
-  return formatRangoLabel(ini, fin);
-};
 
 export default function ReporteDepartamentos({ initialData, initialParams }: Props) {
   const mesInicial = initialParams.modoRango
@@ -518,6 +524,7 @@ export default function ReporteDepartamentos({ initialData, initialParams }: Pro
   const [modoFiltroNombre, setModoFiltroNombre] = useState(false);
   const [solicitudModalId, setSolicitudModalId] = useState<number | null>(null);
   const [exportPdfOpen, setExportPdfOpen] = useState(false);
+  const [estadisticasOpen, setEstadisticasOpen] = useState(false);
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
 
@@ -606,14 +613,42 @@ export default function ReporteDepartamentos({ initialData, initialParams }: Pro
     setSolicitudModalId(id);
   }, []);
 
-  const toggleExpand = useCallback((id: string) => {
+  const toggleExpand = useCallback((nodo: NodoFila) => {
     setExpandidos((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(nodo.id)) {
+        quitarIdsExpandibles([nodo], next);
+      } else {
+        next.add(nodo.id);
+        if (nodo.tipo === 'dependencia') {
+          recogerSubdependenciasExpandibles(nodo.children, next);
+        }
+      }
       return next;
     });
   }, []);
+
+  const idsExpandiblesTotales = useMemo(() => {
+    const ids = new Set<string>();
+    recogerIdsExpandibles(arbol, ids);
+    return ids;
+  }, [arbol]);
+
+  const todoExpandido = useMemo(() => {
+    if (idsExpandiblesTotales.size === 0) return false;
+    for (const id of idsExpandiblesTotales) {
+      if (!expandidos.has(id)) return false;
+    }
+    return true;
+  }, [idsExpandiblesTotales, expandidos]);
+
+  const toggleExpandirTodo = useCallback(() => {
+    if (todoExpandido) {
+      setExpandidos(new Set());
+      return;
+    }
+    setExpandidos(new Set(idsExpandiblesTotales));
+  }, [todoExpandido, idsExpandiblesTotales]);
 
   const handleExportarPdf = useCallback(
     async (busquedaDepPdf: string, busquedaNombrePdf: string) => {
@@ -630,7 +665,7 @@ export default function ReporteDepartamentos({ initialData, initialParams }: Pro
       if (busquedaDepPdf.trim() || busquedaNombrePdf.trim()) {
         recalcularTotales(tree);
       }
-      const flat = aplanarTodo(tree);
+      const flat = aplanarParaPdf(tree);
       const titulo =
         busquedaDepPdf.trim() || busquedaNombrePdf.trim()
           ? busquedaNombrePdf || busquedaDepPdf
@@ -641,11 +676,13 @@ export default function ReporteDepartamentos({ initialData, initialParams }: Pro
         filas: flat.map((n) => ({
           prefix: n.prefix,
           nombre: n.nombre,
+          nombrePuesto: n.nombrePuesto,
           total: n.total,
           tipo: n.tipo,
           esPuesto: n.esPuesto,
           level: n.level,
           solicitud: n.solicitud,
+          ocultarTotalFila: n.ocultarTotalFila,
         })),
         tituloFiltro: titulo,
         periodo: etiquetaPeriodo(params),
@@ -666,45 +703,44 @@ export default function ReporteDepartamentos({ initialData, initialParams }: Pro
   return (
     <div className="space-y-4 md:space-y-6 w-full md:w-[91%] px-3 md:px-0 mx-auto animate-in fade-in duration-500 mt-2 md:mt-4 xl:mt-5 pb-20">
       <div className="flex flex-col gap-3 md:gap-4">
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 xl:gap-4">
-          <div className="flex items-start gap-3">
-            <Link
-              href="/protected/combustible"
-              className="mt-1 p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors print:hidden shrink-0"
-              title="Volver"
-            >
-              <ArrowLeft size={20} />
-            </Link>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                Reporte por Departamento
+        <div className="flex items-start gap-3">
+          <Link
+            href="/protected/combustible"
+            className="mt-1 p-1.5 rounded-lg text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors print:hidden shrink-0"
+            title="Volver"
+          >
+            <ArrowLeft size={20} />
+          </Link>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-4">
+              <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight shrink-0">
+                Reporte de Consumo
               </h1>
-              <p className="text-slate-500 dark:text-gray-400 text-sm font-medium">
-                Consumo de cupones por área administrativa.
-              </p>
+              <div className="print:hidden flex flex-col sm:flex-row items-stretch gap-2 lg:flex-1 lg:min-w-0 lg:justify-end">
+                <FiltroConSugerencias
+                  modoNombre={modoFiltroNombre}
+                  onModoChange={setModoFiltroNombre}
+                  filas={data.filas}
+                  valorAplicado={valorFiltroAplicado}
+                  onSeleccionarDep={handleBusquedaDep}
+                  onSeleccionarNombre={handleBusquedaNombre}
+                  onLimpiar={limpiarFiltro}
+                  className="lg:flex-1 lg:max-w-lg lg:min-w-0"
+                />
+                <div className="shrink-0">
+                  <SelectorPeriodoReporte
+                    inicio={mesInicioValor}
+                    fin={mesFinValor}
+                    onChange={aplicarPeriodo}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-2 w-full xl:w-auto xl:justify-end print:hidden">
-            <SelectorPeriodo
-              inicio={mesInicioValor}
-              fin={mesFinValor}
-              onChange={aplicarPeriodo}
-            />
+            <p className="text-slate-500 dark:text-gray-400 text-sm font-medium mt-1">
+              Consumo de cupones por área administrativa.
+            </p>
           </div>
         </div>
-      </div>
-
-      <div className="print:hidden">
-        <FiltroConSugerencias
-          modoNombre={modoFiltroNombre}
-          onModoChange={setModoFiltroNombre}
-          filas={data.filas}
-          valorAplicado={valorFiltroAplicado}
-          onSeleccionarDep={handleBusquedaDep}
-          onSeleccionarNombre={handleBusquedaNombre}
-          onLimpiar={limpiarFiltro}
-        />
       </div>
 
       <div className="relative">
@@ -716,24 +752,52 @@ export default function ReporteDepartamentos({ initialData, initialParams }: Pro
 
         {hayDatos ? (
           <>
-            <div className="bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-2xl shadow-sm overflow-hidden print:hidden">
-              <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-100 dark:border-neutral-800 bg-slate-50/80 dark:bg-neutral-800/40">
+            <div className="bg-white dark:bg-neutral-900 border border-slate-300 dark:border-neutral-500 rounded-2xl shadow-sm overflow-hidden print:hidden">
+              <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-300 dark:border-neutral-500 bg-slate-50/80 dark:bg-neutral-800/40">
                 <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   Detalle del periodo
                 </p>
-                <button
-                  onClick={() => setExportPdfOpen(true)}
-                  className={`${BTN_TOOLBAR} justify-center`}
-                  title="Generar PDF por departamento o persona"
-                >
-                  <ExternalLink size={15} className="text-blue-500" />
-                  <span>GENERAR PDF</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setEstadisticasOpen(true)}
+                    className={`${BTN_TOOLBAR} justify-center`}
+                    title="Ver estadísticas y gráficas de consumo"
+                  >
+                    <BarChart3 size={15} className="text-purple-500" />
+                    <span>VER ESTADÍSTICAS</span>
+                  </button>
+                  <button
+                    onClick={() => setExportPdfOpen(true)}
+                    className={`${BTN_TOOLBAR} justify-center`}
+                    title="Generar PDF por departamento o persona"
+                  >
+                    <ExternalLink size={15} className="text-blue-500" />
+                    <span>GENERAR PDF</span>
+                  </button>
+                  <button
+                    onClick={toggleExpandirTodo}
+                    className={`${BTN_TOOLBAR} justify-center px-2.5`}
+                    title={todoExpandido ? 'Cerrar todos los acordeones' : 'Abrir todos los acordeones'}
+                  >
+                    <motion.span
+                      animate={{ rotate: todoExpandido ? 90 : 0 }}
+                      transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+                      className="inline-flex"
+                    >
+                      <ChevronsLeftRight
+                        size={15}
+                        className="text-slate-600 dark:text-slate-300"
+                      />
+                    </motion.span>
+                  </button>
+                </div>
               </div>
-              <div className="grid grid-cols-[5rem_1fr_8.5rem] gap-2 px-4 py-3 bg-slate-50 dark:bg-neutral-800/60 text-slate-500 dark:text-slate-400 text-[11px] uppercase tracking-wider font-bold">
-                <div>No.</div>
-                <div>Dependencia / Nombre</div>
-                <div className="text-right">Total</div>
+              <div
+                className={`${GRID_TABLA} ${FILA_TABLA} bg-slate-50 dark:bg-neutral-800/60 text-slate-500 dark:text-slate-400 text-[11px] uppercase tracking-wider font-bold`}
+              >
+                <div className={`${CELDA_NO} py-3 flex items-center`}>No.</div>
+                <div className={`${CELDA_NOMBRE} py-3 flex items-center`}>Dependencia / Nombre</div>
+                <div className={`${CELDA_TOTAL} py-3 flex items-center justify-end`}>Total</div>
               </div>
               {arbol.map((nodo) => (
                 <NodoItem
@@ -756,6 +820,17 @@ export default function ReporteDepartamentos({ initialData, initialParams }: Pro
               onClose={() => setExportPdfOpen(false)}
               filas={data.filas}
               onExportar={handleExportarPdf}
+            />
+
+            <EstadisticasReporteModal
+              open={estadisticasOpen}
+              onClose={() => setEstadisticasOpen(false)}
+              filas={data.filas}
+              periodo={etiquetaPeriodo(params)}
+              mesInicio={mesInicioValor}
+              mesFin={mesFinValor}
+              onPeriodoChange={aplicarPeriodo}
+              cargando={isPending}
             />
           </>
         ) : (

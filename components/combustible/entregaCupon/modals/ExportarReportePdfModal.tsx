@@ -7,9 +7,11 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { FileText, Loader2 } from 'lucide-react';
+import { FileText, Loader2, Search } from 'lucide-react';
 import { FilaReporteDependencia } from '../lib/actions';
 import { FiltroConSugerencias } from '../FiltroBusquedaReporte';
+
+type ModoFiltroPdf = 'dependencia' | 'personal';
 
 interface Props {
   open: boolean;
@@ -24,17 +26,19 @@ export default function ExportarReportePdfModal({
   filas,
   onExportar,
 }: Props) {
-  const [modoNombre, setModoNombre] = useState(false);
+  const [modoFiltro, setModoFiltro] = useState<ModoFiltroPdf | null>(null);
   const [seleccion, setSeleccion] = useState<string | null>(null);
   const [generando, setGenerando] = useState(false);
+  const [accionGenerando, setAccionGenerando] = useState<'completo' | 'filtrado' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   const limpiar = () => {
     if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-    setModoNombre(false);
+    setModoFiltro(null);
     setSeleccion(null);
     setGenerando(false);
+    setAccionGenerando(null);
     setError(null);
     setPdfUrl(null);
   };
@@ -49,17 +53,17 @@ export default function ExportarReportePdfModal({
     onClose();
   };
 
-  const handleGenerar = async () => {
+  const generarPdf = async (
+    busquedaDep: string,
+    busquedaNombre: string,
+    accion: 'completo' | 'filtrado'
+  ) => {
+    setAccionGenerando(accion);
     setGenerando(true);
     setError(null);
 
     try {
-      const url = seleccion
-        ? modoNombre
-          ? await onExportar('', seleccion)
-          : await onExportar(seleccion, '')
-        : await onExportar('', '');
-
+      const url = await onExportar(busquedaDep, busquedaNombre);
       setPdfUrl(url);
     } catch (e) {
       setError(
@@ -67,8 +71,28 @@ export default function ExportarReportePdfModal({
       );
     } finally {
       setGenerando(false);
+      setAccionGenerando(null);
     }
   };
+
+  const handleGenerarCompleto = () => generarPdf('', '', 'completo');
+
+  const handleBuscarFiltrado = () => {
+    if (!seleccion || !modoFiltro) return;
+    if (modoFiltro === 'personal') {
+      generarPdf('', seleccion, 'filtrado');
+    } else {
+      generarPdf(seleccion, '', 'filtrado');
+    }
+  };
+
+  const cambiarModoFiltro = (modo: ModoFiltroPdf) => {
+    setModoFiltro(modo);
+    setSeleccion(null);
+    setError(null);
+  };
+
+  const modoNombre = modoFiltro === 'personal';
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleCerrar()}>
@@ -88,7 +112,7 @@ export default function ExportarReportePdfModal({
           <DialogDescription className="sr-only">
             {pdfUrl
               ? 'Vista previa del reporte generado.'
-              : 'Filtre por departamento o persona y genere el reporte PDF.'}
+              : 'Genere el reporte completo o filtre por dependencia o personal.'}
           </DialogDescription>
         </div>
 
@@ -99,49 +123,90 @@ export default function ExportarReportePdfModal({
             className="w-full flex-1 min-h-0 bg-slate-100 dark:bg-neutral-950"
           />
         ) : (
-          <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-5 space-y-4">
-            <p className="text-[11px] sm:text-xs text-slate-500 font-bold uppercase tracking-widest">
-              Opcional: filtre por departamento o persona
-            </p>
-
-            <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-4">
-              <FiltroConSugerencias
-                modoNombre={modoNombre}
-                onModoChange={setModoNombre}
-                filas={filas}
-                valorAplicado=""
-                autoAplicar={false}
-                onSeleccionChange={setSeleccion}
-                onSeleccionarDep={() => {}}
-                onSeleccionarNombre={() => {}}
-                onLimpiar={() => setSeleccion(null)}
-                className="lg:flex-1 lg:max-w-none"
-              />
-
+          <div className="flex-1 overflow-y-auto flex items-center justify-center px-4 sm:px-8 py-8">
+            <div className="w-full max-w-md space-y-6">
               <button
                 type="button"
-                onClick={handleGenerar}
+                onClick={handleGenerarCompleto}
                 disabled={generando}
-                className="w-full lg:w-auto lg:shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-md shadow-blue-500/25 transition-colors disabled:opacity-60 whitespace-nowrap"
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-md shadow-blue-500/25 transition-colors disabled:opacity-60"
               >
-                {generando ? (
+                {accionGenerando === 'completo' ? (
                   <Loader2 size={18} className="animate-spin" />
                 ) : (
                   <FileText size={18} />
                 )}
-                {generando ? 'Generando...' : 'Generar PDF'}
+                {accionGenerando === 'completo' ? 'Generando...' : 'Generar Pdf Completo'}
               </button>
+
+              <div className="flex w-full rounded-xl border border-slate-200 dark:border-neutral-700 p-1 bg-white dark:bg-neutral-900 shadow-sm">
+                {(
+                  [
+                    { id: 'dependencia' as const, label: 'Por Dependencia' },
+                    { id: 'personal' as const, label: 'Por Personal' },
+                  ] as const
+                ).map((op) => (
+                  <button
+                    key={op.id}
+                    type="button"
+                    onClick={() => cambiarModoFiltro(op.id)}
+                    className={`flex-1 px-3 py-2 text-sm font-extrabold rounded-lg transition-all duration-200 ${
+                      modoFiltro === op.id
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                    }`}
+                  >
+                    {op.label}
+                  </button>
+                ))}
+              </div>
+
+              {modoFiltro && (
+                <div className="space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <FiltroConSugerencias
+                    key={modoFiltro}
+                    modoNombre={modoNombre}
+                    onModoChange={() => {}}
+                    filas={filas}
+                    valorAplicado=""
+                    autoAplicar={false}
+                    mostrarSelect={false}
+                    onSeleccionChange={setSeleccion}
+                    onSeleccionarDep={() => {}}
+                    onSeleccionarNombre={() => {}}
+                    onLimpiar={() => setSeleccion(null)}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={handleBuscarFiltrado}
+                    disabled={generando || !seleccion}
+                    className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-900 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-white text-sm font-bold shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {accionGenerando === 'filtrado' ? (
+                      <Loader2 size={18} className="animate-spin" />
+                    ) : (
+                      <Search size={18} />
+                    )}
+                    {accionGenerando === 'filtrado'
+                      ? 'Generando...'
+                      : modoFiltro === 'personal'
+                        ? 'Buscar por Personal'
+                        : 'Buscar por Dependencia'}
+                  </button>
+
+                  {seleccion && (
+                    <p className="text-xs text-center text-slate-500 dark:text-slate-400">
+                      Seleccionado: <span className="font-semibold text-slate-700 dark:text-slate-200">{seleccion}</span>
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {error && (
+                <p className="text-xs text-center text-red-600 dark:text-red-400 font-medium">{error}</p>
+              )}
             </div>
-
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {seleccion
-                ? `Se generará el reporte de: ${seleccion}`
-                : 'Sin selección se generará todo el reporte del periodo.'}
-            </p>
-
-            {error && (
-              <p className="text-xs text-red-600 dark:text-red-400 font-medium">{error}</p>
-            )}
           </div>
         )}
       </DialogContent>

@@ -32,6 +32,7 @@ export interface FiltroConSugerenciasProps {
   autoAplicar?: boolean;
   onSeleccionChange?: (nombre: string | null) => void;
   className?: string;
+  mostrarSelect?: boolean;
 }
 
 export function FiltroConSugerencias({
@@ -45,6 +46,7 @@ export function FiltroConSugerencias({
   autoAplicar = true,
   onSeleccionChange,
   className,
+  mostrarSelect = true,
 }: FiltroConSugerenciasProps) {
   const [texto, setTexto] = useState(valorAplicado);
   const [abierto, setAbierto] = useState(false);
@@ -130,24 +132,27 @@ export function FiltroConSugerencias({
   return (
     <div
       className={cn(
-        'flex flex-col gap-2 w-full md:flex-row md:flex-1 md:min-w-0 md:max-w-xl md:items-center',
+        'flex flex-col gap-2 w-full',
+        mostrarSelect && 'md:flex-row md:flex-1 md:min-w-0 md:max-w-xl md:items-center',
         className
       )}
     >
-      <Select
-        value={modoNombre ? 'nombre' : 'departamento'}
-        onValueChange={handleModoChange}
-      >
-        <SelectTrigger className={SELECT_FILTRO}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="departamento">Departamento</SelectItem>
-          <SelectItem value="nombre">Nombre</SelectItem>
-        </SelectContent>
-      </Select>
+      {mostrarSelect && (
+        <Select
+          value={modoNombre ? 'nombre' : 'departamento'}
+          onValueChange={handleModoChange}
+        >
+          <SelectTrigger className={SELECT_FILTRO}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="departamento">Departamento</SelectItem>
+            <SelectItem value="nombre">Nombre</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
 
-      <div ref={contenedorRef} className="relative w-full md:flex-1 min-w-0">
+      <div ref={contenedorRef} className={cn('relative w-full min-w-0', mostrarSelect && 'md:flex-1')}>
         <Icono size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
         <input
           type="text"

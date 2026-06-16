@@ -353,6 +353,7 @@ export interface SolicitudReporteItem {
   correlativo: number | null;
   created_at: string;
   placa: string;
+  vehiculo: string;
   municipio_destino: string;
   justificacion: string | null;
   monto: number;
@@ -375,6 +376,7 @@ export interface FilaReporteDependencia {
   level: number;
   tipo: 'dependencia' | 'empleado' | 'solicitud';
   nombre: string;
+  nombrePuesto?: string;
   total: number;
   esPuesto: boolean;
   branchPrefix: string;
@@ -429,7 +431,7 @@ export const getReporteJerarquicoCombustible = async (
         placa,
         municipio_destino,
         justificacion,
-        vehiculo:vehiculos ( tipo_combustible ),
+        vehiculo:vehiculos ( tipo_combustible, modelo ),
         vales:entrega_cupones (
           cantidad_entregada,
           detalle:DetalleContrato ( denominacion )
@@ -462,6 +464,7 @@ export const getReporteJerarquicoCombustible = async (
       correlativo: s.correlativo,
       created_at: s.created_at,
       placa: s.placa,
+      vehiculo: vehiculo?.modelo?.trim() || '—',
       municipio_destino: s.municipio_destino,
       justificacion: s.justificacion ?? null,
       monto,
@@ -565,6 +568,7 @@ export const getReporteJerarquicoCombustible = async (
             level,
             tipo: 'empleado',
             nombre: e.nombre,
+            nombrePuesto: nodo.nombre,
             total: e.total,
             esPuesto: false,
             branchPrefix: prefix,
@@ -649,7 +653,7 @@ export const getReporteJerarquicoCombustible = async (
   filas.forEach((f) => {
     if (f.tipo === 'empleado' && f.userId) {
       f.solicitudes = (solicitudesPorUsuario.get(f.userId) || []).sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
     }
   });
