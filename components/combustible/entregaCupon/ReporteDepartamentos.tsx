@@ -14,6 +14,7 @@ import {
   clasesColorDatoVehiculo,
   clasesColorCombustible,
   clasesColorFechaSolicitud,
+  TipoFilaReporte,
 } from './lib/formatoSolicitudReporte';
 import {
   guardarParamsReporte,
@@ -34,7 +35,6 @@ import SelectorPeriodoReporte, {
 } from './SelectorPeriodoReporte';
 import {
   ArrowLeft,
-  Loader2,
   ExternalLink,
   SearchX,
   BarChart3,
@@ -79,7 +79,7 @@ const encontrarPadrePorPrefix = (
   return undefined;
 };
 
-const getColorNivel = (fila: FilaReporteDependencia) => {
+const getColorNivel = (fila: { tipo: TipoFilaReporte; level: number; esPuesto?: boolean }) => {
   if (fila.tipo === 'solicitud') {
     return {
       badge: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
@@ -360,6 +360,50 @@ const aplanarParaPdf = (nodos: NodoFila[]): NodoFila[] => {
   recorrer(nodos);
   return resultado;
 };
+
+function ReporteTablaSkeleton() {
+  return (
+    <div className="bg-white dark:bg-neutral-900 border border-slate-300 dark:border-neutral-500 rounded-2xl shadow-sm overflow-hidden print:hidden animate-pulse">
+      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-300 dark:border-neutral-500 bg-slate-50/80 dark:bg-neutral-800/40">
+        <div className="h-3 w-36 rounded bg-slate-200 dark:bg-neutral-700" />
+        <div className="flex items-center gap-2">
+          <div className="h-9 w-36 rounded-xl bg-slate-200 dark:bg-neutral-700" />
+          <div className="h-9 w-32 rounded-xl bg-slate-200 dark:bg-neutral-700" />
+          <div className="h-9 w-9 rounded-xl bg-slate-200 dark:bg-neutral-700" />
+        </div>
+      </div>
+      <div
+        className={`${GRID_TABLA} ${FILA_TABLA} bg-slate-50 dark:bg-neutral-800/60`}
+      >
+        <div className={`${CELDA_NO} py-3`}>
+          <div className="h-3 w-8 rounded bg-slate-200 dark:bg-neutral-700" />
+        </div>
+        <div className={`${CELDA_NOMBRE} py-3`}>
+          <div className="h-3 w-40 rounded bg-slate-200 dark:bg-neutral-700" />
+        </div>
+        <div className={`${CELDA_TOTAL} py-3 flex justify-end`}>
+          <div className="h-3 w-16 rounded bg-slate-200 dark:bg-neutral-700" />
+        </div>
+      </div>
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className={`${GRID_TABLA} ${FILA_TABLA}`}>
+          <div className={`${CELDA_NO} flex items-center justify-center`}>
+            <div className="h-7 w-10 rounded-md bg-slate-200 dark:bg-neutral-700" />
+          </div>
+          <div className={`${CELDA_NOMBRE} flex items-center`}>
+            <div
+              className="h-3 rounded bg-slate-200 dark:bg-neutral-700"
+              style={{ width: `${45 + (i % 4) * 12}%` }}
+            />
+          </div>
+          <div className={`${CELDA_TOTAL} flex items-center justify-end`}>
+            <div className="h-3 w-20 rounded bg-slate-200 dark:bg-neutral-700" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 interface NodoItemProps {
   nodo: NodoFila;
@@ -744,13 +788,9 @@ export default function ReporteDepartamentos({ initialData, initialParams }: Pro
       </div>
 
       <div className="relative">
-        {isPending && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 dark:bg-neutral-950/60 rounded-2xl backdrop-blur-sm print:hidden">
-            <Loader2 className="animate-spin text-blue-600" size={28} />
-          </div>
-        )}
-
-        {hayDatos ? (
+        {isPending ? (
+          <ReporteTablaSkeleton />
+        ) : hayDatos ? (
           <>
             <div className="bg-white dark:bg-neutral-900 border border-slate-300 dark:border-neutral-500 rounded-2xl shadow-sm overflow-hidden print:hidden">
               <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-300 dark:border-neutral-500 bg-slate-50/80 dark:bg-neutral-800/40">

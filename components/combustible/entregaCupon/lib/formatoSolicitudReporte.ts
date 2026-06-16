@@ -1,3 +1,9 @@
+export type TipoFilaReporte =
+  | 'dependencia'
+  | 'empleado'
+  | 'solicitud'
+  | 'total-empleado';
+
 export type SolicitudReporteFormato = {
   correlativo?: number | null;
   placa?: string;
@@ -97,6 +103,5 @@ export function formatoLineaSolicitud(sol: SolicitudReporteFormato): string {
   return `${fecha} ${vehiculo}, ${placa}, ${combustible}\n${justificacion}`;
 }
 
-export const debeSubrayarTotalReporte = (fila: {
-  tipo: 'dependencia' | 'empleado' | 'solicitud' | 'total-empleado';
-}) => fila.tipo !== 'solicitud';
+export const debeSubrayarTotalReporte = (fila: { tipo: TipoFilaReporte }) =>
+  fila.tipo !== 'solicitud';

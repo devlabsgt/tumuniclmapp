@@ -77,6 +77,7 @@ export default function LogoLink() {
               alt="Logo Municipalidad de Concepción Las Minas"
               height={100}
               width={100}
+              priority
               className="block w-[200px] lg:w-60 drop-shadow-md"
             />
           </motion.div>

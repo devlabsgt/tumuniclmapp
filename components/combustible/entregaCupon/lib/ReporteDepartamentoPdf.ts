@@ -7,7 +7,7 @@ import {
   colorCombustiblePdf,
   colorDatosVehiculoPdf,
 } from './formatoSolicitudReporte';
-import { debeSubrayarTotalReporte } from './formatoSolicitudReporte';
+import { debeSubrayarTotalReporte, TipoFilaReporte } from './formatoSolicitudReporte';
 
 const formatearQ = (monto: number) =>
   new Intl.NumberFormat('es-GT', { style: 'currency', currency: 'GTQ' }).format(monto);
@@ -87,7 +87,7 @@ export interface FilaPdfReporte {
   nombre: string;
   nombrePuesto?: string;
   total: number;
-  tipo: 'dependencia' | 'empleado' | 'solicitud' | 'total-empleado';
+  tipo: TipoFilaReporte;
   esPuesto?: boolean;
   level: number;
   ocultarTotalFila?: boolean;
@@ -323,10 +323,7 @@ const construirPdfReporte = async (opts: OpcionesPdfReporte) => {
           return;
         }
         data.cell.styles.fontStyle =
-          fila.tipo === 'empleado' ||
-          fila.tipo === 'total-empleado' ||
-          fila.esPuesto ||
-          fila.tipo === 'dependencia'
+          fila.tipo === 'empleado' || fila.esPuesto || fila.tipo === 'dependencia'
             ? 'bold'
             : 'normal';
         if (fila.tipo === 'solicitud' && fila.solicitud) {

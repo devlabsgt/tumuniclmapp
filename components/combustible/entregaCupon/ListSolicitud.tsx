@@ -10,15 +10,18 @@ import ValidarLiquidacion from './modals/ValidarLiquidacion';
 import InformeLiquidacionCupones from '@/components/combustible/solicitudes/modals/InformeLiquidacionCupones';
 import CrearLoteMasivo from './modals/CrearLoteMasivo';
 import InformeLoteMasivo from './modals/InformeLoteMasivo';
+import DropdownReportes, { TipoReporte } from './DropdownReportes';
+import { toMonthValue, fromMonthValue } from './SelectorPeriodoReporte';
 
-import { Search, Calendar as CalendarIcon, SearchX, CalendarDays, FileDown, Loader2, Layers, ChevronDown, RefreshCcw, Table2 } from 'lucide-react'; 
-import Link from 'next/link';
+import { Search, Calendar as CalendarIcon, SearchX, CalendarDays, ChevronDown } from 'lucide-react'; 
+import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
 
 const MESES = [ 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre' ];
 const MESES_ABREV = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const ANIO_ACTUAL = new Date().getFullYear();
-const ANIOS = Array.from({ length: 6 }, (_, i) => ANIO_ACTUAL - 1 + i);
+const PERIODO_MIN = `${ANIO_ACTUAL - 1}-01`;
+const PERIODO_MAX = `${ANIO_ACTUAL + 4}-12`;
 
 const formatearFechaCorta = (fecha: Date) => {
   return `${fecha.getDate()} ${MESES_ABREV[fecha.getMonth()]}`;
@@ -56,7 +59,8 @@ interface Props {
 }
 
 export default function ListSolicitud({ initialData }: Props) {
-  const { solicitudes, loading, refresh, updateLocalSolicitud } = useSolicitudes(initialData);
+  const router = useRouter();
+  const { solicitudes, refresh, updateLocalSolicitud } = useSolicitudes(initialData);
   const { obtenerReporte } = useReporteMutations(); 
 
   const [isMounted, setIsMounted] = useState(false);
@@ -102,6 +106,18 @@ export default function ListSolicitud({ initialData }: Props) {
 
   const handleToggle = (id: number) => {
     setExpandedId(prevId => (prevId === id ? null : id));
+  };
+
+  const handleSeleccionReporte = (tipo: TipoReporte) => {
+    if (tipo === 'consumos') {
+      router.push('/protected/combustible/reporte');
+      return;
+    }
+    if (tipo === 'liquidaciones') {
+      setIsCrearLoteOpen(true);
+      return;
+    }
+    handlePrevisualizarReporte();
   };
 
   const handlePrevisualizarReporte = async () => {
@@ -236,54 +252,34 @@ export default function ListSolicitud({ initialData }: Props) {
                     {/* Filtros y Acciones Responsivos */}
                     <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto">
                         
-                        {/* Botones de Acción (Fila 1 en Movil) */}
+                        {/* Dropdown de reportes (Fila 1 en Movil) */}
                         <div className="flex gap-2 w-full sm:w-auto order-1 sm:order-none">
-                           <Link
-                               href="/protected/combustible/reporte"
-                               className="flex-1 sm:w-auto flex items-center justify-center gap-2 px-3 py-2.5 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl text-[11px] font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all shadow-sm whitespace-nowrap"
-                               title="Ver reporte en tabla por departamento y nombre con totales"
-                           >
-                               <Table2 size={16} />
-                               <span className="hidden sm:inline">POR DEPARTAMENTO</span>
-                           </Link>
-
-                           <button 
-                               onClick={() => setIsCrearLoteOpen(true)}
-                               className="flex-1 sm:w-auto flex items-center justify-center gap-2 px-3 py-2.5 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl text-[11px] font-bold text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-all shadow-sm whitespace-nowrap"
-                               title="Agrupar liquidaciones en formato horizontal"
-                           >
-                               <Layers size={16} />
-                               <span className="hidden sm:inline">LIQ. GENERAL</span>
-                           </button>
-                           
-                           <button 
-                               onClick={handlePrevisualizarReporte}
-                               disabled={reportLoading}
-                               className="flex-1 sm:w-auto flex items-center justify-center gap-2 px-3 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-neutral-800 transition-all disabled:opacity-50 shadow-sm whitespace-nowrap"
-                               title="Previsualizar informe mensual por oficinas"
-                           >
-                               {reportLoading ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} className="text-blue-500" />}
-                               <span className="hidden sm:inline">INFORME MENSUAL</span>
-                           </button>
+                           <DropdownReportes
+                               onSelect={handleSeleccionReporte}
+                               reportLoading={reportLoading}
+                           />
                         </div>
 
-                        {/* Selectores de Fecha (Fila 2 en Movil) */}
+                        {/* Selector de periodo (Fila 2 en Movil) */}
                         <div className="flex gap-2 w-full sm:w-auto order-2 sm:order-none">
-                            <div className="flex-1 sm:w-28 relative">
-                                <select value={anioSeleccionado} onChange={(e) => setAnioSeleccionado(Number(e.target.value))} className="w-full pl-4 pr-8 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200 appearance-none">
-                                    {ANIOS.map(a => <option key={a} value={a}>{a}</option>)}
-                                </select>
-                            </div>
-                            
-                            <div className="flex-[1.5] sm:w-36 relative">
-                                <select value={mesSeleccionado} onChange={(e) => setMesSeleccionado(Number(e.target.value))} className="w-full pl-9 pr-8 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200 appearance-none">
-                                    {MESES.map((m, i) => <option key={i} value={i}>{m}</option>)}
-                                </select>
+                            <div className="flex-1 sm:w-44 relative">
+                                <input
+                                    type="month"
+                                    value={toMonthValue(anioSeleccionado, mesSeleccionado)}
+                                    min={PERIODO_MIN}
+                                    max={PERIODO_MAX}
+                                    onChange={(e) => {
+                                        const { anio, mes } = fromMonthValue(e.target.value);
+                                        setAnioSeleccionado(anio);
+                                        setMesSeleccionado(mes);
+                                    }}
+                                    className="w-full pl-9 pr-3 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200"
+                                />
                                 <CalendarIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                             </div>
                         </div>
 
-                        {/* Semana y Refresh (Fila 3 en Movil) */}
+                        {/* Semana (Fila 3 en Movil) */}
                         <div className="flex gap-2 w-full sm:w-auto order-3 sm:order-none">
                             <div className="flex-1 relative min-w-[140px]">
                                 <select value={semanaSeleccionada} onChange={(e) => setSemanaSeleccionada(Number(e.target.value))} className="w-full pl-3 pr-8 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200 appearance-none">
@@ -292,14 +288,6 @@ export default function ListSolicitud({ initialData }: Props) {
                                 </select>
                                 <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                             </div>
-
-                            <button
-                                onClick={() => refresh()}
-                                className="p-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl hover:bg-slate-50 dark:hover:bg-neutral-800 text-slate-500 transition-colors shadow-sm"
-                                title="Actualizar lista"
-                            >
-                                <RefreshCcw size={18} className={loading ? 'animate-spin' : ''} />
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -404,6 +392,7 @@ export default function ListSolicitud({ initialData }: Props) {
               mesNombre={MESES[mesSeleccionado]}
           />
       )}
+
     </div>
   );
 }
