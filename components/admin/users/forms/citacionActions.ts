@@ -1,10 +1,11 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 export async function crearCitacion(
-  id_usuario: string, 
-  motivo: string, 
+  id_usuario: string,
+  motivo: string,
   fecha_cita: string
 ) {
   const supabase = await createClient();
@@ -53,7 +54,12 @@ export async function obtenerCitacionPendienteActual() {
 
   const userId = userData.user.id;
 
-  const { data, error } = await supabase
+  const supabaseAdmin = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { data, error } = await supabaseAdmin
     .from('citaciones')
     .select('*')
     .eq('id_usuario', userId)
@@ -62,7 +68,7 @@ export async function obtenerCitacionPendienteActual() {
     .limit(1)
     .single();
 
-  if (error && error.code !== 'PGRST116') { // PGRST116 is no rows returned, which is fine
+  if (error && error.code !== 'PGRST116') {
     console.error('Fetch pending citacion error:', error);
     return { success: false, error: error.message, data: null };
   }
@@ -71,13 +77,14 @@ export async function obtenerCitacionPendienteActual() {
 }
 
 export async function confirmarCitacion(id: string) {
-  const supabase = await createClient();
+  const supabaseAdmin = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
 
-  // We do not need to update leido_por_nombre because we removed it from the schema.
-  // We just update estado and fecha_confirmado.
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('citaciones')
-    .update({ 
+    .update({
       estado: 'Confirmada',
       fecha_confirmado: new Date().toISOString()
     })
@@ -92,15 +99,15 @@ export async function confirmarCitacion(id: string) {
 }
 
 export async function actualizarCitacion(
-  id: string, 
-  motivo: string, 
+  id: string,
+  motivo: string,
   fecha_cita: string
 ) {
   const supabase = await createClient();
 
   const { error } = await supabase
     .from('citaciones')
-    .update({ 
+    .update({
       motivo,
       fecha_cita
     })
