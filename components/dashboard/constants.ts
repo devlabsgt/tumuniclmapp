@@ -222,10 +222,10 @@ export const TODOS_LOS_MODULOS = [
   {
     id: 'DEV',
     permiso: 'SUPER',
-    titulo: 'Dev',
-    descripcion: 'Herramientas de configuración y desarrollo del sistema.',
+    titulo: 'Mensajes del Sistema',
+    descripcion: 'Gestione avisos y notificaciones globales del sistema.',
     ruta: '/protected/dev',
-    iconoKey: 'byicyhmi',
+    iconoKey: 'bsmkjadb',
     categoria: 'Gestión Administrativa'
   }
 ];

@@ -11,6 +11,7 @@ export async function getMensajesDev(): Promise<MensajeDev[]> {
   const { data, error } = await supabase
     .from('dev_mensajes')
     .select('*')
+    .is('user_id', null)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -24,15 +25,23 @@ export async function getMensajesDev(): Promise<MensajeDev[]> {
 // ── Obtener mensajes activos vigentes (para mostrar en el layout) ───────────
 export async function getMensajesActivosDev(): Promise<MensajeDev[]> {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   const ahora = new Date().toISOString();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('dev_mensajes')
     .select('*')
     .eq('activo', true)
     .lte('fecha_inicio', ahora)
-    .gte('fecha_fin', ahora)
-    .order('created_at', { ascending: false });
+    .gte('fecha_fin', ahora);
+
+  if (user?.id) {
+    query = query.or(`user_id.is.null,user_id.eq.${user.id}`);
+  } else {
+    query = query.is('user_id', null);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
 
   if (error) {
     console.error('[getMensajesActivosDev]', error.message);
@@ -61,6 +70,7 @@ export async function crearMensajeDev(
     fecha_fin: parsed.data.fecha_fin,
     estado: parsed.data.estado,
     activo: parsed.data.activo,
+    user_id: parsed.data.user_id || null,
   });
 
   if (error) {
@@ -94,6 +104,7 @@ export async function editarMensajeDev(
       fecha_fin: parsed.data.fecha_fin,
       estado: parsed.data.estado,
       activo: parsed.data.activo,
+      user_id: parsed.data.user_id || null,
     })
     .eq('id', id);
 

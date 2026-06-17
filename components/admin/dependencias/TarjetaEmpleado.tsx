@@ -30,6 +30,9 @@ import { Button } from "@/components/ui/button";
 import Cargando from "@/components/ui/animations/Cargando";
 import { useInfoUsuario } from "@/hooks/usuarios/useInfoUsuario";
 import useUserData from "@/hooks/sesion/useUserData";
+import { useLlamadasAtencion } from "../users/forms/hooks";
+import LlamadaAtencionManager from "../users/forms/LlamadaAtencionManager";
+import { AlertTriangle } from "lucide-react";
 
 type RenglonConfig = {
   salarioLabel: string;
@@ -150,8 +153,10 @@ export default function TarjetaEmpleado({
   userId,
 }: TarjetaEmpleadoProps) {
   const { usuario: datosCompletos, cargando: cargandoDatos } = useInfoUsuario(userId);
+  const { llamadas } = useLlamadasAtencion(userId || "");
   const { rol } = useUserData();
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showFaltasModal, setShowFaltasModal] = useState(false);
 
   if (!isOpen) return null;
 
@@ -242,6 +247,18 @@ export default function TarjetaEmpleado({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="absolute top-2 right-2 flex gap-2">
+              {llamadas && llamadas.length > 0 && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowFaltasModal(true)} 
+                  className="bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 gap-2 font-bold px-3 shadow-sm"
+                >
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="hidden sm:inline">Faltas:</span>
+                  <span className="sm:hidden">{llamadas.length} Faltas</span>
+                  <span className="hidden sm:inline">{llamadas.length}</span>
+                </Button>
+              )}
               {!isGlobalLoading && puedeDescargar && (
                 <Button variant="outline" size="icon" title="Exportar Ficha (Imagen/PDF)" onClick={() => setShowExportModal(true)} className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 border-blue-200 dark:border-blue-800">
                   <Download className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -397,6 +414,22 @@ export default function TarjetaEmpleado({
               userId={userId}
             />
           </motion.div>
+
+          {/* Modal de Faltas */}
+          {showFaltasModal && userId && (
+            <div 
+              className="fixed inset-0 z-[60] flex items-center justify-center p-1 sm:p-4 bg-black/30 dark:bg-black/70 backdrop-blur-sm"
+              onClick={() => setShowFaltasModal(false)}
+            >
+              <div 
+                className="bg-white dark:bg-neutral-900 rounded-lg w-full max-w-4xl p-6 shadow-xl border dark:border-neutral-800 max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <LlamadaAtencionManager id={userId} onClose={() => setShowFaltasModal(false)} readOnly={true} />
+              </div>
+            </div>
+          )}
+
         </motion.div>
       )}
     </AnimatePresence>

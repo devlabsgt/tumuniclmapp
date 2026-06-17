@@ -10,13 +10,14 @@ import useUserData from '@/hooks/sesion/useUserData';
 import { useObtenerAsistencias } from '@/hooks/asistencia/useObtenerAsistencias';
 import { useListaUsuarios } from '@/hooks/usuarios/useListarUsuarios';
 import Cargando from '@/components/ui/animations/Cargando';
+import AtencionTable from '@/components/admin/users/AtencionTable';
 
-type Vistas = 'usuarios' | 'asistencia';
+type Vistas = 'usuarios' | 'asistencia' | 'atencion';
 
 export default function VerUsuarios() {
   const router = useRouter();
   const { rol: rolActual, cargando: cargandoUsuario } = useUserData();
-  
+
   const [vistaActiva, setVistaActiva] = useState<Vistas>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('admin_tab') as Vistas) || 'usuarios';
@@ -50,12 +51,12 @@ export default function VerUsuarios() {
   }, [asistencias, usuarios, rolActual]);
 
   if (cargandoUsuario || cargandoUsuarios) {
-    return <Cargando texto='Cargando...'/>;
+    return <Cargando texto='Cargando...' />;
   }
 
   return (
     <div>
-      <div className="flex flex-col gap-4 w-full mx-auto md:flex-row md:justify-between  md:px-4 ">  
+      <div className="flex flex-col gap-4 w-full mx-auto md:flex-row md:justify-between  md:px-4 ">
         <div className="flex flex-col gap-4 w-full mx-auto md:flex-row md:justify-center md:px-4">
           <div className="flex rounded-lg border p-1 bg-gray-100 dark:bg-gray-800 h-14 w-full md:w-auto">
             <button
@@ -72,6 +73,13 @@ export default function VerUsuarios() {
             >
               Asistencia
             </button>
+            <button
+              type="button"
+              onClick={() => setVistaActiva('atencion')}
+              className={`flex-1 px-4 py-2 rounded-md transition-all duration-200 ${vistaActiva === 'atencion' ? 'bg-purple-100 text-purple-800 shadow text-sm font-bold' : 'text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-xs font-semibold'}`}
+            >
+              Citaciones
+            </button>
           </div>
         </div>
       </div>
@@ -84,9 +92,9 @@ export default function VerUsuarios() {
         )}
         {vistaActiva === 'asistencia' && (
           <motion.div key="asistencia" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
-            <AsistenciaTable 
-              registros={asistenciasFiltradas} 
-              rolActual={rolActual} 
+            <AsistenciaTable
+              registros={asistenciasFiltradas}
+              rolActual={rolActual}
               loading={cargandoAsistencias}
               setOficinaId={setOficinaId}
               setFechaInicio={setFechaInicio}
@@ -94,8 +102,13 @@ export default function VerUsuarios() {
             />
           </motion.div>
         )}
+        {vistaActiva === 'atencion' && (
+          <motion.div key="atencion" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
+            <AtencionTable usuarios={usuariosFiltrados} rolActual={rolActual} />
+          </motion.div>
+        )}
       </AnimatePresence>
-      
+
     </div>
   );
 }

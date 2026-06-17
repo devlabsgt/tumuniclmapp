@@ -3,7 +3,88 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { actualizarInfoPersonal, obtenerInfoUsuario } from './action';
+import { obtenerLlamadasAtencion, eliminarLlamadaAtencion } from './llamadaAtencionActions';
+import { obtenerCitacionesUsuario, confirmarCitacion, eliminarCitacion } from './citacionActions';
 import Swal from 'sweetalert2';
+
+export function useLlamadasAtencion(userId: string) {
+  const queryClient = useQueryClient();
+  const queryKey = ['llamadasAtencion', userId];
+
+  const { data: llamadas = [], isLoading: loading } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      if (!userId) return [];
+      const result = await obtenerLlamadasAtencion(userId);
+      return result.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: !!userId,
+  });
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey });
+  };
+
+  const eliminarLlamada = async (idLlamada: string) => {
+    const result = await eliminarLlamadaAtencion(idLlamada);
+    if (result.success) {
+      invalidate();
+    }
+    return result;
+  };
+
+  return {
+    llamadas,
+    loading,
+    invalidate,
+    eliminarLlamada
+  };
+}
+
+export function useCitaciones(userId: string) {
+  const queryClient = useQueryClient();
+  const queryKey = ['citaciones', userId];
+
+  const { data: citaciones = [], isLoading: loading } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      if (!userId) return [];
+      const result = await obtenerCitacionesUsuario(userId);
+      return result.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: !!userId,
+  });
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey });
+  };
+
+  const confirmar = async (idCitacion: string) => {
+    const result = await confirmarCitacion(idCitacion);
+    if (result.success) {
+      invalidate();
+    }
+    return result;
+  };
+
+  const eliminar = async (idCitacion: string) => {
+    const result = await eliminarCitacion(idCitacion);
+    if (result.success) {
+      invalidate();
+    }
+    return result;
+  };
+
+  return {
+    citaciones,
+    loading,
+    invalidate,
+    confirmar,
+    eliminar
+  };
+}
 
 export function useInfoForm(userId: string) {
   const queryClient = useQueryClient();
