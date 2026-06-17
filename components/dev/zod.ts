@@ -7,6 +7,7 @@ export const mensajeDevSchema = z.object({
   fecha_fin: z.string().min(1, { message: 'La fecha de fin es requerida.' }),
   estado: z.string().min(1, { message: 'El estado es requerido.' }),
   activo: z.boolean(),
+  user_id: z.string().optional().nullable(),
 });
 
 export type MensajeDevFormData = z.infer<typeof mensajeDevSchema>;
