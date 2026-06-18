@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { formatFechaHoraComision, formatHoraComision } from '@/lib/comisiones/formatoFecha';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, CalendarCheck, Users, CalendarClock, ArrowUp } from 'lucide-react';
 import { toZonedTime } from 'date-fns-tz';
@@ -10,6 +11,7 @@ import { toZonedTime } from 'date-fns-tz';
 import VerComision from '../VerComision';
 import AsistenciaComision from './AsistenciaComision';
 import { Button } from '@/components/ui/button';
+import SelectorMesAnio from '@/components/tareas/SelectorMesAnio';
 
 import { ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
 import { Usuario } from '@/lib/usuarios/esquemas';
@@ -33,10 +35,6 @@ interface Props {
   countTerminadas: number;
 }
 
-const meses = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-];
 const anios = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i - 2);
 const TIMEZONE_GUATE = 'America/Guatemala';
 
@@ -115,9 +113,9 @@ export default function ListaMisComisiones({
 
   return (
     <>
-      <div className="flex flex-col gap-4 border-b dark:border-neutral-800 pb-5 mb-5">
+      <div className="flex flex-col border-b dark:border-neutral-800">
         
-        <div className="border-b dark:border-neutral-800 flex mb-4 flex-wrap justify-center transition-colors duration-200 p">
+        <div className="border-b dark:border-neutral-800 flex flex-wrap justify-center transition-colors duration-200">
           <button
             onClick={() => setVista('hoy')}
             className={`flex items-center gap-2 px-4 py-2 font-semibold text-xs lg:text-sm transition-colors ${vista === 'hoy' ? 'border-b-2 border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
@@ -142,13 +140,24 @@ export default function ListaMisComisiones({
           )}
         </div>
         
-        <div className='flex gap-2 items-center justify-center md:justify-start flex-wrap'>
+        <div className="flex justify-center w-full py-3">
+          <div className="flex flex-row gap-2 items-center w-full md:w-auto">
+          <SelectorMesAnio
+            mes={mesSeleccionado}
+            anio={anioSeleccionado}
+            onChange={(mes, anio) => {
+              setMesSeleccionado(mes);
+              setAnioSeleccionado(anio);
+            }}
+            aniosDisponibles={anios}
+            className="h-[42px] flex-1 min-w-0 md:flex-none md:w-auto"
+          />
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setOrdenDescendente(!ordenDescendente)}
             title={ordenDescendente ? "Orden: Más nuevas primero" : "Orden: Más antiguas primero"}
-            className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-600 dark:text-gray-300 transition-colors order-last md:order-none w-full md:w-auto justify-center"
+            className="shrink-0 flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-neutral-800 text-gray-600 dark:text-gray-300 transition-colors px-3 py-2.5 h-[42px] rounded-xl border border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-900"
           >
             <span className="font-medium text-sm">Ordenar</span>
             <ArrowUp 
@@ -156,27 +165,13 @@ export default function ListaMisComisiones({
               className={`transition-transform duration-300 ${ordenDescendente ? 'rotate-0' : 'rotate-180'}`} 
             />
           </Button>
-          
-          <select 
-            value={mesSeleccionado} 
-            onChange={(e) => setMesSeleccionado(Number(e.target.value))} 
-            className="p-2 border border-gray-300 dark:border-neutral-700 rounded-md focus:ring-blue-500 focus:border-blue-500 capitalize bg-white dark:bg-neutral-900 text-gray-900 dark:text-gray-100 transition-colors"
-          >
-            {meses.map((mes, index) => <option key={index} value={index}>{mes}</option>)}
-          </select>
-          <select 
-            value={anioSeleccionado} 
-            onChange={(e) => setAnioSeleccionado(Number(e.target.value))} 
-            className="p-2 border border-gray-300 dark:border-neutral-700 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-neutral-900 text-gray-900 dark:text-gray-100 transition-colors"
-          >
-            {anios.map(anio => <option key={anio} value={anio}>{anio}</option>)}
-          </select>
+          </div>
         </div>
       </div>
 
-      <div className="space-y-8 p-2">
+      <div className="space-y-8 py-2 md:p-2">
         {Object.keys(comisionesAgrupadasPorFecha).length === 0 ? (
-          <div className="flex items-center justify-center h-64 bg-gray-50 dark:bg-neutral-900 rounded-lg border-2 border-dashed border-gray-200 dark:border-neutral-800 transition-colors">
+          <div className="flex items-center justify-center h-64 mx-1 md:mx-0 bg-gray-50 dark:bg-neutral-900 rounded-lg border-2 border-dashed border-gray-200 dark:border-neutral-800 transition-colors">
             <p className="text-gray-500 dark:text-gray-400">
               {vista === 'hoy' ? 'No tiene comisiones para hoy.' : 'No tiene comisiones asignadas para este período.'}
             </p>
@@ -184,7 +179,7 @@ export default function ListaMisComisiones({
         ) : (
           Object.entries(comisionesAgrupadasPorFecha).map(([fecha, comisionesDelDia]) => (
             <div key={fecha}>
-              <h3 className="text-xs md:text-lg font-bold text-blue-500 dark:text-blue-400 mb-3 capitalize sticky top-0 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-sm py-2 transition-colors z-10">{fecha}</h3>
+              <h3 className="text-xs md:text-lg font-bold text-blue-500 dark:text-blue-400 mb-3 capitalize sticky top-0 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-sm py-2 mx-1 md:mx-0 transition-colors z-10">{fecha}</h3>
               <div className="space-y-4">
                 {comisionesDelDia.map(comision => {
                   const usuariosDeLaComision = (comision.asistentes?.map(a => ({ id: a.id, nombre: a.nombre })) || []) as Usuario[];
@@ -249,9 +244,9 @@ export default function ListaMisComisiones({
                   return (
                     <div 
                       key={comision.id} 
-                      className={`rounded-xl border overflow-hidden relative transition-colors duration-300 ${
+                      className={`mx-1 md:mx-0 rounded-xl border overflow-hidden relative transition-colors duration-300 ${
                           isOpen 
-                            ? 'border-blue-400 dark:border-blue-600 bg-blue-50/50 dark:bg-blue-950/20' 
+                            ? 'border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900' 
                             : 'border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:bg-gray-50 dark:hover:bg-neutral-800'
                         }`}
                     >
@@ -278,7 +273,7 @@ export default function ListaMisComisiones({
                                 </div>
                               </div>
                               <div className="flex items-center justify-between gap-2 pr-2 mt-2">
-                                <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-nowrap capitalize">{format(fechaComisionDate, 'h:mm a', { locale: es })}</p>
+                                <p className="text-xs text-gray-700 dark:text-gray-300 whitespace-nowrap">{formatFechaHoraComision(fechaComisionDate)}</p>
                                 <div className={`flex items-center gap-1 ${colorDias}`}>
                                   <CalendarClock size={12} />
                                   <span>{textoDias}</span>
@@ -304,8 +299,8 @@ export default function ListaMisComisiones({
                             transition={{ duration: 0.3 }}
                             className="overflow-hidden bg-white dark:bg-neutral-900"
                           >
-                            <div>
-                              <div className="[&_.exclude-from-capture]:hidden [&>div]:shadow-none [&>div]:border-none">
+                            <div className="max-md:[&_.bg-slate-100]:!rounded-none md:[&_.bg-slate-100]:!rounded-md">
+                              <div className="[&_.exclude-from-capture]:hidden [&>div]:shadow-none [&>div]:border-none [&>div]:max-md:!px-0 [&>div]:md:!px-6 [&>div]:max-md:rounded-none [&>div]:pb-6">
                                 <VerComision
                                   comision={comision}
                                   usuarios={usuariosDeLaComision}
@@ -314,6 +309,7 @@ export default function ListaMisComisiones({
                                   onAprobar={() => {}}
                                   onEdit={() => {}}
                                   onDelete={() => {}}
+                                  integrado
                                 />
                               </div>
                               {esHoy && comision.aprobado && (
@@ -322,10 +318,11 @@ export default function ListaMisComisiones({
                                   userId={userId}
                                   nombreUsuario={nombreUsuario}
                                   onAsistenciaMarcada={onAsistenciaMarcada}
+                                  integrado
                                 />
                               )}
                               {esHoy && pendienteAprobacion && (
-                                <div className="px-4 pb-4 border-t border-gray-200 dark:border-neutral-800 pt-4">
+                                <div className="max-md:px-4 md:px-4 pb-4 border-t border-gray-200 dark:border-neutral-800 pt-4">
                                   <p className="text-sm text-center text-orange-600 dark:text-orange-400">
                                     No puede marcar asistencia hasta que Recursos Humanos apruebe esta comisión.
                                   </p>

@@ -17,6 +17,7 @@ interface AsistenciaComisionProps {
   userId: string;
   nombreUsuario: string;
   onAsistenciaMarcada: () => void;
+  integrado?: boolean;
 }
 
 const formatarMinutos = (minutos: number) => {
@@ -37,7 +38,7 @@ const formatarMinutos = (minutos: number) => {
   return resultado;
 };
 
-export default function AsistenciaComision({ comision, userId, nombreUsuario, onAsistenciaMarcada }: AsistenciaComisionProps) {
+export default function AsistenciaComision({ comision, userId, nombreUsuario, onAsistenciaMarcada, integrado = false }: AsistenciaComisionProps) {
   const { cargando: cargandoGeo, obtenerUbicacion, error: errorGeo } = useObtenerUbicacion();
   const fechaHoraGt = useFechaHora();
   const { registros, loading: cargandoRegistros, fetchRegistros } = useAsistenciaComisionUsuario(userId);
@@ -169,9 +170,8 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario, on
     {!salidaMarcada && (
       <div>
         <div className="flex flex-col gap-8 w-full border-t-4 border-gray-200 dark:border-neutral-800 pt-5 transition-colors">
-          <div className="px-4 pb-4 bg-white dark:bg-neutral-950 space-y-4 transition-colors">         
-            
-              <>
+          <div className="pb-4 bg-white dark:bg-neutral-950 transition-colors">
+            <div className={`space-y-4 ${integrado ? 'px-3 md:px-4' : 'px-4'}`}>
                 <div className="text-center flex justify-center items-center gap-4">
                   <p className="font-mono text-sm capitalize text-slate-600 dark:text-gray-400">
                     {format(fechaHoraGt, "EEEE, d MMM", { locale: es })}
@@ -193,8 +193,7 @@ export default function AsistenciaComision({ comision, userId, nombreUsuario, on
                     </Button>
                   </div>
                 )}
-              </>
-          
+            </div>
           </div>
         </div>
       </div>

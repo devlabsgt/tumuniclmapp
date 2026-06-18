@@ -7,6 +7,7 @@ import { ComisionConFechaYHoraSeparada } from "@/hooks/comisiones/useObtenerComi
 import { toPng } from "html-to-image";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
+import { formatFechaHoraComision, formatHoraComisionDesdeIso } from "@/lib/comisiones/formatoFecha";
 import { toast } from "react-toastify";
 import { Button } from "@/components/ui/button";
 
@@ -95,11 +96,8 @@ const ComisionTemplate = React.forwardRef<
             <label className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1 block">
               Fecha y Hora Programada
             </label>
-            <p className="text-base font-bold text-neutral-800 capitalize">
-              {format(fechaCompleta, "eee dd/MMM/yy", { locale: es }).replace(".", "")}
-            </p>
-            <p className="text-sm text-neutral-500 font-medium">
-              {format(fechaCompleta, "h:mm a", { locale: es })}
+            <p className="text-base font-bold text-neutral-800">
+              {formatFechaHoraComision(fechaCompleta)}
             </p>
           </div>
           <div className="relative pl-6 border-l-4 border-orange-500">
@@ -231,7 +229,7 @@ export default function PreviewComision({ comision, registros, userId, userNombr
   );
 
   const formatTime = (dateString: string | undefined) =>
-    dateString ? format(new Date(dateString), "h:mm a", { locale: es }) : "---";
+    formatHoraComisionDesdeIso(dateString);
 
   const entradaTime = formatTime(registroEntrada?.created_at);
   const salidaTime = formatTime(registroSalida?.created_at);
@@ -367,11 +365,8 @@ export default function PreviewComision({ comision, registros, userId, userNombr
               <label className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest mb-1 block">
                 Fecha Programada
               </label>
-              <p className="text-sm font-bold text-neutral-800 dark:text-neutral-100 capitalize">
-                {format(fechaCompleta, "eee dd/MMM/yy", { locale: es }).replace(".", "")}
-              </p>
-              <p className="text-xs text-neutral-500">
-                {format(fechaCompleta, "h:mm a", { locale: es })}
+              <p className="text-sm font-bold text-neutral-800 dark:text-neutral-100">
+                {formatFechaHoraComision(fechaCompleta)}
               </p>
             </div>
             <div className="pl-3 border-l-4 border-orange-500">

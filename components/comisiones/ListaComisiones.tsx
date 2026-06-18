@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Users, CalendarClock, CheckSquare, Square, CalendarCheck, ClipboardCheck, Trash2, ArrowUp, FileText, Loader2 } from 'lucide-react';
 import { toZonedTime } from 'date-fns-tz';
 import { ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
+import { formatFechaHoraComision } from '@/lib/comisiones/formatoFecha';
 
 interface Props {
   modo: string;
@@ -182,7 +183,7 @@ export default function ListaComisiones({
                         <div className="flex-grow flex flex-col md:flex-row w-full overflow-hidden">
                           <div className="w-full md:w-2/3 pr-4">
                             <span className="font-semibold text-gray-900 dark:text-gray-100 text-xs md:text-lg break-words">{comision.titulo}</span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 block">{isValid(dateComision) ? format(dateComision, 'h:mm a', { locale: es }) : 'Hora inválida'}</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 block">{isValid(dateComision) ? formatFechaHoraComision(dateComision) : 'Fecha inválida'}</span>
                           </div>
                           <div className="w-full md:w-1/3 flex flex-col md:items-end justify-between text-xs mt-2 md:mt-0 h-full">
                             <div className="flex gap-4">

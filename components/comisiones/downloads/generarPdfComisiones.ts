@@ -4,6 +4,7 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ComisionConFechaYHoraSeparada } from '@/hooks/comisiones/useObtenerComisiones';
 import { Usuario } from '@/lib/usuarios/esquemas';
+import { formatFechaHoraComision, formatHoraComisionDesdeIso } from '@/lib/comisiones/formatoFecha';
 
 export interface RegistroComision {
   user_id: string;
@@ -37,7 +38,7 @@ const calcDuracion = (
 };
 
 const formatHora = (dateString?: string | null) =>
-  dateString ? format(new Date(dateString), 'h:mm a', { locale: es }) : '---';
+  formatHoraComisionDesdeIso(dateString ?? undefined);
 
 /** Etiqueta en negrita + valor normal en la misma línea */
 const textoEtiquetaValor = (
@@ -286,7 +287,7 @@ export async function generarPdfComisiones(
       ? getUsuarioNombre(encargado.id, usuarios)
       : 'No asignado';
 
-    const fechaHoraStr = format(fechaCompleta, 'dd/MM/yy, h:mm a', { locale: es });
+    const fechaHoraStr = formatFechaHoraComision(fechaCompleta);
 
     textoEtiquetaValor(doc, MARGIN, cursorY, 'Encargado', nombreEncargado);
     textoEtiquetaValorDerecha(doc, pageWidth - MARGIN, cursorY, 'Fecha', fechaHoraStr);

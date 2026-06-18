@@ -1,10 +1,9 @@
 'use client';
 
 import React from 'react';
-import { format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { ComisionConFechaYHoraSeparada, Asistente } from '@/hooks/comisiones/useObtenerComisiones';
 import { Usuario } from '@/lib/usuarios/esquemas';
+import { formatFechaHoraComision, parseFechaHoraComision } from '@/lib/comisiones/formatoFecha';
 import Image from 'next/image';
 
 interface DimgProps {
@@ -18,7 +17,7 @@ const getUsuarioNombre = (id: string, usuarios: Usuario[]) => {
 };
 
 export default function Dimg({ comision, usuarios }: DimgProps) {
-  const fechaCompleta = format(parseISO(comision.fecha_hora), 'EEEE, d MMM yyyy, h:mm a', { locale: es });
+  const fechaCompleta = formatFechaHoraComision(parseFechaHoraComision(comision.fecha_hora));
   
   const encargado = comision.asistentes?.find(a => a.encargado);
   const asistentes = comision.asistentes?.filter(a => !a.encargado);

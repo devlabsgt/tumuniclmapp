@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Tarea, ChecklistItem, Usuario } from './types'; 
+import { motion, AnimatePresence } from 'framer-motion';
+import { Tarea, ChecklistItem, Usuario } from './types';
 import EditarTarea from './modals/EditarTarea';
 import DuplicateTarea from './modals/DuplicateTarea'; 
 import TareaChecklist from './TareaChecklist'; 
@@ -238,7 +239,16 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
         )}
       </div>
 
-      <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'}`}>
+      <AnimatePresence initial={false}>
+        {isExpanded && (
+          <motion.div
+            key="expanded-content"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+            className="overflow-hidden"
+          >
         <div className="px-4 sm:px-5 pb-5 pt-0 border-t border-slate-100 dark:border-neutral-800 mt-1">
             <div className="grid grid-cols-1 lg:grid-cols-5 lg:gap-8 gap-6 mt-5">
                 <div className="flex flex-col gap-5 lg:col-span-2">
@@ -268,7 +278,15 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                     </div>
                     {tarea.status !== 'Completado' && (
                         <div className="mt-auto pt-2">
-                            <button onClick={handleTerminar} disabled={loading || esVencida} className={`w-full py-3 rounded-xl font-bold text-sm shadow-md transition-all flex justify-center items-center gap-2 text-white transform active:scale-[0.98] ${esVencida ? 'bg-red-50 text-red-400 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 cursor-not-allowed shadow-none' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-500/20 dark:shadow-none'}`}>
+                            <button
+                              onClick={handleTerminar}
+                              disabled={loading || esVencida}
+                              className={`w-full py-3 rounded-xl font-bold text-sm transition-all flex justify-center items-center gap-2 transform active:scale-[0.98] ${
+                                esVencida
+                                  ? 'bg-red-50 text-red-600 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 cursor-not-allowed shadow-none'
+                                  : 'text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md shadow-blue-500/20 dark:shadow-none'
+                              }`}
+                            >
                             {loading ? <Clock size={18} className="animate-spin" /> : esVencida ? 'Tarea Vencida' : 'Completar Tarea'}
                             </button>
                         </div>
@@ -319,7 +337,9 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                 </div>
             </div>
         </div>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
     {isEditModalOpen && ( <EditarTarea isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); if (isExpanded && onToggle) { onToggle(); } }} tarea={tarea} esJefe={isJefe} /> )}
     {isDuplicateModalOpen && ( <DuplicateTarea isOpen={isDuplicateModalOpen} onClose={() => setIsDuplicateModalOpen(false)} tareaOriginal={tarea} usuarios={usuarios} esJefe={isJefe} /> )}

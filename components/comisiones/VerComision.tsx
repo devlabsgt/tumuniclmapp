@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useMemo, useRef, useState } from "react";
-import { format, parseISO } from "date-fns";
-import { es } from "date-fns/locale";
+import { parseISO } from "date-fns";
+import { formatFechaHoraComision, formatHoraComisionDesdeIso } from "@/lib/comisiones/formatoFecha";
 import { ComisionConFechaYHoraSeparada } from "@/hooks/comisiones/useObtenerComisiones";
 import { Usuario } from "@/lib/usuarios/esquemas";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ const RegistroAsistenciaItem = ({
   onAbrirMapa,
   mostrarIconoTarjeta,
   onPreviewCard,
+  integrado = false,
 }: any) => {
   const registrosDelAsistente = useMemo(() => {
     const registroEntrada =
@@ -63,16 +64,15 @@ const RegistroAsistenciaItem = ({
   }, [registrosDelAsistente]);
 
   const formatTime = (dateString: string | undefined) =>
-    dateString ? format(new Date(dateString), "h:mm a", { locale: es }) : "---";
+    formatHoraComisionDesdeIso(dateString);
 
   const { entrada, salida } = registrosDelAsistente;
   const tieneRegistros = entrada || salida;
 
   return (
     <div className="mt-2">
-      <div
-        className="px-4 py-3 rounded-md bg-slate-100 dark:bg-neutral-900 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-y-3 gap-x-4 transition-colors duration-200"
-      >
+      <div className="py-3 bg-slate-100 dark:bg-neutral-900 max-md:rounded-none md:rounded-md transition-colors duration-200">
+        <div className={`${integrado ? 'px-3 md:px-4' : 'px-1 md:px-4'} flex flex-col sm:flex-row sm:items-center sm:justify-between gap-y-3 gap-x-4`}>
         <p className="text-gray-900 dark:text-gray-100 font-medium text-sm md:text-base">
           {nombre}
         </p>
@@ -137,10 +137,11 @@ const RegistroAsistenciaItem = ({
             )}
           </div>
         )}
+        </div>
       </div>
     </div>
   );
-};;
+};
 
 interface VerComisionDetalleProps {
   comision: ComisionConFechaYHoraSeparada;
@@ -150,6 +151,7 @@ interface VerComisionDetalleProps {
   onEdit: (comision: ComisionConFechaYHoraSeparada) => void;
   onDelete: (comisionId: string) => void;
   onAprobar: (comisionId: string) => void;
+  integrado?: boolean;
 }
 
 const getUsuarioNombre = (id: string, usuarios: Usuario[]) => {
@@ -165,6 +167,7 @@ export default function VerComision({
   onEdit,
   onDelete,
   onAprobar,
+  integrado = false,
 }: VerComisionDetalleProps) {
   const { userId, nombre: userNombre, rol, esjefe } = useUserData();
   const { registros, loading: cargandoRegistros } = useRegistrosDeComision(
@@ -197,11 +200,7 @@ export default function VerComision({
   const hasPermissionEliminar =
     esSuper || (!comisionYaPaso && puedeEliminarNormal);
 
-  const fechaHoraAbreviada = format(
-    fechaCompleta,
-    "EEE, d MMM, yyyy | h:mm a",
-    { locale: es },
-  );
+  const fechaHoraAbreviada = formatFechaHoraComision(fechaCompleta);
 
   const encargado = comision.asistentes?.find((a) => a.encargado);
   const asistentes = comision.asistentes
@@ -253,7 +252,7 @@ export default function VerComision({
   return (
     <div
       ref={exportRef}
-      className="bg-white dark:bg-neutral-950 rounded-xl px-6 pb-6 flex flex-col h-full relative transition-colors duration-200"
+      className={`bg-white dark:bg-neutral-950 rounded-xl pb-6 flex flex-col h-full relative transition-colors duration-200 ${integrado ? 'max-md:px-0 px-6' : 'px-6'}`}
     >
       <div className="pt-0 exclude-from-capture">
         <div className="flex flex-wrap justify-center md:justify-between items-center gap-4 mt-2 text-xs md:text-sm">
@@ -313,25 +312,25 @@ export default function VerComision({
           </div>
         </div>
 
-        <div className="flex justify-between items-start mt-5">
-          <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100 pl-5">
+        <div className={`flex justify-between items-start mt-5 ${integrado ? 'max-md:px-4' : ''}`}>
+          <h2 className={`text-sm font-bold text-gray-800 dark:text-gray-100 ${integrado ? 'md:pl-5' : 'pl-5'}`}>
             {comision.titulo}
           </h2>
         </div>
 
         <div className="flex-grow text-gray-700 dark:text-gray-300">
-          <div className="flex items-center gap-3 my-4">
+          <div className={`flex items-center gap-3 my-4 ${integrado ? 'max-md:px-4' : ''}`}>
             <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2">
               <Calendar className="h-5 w-5 text-blue-500 dark:text-blue-400" />{" "}
               Fecha y Hora:
             </h3>
-            <span className="text-xs md:text-sm capitalize">
+            <span className="text-xs md:text-sm">
               {fechaHoraAbreviada}
             </span>
           </div>
 
           <div className="border-t border-gray-200 dark:border-neutral-800">
-            <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2 mt-2">
+            <h3 className={`text-xs md:text-sm font-semibold flex items-center gap-2 mt-2 ${integrado ? 'max-md:px-4' : ''}`}>
               <User className="h-5 w-5 text-blue-500 dark:text-blue-400" />{" "}
               Encargado
             </h3>
@@ -345,9 +344,10 @@ export default function VerComision({
                 onAbrirMapa={onAbrirMapa}
                 mostrarIconoTarjeta={puedeVerTodas || encargado.id === userId}
                 onPreviewCard={(id: string, nombre: string) => setPreviewUser({ id, nombre })}
+                integrado={integrado}
               />
             ) : (
-              <p className="pl-8 text-gray-500 dark:text-gray-400 my-4">
+              <p className={`text-gray-500 dark:text-gray-400 my-4 ${integrado ? 'max-md:px-4 pl-4 md:pl-8' : 'pl-8'}`}>
                 No asignado
               </p>
             )}
@@ -355,7 +355,7 @@ export default function VerComision({
 
           {asistentes && asistentes.length > 0 && (
             <div className="border-t border-gray-200 dark:border-neutral-800 mt-4">
-              <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2 mt-2">
+              <h3 className={`text-xs md:text-sm font-semibold flex items-center gap-2 mt-2 ${integrado ? 'max-md:px-4' : ''}`}>
                 <Users className="h-5 w-5 text-blue-500 dark:text-blue-400" />{" "}
                 Integrantes
               </h3>
@@ -371,6 +371,7 @@ export default function VerComision({
                     onAbrirMapa={onAbrirMapa}
                     mostrarIconoTarjeta={puedeVerTodas || asistente.id === userId}
                     onPreviewCard={(id: string, nombre: string) => setPreviewUser({ id, nombre })}
+                    integrado={integrado}
                   />
                 ))
               )}
@@ -378,7 +379,7 @@ export default function VerComision({
           )}
 
           {comision.comentarios && comision.comentarios.length > 0 && (
-            <div className="border-t border-gray-200 dark:border-neutral-800 mt-4">
+            <div className={`border-t border-gray-200 dark:border-neutral-800 mt-4 ${integrado ? 'max-md:px-4' : ''}`}>
               <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2 my-2">
                 <FileText className="h-5 w-5 text-blue-500 dark:text-blue-400" />{" "}
                 Notas

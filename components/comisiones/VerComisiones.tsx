@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Camera, LogOut, Clock, CalendarDays, Users, StickyNote } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { formatFechaHoraComision, parseFechaHoraComision } from '@/lib/comisiones/formatoFecha';
 import { toBlob } from 'html-to-image';
 import Swal from 'sweetalert2';
 
@@ -139,7 +140,7 @@ export default function VerComisiones({ comisiones, usuarios, onClose }: VerComi
                           <h5 className="font-bold text-blue-600 flex items-center gap-2">{comision.titulo}</h5>
                           <p className="font-bold text-blue-600 flex items-center gap-2">
                             <Clock className="h-4 w-4" />
-                            {format(parseISO(comision.fecha_hora.replace(' ', 'T')), "h:mm a", { locale: es })}
+                            {formatFechaHoraComision(parseFechaHoraComision(comision.fecha_hora))}
                           </p>
                         </div>
                         <div className="border-t mt-2 pt-2">

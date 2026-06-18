@@ -84,49 +84,93 @@ export async function obtenerDatosGestor(tipoVista: TipoVistaTareas) {
   }));
 
   // 3. QUERY DE TAREAS
-  let query = supabase.from('tasks').select('*').order('due_date', { ascending: true });
+  let rawTareas: any[] = [];
+  let alcancePorTarea = new Map<string, 'equipo' | 'externa'>();
 
   if (tipoVista === 'mis_actividades') {
-      query = query.eq('assigned_to', user.id);
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('assigned_to', user.id)
+        .order('due_date', { ascending: true });
+
+      if (error) {
+          console.error("Error fetching tasks:", error);
+          return { perfil, tareas: [], usuarios: [] };
+      }
+      rawTareas = data || [];
   } 
   else if (tipoVista === 'gestion_jefe') {
       if (!perfil.esJefe) return { perfil, tareas: [], usuarios: [] };
 
-      // IDs de las oficinas donde soy jefe
       const misOficinasIds = perfil.oficinasACargo.map(o => o.id);
 
-      // Buscamos empleados que pertenezcan a mis oficinas (directamente o por puesto hijo)
       const misEmpleadosIds = todosLosUsuarios
         .filter((u: any) => u.oficina_real_id && misOficinasIds.includes(u.oficina_real_id))
         .map((u: any) => u.user_id);
 
       if (misEmpleadosIds.length > 0) {
-          // Tareas de mi equipo, EXCLUYÉNDOME A MÍ (para no duplicar)
-          query = query.in('assigned_to', misEmpleadosIds).neq('assigned_to', user.id);
-      } else {
-          return { perfil, tareas: [], usuarios: todosLosUsuarios as Usuario[] };
+          const { data: tareasEquipo, error: errorEquipo } = await supabase
+            .from('tasks')
+            .select('*')
+            .in('assigned_to', misEmpleadosIds)
+            .neq('assigned_to', user.id)
+            .order('due_date', { ascending: true });
+
+          if (errorEquipo) {
+              console.error("Error fetching team tasks:", errorEquipo);
+              return { perfil, tareas: [], usuarios: [] };
+          }
+
+          (tareasEquipo || []).forEach((t: any) => alcancePorTarea.set(t.id, 'equipo'));
+          rawTareas.push(...(tareasEquipo || []));
       }
+
+      const { data: tareasCreadas, error: errorCreadas } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('created_by', user.id)
+        .neq('assigned_to', user.id)
+        .order('due_date', { ascending: true });
+
+      if (errorCreadas) {
+          console.error("Error fetching external tasks:", errorCreadas);
+          return { perfil, tareas: [], usuarios: [] };
+      }
+
+      const idsEquipo = new Set(rawTareas.map((t: any) => t.id));
+      (tareasCreadas || [])
+        .filter((t: any) => !misEmpleadosIds.includes(t.assigned_to) && !idsEquipo.has(t.id))
+        .forEach((t: any) => {
+          alcancePorTarea.set(t.id, 'externa');
+          rawTareas.push(t);
+        });
   }
   else if (tipoVista === 'gestion_rrhh') {
       const esRRHH = ['RRHH', 'SUPER', 'SECRETARIO'].includes(perfil.rol || '');
       if (!esRRHH) return { perfil, tareas: [], usuarios: [] };
-      query = query.limit(500);
-  }
 
-  const { data: rawTareas, error: errorTareas } = await query;
-  
-  if (errorTareas) {
-      console.error("Error fetching tasks:", errorTareas);
-      return { perfil, tareas: [], usuarios: [] };
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .order('due_date', { ascending: true })
+        .limit(500);
+
+      if (error) {
+          console.error("Error fetching tasks:", error);
+          return { perfil, tareas: [], usuarios: [] };
+      }
+      rawTareas = data || [];
   }
 
   // 4. MAPEAR TAREAS
-  const tareas: Tarea[] = (rawTareas || []).map((t: any) => {
+  const tareas: Tarea[] = rawTareas.map((t: any) => {
     const creador = todosLosUsuarios.find((u: any) => u.user_id === t.created_by); 
     const asignado = todosLosUsuarios.find((u: any) => u.user_id === t.assigned_to);
 
     return {
       ...t,
+      alcance: alcancePorTarea.get(t.id),
       creator: { nombre: creador?.nombre || 'Desconocido' }, 
       assignee: { 
           nombre: asignado?.nombre || 'Sin asignar',

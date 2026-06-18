@@ -50,7 +50,8 @@ export interface Tarea {
   creator?: { nombre: string };
   
   // Propiedades calculadas en el frontend
-  estadoFiltro?: string; 
+  estadoFiltro?: string;
+  alcance?: 'equipo' | 'externa';
 }
 
 export interface NewTaskState {

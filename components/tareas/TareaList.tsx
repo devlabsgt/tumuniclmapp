@@ -4,9 +4,10 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { Tarea, Usuario, PerfilUsuario, TipoVistaTareas } from './types'; 
 import TareaItem from './TareaItem';
 import NewTarea from './modals/NewTarea'; 
-import { Plus, SearchX, ArrowLeft, Search, Calendar as CalendarIcon, Building2, ChevronDown } from 'lucide-react';
+import { Plus, SearchX, ArrowLeft, Search, Building2, ChevronDown, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGestorData } from './hooks';
+import SelectorMesAnio from './SelectorMesAnio';
 
 interface Props {
   initialData: {
@@ -20,7 +21,6 @@ interface Props {
 const MESES = [ 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre' ];
 const MESES_ABREV = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const ANIO_ACTUAL = new Date().getFullYear();
-const ANIOS = Array.from({ length: 6 }, (_, i) => ANIO_ACTUAL - 1 + i);
 
 const formatearFechaCorta = (fecha: Date) => {
   return `${fecha.getDate()} ${MESES_ABREV[fecha.getMonth()]}`;
@@ -55,6 +55,11 @@ const TAB_STYLES: Record<string, { active: string, inactive: string, badge: stri
   'Vencido': { active: 'bg-red-600 text-white', inactive: 'text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400', badge: 'bg-red-100 text-red-700' }
 };
 
+const ALCANCE_JEFE_STYLES: Record<string, { active: string, inactive: string, badge: string }> = {
+  'equipo': { active: 'bg-blue-600 text-white', inactive: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400', badge: 'bg-blue-100 text-blue-700' },
+  'externa': { active: 'bg-amber-600 text-white', inactive: 'text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400', badge: 'bg-amber-100 text-amber-700' },
+};
+
 export default function TareaList({ initialData, tipoVista }: Props) {
   const { data } = useGestorData(tipoVista, initialData);
   
@@ -70,6 +75,7 @@ export default function TareaList({ initialData, tipoVista }: Props) {
   const [mesSeleccionado, setMesSeleccionado] = useState(0); 
   const [anioSeleccionado, setAnioSeleccionado] = useState(ANIO_ACTUAL);
   const [semanaSeleccionada, setSemanaSeleccionada] = useState(-1);
+  const [alcanceJefe, setAlcanceJefe] = useState<'equipo' | 'externa'>('equipo');
   
   const [oficinasAbiertas, setOficinasAbiertas] = useState<Record<string, boolean>>({});
   const scrollPositionRef = useRef(0);
@@ -106,10 +112,33 @@ export default function TareaList({ initialData, tipoVista }: Props) {
     if (expandedId === null) window.scrollTo({ top: scrollPositionRef.current, behavior: 'instant' });
   }, [expandedId]);
 
+  const tareasPorAlcance = useMemo(() => {
+    if (tipoVista !== 'gestion_jefe') return tareas;
+    return tareas.filter((t: Tarea) => (t.alcance || 'equipo') === alcanceJefe);
+  }, [tareas, tipoVista, alcanceJefe]);
+
+  const conteosAlcanceJefe = useMemo(() => {
+    if (tipoVista !== 'gestion_jefe') return { equipo: 0, externa: 0 };
+    return {
+      equipo: tareas.filter((t: Tarea) => (t.alcance || 'equipo') === 'equipo').length,
+      externa: tareas.filter((t: Tarea) => t.alcance === 'externa').length,
+    };
+  }, [tareas, tipoVista]);
+
+  useEffect(() => {
+    if (tipoVista === 'gestion_jefe' && isMounted && alcanceJefe === 'equipo' && conteosAlcanceJefe.equipo === 0 && conteosAlcanceJefe.externa > 0) {
+      setAlcanceJefe('externa');
+    }
+  }, [tipoVista, isMounted, alcanceJefe, conteosAlcanceJefe]);
+
+  useEffect(() => {
+    setFiltroEstado('');
+  }, [alcanceJefe]);
+
   const tareasFiltradas = useMemo(() => {
     if (!isMounted) return [];
 
-    return tareas.filter((t: Tarea) => {
+    return tareasPorAlcance.filter((t: Tarea) => {
       if (!t.due_date) return false;
       const d = new Date(t.due_date);
       const tYear = d.getFullYear();
@@ -136,7 +165,7 @@ export default function TareaList({ initialData, tipoVista }: Props) {
       const esVencida = new Date() > new Date(t.due_date) && t.status !== 'Completado';
       return { ...t, estadoFiltro: esVencida ? 'Vencido' : t.status };
     });
-  }, [tareas, mesSeleccionado, anioSeleccionado, semanaSeleccionada, semanasDisponibles, busqueda, isMounted]);
+  }, [tareasPorAlcance, mesSeleccionado, anioSeleccionado, semanaSeleccionada, semanasDisponibles, busqueda, isMounted]);
 
   const conteos = useMemo(() => ({
       Asignado: tareasFiltradas.filter((t: Tarea) => t.estadoFiltro === 'Asignado' || t.estadoFiltro === 'En Proceso').length,
@@ -162,7 +191,6 @@ export default function TareaList({ initialData, tipoVista }: Props) {
 
   const tareasAgrupadas = useMemo(() => {
       if (!isMounted) return [];
-      if (expandedId) return [{ key: 'expanded', titulo: null, tareas: tareasRenderizadas }];
 
       if (tipoVista === 'mis_actividades') {
           const grupos: any[] = [];
@@ -178,23 +206,53 @@ export default function TareaList({ initialData, tipoVista }: Props) {
           });
           return grupos.sort((a, b) => a.key.localeCompare(b.key));
       } else {
-          const grupos: Record<string, { key: string, titulo: string, tareas: Tarea[] }> = {};
-          
-          if (tipoVista === 'gestion_jefe') {
+          const usarSubgruposPersona = tipoVista === 'gestion_jefe' && alcanceJefe === 'equipo';
+          const grupos: Record<string, {
+            key: string;
+            titulo: string;
+            tareas: Tarea[];
+            subgrupos: Record<string, { key: string; nombre: string; tareas: Tarea[] }>;
+          }> = {};
+
+          if (usarSubgruposPersona) {
               perfilUsuario.oficinasACargo.forEach(of => {
-                  grupos[of.nombre] = { key: of.nombre, titulo: of.nombre, tareas: [] };
+                  grupos[of.nombre] = { key: of.nombre, titulo: of.nombre, tareas: [], subgrupos: {} };
               });
           }
 
           tareasRenderizadas.forEach((t: Tarea) => {
               const ofName = t.assignee?.oficina_nombre || 'Sin Oficina';
-              if (!grupos[ofName]) grupos[ofName] = { key: ofName, titulo: ofName, tareas: [] };
-              grupos[ofName].tareas.push(t);
+              if (!grupos[ofName]) {
+                  grupos[ofName] = { key: ofName, titulo: ofName, tareas: [], subgrupos: {} };
+              }
+
+              if (usarSubgruposPersona) {
+                  const personKey = t.assigned_to || 'sin-asignar';
+                  const personName = t.assignee?.nombre || 'Sin asignar';
+                  if (!grupos[ofName].subgrupos[personKey]) {
+                      grupos[ofName].subgrupos[personKey] = { key: personKey, nombre: personName, tareas: [] };
+                  }
+                  grupos[ofName].subgrupos[personKey].tareas.push(t);
+              } else {
+                  grupos[ofName].tareas.push(t);
+              }
           });
 
-          return Object.values(grupos).filter(g => g.tareas.length > 0).sort((a, b) => a.titulo.localeCompare(b.titulo));
+          return Object.values(grupos)
+            .filter(g => usarSubgruposPersona ? Object.keys(g.subgrupos).length > 0 : g.tareas.length > 0)
+            .map(g => ({
+              key: g.key,
+              titulo: g.titulo,
+              subgrupos: usarSubgruposPersona
+                ? Object.values(g.subgrupos).sort((a, b) => a.nombre.localeCompare(b.nombre))
+                : undefined,
+              tareas: usarSubgruposPersona
+                ? Object.values(g.subgrupos).flatMap(s => s.tareas)
+                : g.tareas,
+            }))
+            .sort((a, b) => a.titulo.localeCompare(b.titulo));
       }
-  }, [tareasRenderizadas, tipoVista, expandedId, perfilUsuario, isMounted]);
+  }, [tareasRenderizadas, tipoVista, perfilUsuario, isMounted, alcanceJefe]);
 
   const tituloPagina = useMemo(() => {
       if (tipoVista === 'mis_actividades') return 'Mis Actividades';
@@ -206,34 +264,65 @@ export default function TareaList({ initialData, tipoVista }: Props) {
   if (!isMounted) return <div className="w-full h-64 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>;
 
   return (
-    <div className="space-y-6 w-full max-w-full">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full">
       {!expandedId && (
-        <div className="flex flex-col gap-6 mb-2 animate-in fade-in slide-in-from-top-2">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4">
+        <div className="flex flex-col gap-3 sm:gap-4 lg:gap-5 mb-2 animate-in fade-in slide-in-from-top-2">
+            <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-end gap-3 lg:gap-4 w-full">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{tituloPagina}</h1>
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">{tituloPagina}</h1>
                     <p className="text-slate-500 dark:text-gray-400 text-sm font-medium">
-                        {tipoVista === 'mis_actividades' ? 'Gestiona tus prioridades del día' : 'Supervisa el avance de tu equipo'}
+                        {tipoVista === 'mis_actividades'
+                          ? 'Gestiona tus prioridades del día'
+                          : tipoVista === 'gestion_jefe' && alcanceJefe === 'externa'
+                            ? 'Actividades que asignaste a otras oficinas'
+                            : 'Supervisa el avance de tu equipo'}
                     </p>
                 </div>
                 {(tipoVista === 'mis_actividades' || (tipoVista === 'gestion_jefe' && perfilUsuario.esJefe)) && (
-                    <button onClick={() => setIsModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 text-sm active:scale-95">
+                    <button onClick={() => setIsModalOpen(true)} className="w-full lg:w-auto justify-center bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 text-sm active:scale-95">
                         <Plus size={20} /> Nueva Actividad
                     </button>
                 )}
             </div>
 
-            <div className="flex flex-col xl:flex-row gap-4 mt-2">
+            {tipoVista === 'gestion_jefe' && (conteosAlcanceJefe.equipo > 0 || conteosAlcanceJefe.externa > 0) && (
+                <div className="w-full">
+                    <div className="flex items-center gap-1.5 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 dark:border-neutral-800 shadow-sm w-full">
+                        {([
+                          { key: 'equipo' as const, label: 'Mi equipo' },
+                          { key: 'externa' as const, label: 'Otras oficinas' },
+                        ]).map(({ key, label }) => {
+                            const styles = ALCANCE_JEFE_STYLES[key];
+                            const isActive = alcanceJefe === key;
+                            const count = conteosAlcanceJefe[key];
+                            return (
+                                <button
+                                  key={key}
+                                  onClick={() => setAlcanceJefe(key)}
+                                  className={`flex-1 flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all ${isActive ? styles.active : styles.inactive}`}
+                                >
+                                    <span className="truncate">{label}</span>
+                                    <span className={`px-1.5 py-0.5 rounded-md text-[10px] min-w-[18px] text-center shrink-0 ${isActive ? 'bg-white/20 text-white' : styles.badge}`}>
+                                      {count}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            <div className="flex flex-col gap-3 w-full">
                 {pestañas.length > 0 && (
-                    <div className="overflow-x-auto pb-1 xl:pb-0">
-                        <div className="flex items-center gap-1.5 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 dark:border-neutral-800 shadow-sm min-w-max">
+                    <div className="w-full">
+                        <div className="flex items-center gap-1.5 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 dark:border-neutral-800 shadow-sm w-full">
                             {pestañas.map((tab) => {
                                 const styles = TAB_STYLES[tab];
                                 const isActive = filtroEstado === tab;
                                 return (
-                                    <button key={tab} onClick={() => setFiltroEstado(isActive ? '' : tab)} className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${isActive ? styles.active : styles.inactive}`}>
-                                        {tab.toUpperCase()}
-                                        <span className={`px-1.5 py-0.5 rounded-md text-[10px] min-w-[18px] text-center ${isActive ? 'bg-white/20 text-white' : styles.badge}`}>{conteos[tab as keyof typeof conteos]}</span>
+                                    <button key={tab} onClick={() => setFiltroEstado(isActive ? '' : tab)} className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all ${isActive ? styles.active : styles.inactive}`}>
+                                        <span className="truncate">{tab.toUpperCase()}</span>
+                                        <span className={`px-1.5 py-0.5 rounded-md text-[10px] min-w-[18px] text-center shrink-0 ${isActive ? 'bg-white/20 text-white' : styles.badge}`}>{conteos[tab as keyof typeof conteos]}</span>
                                     </button>
                                 );
                             })}
@@ -241,28 +330,28 @@ export default function TareaList({ initialData, tipoVista }: Props) {
                     </div>
                 )}
 
-                <div className="flex flex-1 flex-col sm:flex-row gap-3">
-                    <div className="relative flex-1 group">
+                <div className="flex flex-col gap-3 w-full">
+                    <div className="relative w-full group">
                         <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                         <input type="text" placeholder="Buscar..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 dark:text-gray-200" />
                     </div>
-                    <div className="flex flex-wrap sm:flex-nowrap gap-2 shrink-0">
-                        <div className="relative">
-                            <select value={anioSeleccionado} onChange={(e) => setAnioSeleccionado(Number(e.target.value))} className="pl-4 pr-8 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200">
-                                {ANIOS.map(a => <option key={a} value={a}>{a}</option>)}
-                            </select>
+                    <div className="flex flex-row gap-2 w-full">
+                        <div className="w-1/2 min-w-0">
+                            <SelectorMesAnio
+                              mes={mesSeleccionado}
+                              anio={anioSeleccionado}
+                              onChange={(mes, anio) => {
+                                setMesSeleccionado(mes);
+                                setAnioSeleccionado(anio);
+                              }}
+                            />
                         </div>
-                        <div className="relative min-w-[110px]">
-                            <select value={mesSeleccionado} onChange={(e) => setMesSeleccionado(Number(e.target.value))} className="w-full pl-9 pr-8 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200">
-                                {MESES.map((m, i) => <option key={i} value={i}>{m}</option>)}
-                            </select>
-                            <CalendarIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                        </div>
-                        <div className="relative min-w-[140px]">
-                            <select value={semanaSeleccionada} onChange={(e) => setSemanaSeleccionada(Number(e.target.value))} className="w-full pl-3 pr-8 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200">
+                        <div className="relative w-1/2 min-w-0">
+                            <select value={semanaSeleccionada} onChange={(e) => setSemanaSeleccionada(Number(e.target.value))} className="w-full appearance-none pl-3 pr-9 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200">
                                 <option value={-1}>Todas las semanas</option>
                                 {semanasDisponibles.map(sem => <option key={sem.id} value={sem.id}>{sem.label}</option>)}
                             </select>
+                            <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                         </div>
                     </div>
                 </div>
@@ -270,7 +359,17 @@ export default function TareaList({ initialData, tipoVista }: Props) {
         </div>
       )}
 
-      {expandedId && <button onClick={() => toggleAccordion(expandedId)} className="flex items-center gap-2 text-slate-500 hover:text-blue-600 mb-2"><ArrowLeft size={16} /> Volver a la lista</button>}
+      {expandedId && (
+        <motion.button
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+          onClick={() => toggleAccordion(expandedId)}
+          className="flex items-center gap-2 text-slate-500 hover:text-blue-600 mb-2"
+        >
+          <ArrowLeft size={16} /> Volver a la lista
+        </motion.button>
+      )}
 
       <div className="pb-20 space-y-4">
         {!expandedId && tareasRenderizadas.length > 0 && (
@@ -285,6 +384,29 @@ export default function TareaList({ initialData, tipoVista }: Props) {
                 <SearchX size={32} className="mx-auto text-slate-300 mb-4" />
                 <h3 className="text-slate-900 dark:text-white font-bold">No se encontraron actividades</h3>
            </div>
+        ) : expandedId ? (
+           <AnimatePresence mode="wait">
+             <motion.div
+               key={expandedId}
+               initial={{ opacity: 0, y: 16 }}
+               animate={{ opacity: 1, y: 0 }}
+               exit={{ opacity: 0, y: -10 }}
+               transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+               className="w-full grid grid-cols-1 gap-3"
+             >
+               {tareasRenderizadas.map((t: Tarea) => (
+                   <TareaItem
+                     key={t.id}
+                     tarea={t}
+                     isExpanded
+                     onToggle={() => toggleAccordion(t.id)}
+                     isJefe={perfilUsuario.esJefe}
+                     usuarioActual={perfilUsuario.id}
+                     usuarios={usuarios}
+                   />
+               ))}
+             </motion.div>
+           </AnimatePresence>
         ) : (
            tareasAgrupadas.map((grupo: any) => {
                if (tipoVista === 'mis_actividades') {
@@ -293,12 +415,12 @@ export default function TareaList({ initialData, tipoVista }: Props) {
                            {grupo.titulo && (
                                <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 ml-1 mt-2 flex items-center gap-2">
                                    {grupo.titulo} 
-                                   {!expandedId && <span className="bg-slate-100 dark:bg-neutral-800 px-2 py-0.5 rounded-full text-[10px]">{grupo.tareas.length}</span>}
+                                   <span className="bg-slate-100 dark:bg-neutral-800 px-2 py-0.5 rounded-full text-[10px]">{grupo.tareas.length}</span>
                                </h3>
                            )}
                            <div className="grid grid-cols-1 gap-3">
                                {grupo.tareas.map((t: Tarea) => (
-                                   <TareaItem key={t.id} tarea={t} isExpanded={expandedId === t.id} onToggle={() => toggleAccordion(t.id)} isJefe={perfilUsuario.esJefe} usuarioActual={perfilUsuario.id} usuarios={usuarios} />
+                                   <TareaItem key={t.id} tarea={t} isExpanded={false} onToggle={() => toggleAccordion(t.id)} isJefe={perfilUsuario.esJefe} usuarioActual={perfilUsuario.id} usuarios={usuarios} />
                                ))}
                            </div>
                        </div>
@@ -306,29 +428,49 @@ export default function TareaList({ initialData, tipoVista }: Props) {
                } 
                else {
                    const estaAbierta = oficinasAbiertas[grupo.key] || false;
+                   const tieneSubgrupos = grupo.subgrupos && grupo.subgrupos.length > 0;
                    return (
                        <div key={grupo.key} className="border border-slate-200 dark:border-neutral-800 rounded-xl overflow-hidden bg-white dark:bg-neutral-900 shadow-sm">
-                           <div onClick={() => toggleOficina(grupo.key)} className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-neutral-800 transition-colors">
-                               <div className="flex items-center gap-3">
-                                   <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg text-blue-600 dark:text-blue-400">
+                           <div onClick={() => toggleOficina(grupo.key)} className="px-4 py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-neutral-800 transition-colors">
+                               <div className="flex items-center gap-3 min-w-0">
+                                   <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg text-blue-600 dark:text-blue-400 shrink-0">
                                        <Building2 size={20} />
                                    </div>
-                                   <div>
+                                   <div className="min-w-0">
                                        <h3 className="font-bold text-slate-800 dark:text-white text-sm">{grupo.titulo}</h3>
-                                       {!expandedId && <p className="text-xs text-slate-500 dark:text-gray-400">{grupo.tareas.length} actividades</p>}
+                                       <p className="text-xs text-slate-500 dark:text-gray-400">{grupo.tareas.length} actividades</p>
                                    </div>
                                </div>
-                               <ChevronDown size={20} className={`text-slate-400 transition-transform ${estaAbierta ? 'rotate-180' : ''}`} />
+                               <ChevronDown size={20} className={`text-slate-400 transition-transform shrink-0 ${estaAbierta ? 'rotate-180' : ''}`} />
                            </div>
                            
                            <AnimatePresence>
                                {estaAbierta && (
                                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-slate-100 dark:border-neutral-800 bg-slate-50/50 dark:bg-neutral-900/50">
-                                       <div className="p-3 grid grid-cols-1 gap-3">
-                                           {grupo.tareas.map((t: Tarea) => (
-                                               <TareaItem key={t.id} tarea={t} isExpanded={expandedId === t.id} onToggle={() => toggleAccordion(t.id)} isJefe={perfilUsuario.esJefe} usuarioActual={perfilUsuario.id} usuarios={usuarios} />
+                                       {tieneSubgrupos ? (
+                                         <div className="divide-y divide-slate-100 dark:divide-neutral-800">
+                                           {grupo.subgrupos.map((persona: { key: string; nombre: string; tareas: Tarea[] }) => (
+                                             <div key={persona.key}>
+                                               <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-100/80 dark:bg-neutral-800/40">
+                                                 <User size={14} className="text-slate-400 shrink-0" />
+                                                 <span className="text-xs font-bold text-slate-600 dark:text-gray-300 truncate">{persona.nombre}</span>
+                                                 <span className="text-[10px] font-semibold bg-slate-200 dark:bg-neutral-700 text-slate-600 dark:text-gray-300 px-2 py-0.5 rounded-full shrink-0">{persona.tareas.length}</span>
+                                               </div>
+                                               <div className="grid grid-cols-1 gap-2 py-2">
+                                                 {persona.tareas.map((t: Tarea) => (
+                                                   <TareaItem key={t.id} tarea={t} isExpanded={false} onToggle={() => toggleAccordion(t.id)} isJefe={perfilUsuario.esJefe} usuarioActual={perfilUsuario.id} usuarios={usuarios} />
+                                                 ))}
+                                               </div>
+                                             </div>
                                            ))}
-                                       </div>
+                                         </div>
+                                       ) : (
+                                         <div className="grid grid-cols-1 gap-2 py-2">
+                                           {grupo.tareas.map((t: Tarea) => (
+                                             <TareaItem key={t.id} tarea={t} isExpanded={false} onToggle={() => toggleAccordion(t.id)} isJefe={perfilUsuario.esJefe} usuarioActual={perfilUsuario.id} usuarios={usuarios} />
+                                           ))}
+                                         </div>
+                                       )}
                                    </motion.div>
                                )}
                            </AnimatePresence>
