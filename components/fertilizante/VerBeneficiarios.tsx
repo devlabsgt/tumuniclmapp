@@ -4,11 +4,12 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { List, LayoutGrid, FileText, FileWarning, ChevronDown, UserCog } from 'lucide-react';
+import { List, LayoutGrid, FileText, FileWarning, ChevronDown, UserCog, Users } from 'lucide-react';
 import { FiltroBeneficiarios } from './FiltroBeneficiarios';
 import { TablaBeneficiarios } from './TablaBeneficiarios';
 import EstadisticasBeneficiarios from './EstadisticasBeneficiarios';
 import MISSINGFolioModal from './MISSINGFolioModal';
+import ListadoGeneroModal from './ListadoGeneroModal';
 import GestionDoctosModal from './GestionDoctosModal';
 import EncargadosFoliosModal from './EncargadosFoliosModal';
 import type { Beneficiario, CampoFiltro, OrdenFiltro } from './types';
@@ -32,6 +33,7 @@ export default function VerBeneficiarios() {
   });
   const [aniosDisponibles, setAniosDisponibles] = useState<string[]>([]);
   const [mostrarModalFolio, setMostrarModalFolio] = useState(false);
+  const [mostrarListadoGenero, setMostrarListadoGenero] = useState(false);
   const [beneficiariosPorPagina, setBeneficiariosPorPagina] = useState(20);
   const [mostrarGestionDoctos, setMostrarGestionDoctos] = useState(false);
   const [mostrarEncargadosFolios, setMostrarEncargadosFolios] = useState(false);
@@ -190,32 +192,43 @@ export default function VerBeneficiarios() {
                     <optgroup label="Nombre"><option value="nombre_completo_asc">Nombre (A-Z)</option><option value="nombre_completo_desc">Nombre (Z-A)</option></optgroup>
                     <optgroup label="Fecha"><option value="fecha_desc">Fecha (más reciente)</option><option value="fecha_asc">Fecha (más antigua)</option></optgroup>
                     <optgroup label="Cantidad"><option value="cantidad_desc">Cantidad (mayor a menor)</option></optgroup>
-                    <optgroup label="Género"><option value="genero_hombres_primero">Hombres primero</option><option value="genero_mujeres_primero">Mujeres primero</option></optgroup>
+                    <optgroup label="Género"><option value="genero_hombres_primero">Solo hombres</option><option value="genero_mujeres_primero">Solo mujeres</option></optgroup>
                     <optgroup label="Estado"><option value="solo_anulados">Anulados</option><option value="solo_extraviados">Extraviados</option><option value="solo_informes">Informes</option></optgroup>
                 </select>
                 <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>
             </div>
 
-            {/* Filtro: Sin Imágenes (Checkbox) */}
-            <div 
-              onClick={() => setFiltros({ ...filtros, sinImagen: !filtros.sinImagen })}
-              className={`col-span-2 md:flex-none flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all cursor-pointer select-none ${
-                filtros.sinImagen 
-                ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800 text-blue-600 dark:text-blue-400' 
-                : 'bg-gray-50 border-gray-200 dark:bg-neutral-800 dark:border-neutral-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700'
-              }`}
-            >
-              <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
-                filtros.sinImagen 
-                ? 'bg-blue-600 border-blue-600 text-white' 
-                : 'bg-white dark:bg-neutral-900 border-gray-300 dark:border-neutral-600'
-              }`}>
-                {filtros.sinImagen && (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                )}
+            {/* Filtros: Sin Imágenes + Listado género */}
+            <div className="col-span-2 md:flex-none flex flex-col sm:flex-row gap-2">
+              <div 
+                onClick={() => setFiltros({ ...filtros, sinImagen: !filtros.sinImagen })}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all cursor-pointer select-none ${
+                  filtros.sinImagen 
+                  ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800 text-blue-600 dark:text-blue-400' 
+                  : 'bg-gray-50 border-gray-200 dark:bg-neutral-800 dark:border-neutral-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700'
+                }`}
+              >
+                <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
+                  filtros.sinImagen 
+                  ? 'bg-blue-600 border-blue-600 text-white' 
+                  : 'bg-white dark:bg-neutral-900 border-gray-300 dark:border-neutral-600'
+                }`}>
+                  {filtros.sinImagen && (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  )}
+                </div>
+                <span className="text-sm font-bold whitespace-nowrap">Sin Imágenes</span>
               </div>
-              <span className="text-sm font-bold">Sin Imágenes</span>
+
+              <button
+                type="button"
+                onClick={() => setMostrarListadoGenero(true)}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border bg-gray-50 border-gray-200 dark:bg-neutral-800 dark:border-neutral-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-700 transition-all"
+              >
+                <Users size={18} />
+                <span className="text-sm font-bold whitespace-nowrap">Hombres / Mujeres</span>
+              </button>
             </div>
 
             {/* Centro: Switch Tabla/Tarjetas */}
@@ -281,6 +294,11 @@ export default function VerBeneficiarios() {
           </div>
         </div>
         <MISSINGFolioModal visible={mostrarModalFolio} onClose={() => setMostrarModalFolio(false)} beneficiarios={beneficiariosFiltrados}/>
+        <ListadoGeneroModal
+          visible={mostrarListadoGenero}
+          onClose={() => setMostrarListadoGenero(false)}
+          beneficiarios={beneficiariosFiltrados}
+        />
         <GestionDoctosModal
           visible={mostrarGestionDoctos}
           onClose={() => setMostrarGestionDoctos(false)}

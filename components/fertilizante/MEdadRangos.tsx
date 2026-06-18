@@ -74,7 +74,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   const totalMujeres = Object.values(totalPorRango).reduce((acc, curr) => acc + curr.mujeres, 0);
   const totalGeneral = Object.values(totalPorRango).reduce((acc, curr) => acc + curr.total, 0);
 
-const datosGrafica = clavesRango.map((clave) => {
+const datosPorRango = clavesRango.map((clave) => {
   const hombres = totalPorRango[clave].hombres;
   const mujeres = totalPorRango[clave].mujeres;
   const total = hombres + mujeres;
@@ -96,9 +96,19 @@ const datosGrafica = clavesRango.map((clave) => {
     etiqueta: `${nombre} (${porcentajeTotal}%)`,
     hombres,
     mujeres,
-    total, // 👉 agregado aquí
+    total,
   };
 });
+
+const datosGrafica = [
+  {
+    etiqueta: 'Gran Total (100%)',
+    hombres: totalHombres,
+    mujeres: totalMujeres,
+    total: totalGeneral,
+  },
+  ...datosPorRango,
+];
 
 
   return (

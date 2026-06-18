@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/Progress";
 import MTopLugares from "./MTopLugares";
 import MEdadRangos from "./MEdadRangos";
 import type { Beneficiario } from "./types";
+import { TOTAL_META_SACOS } from "./config";
 
 interface Props {
   data: Beneficiario[];
@@ -24,14 +25,22 @@ const calcularEdad = (fechaNacimiento: string): number => {
 
 export default function EstadisticasBeneficiarios({ data }: Props) {
   const [isOpen, setIsOpen] = useState(false);
-  const totalMeta = 7100;
+  const totalMeta = TOTAL_META_SACOS;
 
   // --- Cálculos (sin cambios) ---
   const dataFiltrada = data.filter((b) => b.estado !== "Anulado");
   const totalCantidad = dataFiltrada.reduce(
-    (sum, b) => ((b.cantidad ?? 0 > 0) ? sum + (b.cantidad ?? 0) : sum),
+    (sum, b) => ((b.cantidad ?? 0) > 0 ? sum + (b.cantidad ?? 0) : sum),
     0,
   );
+  const beneficiariosEntregados = data.filter((b) => b.estado === "Entregado");
+  const totalBeneficiarios = beneficiariosEntregados.length;
+  const hombresEntregados = beneficiariosEntregados.filter(
+    (b) => b.sexo === "M",
+  ).length;
+  const mujeresEntregadas = beneficiariosEntregados.filter(
+    (b) => b.sexo === "F",
+  ).length;
   const hombres = dataFiltrada.filter((b) => b.sexo === "M").length;
   const mujeres = dataFiltrada.filter((b) => b.sexo === "F").length;
   const porcentaje = Math.min((totalCantidad / totalMeta) * 100, 100);
@@ -140,6 +149,19 @@ export default function EstadisticasBeneficiarios({ data }: Props) {
           </div>
           <div className="mt-2">
             <Progress value={porcentaje} className="h-3" />
+          </div>
+          <div className="mt-3 text-base font-bold">
+            <span className="text-blue-700 dark:text-blue-400">
+              Hombres: {hombresEntregados}
+            </span>{" "}
+            |{" "}
+            <span className="text-red-500 dark:text-red-400">
+              Mujeres: {mujeresEntregadas}
+            </span>{" "}
+            |{" "}
+            <span className="text-gray-800 dark:text-gray-200">
+              Total: {totalBeneficiarios}
+            </span>
           </div>
         </div>
 
