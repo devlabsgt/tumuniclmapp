@@ -50,7 +50,13 @@ export default function CitacionForm({ id, initialData, onSuccess, onCancel }: C
 
   const handleSubmit = async () => {
     if (!motivo || !fechaCita) {
-      Swal.fire("Error", "Por favor llena todos los campos", "error");
+      Swal.fire({
+        title: "Error",
+        text: "Por favor llena todos los campos",
+        icon: "error",
+        background: '#18181b',
+        color: '#ffffff'
+      });
       return;
     }
 
@@ -83,10 +89,22 @@ export default function CitacionForm({ id, initialData, onSuccess, onCancel }: C
         );
       }
       
-      Swal.fire("Éxito", initialData ? "Citación actualizada correctamente" : "Citación registrada y notificada correctamente", "success");
+      Swal.fire({
+        title: "Éxito",
+        text: initialData ? "Citación actualizada correctamente" : "Citación registrada y notificada correctamente",
+        icon: "success",
+        background: '#18181b',
+        color: '#ffffff'
+      });
       onSuccess();
     } else {
-      Swal.fire("Error", "No se pudo guardar: " + result.error, "error");
+      Swal.fire({
+        title: "Error",
+        text: "No se pudo guardar: " + result.error,
+        icon: "error",
+        background: '#18181b',
+        color: '#ffffff'
+      });
     }
   };
 

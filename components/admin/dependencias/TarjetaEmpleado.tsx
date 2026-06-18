@@ -234,39 +234,44 @@ export default function TarjetaEmpleado({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-0 sm:p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
           <motion.div
-            className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-5xl relative max-h-[90vh] overflow-y-auto"
+            className="bg-white dark:bg-neutral-900 rounded-none sm:rounded-xl shadow-2xl w-full h-[100dvh] sm:h-auto max-w-5xl relative sm:max-h-[90vh] overflow-y-auto flex flex-col"
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             exit={{ scale: 0.9 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="absolute top-2 right-2 flex gap-2">
-              {llamadas && llamadas.length > 0 && (
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowFaltasModal(true)} 
-                  className="bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 gap-2 font-bold px-3 shadow-sm"
-                >
-                  <AlertTriangle className="h-4 w-4" />
-                  <span className="hidden sm:inline">Faltas:</span>
-                  <span className="sm:hidden">{llamadas.length} Faltas</span>
-                  <span className="hidden sm:inline">{llamadas.length}</span>
+            {/* Header Institucional */}
+            <div className="flex items-center justify-between px-4 sm:px-8 py-3 sm:py-4 border-b-2 border-blue-600 bg-white dark:bg-neutral-900 shrink-0 sticky top-0 z-20">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <img
+                  src="/images/logo-muni.png"
+                  alt="Logo"
+                  className="h-14 sm:h-20 object-contain drop-shadow-sm"
+                />
+                <div>
+                  <p className="text-[10px] sm:text-[12px] font-black text-neutral-600 dark:text-neutral-400 tracking-widest uppercase leading-tight">
+                    Municipalidad de Concepción Las Minas
+                  </p>
+                  <p className="text-[8px] sm:text-[10px] font-bold text-neutral-500/80 tracking-wide mt-0.5">Expediente de Empleado</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                {!isGlobalLoading && puedeDescargar && (
+                  <Button variant="outline" size="icon" title="Exportar Ficha (Imagen/PDF)" onClick={() => setShowExportModal(true)} className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 border-blue-200 dark:border-blue-800 h-8 w-8 sm:h-10 sm:w-10">
+                    <Download className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 sm:h-10 sm:w-10 bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700">
+                  <X className="h-4 w-4" />
                 </Button>
-              )}
-              {!isGlobalLoading && puedeDescargar && (
-                <Button variant="outline" size="icon" title="Exportar Ficha (Imagen/PDF)" onClick={() => setShowExportModal(true)} className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 border-blue-200 dark:border-blue-800">
-                  <Download className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                </Button>
-              )}
-              <Button variant="ghost" size="icon" onClick={onClose}>
-                <X className="h-4 w-4" />
-              </Button>
+              </div>
             </div>
 
             {isGlobalLoading ? (
@@ -274,24 +279,31 @@ export default function TarjetaEmpleado({
                 <Cargando texto="Cargando perfil..." />
               </div>
             ) : (
-              <div className="p-8">
-                <div className="flex flex-col items-center mb-8 lg:flex-row lg:items-center lg:gap-4">
-                  <div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-full mb-4 lg:mb-0">
-                    <User className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div className="flex flex-col items-start w-full">
-                    
-                    <div className="flex flex-col items-start gap-1 lg:flex-row lg:items-center lg:gap-3 w-full pr-12">
-                        <h2 className="text-xl font-bold truncate w-full lg:w-auto">
-                            {datosCompletos?.nombre || "N/A"}
-                        </h2>
-                        
-                        <div className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/40 border border-blue-100 dark:border-blue-800 px-2 py-0.5 rounded text-xs shrink-0">
-                            <Cake className="h-3 w-3 text-blue-500" />
-                            <span className="font-semibold text-blue-700 dark:text-blue-300">
-                                {edad}
-                            </span>
-                        </div>
+              <div className="p-5 sm:p-8">
+                <div className="flex flex-col items-start mb-8 lg:flex-row lg:items-center lg:gap-4">
+                  <div className="flex flex-col w-full">
+                    <div className="flex flex-col-reverse sm:flex-row items-start sm:items-center sm:justify-between gap-4 sm:gap-6 w-full">
+                      <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-3 w-full sm:w-auto pr-12 sm:pr-0">
+                          <h2 className="text-base font-bold truncate w-full sm:w-auto">
+                              {datosCompletos?.nombre || "N/A"}
+                          </h2>
+                          
+                          <div className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/40 border border-blue-100 dark:border-blue-800 px-2 py-0.5 rounded text-xs shrink-0">
+                              <Cake className="h-3 w-3 text-blue-500" />
+                              <span className="font-semibold text-blue-700 dark:text-blue-300">
+                                  {edad}
+                              </span>
+                          </div>
+                      </div>
+
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowFaltasModal(true)} 
+                        className="w-full sm:w-auto bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 shadow-sm border border-blue-200 dark:border-blue-800 gap-2 font-bold px-6 py-5 sm:py-2.5 text-sm sm:text-base rounded-xl shrink-0 transition-colors duration-200"
+                      >
+                        <FileText className="h-5 w-5 sm:h-4 sm:w-4" />
+                        Citaciones y Faltas
+                      </Button>
                     </div>
 
                     {pathItems.length > 0 && (
@@ -413,6 +425,14 @@ export default function TarjetaEmpleado({
               onClose={() => setShowExportModal(false)}
               userId={userId}
             />
+
+            {/* Decorative Bottom Bar */}
+            <div className="h-2 w-full bg-blue-600 flex mt-auto shrink-0 sticky bottom-0 z-20">
+              <div className="h-full w-1/4 bg-blue-800"></div>
+              <div className="h-full w-1/4 bg-blue-600"></div>
+              <div className="h-full w-1/4 bg-blue-400"></div>
+              <div className="h-full w-1/4 bg-blue-200"></div>
+            </div>
           </motion.div>
 
           {/* Modal de Faltas */}
