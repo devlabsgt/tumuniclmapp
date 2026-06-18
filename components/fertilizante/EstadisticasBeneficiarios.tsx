@@ -253,7 +253,7 @@ export default function EstadisticasBeneficiarios({ data }: Props) {
       {/* Modales (se mantienen fuera del acordeón para un renderizado limpio) */}
       {mostrarTopLugares && (
         <MTopLugares
-          conteoPorLugar={conteoPorLugar}
+          beneficiarios={dataFiltrada}
           onClose={() => setMostrarTopLugares(false)}
         />
       )}

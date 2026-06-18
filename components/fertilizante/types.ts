@@ -51,6 +51,6 @@ export type OrdenFiltro =
 
 
   export interface MTopLugaresProps {
-  conteoPorLugar: Record<string, number>; // ahora espera sumas, no conteos
+  beneficiarios: Beneficiario[];
   onClose: () => void;
 }
