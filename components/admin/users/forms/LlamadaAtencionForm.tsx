@@ -20,7 +20,13 @@ export default function LlamadaAtencionForm({ id, initialData, onSuccess, onCanc
 
   const handleSubmit = async () => {
     if (!tipo || !descripcion) {
-      Swal.fire("Error", "Por favor llena todos los campos", "error");
+      Swal.fire({
+        title: "Error",
+        text: "Por favor llena todos los campos",
+        icon: "error",
+        background: '#18181b',
+        color: '#ffffff'
+      });
       return;
     }
 
@@ -34,10 +40,22 @@ export default function LlamadaAtencionForm({ id, initialData, onSuccess, onCanc
     setLoading(false);
 
     if (result.success) {
-      Swal.fire("Éxito", isEditing ? "Llamada de atención actualizada" : "Llamada de atención registrada correctamente", "success");
+      Swal.fire({
+        title: "Éxito",
+        text: isEditing ? "Llamada de atención actualizada" : "Llamada de atención registrada correctamente",
+        icon: "success",
+        background: '#18181b',
+        color: '#ffffff'
+      });
       onSuccess();
     } else {
-      Swal.fire("Error", "No se pudo guardar: " + result.error, "error");
+      Swal.fire({
+        title: "Error",
+        text: "No se pudo guardar: " + result.error,
+        icon: "error",
+        background: '#18181b',
+        color: '#ffffff'
+      });
     }
   };
 

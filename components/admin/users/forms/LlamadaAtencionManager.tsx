@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { LogOut, Plus, AlertCircle, Calendar, Pencil, Trash2, CheckCircle2, Clock } from "lucide-react";
+import { LogOut, Plus, AlertCircle, Calendar, Pencil, Trash2, CheckCircle2, Clock, RefreshCw } from "lucide-react";
 import LlamadaAtencionForm from "./LlamadaAtencionForm";
 import CitacionForm from "./CitacionForm";
 import { useLlamadasAtencion, useCitaciones } from "./hooks";
@@ -9,17 +9,38 @@ import Cargando from "@/components/ui/animations/Cargando";
 import Swal from "sweetalert2";
 
 const formatearFecha = (fechaStr: string) => {
-  const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   const d = new Date(fechaStr);
-  const dia = d.getDate();
-  const mes = meses[d.getMonth()];
+  const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const diaSemana = dias[d.getDay()];
+  const dia = d.getDate().toString().padStart(2, '0');
+  const mes = (d.getMonth() + 1).toString().padStart(2, '0');
   const anio = d.getFullYear().toString().substring(2);
   let hora = d.getHours();
   const minutos = d.getMinutes().toString().padStart(2, '0');
-  const ampm = hora >= 12 ? 'pm' : 'am';
+  const ampm = hora >= 12 ? 'PM' : 'AM';
   hora = hora % 12;
   hora = hora ? hora : 12;
-  return `${dia} ${mes}/${anio} a las ${hora}:${minutos} ${ampm}`;
+  return `${diaSemana} ${dia}/${mes}/${anio} | ${hora}:${minutos} ${ampm}`;
+};
+
+const formatearFechaConfirmacion = (fechaStr: string) => {
+  const d = new Date(fechaStr);
+  const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const diaSemana = dias[d.getDay()];
+  const dia = d.getDate().toString().padStart(2, '0');
+  const mes = (d.getMonth() + 1).toString().padStart(2, '0');
+  const anio = d.getFullYear().toString().substring(2);
+  let hora = d.getHours();
+  const minutos = d.getMinutes().toString().padStart(2, '0');
+  const ampm = hora >= 12 ? 'PM' : 'AM';
+  hora = hora % 12;
+  hora = hora ? hora : 12;
+  const horaStr = hora.toString().padStart(2, '0');
+  
+  return {
+    fecha: `${diaSemana} ${dia}/${mes}/${anio}`,
+    hora: `${horaStr}:${minutos} ${ampm}`
+  };
 };
 
 interface LlamadaAtencionManagerProps {
@@ -29,7 +50,7 @@ interface LlamadaAtencionManagerProps {
 }
 
 export default function LlamadaAtencionManager({ id, onClose, readOnly = false }: LlamadaAtencionManagerProps) {
-  const [activeTab, setActiveTab] = useState<"faltas" | "citaciones">("faltas");
+  const [activeTab, setActiveTab] = useState<"faltas" | "citaciones">("citaciones");
   const [view, setView] = useState<"list" | "createFalta" | "createCitacion">("list");
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [orden, setOrden] = useState<"desc" | "asc">("desc");
@@ -181,33 +202,45 @@ export default function LlamadaAtencionManager({ id, onClose, readOnly = false }
             <p className="text-[8px] sm:text-[10px] font-bold text-neutral-500/80 tracking-wide mt-0.5">Expediente Disciplinario</p>
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-gray-100 dark:bg-neutral-800 rounded-xl transition-colors ml-2 active:scale-95"
-        >
-          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              invalidateFaltas();
+              invalidateCitaciones();
+            }}
+            title="Recargar datos"
+            className="p-1.5 sm:p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 bg-gray-100 dark:bg-neutral-800 rounded-xl transition-colors active:scale-95"
+          >
+            <RefreshCw className={`w-4 h-4 sm:w-5 sm:h-5 ${loadingFaltas || loadingCitaciones ? 'animate-spin text-blue-500' : ''}`} />
+          </button>
+          <button
+            onClick={onClose}
+            className="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 bg-gray-100 dark:bg-neutral-800 rounded-xl transition-colors active:scale-95"
+          >
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 dark:border-neutral-800 px-6 sm:px-8 pt-4">
+      <div className="flex justify-center border-b border-gray-200 dark:border-neutral-800 px-6 sm:px-8 pt-4">
+        <button
+          onClick={() => setActiveTab("citaciones")}
+          className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${activeTab === 'citaciones'
+            ? "border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-500"
+            : "border-transparent text-gray-500 dark:text-neutral-500 hover:text-gray-700 dark:hover:text-neutral-300 hover:border-gray-300 dark:hover:border-neutral-700"
+            }`}
+        >
+          Citaciones ({citaciones.length})
+        </button>
         <button
           onClick={() => setActiveTab("faltas")}
           className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${activeTab === "faltas"
-            ? "border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-500"
+            ? "border-red-600 text-red-600 dark:border-red-500 dark:text-red-500"
             : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             }`}
         >
-          Faltas Disciplinarias
-        </button>
-        <button
-          onClick={() => setActiveTab("citaciones")}
-          className={`px-4 py-2 text-sm font-bold border-b-2 transition-colors ${activeTab === 'citaciones' 
-                ? "border-red-600 text-red-600 dark:border-red-500 dark:text-red-500" 
-                : "border-transparent text-gray-500 dark:text-neutral-500 hover:text-gray-700 dark:hover:text-neutral-300 hover:border-gray-300 dark:hover:border-neutral-700"
-            }`}
-        >
-          Citaciones a RRHH
+          Faltas ({llamadas.length})
         </button>
       </div>
 
@@ -230,16 +263,26 @@ export default function LlamadaAtencionManager({ id, onClose, readOnly = false }
               <option value="asc">Ascendente</option>
             </select>
           )}
-          {!readOnly && (
+          {activeTab === "faltas" && !readOnly && (
             <Button
-              onClick={() => setView(activeTab === "faltas" ? "createFalta" : "createCitacion")}
-              className={`flex-1 md:flex-none text-white flex items-center justify-center gap-1.5 rounded-xl h-10 px-3 text-xs sm:text-sm whitespace-nowrap ${
-                activeTab === "faltas" 
-                  ? "bg-blue-600 hover:bg-blue-700" 
-                  : "bg-red-600 hover:bg-red-700"
-              }`}
+              onClick={() => {
+                setEditingRecord(null);
+                setView("createFalta");
+              }}
+              className="bg-red-600 hover:bg-red-700 flex-1 md:flex-none text-white flex items-center justify-center gap-1.5 rounded-xl h-10 px-3 text-xs sm:text-sm whitespace-nowrap"
             >
-              <Plus className="h-4 w-4 shrink-0" /> {activeTab === "faltas" ? "Agregar Falta" : "Nueva Citación"}
+              <Plus className="h-4 w-4 shrink-0" /> Agregar Falta
+            </Button>
+          )}
+          {activeTab === "citaciones" && !readOnly && (
+            <Button
+              onClick={() => {
+                setEditingRecord(null);
+                setView("createCitacion");
+              }}
+              className="bg-blue-600 hover:bg-blue-700 flex-1 md:flex-none text-white flex items-center justify-center gap-1.5 rounded-xl h-10 px-3 text-xs sm:text-sm whitespace-nowrap"
+            >
+              <Plus className="h-4 w-4 shrink-0" /> Nueva Citación
             </Button>
           )}
         </div>
@@ -282,10 +325,18 @@ export default function LlamadaAtencionManager({ id, onClose, readOnly = false }
                           FALTA {llamada.tipo}
                         </span>
                       </div>
-                      <span className="hidden sm:flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 font-semibold bg-gray-50 dark:bg-neutral-900/50 px-2.5 py-1 rounded-md border border-gray-100 dark:border-neutral-800 w-fit">
-                        <Calendar className="h-3.5 w-3.5 shrink-0" />
-                        {formatearFecha(llamada.created_at)}
-                      </span>
+                      <div className="hidden sm:flex items-center gap-2 shrink-0">
+                        <span className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 font-semibold bg-gray-50 dark:bg-neutral-900/50 px-2.5 py-1 rounded-md border border-gray-100 dark:border-neutral-800 w-fit">
+                          <Calendar className="h-3.5 w-3.5 shrink-0" />
+                          {formatearFecha(llamada.created_at)}
+                        </span>
+                        {!readOnly && (
+                          <div className="flex items-center gap-1 bg-white/50 dark:bg-neutral-800/50 rounded-lg p-0.5 border border-gray-100 dark:border-neutral-800">
+                            <button onClick={() => handleEditFalta(llamada)} className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-md transition-colors"><Pencil className="w-4 h-4" /></button>
+                            <button onClick={() => handleDeleteFalta(llamada.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors"><Trash2 className="w-4 h-4" /></button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="pl-2">
                       <h4 className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-neutral-400 uppercase tracking-widest mb-1.5 leading-tight">
@@ -303,7 +354,7 @@ export default function LlamadaAtencionManager({ id, onClose, readOnly = false }
                     </div>
 
                     {!readOnly && (
-                      <div className="absolute top-2.5 right-2.5 sm:top-auto sm:bottom-4 sm:right-4 flex items-center gap-1 bg-white/80 dark:bg-neutral-800/80 backdrop-blur-sm rounded-lg p-0.5 z-10">
+                      <div className="absolute top-2.5 right-2.5 sm:hidden flex items-center gap-1 bg-white/80 dark:bg-neutral-800/80 backdrop-blur-sm rounded-lg p-0.5 z-10">
                         <button onClick={() => handleEditFalta(llamada)} className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-md transition-colors"><Pencil className="w-4 h-4" /></button>
                         <button onClick={() => handleDeleteFalta(llamada.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors"><Trash2 className="w-4 h-4" /></button>
                       </div>
@@ -351,7 +402,7 @@ export default function LlamadaAtencionManager({ id, onClose, readOnly = false }
                             {citacion.estado}
                           </span>
                         </div>
-                        
+
                         <div>
                           <h4 className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-neutral-400 uppercase tracking-widest mb-1.5 leading-tight">
                             Motivo de la Citación
@@ -363,19 +414,26 @@ export default function LlamadaAtencionManager({ id, onClose, readOnly = false }
                       </div>
 
                       {/* Right Column: Dates (Desktop) */}
-                      <div className="hidden sm:flex flex-col items-end gap-2 shrink-0">
+                      <div className="hidden sm:flex items-center gap-2 shrink-0">
                         <span className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 font-semibold bg-gray-50 dark:bg-neutral-900/50 px-2.5 py-1 rounded-md border border-gray-100 dark:border-neutral-800 w-fit">
                           <Calendar className="h-3.5 w-3.5 shrink-0" />
                           Agendada para: {formatearFecha(citacion.fecha_cita)}
                         </span>
+                        {!readOnly && (
+                          <div className="flex items-center gap-1 bg-white/50 dark:bg-neutral-800/50 rounded-lg p-0.5 border border-gray-100 dark:border-neutral-800">
+                            <button onClick={() => handleEditCitacion(citacion)} className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-md transition-colors"><Pencil className="w-4 h-4" /></button>
+                            <button onClick={() => handleDeleteCitacion(citacion.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors"><Trash2 className="w-4 h-4" /></button>
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     {citacion.fecha_confirmado && (
                       <div className="pl-2 mt-4">
-                        <div className="bg-gray-50 dark:bg-neutral-900/50 border border-gray-200 dark:border-neutral-800 rounded-lg p-3 inline-block">
-                          <p className="text-xs text-gray-600 dark:text-gray-400">
-                            <strong>Confirmado por:</strong> <span className="text-gray-900 dark:text-white">{nombreEmpleado} el {formatearFecha(citacion.fecha_confirmado)}</span>
+                        <div className="bg-gray-50 dark:bg-neutral-900/50 border border-gray-200 dark:border-neutral-800 rounded-lg p-3 block w-full">
+                          <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                            Confirmado por: <span className="font-bold italic text-gray-900 dark:text-white">{nombreEmpleado}</span><br />
+                            El <span className="font-bold italic text-gray-900 dark:text-white">{formatearFechaConfirmacion(citacion.fecha_confirmado).fecha}</span> a las <span className="font-bold italic text-gray-900 dark:text-white">{formatearFechaConfirmacion(citacion.fecha_confirmado).hora}</span>
                           </p>
                         </div>
                       </div>
@@ -389,7 +447,7 @@ export default function LlamadaAtencionManager({ id, onClose, readOnly = false }
                     </div>
 
                     {!readOnly && (
-                      <div className="absolute top-2.5 right-2.5 sm:top-auto sm:bottom-4 sm:right-4 flex items-center gap-1 bg-white/80 dark:bg-neutral-800/80 backdrop-blur-sm rounded-lg p-0.5 z-10">
+                      <div className="absolute top-2.5 right-2.5 sm:hidden flex items-center gap-1 bg-white/80 dark:bg-neutral-800/80 backdrop-blur-sm rounded-lg p-0.5 z-10">
                         <button onClick={() => handleEditCitacion(citacion)} className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-md transition-colors"><Pencil className="w-4 h-4" /></button>
                         <button onClick={() => handleDeleteCitacion(citacion.id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors"><Trash2 className="w-4 h-4" /></button>
                       </div>
