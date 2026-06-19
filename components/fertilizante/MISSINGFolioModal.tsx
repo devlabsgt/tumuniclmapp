@@ -7,13 +7,14 @@ import autoTable from "jspdf-autotable";
 import { Download, FileWarning, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  ESTADOS_FOLIO_OCUPADO,
-  FOLIO_FIN,
+  FOLIO_FIN_PRESET_MODAL,
   FOLIO_INICIO,
   folioNumericoDesdeCodigo,
   formatearFolio,
 } from "./config";
 import { inputMonoClass, labelClass } from "./formStyles";
+
+const FOLIO_HASTA_PRESET = FOLIO_FIN_PRESET_MODAL;
 
 interface Props {
   visible: boolean;
@@ -29,7 +30,7 @@ const folioDesdeInput = (valor: string, fallback: number): number => {
   if (!digitos) return fallback;
   const n = parseInt(digitos, 10);
   if (Number.isNaN(n)) return fallback;
-  return Math.min(FOLIO_FIN, Math.max(FOLIO_INICIO, n));
+  return Math.max(FOLIO_INICIO, n);
 };
 
 export default function MISSINGFolioModal({
@@ -38,61 +39,61 @@ export default function MISSINGFolioModal({
   beneficiarios,
 }: Props) {
   const [rangoIni, setRangoIni] = useState(formatearFolio(FOLIO_INICIO));
-  const [rangoFin, setRangoFin] = useState(formatearFolio(FOLIO_FIN));
+  const [rangoFin, setRangoFin] = useState(formatearFolio(FOLIO_HASTA_PRESET));
 
   useEffect(() => {
     if (!visible) return;
     setRangoIni(formatearFolio(FOLIO_INICIO));
-    setRangoFin(formatearFolio(FOLIO_FIN));
+    setRangoFin(formatearFolio(FOLIO_HASTA_PRESET));
   }, [visible]);
 
   const foliosRegistrados = useMemo(() => {
     const set = new Set<number>();
     for (const b of beneficiarios) {
-      if (!b.estado || !ESTADOS_FOLIO_OCUPADO.has(b.estado)) continue;
       const folio = folioNumericoDesdeCodigo(b.codigo);
-      if (
-        folio !== null &&
-        folio >= FOLIO_INICIO &&
-        folio <= FOLIO_FIN
-      ) {
+      if (folio !== null && folio >= FOLIO_INICIO) {
         set.add(folio);
       }
     }
     return set;
   }, [beneficiarios]);
 
-  const faltantesTodos = useMemo(() => {
+  const desde = folioDesdeInput(rangoIni, FOLIO_INICIO);
+  const hasta = folioDesdeInput(rangoFin, FOLIO_HASTA_PRESET);
+  const rangoMin = Math.min(desde, hasta);
+  const rangoMax = Math.max(desde, hasta);
+
+  const faltantesEnRango = useMemo(() => {
     const total: number[] = [];
-    for (let i = FOLIO_INICIO; i <= FOLIO_FIN; i++) {
+    for (let i = rangoMin; i <= rangoMax; i++) {
+      if (!foliosRegistrados.has(i)) total.push(i);
+    }
+    return total;
+  }, [foliosRegistrados, rangoMin, rangoMax]);
+
+  const faltantesPreset = useMemo(() => {
+    const total: number[] = [];
+    for (let i = FOLIO_INICIO; i <= FOLIO_HASTA_PRESET; i++) {
       if (!foliosRegistrados.has(i)) total.push(i);
     }
     return total;
   }, [foliosRegistrados]);
 
-  const desde = folioDesdeInput(rangoIni, FOLIO_INICIO);
-  const hasta = folioDesdeInput(rangoFin, FOLIO_FIN);
-  const rangoMin = Math.min(desde, hasta);
-  const rangoMax = Math.max(desde, hasta);
-
   const faltantes = useMemo(
-    () =>
-      faltantesTodos
-        .filter((f) => f >= rangoMin && f <= rangoMax)
-        .map((f) => formatearFolio(f)),
-    [faltantesTodos, rangoMin, rangoMax],
+    () => faltantesEnRango.map((f) => formatearFolio(f)),
+    [faltantesEnRango],
   );
 
   const rangoEtiqueta = `${formatearFolio(rangoMin)} – ${formatearFolio(rangoMax)}`;
-  const rangoTotalEtiqueta = `${formatearFolio(FOLIO_INICIO)} – ${formatearFolio(FOLIO_FIN)}`;
+  const rangoTotalEtiqueta = `${formatearFolio(FOLIO_INICIO)} – ${formatearFolio(FOLIO_HASTA_PRESET)}`;
 
   const restablecerRangoCompleto = () => {
     setRangoIni(formatearFolio(FOLIO_INICIO));
-    setRangoFin(formatearFolio(FOLIO_FIN));
+    setRangoFin(formatearFolio(FOLIO_HASTA_PRESET));
   };
 
   const esRangoCompleto =
-    rangoMin === FOLIO_INICIO && rangoMax === FOLIO_FIN;
+    rangoMin === FOLIO_INICIO && rangoMax === FOLIO_HASTA_PRESET;
 
   const manejarCerrar = () => onClose();
 
@@ -109,7 +110,7 @@ export default function MISSINGFolioModal({
       align: "center",
     });
     doc.text(
-      `Total general (${rangoTotalEtiqueta}): ${faltantesTodos.length}`,
+      `Total general (${rangoTotalEtiqueta}): ${faltantesPreset.length}`,
       pageWidth / 2,
       35,
       { align: "center" },
@@ -184,7 +185,7 @@ export default function MISSINGFolioModal({
                   <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">
                     Rango global {rangoTotalEtiqueta} ·{" "}
                     <span className="font-semibold text-orange-600 dark:text-orange-400">
-                      {faltantesTodos.length} faltantes en total
+                      {faltantesPreset.length} faltantes en total
                     </span>
                   </p>
                 </div>
@@ -238,9 +239,9 @@ export default function MISSINGFolioModal({
                       }
                       onBlur={() => {
                         if (rangoFin)
-                          setRangoFin(formatearFolio(folioDesdeInput(rangoFin, FOLIO_FIN)));
+                          setRangoFin(formatearFolio(folioDesdeInput(rangoFin, FOLIO_HASTA_PRESET)));
                       }}
-                      placeholder={formatearFolio(FOLIO_FIN)}
+                      placeholder={formatearFolio(FOLIO_HASTA_PRESET)}
                       className={inputMonoClass}
                     />
                   </div>
@@ -266,7 +267,7 @@ export default function MISSINGFolioModal({
                         : "bg-gray-50 border-gray-200 text-gray-600 dark:bg-neutral-800 dark:border-neutral-700 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-700"
                     }`}
                   >
-                    Todo ({formatearFolio(FOLIO_INICIO)}–{formatearFolio(FOLIO_FIN)})
+                    Todo ({formatearFolio(FOLIO_INICIO)}–{formatearFolio(FOLIO_HASTA_PRESET)})
                   </button>
                 </div>
               </div>
