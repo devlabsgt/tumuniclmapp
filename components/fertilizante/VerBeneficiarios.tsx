@@ -395,7 +395,7 @@ export default function VerBeneficiarios() {
         <MISSINGFolioModal
           visible={mostrarModalFolio}
           onClose={() => setMostrarModalFolio(false)}
-          beneficiarios={beneficiariosFiltrados}
+          beneficiarios={beneficiarios}
         />
         <ListadoGeneroModal
           visible={mostrarListadoGenero}
