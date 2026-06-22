@@ -34,6 +34,8 @@ interface ImageUploaderProps {
   /** Oculta botones internos; usar ref para controlarlos desde el padre */
   botonesExternos?: boolean;
   onEstadoChange?: (estado: { uploading: boolean; deleting: boolean }) => void;
+  /** Clase CSS adicional para la vista previa de la imagen (ej. max-h-[250px]) */
+  previewClassName?: string;
 }
 
 const ImageUploader = forwardRef<ImageUploaderHandle, ImageUploaderProps>(function ImageUploader({
@@ -48,6 +50,7 @@ const ImageUploader = forwardRef<ImageUploaderHandle, ImageUploaderProps>(functi
   permitirTodos = false,
   botonesExternos = false,
   onEstadoChange,
+  previewClassName,
 }, ref) {
   const supabase = createClient();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -299,7 +302,7 @@ const ImageUploader = forwardRef<ImageUploaderHandle, ImageUploaderProps>(functi
                   className={
                     botonesExternos
                       ? 'w-full max-h-[calc(95vh-11rem)] object-contain select-none block'
-                      : 'max-h-[460px] object-contain rounded-lg shadow-md select-none'
+                      : `${previewClassName || 'max-h-[460px]'} object-contain rounded-lg shadow-md select-none`
                   }
                   draggable={false}
                 />
@@ -327,6 +330,7 @@ const ImageUploader = forwardRef<ImageUploaderHandle, ImageUploaderProps>(functi
               {!currentImagePath && (
                 <>
                   <button
+                    type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isProcessing}
                     className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
@@ -340,6 +344,7 @@ const ImageUploader = forwardRef<ImageUploaderHandle, ImageUploaderProps>(functi
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => cameraInputRef.current?.click()}
                     disabled={isProcessing}
                     className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50"
@@ -352,6 +357,7 @@ const ImageUploader = forwardRef<ImageUploaderHandle, ImageUploaderProps>(functi
 
               {currentImagePath && (
                 <button
+                  type="button"
                   onClick={handleDelete}
                   disabled={isProcessing}
                   className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50"

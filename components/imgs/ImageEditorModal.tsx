@@ -21,6 +21,7 @@ export default function ImageEditorModal({
   onApply,
   onCancel,
 }: ImageEditorModalProps) {
+  const [currentAspect, setCurrentAspect] = useState(aspect);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
@@ -70,7 +71,7 @@ export default function ImageEditorModal({
             crop={crop}
             zoom={zoom}
             rotation={rotation}
-            aspect={aspect}
+            aspect={currentAspect}
             restrictPosition={false}
             onCropChange={setCrop}
             onZoomChange={setZoom}
@@ -84,6 +85,7 @@ export default function ImageEditorModal({
           {/* Zoom controls */}
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => setZoom((z) => Math.max(0.1, z - 0.2))}
               className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors text-lg font-bold text-gray-700 dark:text-gray-300 active:scale-95"
               title="Alejar"
@@ -100,6 +102,7 @@ export default function ImageEditorModal({
               className="flex-1 accent-blue-600 h-2"
             />
             <button
+              type="button"
               onClick={() => setZoom((z) => Math.min(10, z + 0.2))}
               className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors text-lg font-bold text-gray-700 dark:text-gray-300 active:scale-95"
               title="Acercar"
@@ -114,6 +117,7 @@ export default function ImageEditorModal({
           {/* Rotation + Reset */}
           <div className="flex items-center justify-center gap-3">
             <button
+              type="button"
               onClick={() => setRotation((r) => r - 90)}
               className="p-2 rounded-lg bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors"
               title="Rotar -90°"
@@ -124,6 +128,7 @@ export default function ImageEditorModal({
               {rotation}°
             </span>
             <button
+              type="button"
               onClick={() => setRotation((r) => r + 90)}
               className="p-2 rounded-lg bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors"
               title="Rotar +90°"
@@ -131,6 +136,7 @@ export default function ImageEditorModal({
               <RotateCw size={18} />
             </button>
             <button
+              type="button"
               onClick={() => {
                 setRotation(0);
                 setZoom(1);
@@ -141,6 +147,20 @@ export default function ImageEditorModal({
             >
               <RefreshCw size={18} />
             </button>
+            {currentAspect !== 1 && (
+              <button
+                type="button"
+                onClick={() => setCurrentAspect((a) => 1 / a)}
+                className="p-2 rounded-lg bg-gray-100 dark:bg-neutral-800 hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors"
+                title="Cambiar orientación (Vertical/Horizontal)"
+              >
+                <div className="flex items-center gap-1 font-bold text-xs">
+                  <span className={currentAspect < 1 ? 'text-blue-500' : ''}>V</span>
+                  <span>/</span>
+                  <span className={currentAspect > 1 ? 'text-blue-500' : ''}>H</span>
+                </div>
+              </button>
+            )}
           </div>
 
           <p className="text-[10px] text-center text-gray-400 dark:text-gray-500">Pellizca o usa la rueda del ratón para hacer zoom</p>
@@ -149,6 +169,7 @@ export default function ImageEditorModal({
         {/* Footer */}
         <div className="px-4 py-3 border-t border-gray-200 dark:border-neutral-700 flex gap-2 justify-end">
           <button
+            type="button"
             onClick={onCancel}
             disabled={applying}
             className="px-4 py-2 text-sm rounded-lg bg-gray-200 dark:bg-neutral-700 hover:bg-gray-300 dark:hover:bg-neutral-600 transition-colors disabled:opacity-50"
@@ -156,6 +177,7 @@ export default function ImageEditorModal({
             Cancelar
           </button>
           <button
+            type="button"
             onClick={handleApply}
             disabled={applying}
             className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
