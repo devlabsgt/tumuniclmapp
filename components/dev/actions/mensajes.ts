@@ -4,6 +4,28 @@ import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { mensajeDevSchema, MensajeDev, MensajeDevFormData } from '../zod';
 
+async function attachCreadores(mensajes: MensajeDev[]): Promise<MensajeDev[]> {
+  if (mensajes.length === 0) return [];
+
+  const userIds = [...new Set(mensajes.map((m) => m.user_id).filter(Boolean))] as string[];
+  if (userIds.length === 0) {
+    return mensajes.map((m) => ({ ...m, creador_nombre: null }));
+  }
+
+  const supabase = await createClient();
+  const { data: usuarios } = await supabase
+    .from('info_usuario')
+    .select('user_id, nombre')
+    .in('user_id', userIds);
+
+  const nombres = new Map((usuarios ?? []).map((u) => [u.user_id, u.nombre]));
+
+  return mensajes.map((m) => ({
+    ...m,
+    creador_nombre: m.user_id ? nombres.get(m.user_id) ?? null : null,
+  }));
+}
+
 // ── Obtener todos los mensajes ──────────────────────────────────────────────
 export async function getMensajesDev(): Promise<MensajeDev[]> {
   const supabase = await createClient();
@@ -11,7 +33,6 @@ export async function getMensajesDev(): Promise<MensajeDev[]> {
   const { data, error } = await supabase
     .from('dev_mensajes')
     .select('*')
-    .is('user_id', null)
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -19,7 +40,7 @@ export async function getMensajesDev(): Promise<MensajeDev[]> {
     return [];
   }
 
-  return (data as MensajeDev[]) || [];
+  return attachCreadores((data as MensajeDev[]) || []);
 }
 
 // ── Obtener mensajes activos vigentes (para mostrar en el layout) ───────────
@@ -62,6 +83,11 @@ export async function crearMensajeDev(
   }
 
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { ok: false, error: 'Debe iniciar sesión para crear un mensaje.' };
+  }
 
   const { error } = await supabase.from('dev_mensajes').insert({
     titulo: parsed.data.titulo,
@@ -70,7 +96,7 @@ export async function crearMensajeDev(
     fecha_fin: parsed.data.fecha_fin,
     estado: parsed.data.estado,
     activo: parsed.data.activo,
-    user_id: parsed.data.user_id || null,
+    user_id: user.id,
   });
 
   if (error) {
@@ -104,7 +130,6 @@ export async function editarMensajeDev(
       fecha_fin: parsed.data.fecha_fin,
       estado: parsed.data.estado,
       activo: parsed.data.activo,
-      user_id: parsed.data.user_id || null,
     })
     .eq('id', id);
 
