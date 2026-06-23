@@ -46,10 +46,11 @@ export default function DevBanner() {
             >
               <div className="w-full flex items-start gap-3 px-4 py-2.5">
                 <div className={`flex-1 min-w-0 text-sm ${cfg.text}`}>
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                    <Icon className={`w-6 h-6 flex-shrink-0 ${cfg.accent}`} />
-                    <span className="font-bold">{m.titulo}</span>
-                    <span className="hidden sm:inline opacity-40">—</span>
+                  <div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Icon className={`hidden sm:block w-6 h-6 flex-shrink-0 ${cfg.accent}`} />
+                      <span className="font-bold leading-snug">{m.titulo}</span>
+                    </div>
                     <MensajeFormateado
                       texto={m.mensaje}
                       className="opacity-80 text-xs sm:text-sm [&_strong]:font-bold [&_em]:italic"
