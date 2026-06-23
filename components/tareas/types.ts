@@ -41,6 +41,7 @@ export interface Tarea {
   created_by: string;
   created_at: string;
   updated_at: string;
+  confirmed_at: string | null;
   
   // Relaciones expandidas
   assignee?: { 

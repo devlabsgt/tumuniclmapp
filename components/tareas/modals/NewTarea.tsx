@@ -105,9 +105,12 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
 
     try {
       const asignadoA = esJefe ? assignedTo : usuarioActual;
+      const tituloActividad = title.trim();
+      const nombreAsignador = usuarios.find((u) => u.user_id === usuarioActual)?.nombre || 'Alguien';
+      const esAutoAsignada = asignadoA === usuarioActual;
 
       await crear.mutateAsync({
-        title,
+        title: tituloActividad,
         description,
         due_date: new Date(dueDate).toISOString(),
         assigned_to: asignadoA,
@@ -115,13 +118,13 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
         status: 'Asignado'
       });
 
-      if (asignadoA !== usuarioActual) {
-        sendPushNotification(
-          'Nueva Actividad Asignada',
-          `Se te ha asignado una nueva actividad: "${title.trim()}".`,
-          [asignadoA]
-        );
-      }
+      sendPushNotification(
+        esAutoAsignada ? '📋 Actividad auto-asignada' : '📋 Nueva Actividad Asignada',
+        esAutoAsignada
+          ? `✅ Te asignaste una actividad: "${tituloActividad}".`
+          : `✅ ${nombreAsignador} te asignó una actividad: "${tituloActividad}".`,
+        [asignadoA]
+      );
       
       toast.success('¡Tarea creada correctamente!'); 
 

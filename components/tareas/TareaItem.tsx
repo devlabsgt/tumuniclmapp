@@ -61,6 +61,18 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
     return new Date(fechaISO).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
+  const formatearFechaHora = (fechaISO: string) => {
+    if (!fechaISO) return '';
+    return new Date(fechaISO).toLocaleString('es-ES', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
   const renderDescripcionConLinks = (texto: string) => {
     if (!texto) return null;
     const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}(\/[^\s]*)?)/g;
@@ -302,7 +314,14 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                 <div className="bg-slate-50 dark:bg-neutral-800 rounded-xl p-3 text-xs text-slate-500 dark:text-gray-400 flex flex-col gap-2">
                       <div className="flex justify-between items-center border-b pb-2 border-slate-200 dark:border-neutral-700">
                         <span className="font-bold text-slate-400 dark:text-gray-500 uppercase text-[10px]">Detalles del Registro</span>
-                        <span className="text-[10px] text-slate-400 dark:text-gray-500">Creado: {formatearFecha(tarea.created_at)}</span>
+                        <div className="flex flex-col items-end gap-0.5">
+                          <span className="text-[10px] text-slate-400 dark:text-gray-500">Creado: {formatearFecha(tarea.created_at)}</span>
+                          {tarea.confirmed_at && (
+                            <span className="text-[10px] text-green-600 dark:text-green-400 font-medium">
+                              Confirmado: {formatearFechaHora(tarea.confirmed_at)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       {esAutoAsignado ? (
                         <div className="flex items-center gap-2.5">

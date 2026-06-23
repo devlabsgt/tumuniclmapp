@@ -265,3 +265,65 @@ export async function duplicarTarea(datos: NewTaskState) {
   if (error) throw new Error(error.message);
   revalidatePath('/protected/actividades', 'layout');
 }
+
+export async function obtenerActividadPendienteConfirmacion() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, data: null };
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('id, title, description, due_date, created_by, assigned_to')
+    .eq('assigned_to', user.id)
+    .is('confirmed_at', null)
+    .neq('status', 'Completado')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching pending activity:', error);
+    return { success: false, data: null };
+  }
+
+  if (!data) return { success: true, data: null };
+
+  const { data: creador } = await supabase
+    .from('info_usuario')
+    .select('nombre')
+    .eq('user_id', data.created_by)
+    .single();
+
+  return {
+    success: true,
+    data: {
+      ...data,
+      creador_nombre: creador?.nombre || 'Desconocido',
+    },
+  };
+}
+
+export async function confirmarActividad(id: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, error: 'No autenticado' };
+
+  const confirmedAt = new Date().toISOString();
+
+  const { error } = await supabase
+    .from('tasks')
+    .update({ confirmed_at: confirmedAt })
+    .eq('id', id)
+    .eq('assigned_to', user.id)
+    .is('confirmed_at', null);
+
+  if (error) {
+    console.error('Error confirming activity:', error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/protected/actividades', 'layout');
+  return { success: true, confirmed_at: confirmedAt };
+}
