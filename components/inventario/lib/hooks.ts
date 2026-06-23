@@ -13,7 +13,7 @@ import {
   eliminarBien,
   getHistorialBien
 } from "./actions";
-import { CrearInventarioFormValues, EditarInventarioFormValues } from "./schemas";
+import { CrearInventarioFormValues, EditarInventarioFormValues, TipoVistaInventario } from "./schemas";
 
 const KEYS = {
   inventarioActivo: ["inventario-activo"],
@@ -25,10 +25,13 @@ const KEYS = {
 const FIVE_MINUTES = 1000 * 60 * 5;
 const ONE_HOUR = 1000 * 60 * 60;
 
-export const useInventarioActivo = (estadoFiltro: string = 'Activo') => {
+export const useInventarioActivo = (
+  estadoFiltro: string = 'Activo',
+  tipoVista: TipoVistaInventario = 'general'
+) => {
   return useQuery({
-    queryKey: [...KEYS.inventarioActivo, estadoFiltro],
-    queryFn: () => getInventarioActivo(estadoFiltro),
+    queryKey: [...KEYS.inventarioActivo, estadoFiltro, tipoVista],
+    queryFn: () => getInventarioActivo(estadoFiltro, tipoVista),
     staleTime: FIVE_MINUTES,
   });
 };

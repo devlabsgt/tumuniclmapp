@@ -5,10 +5,11 @@ import { FilaReporteInventario } from './lib/schemas';
 import { NodoInventarioItem, NodoFila } from './NodoInventarioItem';
 import { FiltroBusquedaInventario, ModoFiltro } from './FiltroBusquedaInventario';
 import { getReporteJerarquicoInventario } from './lib/actions';
-import { ChevronsLeftRight } from 'lucide-react';
+import { ChevronsLeftRight, BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import TrasladoModal from './modals/TrasladoModal';
 import BajaModal from './modals/BajaModal';
+import EstadisticasInventarioModal from './modals/EstadisticasInventarioModal';
 
 const GRID_TABLA = 'grid grid-cols-[5rem_1fr_6rem_8.5rem] items-stretch';
 const BORDE_TABLA = 'border-slate-300 dark:border-neutral-500';
@@ -27,6 +28,7 @@ export default function ReporteJerarquico({ onClickItem, estadoFiltro = 'Activo'
   // Estado para modales
   const [trasladoModalOpen, setTrasladoModalOpen] = useState(false);
   const [bajaModalOpen, setBajaModalOpen] = useState(false);
+  const [estadisticasModalOpen, setEstadisticasModalOpen] = useState(false);
   const [bienSeleccionado, setBienSeleccionado] = useState<{ id: string; nombre: string } | null>(null);
   
   const [modoFiltro, setModoFiltro] = useState<ModoFiltro>('departamento');
@@ -233,6 +235,13 @@ export default function ReporteJerarquico({ onClickItem, estadoFiltro = 'Activo'
           </p>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setEstadisticasModalOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 rounded-lg shadow-sm hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+            >
+              <BarChart3 size={16} />
+              <span className="hidden sm:inline">Estadísticas</span>
+            </button>
+            <button
               onClick={toggleExpandirTodo}
               className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium bg-white dark:bg-neutral-900 border border-slate-300 dark:border-neutral-600 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-neutral-800 transition-colors text-slate-700 dark:text-slate-300"
               title={todoExpandido ? 'Contraer todo' : 'Expandir todo'}
@@ -324,6 +333,13 @@ export default function ReporteJerarquico({ onClickItem, estadoFiltro = 'Activo'
           />
         </>
       )}
+
+      <EstadisticasInventarioModal
+        open={estadisticasModalOpen}
+        onClose={() => setEstadisticasModalOpen(false)}
+        filas={filasRAW}
+        cargando={loading}
+      />
     </div>
   );
 }

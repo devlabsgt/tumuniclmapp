@@ -2,9 +2,15 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FilaReporteInventario } from './lib/schemas';
 import { getColorNivel, formatearQ } from './lib/formatoInventario';
-import { MonitorSmartphone, Package, ArrowRightLeft, ArrowDownToLine } from 'lucide-react';
+import { MonitorSmartphone, Package, ArrowRightLeft, ArrowDownToLine, MoreHorizontal } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import InventarioImgModal from './modals/InventarioImgModal';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const GRID_TABLA = 'grid grid-cols-[5rem_1fr_6rem_8.5rem] items-stretch';
 const BORDE_TABLA = 'border-slate-300 dark:border-neutral-500';
@@ -133,21 +139,33 @@ export function NodoInventarioItem({ nodo, expandidos, toggleExpand, onTrasladar
 
           {/* Botones de acción flotantes para Bienes */}
           {esBien && (
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2 mr-[14.5rem] opacity-0 group-hover:opacity-100 transition-all duration-200 bg-gradient-to-l from-white via-white dark:from-[#0a0a0a] dark:via-[#0a0a0a] to-transparent pl-8 pr-2">
-              <button 
-                onClick={(e) => { e.stopPropagation(); onTrasladar?.(nodo); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300 hover:shadow-md dark:bg-blue-500/10 dark:border-blue-500/20 dark:text-blue-400 dark:hover:bg-blue-500/20 dark:hover:border-blue-500/40 rounded-full text-[10px] font-bold tracking-widest uppercase transition-all shadow-sm active:scale-95"
-              >
-                <ArrowRightLeft className="w-3.5 h-3.5" />
-                TRASLADAR
-              </button>
-              <button 
-                onClick={(e) => { e.stopPropagation(); onBaja?.(nodo); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 hover:border-red-300 hover:shadow-md dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400 dark:hover:bg-red-500/20 dark:hover:border-red-500/40 rounded-full text-[10px] font-bold tracking-widest uppercase transition-all shadow-sm active:scale-95"
-              >
-                <ArrowDownToLine className="w-3.5 h-3.5" />
-                BAJA
-              </button>
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center mr-[15.5rem] pr-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button 
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-neutral-800 text-slate-500 dark:text-neutral-400 transition-colors focus:outline-none"
+                  >
+                    <MoreHorizontal className="w-5 h-5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40 bg-white dark:bg-neutral-900 border-slate-200 dark:border-neutral-800">
+                  <DropdownMenuItem 
+                    onClick={(e) => { e.stopPropagation(); onTrasladar?.(nodo); }}
+                    className="flex items-center gap-2 cursor-pointer text-blue-600 dark:text-blue-400 focus:bg-blue-50 dark:focus:bg-blue-500/10"
+                  >
+                    <ArrowRightLeft className="w-4 h-4" />
+                    <span className="font-medium">Trasladar</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={(e) => { e.stopPropagation(); onBaja?.(nodo); }}
+                    className="flex items-center gap-2 cursor-pointer text-red-600 dark:text-red-400 focus:bg-red-50 dark:focus:bg-red-500/10"
+                  >
+                    <ArrowDownToLine className="w-4 h-4" />
+                    <span className="font-medium">Dar de Baja</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           )}
         </div>

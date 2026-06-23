@@ -92,17 +92,20 @@ export default function HistorialTimeline({ idBien }: { idBien: string }) {
               </div>
               <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-neutral-400 font-semibold bg-white/60 dark:bg-black/20 px-3 py-1.5 rounded-full shadow-sm">
                 <Calendar className="w-3.5 h-3.5" />
-                {format(new Date(mov.created_at), "d MMM yyyy, h:mm a", { locale: es })}
+                {(() => {
+                  const formatted = format(new Date(mov.created_at), "EEE dd/MM/yy ' | ' h:mm a", { locale: es });
+                  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+                })()}
               </div>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-6 p-5">
+            <div className="flex flex-col md:flex-row md:items-center gap-6 p-5">
               {/* Información */}
               <div className="flex-1 space-y-5">
                 
                 {/* De -> A para traslados */}
                 {mov.tipo_movimiento.toLowerCase() === 'traslado' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-4">
                     <div className="bg-slate-50 dark:bg-neutral-900/40 p-4 rounded-xl border border-slate-100 dark:border-neutral-800/60">
                       <p className="text-[10px] text-slate-400 dark:text-neutral-500 font-black mb-2.5 uppercase tracking-widest">Origen</p>
                       {mov.nombre_usuario_origen && (

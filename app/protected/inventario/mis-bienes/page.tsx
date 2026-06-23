@@ -1,9 +1,9 @@
 import GestorInventario from "@/components/inventario/GestorInventario";
 
-export default function InventarioPage() {
+export default function MisBienesPage() {
     return (
         <div className="h-full w-full bg-white dark:bg-neutral-950">
-            <GestorInventario tipoVista="general" />
+            <GestorInventario tipoVista="propia" />
         </div>
     );
 }

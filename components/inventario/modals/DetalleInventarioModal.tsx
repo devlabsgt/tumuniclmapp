@@ -120,7 +120,8 @@ export default function DetalleInventarioModal({ item, open, onOpenChange }: Det
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="sm:max-w-[950px] lg:max-w-[1000px] p-0 overflow-hidden bg-white dark:bg-neutral-900 border-0 sm:border border-gray-100 dark:border-neutral-800 flex flex-col h-[95vh] sm:h-[92vh] max-h-[96vh]"
+        aria-describedby={undefined}
+        className="sm:max-w-[950px] lg:max-w-[1000px] p-0 overflow-hidden bg-white dark:bg-neutral-900 border-0 sm:border border-gray-100 dark:border-neutral-800 flex flex-col max-h-[96vh] [&>button]:bg-blue-600 [&>button]:text-white [&>button]:opacity-100 [&>button]:hover:opacity-100 [&>button]:hover:bg-blue-700 [&>button]:rounded-md [&>button]:shadow [&>button]:active:scale-95 [&>button]:transition-all [&>button]:top-[14px] [&>button]:sm:top-[16px] [&>button]:p-1.5"
         onInteractOutside={(e) => {
           if (isFullscreen) {
             e.preventDefault();
@@ -293,7 +294,7 @@ export default function DetalleInventarioModal({ item, open, onOpenChange }: Det
                   <ImageUploader
                     ref={uploaderRef}
                     bucketName="inventario-imgs"
-                    currentImagePath={imageUrl || null}
+                    currentImagePath={watch('imagen_url') || null}
                     onUploadSuccess={(path) => setValue('imagen_url', path)}
                     onDeleteSuccess={() => setValue('imagen_url', null)}
                     onEstadoChange={({ uploading }) => setIsUploadingImage(uploading)}

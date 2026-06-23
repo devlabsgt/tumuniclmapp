@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ItemInventario } from './lib/schemas';
+import { ItemInventario, TipoVistaInventario } from './lib/schemas';
 import { useInventarioActivo, useDependenciasBasicas, useUsuariosBasicos } from './lib/hooks';
 import InventarioList from './InventarioList';
 import CrearInventarioModal from './modals/CrearInventarioModal';
@@ -14,9 +14,13 @@ import { Plus, RefreshCcw, LayoutList, Network } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FiltroBusquedaLista, ModoFiltroLista } from './FiltroBusquedaLista';
 
-export default function GestorInventario() {
+interface GestorInventarioProps {
+  tipoVista?: TipoVistaInventario;
+}
+
+export default function GestorInventario({ tipoVista = 'general' }: GestorInventarioProps) {
   const [estadoFiltro, setEstadoFiltro] = useState('Activo');
-  const { data: items = [], isLoading, refetch: cargarDatos } = useInventarioActivo(estadoFiltro);
+  const { data: items = [], isLoading, refetch: cargarDatos } = useInventarioActivo(estadoFiltro, tipoVista);
   const { data: dependenciasBasicas = [] } = useDependenciasBasicas();
   const { data: usuariosBasicos = [] } = useUsuariosBasicos();
   const [isModalOpen, setIsModalOpen] = useState(false);

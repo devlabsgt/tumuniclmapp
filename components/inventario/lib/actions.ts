@@ -2,16 +2,38 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { CrearInventarioFormValues, ItemInventario } from './schemas';
+import { CrearInventarioFormValues, ItemInventario, TipoVistaInventario } from './schemas';
 
-export const getInventarioActivo = async (estadoFiltro: string = 'Activo'): Promise<ItemInventario[]> => {
+export const getInventarioActivo = async (
+  estadoFiltro: string = 'Activo',
+  tipoVista: TipoVistaInventario = 'general'
+): Promise<ItemInventario[]> => {
   const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
 
   let query = supabase.from('inventario').select('*').order('created_at', { ascending: false });
   if (estadoFiltro === 'Activo') {
     query = query.in('estado', ['Activo', 'Regular', 'Malo']);
   } else if (estadoFiltro === 'Inactivo') {
     query = query.in('estado', ['Inactivo', 'Baja']);
+  }
+
+  if (user) {
+    if (tipoVista === 'propia') {
+      query = query.eq('id_usuario_asignado', user.id);
+    } else if (tipoVista === 'dependencia') {
+      const { data: userData } = await supabase
+        .from('info_usuario')
+        .select('dependencia_id')
+        .eq('user_id', user.id)
+        .single();
+      if (userData?.dependencia_id) {
+        query = query.eq('id_dependencia', userData.dependencia_id);
+      } else {
+        query = query.eq('id_dependencia', 'invalid_dep_fallback');
+      }
+    }
   }
 
   const { data: invData, error: invError } = await query;
@@ -336,7 +358,8 @@ export const getReporteJerarquicoInventario = async (estadoFiltro: string = 'Act
   // Aplanar
   const filas: any[] = [];
   const recorrer = (nodo: Nodo, prefix: string, level: number, ruta: string[]) => {
-    // Ya no podamos las ramas vacías para que se vea toda la muni
+    // Podamos las ramas vacías para que solo salgan dependencias con bienes asignados
+    if (nodo.totalCantidad === 0) return;
 
     const rutaActual = [...ruta, nodo.nombre];
     const mostrarNumero = !nodo.es_puesto;
@@ -358,6 +381,7 @@ export const getReporteJerarquicoInventario = async (estadoFiltro: string = 'Act
             esPuesto: false,
             branchPrefix: prefix,
             rutaDependencia: rutaActual.join(' › '),
+            nombreDepartamento: nodo.es_puesto ? ruta[ruta.length - 1] || nodo.nombre : nodo.nombre,
             parentId: nodo.parent_id, // Atado al departamento superior
             userId: e.user_id,
             bienes: e.bienes,
@@ -376,6 +400,7 @@ export const getReporteJerarquicoInventario = async (estadoFiltro: string = 'Act
               esPuesto: false,
               branchPrefix: prefix,
               rutaDependencia: rutaActual.join(' › '),
+              nombreDepartamento: nodo.es_puesto ? ruta[ruta.length - 1] || nodo.nombre : nodo.nombre,
               parentId: `emp-${e.user_id}`,
               serie: b.serie,
               estado: b.estado,
@@ -398,6 +423,7 @@ export const getReporteJerarquicoInventario = async (estadoFiltro: string = 'Act
         esPuesto: nodo.es_puesto,
         branchPrefix: prefix,
         rutaDependencia: rutaActual.join(' › '),
+        nombreDepartamento: nodo.es_puesto ? ruta[ruta.length - 1] || nodo.nombre : nodo.nombre,
         parentId: nodo.parent_id,
       });
 
@@ -418,6 +444,7 @@ export const getReporteJerarquicoInventario = async (estadoFiltro: string = 'Act
               esPuesto: false,
               branchPrefix: prefix,
               rutaDependencia: rutaActual.join(' › '),
+              nombreDepartamento: nodo.es_puesto ? ruta[ruta.length - 1] || nodo.nombre : nodo.nombre,
               parentId: nodo.id,
               userId: e.user_id,
               bienes: e.bienes,
@@ -436,6 +463,7 @@ export const getReporteJerarquicoInventario = async (estadoFiltro: string = 'Act
                 esPuesto: false,
                 branchPrefix: prefix,
                 rutaDependencia: rutaActual.join(' › '),
+                nombreDepartamento: nodo.es_puesto ? ruta[ruta.length - 1] || nodo.nombre : nodo.nombre,
                 parentId: `emp-${e.user_id}`,
                 serie: b.serie,
                 estado: b.estado,
@@ -463,6 +491,7 @@ export const getReporteJerarquicoInventario = async (estadoFiltro: string = 'Act
           esPuesto: false,
           branchPrefix: prefix,
           rutaDependencia: rutaActual.join(' › '),
+          nombreDepartamento: nodo.es_puesto ? ruta[ruta.length - 1] || nodo.nombre : nodo.nombre,
           parentId: nodo.id,
           serie: b.serie,
           estado: b.estado,

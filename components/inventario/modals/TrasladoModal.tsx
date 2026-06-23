@@ -88,7 +88,7 @@ export default function TrasladoModal({ idBien, nombreBien, open, onOpenChange }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-xl">
+      <DialogContent aria-describedby={undefined} className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Trasladar Bien: {nombreBien}</DialogTitle>
         </DialogHeader>

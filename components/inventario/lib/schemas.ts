@@ -13,6 +13,8 @@ export const crearInventarioSchema = z.object({
 
 export type CrearInventarioFormValues = z.infer<typeof crearInventarioSchema>;
 
+export type TipoVistaInventario = 'propia' | 'dependencia' | 'general';
+
 export const editarInventarioSchema = z.object({
   serie: z.string().min(1, "La serie es obligatoria"),
   descripcion: z.string().min(1, "La descripción es obligatoria"),
@@ -82,6 +84,7 @@ export interface FilaReporteInventario {
   esPuesto: boolean;
   branchPrefix: string;
   rutaDependencia: string;
+  nombreDepartamento?: string;
   parentId?: string | null;
   userId?: string;
   // Solo para items

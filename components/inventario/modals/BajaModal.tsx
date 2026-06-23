@@ -65,7 +65,7 @@ export default function BajaModal({ idBien, nombreBien, open, onOpenChange }: Ba
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-xl">
+      <DialogContent aria-describedby={undefined} className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Dar de Baja Bien: {nombreBien}</DialogTitle>
         </DialogHeader>
