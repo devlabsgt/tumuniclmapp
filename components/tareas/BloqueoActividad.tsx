@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Calendar, ClipboardList } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { obtenerActividadPendienteConfirmacion, confirmarActividad } from './actions';
+import { ACTIVIDAD_PENDIENTE_REFRESH } from '@/components/push/Listener';
 import Swal from 'sweetalert2';
 import { useTheme } from 'next-themes';
 
@@ -35,24 +37,47 @@ interface ActividadPendiente {
 
 export default function BloqueoActividad() {
   const queryClient = useQueryClient();
+  const pathname = usePathname();
   const { resolvedTheme } = useTheme();
   const [actividad, setActividad] = useState<ActividadPendiente | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
 
-  const fetchActividad = useCallback(async () => {
-    setLoading(true);
-    const result = await obtenerActividadPendienteConfirmacion();
-    if (result.success && result.data) {
-      setActividad(result.data as ActividadPendiente);
-    } else {
-      setActividad(null);
+  const fetchActividad = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+
+    try {
+      const result = await obtenerActividadPendienteConfirmacion();
+      if (result.success && result.data) {
+        setActividad(result.data as ActividadPendiente);
+      } else {
+        setActividad(null);
+      }
+    } finally {
+      if (!silent) setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
     fetchActividad();
+  }, [fetchActividad]);
+
+  useEffect(() => {
+    if (pathname === '/protected/actividades') {
+      fetchActividad(true);
+    }
+  }, [pathname, fetchActividad]);
+
+  useEffect(() => {
+    const onRefresh = () => fetchActividad(true);
+
+    window.addEventListener(ACTIVIDAD_PENDIENTE_REFRESH, onRefresh);
+    window.addEventListener('focus', onRefresh);
+
+    return () => {
+      window.removeEventListener(ACTIVIDAD_PENDIENTE_REFRESH, onRefresh);
+      window.removeEventListener('focus', onRefresh);
+    };
   }, [fetchActividad]);
 
   if (loading || !actividad) return null;
@@ -67,31 +92,42 @@ export default function BloqueoActividad() {
   };
 
   const handleConfirm = async () => {
-    setConfirming(true);
-    const result = await confirmarActividad(actividad.id);
-    setConfirming(false);
+    if (confirming || !actividad) return;
 
-    if (result.success && result.confirmed_at) {
+    setConfirming(true);
+
+    try {
+      const result = await confirmarActividad(actividad.id);
+
+      if (!result.success) {
+        await Swal.fire({
+          title: 'Error',
+          text: result.error || 'Ocurrió un error al confirmar. Por favor intente nuevamente.',
+          icon: 'error',
+          ...swalTheme,
+        });
+        return;
+      }
+
+      const confirmedAt = result.confirmed_at || new Date().toISOString();
+      setActividad(null);
+
       await Swal.fire({
         title: 'Confirmado',
         html: `
           <p style="margin-bottom: 12px;">Su confirmación de enterado ha sido registrada en el sistema.</p>
           <p style="font-size: 0.875rem; font-weight: 600; color: ${isDark ? '#4ade80' : '#16a34a'};">
-            confirmado el: ${formatearFechaHora(result.confirmed_at)}
+            Confirmación: ${formatearFechaHora(confirmedAt)}
           </p>
         `,
         icon: 'success',
         ...swalTheme,
       });
+
       queryClient.invalidateQueries({ queryKey: ['gestor-tareas'] });
-      await fetchActividad();
-    } else {
-      Swal.fire({
-        title: 'Error',
-        text: 'Ocurrió un error al confirmar. Por favor intente nuevamente.',
-        icon: 'error',
-        ...swalTheme,
-      });
+      await fetchActividad(true);
+    } finally {
+      setConfirming(false);
     }
   };
 
@@ -141,6 +177,7 @@ export default function BloqueoActividad() {
 
           <div className="flex flex-col w-full gap-3">
             <Button
+              type="button"
               onClick={handleConfirm}
               disabled={confirming}
               className="w-full h-12 text-sm font-bold text-white transition-all bg-indigo-600 rounded-xl hover:bg-indigo-700"

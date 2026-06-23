@@ -3,18 +3,38 @@
 import { useEffect } from 'react'
 import Swal from 'sweetalert2'
 
+export const ACTIVIDAD_PENDIENTE_REFRESH = 'actividad-pendiente-refresh'
+
+function navegar(url: string) {
+  const path = url.startsWith('http') ? new URL(url).pathname : url
+
+  if (window.location.pathname === path) {
+    window.dispatchEvent(new CustomEvent(ACTIVIDAD_PENDIENTE_REFRESH))
+    return
+  }
+
+  window.location.href = url.startsWith('http') ? url : path
+}
+
 export default function NotificationListener() {
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return
 
     const handleMessage = (event: MessageEvent) => {
-      if (event.data && event.data.type === 'SHOW_SWAL') {
+      if (!event.data?.type) return
+
+      if (event.data.type === 'NAVIGATE') {
+        const url = event.data.url as string
+        if (url) navegar(url)
+        return
+      }
+
+      if (event.data.type === 'SHOW_SWAL') {
         const { title, text, url } = event.data.payload
-        
-        const isDarkMode = document.documentElement.classList.contains('dark');
-        
-        const background = isDarkMode ? '#171717' : '#ffffff';
-        const color = isDarkMode ? '#e5e7eb' : '#1f2937'; 
+
+        const isDarkMode = document.documentElement.classList.contains('dark')
+        const background = isDarkMode ? '#171717' : '#ffffff'
+        const color = isDarkMode ? '#e5e7eb' : '#1f2937'
 
         Swal.fire({
           title: title || 'Notificación',
@@ -23,22 +43,22 @@ export default function NotificationListener() {
           imageWidth: 360,
           imageHeight: 'auto',
           imageAlt: 'Logo Municipalidad',
-          confirmButtonText: 'Estoy enterado',
+          confirmButtonText: url ? 'Ver actividad' : 'Estoy enterado',
           confirmButtonColor: '#d97706',
           showCancelButton: !!url,
           cancelButtonText: 'Cerrar',
           backdrop: true,
           allowOutsideClick: false,
-          background: background,
-          color: color,
+          background,
+          color,
           customClass: {
             popup: isDarkMode ? 'dark:border dark:border-neutral-800' : '',
             confirmButton: 'font-medium',
-            cancelButton: 'font-medium'
-          }
+            cancelButton: 'font-medium',
+          },
         }).then((result) => {
           if (result.isConfirmed && url) {
-            window.location.href = url
+            navegar(url)
           }
         })
       }

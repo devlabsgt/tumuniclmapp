@@ -65,21 +65,6 @@ const getFechaCabecera = (fechaIso: string) => {
   return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
-const formatearConfirmadoAt = (fechaISO: string) => {
-  const d = new Date(fechaISO);
-  const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-  const diaSemana = dias[d.getDay()];
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = String(d.getFullYear()).slice(-2);
-  let hora = d.getHours();
-  const minutos = String(d.getMinutes()).padStart(2, '0');
-  const period = hora >= 12 ? 'PM' : 'AM';
-  hora = hora % 12;
-  hora = hora ? hora : 12;
-  return `${diaSemana} ${day}/${month}/${year}, ${hora}:${minutos} ${period}`;
-};
-
 interface TareaCardProps {
   tarea: Tarea;
   isExpanded: boolean;
@@ -89,30 +74,14 @@ interface TareaCardProps {
   usuarios: Usuario[];
 }
 
-function TareaCard({ tarea, isExpanded, onToggle, isJefe, usuarioActual, usuarios }: TareaCardProps) {
-  return (
-    <div className="relative">
-      <TareaItem
-        tarea={tarea}
-        isExpanded={isExpanded}
-        onToggle={onToggle}
-        isJefe={isJefe}
-        usuarioActual={usuarioActual}
-        usuarios={usuarios}
-      />
-      {!isExpanded && tarea.confirmed_at && (
-        <p className="absolute bottom-3 right-4 sm:bottom-4 sm:right-5 text-xs sm:text-sm text-green-600 dark:text-green-400 font-semibold pointer-events-none z-10">
-          Confirmación: {formatearConfirmadoAt(tarea.confirmed_at)}
-        </p>
-      )}
-    </div>
-  );
+function TareaCard(props: TareaCardProps) {
+  return <TareaItem {...props} />;
 }
 
 const TAB_STYLES: Record<string, { active: string, inactive: string, badge: string }> = {
   'Asignado': { active: 'bg-purple-600 text-white', inactive: 'text-purple-600 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-400', badge: 'bg-purple-100 text-purple-700' },
   'Completado': { active: 'bg-emerald-600 text-white', inactive: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400', badge: 'bg-emerald-100 text-emerald-700' },
-  'Vencido': { active: 'bg-red-600 text-white', inactive: 'text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400', badge: 'bg-red-100 text-red-700' }
+  'Vencido': { active: 'bg-orange-600 text-white', inactive: 'text-orange-600 bg-orange-50 dark:bg-orange-900/20 dark:text-orange-400', badge: 'bg-orange-100 text-orange-700' }
 };
 
 const ALCANCE_JEFE_STYLES: Record<string, { active: string, inactive: string, badge: string }> = {
@@ -260,6 +229,14 @@ export default function TareaList({ initialData, tipoVista }: Props) {
 
   const ordenarPorFecha = (lista: Tarea[]) => {
     return [...lista].sort((a, b) => {
+      const prioridad = (t: Tarea) => {
+        if (t.status !== 'Completado' && !t.confirmed_at) return 2;
+        return 0;
+      };
+      const prioA = prioridad(a);
+      const prioB = prioridad(b);
+      if (prioB !== prioA) return prioB - prioA;
+
       const cmp = new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
       return ordenDescendente ? -cmp : cmp;
     });
@@ -426,7 +403,7 @@ export default function TareaList({ initialData, tipoVista }: Props) {
                     </div>
                     <div className="flex flex-row gap-2 w-full lg:w-auto lg:shrink-0 items-stretch">
                         <SelectorMesAnio
-                          className="flex-1 lg:flex-none lg:w-auto min-w-0"
+                          className="flex-[1.55] lg:flex-none lg:w-auto min-w-0"
                           mes={mesSeleccionado}
                           anio={anioSeleccionado}
                           onChange={(mes, anio) => {
@@ -434,8 +411,8 @@ export default function TareaList({ initialData, tipoVista }: Props) {
                             setAnioSeleccionado(anio);
                           }}
                         />
-                        <div className="relative flex-1 lg:flex-none lg:w-44 xl:w-48 min-w-0">
-                            <select value={semanaSeleccionada} onChange={(e) => setSemanaSeleccionada(Number(e.target.value))} className="w-full appearance-none pl-3 pr-8 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200 truncate">
+                        <div className="relative flex-[0.85] lg:flex-none lg:w-44 xl:w-48 min-w-0">
+                            <select value={semanaSeleccionada} onChange={(e) => setSemanaSeleccionada(Number(e.target.value))} className="w-full appearance-none pl-2 pr-7 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-[11px] sm:text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200 truncate">
                                 <option value={-1}>Todas las semanas</option>
                                 {semanasDisponibles.map(sem => <option key={sem.id} value={sem.id}>{sem.label}</option>)}
                             </select>

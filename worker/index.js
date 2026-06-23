@@ -3,7 +3,7 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'Nueva Notificación'
   const message = data.body || ''
   const icon = '/icon-192x192.png'
-  const url = data.url || '/'
+  const path = data.data?.url || data.url || '/'
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
@@ -11,12 +11,8 @@ self.addEventListener('push', (event) => {
 
       if (focusedClient) {
         return focusedClient.postMessage({
-          type: 'SHOW_SWAL',
-          payload: {
-            title: title,
-            text: message,
-            url: url
-          }
+          type: 'NAVIGATE',
+          url: path,
         })
       }
 
@@ -24,7 +20,10 @@ self.addEventListener('push', (event) => {
         body: message,
         icon: icon,
         badge: icon,
-        data: { url: url }
+        data: {
+          url: path,
+          swal: data.data?.swal || null,
+        },
       })
     })
   )
@@ -32,18 +31,25 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const urlToOpen = event.notification.data.url || '/'
+  const path = event.notification.data?.url || '/'
+  const targetUrl = new URL(path, self.location.origin).href
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      for (let i = 0; i < windowClients.length; i++) {
-        const client = windowClients[i]
+      if (windowClients.length > 0) {
+        const client = windowClients[0]
         if ('focus' in client) {
-          return client.focus()
+          return client.focus().then((focusedClient) => {
+            focusedClient.postMessage({
+              type: 'NAVIGATE',
+              url: path,
+            })
+          })
         }
       }
+
       if (clients.openWindow) {
-        return clients.openWindow(urlToOpen)
+        return clients.openWindow(targetUrl)
       }
     })
   )

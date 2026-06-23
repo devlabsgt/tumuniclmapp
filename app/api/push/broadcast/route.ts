@@ -52,7 +52,8 @@ export async function POST(request: Request) {
         swal: {
           title: notificationTitle,
           text: notificationBody,
-          icon: 'info'
+          icon: 'info',
+          url: targetUrl,
         }
       }
     })
