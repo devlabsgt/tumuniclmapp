@@ -1,0 +1,112 @@
+---
+description: Diseño UX/UI zinc, botones, modales y toastify
+alwaysApply: true
+---
+
+# Diseño UX/UI
+
+## Tema y fondos
+
+- Tema claro: fondo de página blanco; cards y componentes en zinc claro (`zinc-50`, header/layout `zinc-100`).
+- Tema oscuro: fondo de página `zinc-900`; cards y componentes en un tono de gris más claro (`zinc-800`).
+- La UI usa tonos zinc para fondos de superficie.
+
+## Botones (UI general)
+
+- Texto y borde en color de acento del proyecto (primary o token de marca).
+- Fondo: `bg-zinc-100` en tema claro, `dark:bg-zinc-800` en tema oscuro.
+- Hover: un tono más claro u oscuro según el tema.
+- Siempre `cursor-pointer`; deshabilitado: `cursor-not-allowed`.
+
+## Modales
+
+Implementación única: `components/ui/general-modal.tsx` (`ModalShell`, `ModalInput`, `ModalLabel`, `ModalTextarea`, `ModalSubmit`, `ModalFooter`, `ModalConfirmDelete`).
+
+### Comportamiento
+
+- Portal al `body` con `createPortal`; `z-[200]` por encima del header.
+- Bloquear scroll del `body` mientras el modal esté abierto.
+- **Escritorio:** modal centrado, ancho máximo moderado, padding alrededor.
+- **Teléfono:** pantalla completa (`100dvh`), sin padding exterior, sin borde animado; panel plano zinc de borde a borde.
+
+### Overlay
+
+- Escritorio: `bg-zinc-700/20` + `backdrop-blur-sm`; sin capa blanca.
+- Teléfono: fondo sólido zinc (`zinc-100` claro / `zinc-900` oscuro), sin blur.
+
+### Contenedor (escritorio)
+
+- Esquinas muy redondeadas (`rounded-3xl`).
+- Borde animado celeste solo en escritorio: padding 3px y gradiente radial (`#1a95d3` → `#5ec8f0`) que sigue el cursor; interior sólido encima.
+- Sombra ligera.
+
+### Superficies
+
+- Tema claro: `bg-zinc-100` uniforme en header y cuerpo.
+- Tema oscuro: header/footer `zinc-800`; zona de campos `zinc-900`.
+
+### Header y cierre
+
+- Título `foreground`; subtítulo `text-[10px] uppercase tracking-widest text-muted-foreground`.
+- Sin icono decorativo ni línea divisoria.
+- Cierre únicamente con X celeste, área táctil amplia, hover suave.
+- En teléfono: safe area superior e inferior.
+
+### Campos y acción
+
+- Sin placeholder; `border-2 border-celeste-trifinio`; fondo transparente; focus ring celeste; ancho completo.
+- Un solo botón «Guardar» centrado en el footer; outline esmeralda (`border-emerald-600` / `dark:border-emerald-400`), sin relleno sólido.
+
+### Feedback en modales
+
+- `toast.success()` / `toast.error()` / `toast.warn()` de react-toastify (ver sección Toastify).
+- Códigos de server action: `modalActionMessage` + `MODAL_ACTION_ERRORS` en `modal-toast.ts`.
+- Confirmaciones destructivas: `ModalConfirmDelete` dentro del modal.
+
+### Prohibido en modales
+
+- `Dialog` de shadcn u otros modales ad hoc para formularios.
+- SweetAlert en formularios con `ModalShell`.
+- Botones Cancelar, Atrás o segundo control de cierre.
+- Fondos negro/blanco fijos fuera de la paleta zinc; `min-h-*` artificial en el body.
+- `ToastContainer` duplicado por página (usar el global del layout).
+
+## Toastify (notificaciones)
+
+Siempre **react-toastify** para éxito, error y advertencia en toda la app.
+
+### Contenedor (único)
+
+- `ObsToastContainer` en el layout raíz; **no** montar otro `ToastContainer` en páginas o módulos.
+- Configuración obligatoria: `position="top-center"`, `autoClose={3000}`, `theme="colored"`.
+- Importar estilos una vez: `react-toastify/dist/ReactToastify.css`.
+
+### Uso en código
+
+```typescript
+import { toast } from "react-toastify";
+
+toast.success("Guardado correctamente.");
+toast.error("No se pudo guardar.");
+toast.warn("Revisa los datos del formulario.");
+```
+
+- Llamadas directas a `toast.*`; sin wrappers ni SweetAlert para feedback simple.
+- `autoClose` distinto solo si el mensaje lo requiere: `toast.warn("...", { autoClose: 6000 })`.
+- Códigos de API: `modalActionMessage(code, fallback)` desde `modal-toast.ts`.
+
+### Apariencia (obligatoria)
+
+Definida en `globals.css` con variables `--toastify-*`; **no** sobrescribir con `theme="light"` ni `theme="dark"` en el contenedor.
+
+- Fondo **entero** del color semántico (verde éxito, rojo error, ámbar advertencia).
+- **Sin sombra** (`--toastify-toast-shadow: none`).
+- **Sin** tarjeta blanca ni borde fino de contraste.
+- Texto blanco en éxito/error; texto oscuro en advertencia.
+- `z-index` 10000 (por encima de modales `z-[200]`).
+- Esquinas `0.75rem`; tipografía en negrita.
+
+### Confirmaciones que requieren decisión
+
+- SweetAlert 2 solo fuera de `ModalShell` cuando haga falta un diálogo de confirmación complejo en legacy.
+- Dentro de modales: `ModalConfirmDelete` (inline), nunca SweetAlert.

@@ -174,6 +174,18 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
   };
 
   const { badge, border, label } = getStatusStyles();
+
+  const textoAsignacionConcejo = (
+    <div className="flex items-center gap-1.5 text-xs">
+      <div className="bg-slate-100 dark:bg-neutral-800 p-1 rounded-full">
+        <User size={10} className="text-blue-500" />
+      </div>
+      <span className="text-slate-600 dark:text-gray-300">
+        Actividad asignada por el{' '}
+        <span className="font-bold text-blue-600 dark:text-blue-400">Concejo Municipal</span>
+      </span>
+    </div>
+  );
   
   let colorBarra = 'bg-slate-200 dark:bg-neutral-600';
   if (porcentaje === 100) colorBarra = 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]';
@@ -247,7 +259,9 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                 )}
                 <span className="text-slate-300 dark:text-gray-600 hidden sm:inline">•</span>
                 <div className="w-full mt-2 pt-2 border-t border-dashed border-slate-200 dark:border-neutral-700 sm:w-auto sm:mt-0 sm:pt-0 sm:border-t-0 sm:border-none sm:flex-1">
-                    {esAutoAsignado ? (
+                    {tarea.es_concejo ? (
+                        textoAsignacionConcejo
+                    ) : esAutoAsignado ? (
                         <div className="flex items-center gap-1.5 text-xs">
                              <div className="bg-slate-100 dark:bg-neutral-800 p-1 rounded-full"><User size={10} className={esAsignadoAMi ? 'text-blue-500' : 'text-slate-400'}/></div>
                              <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Creado y asignado por:</span>
@@ -365,7 +379,17 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                           )}
                         </div>
                       </div>
-                      {esAutoAsignado ? (
+                      {tarea.es_concejo ? (
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 flex items-center justify-center text-[10px] font-bold border border-blue-200 dark:border-blue-800">
+                            C
+                          </div>
+                          <span className="text-slate-600 dark:text-gray-400">
+                            Actividad asignada por el{' '}
+                            <span className="font-bold text-blue-600 dark:text-blue-400">Concejo Municipal</span>
+                          </span>
+                        </div>
+                      ) : esAutoAsignado ? (
                         <div className="flex items-center gap-2.5">
                             <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 flex items-center justify-center text-[10px] font-bold border border-blue-200 dark:border-blue-800">
                                 {nombreCreador.charAt(0)}

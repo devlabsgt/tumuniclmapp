@@ -78,11 +78,21 @@ function TareaCard(props: TareaCardProps) {
   return <TareaItem {...props} />;
 }
 
-const TAB_STYLES: Record<string, { active: string, inactive: string, badge: string }> = {
-  'Asignado': { active: 'bg-purple-600 text-white', inactive: 'text-purple-600 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-400', badge: 'bg-purple-100 text-purple-700' },
-  'Completado': { active: 'bg-emerald-600 text-white', inactive: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400', badge: 'bg-emerald-100 text-emerald-700' },
-  'Vencido': { active: 'bg-orange-600 text-white', inactive: 'text-orange-600 bg-orange-50 dark:bg-orange-900/20 dark:text-orange-400', badge: 'bg-orange-100 text-orange-700' }
+type FiltroOrigen = 'Internas' | 'Concejo' | 'Vencidas';
+
+const ORIGEN_STYLES: Record<FiltroOrigen, { active: string; inactive: string; badge: string }> = {
+  Internas: { active: 'bg-purple-600 text-white', inactive: 'text-purple-600 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-400', badge: 'bg-purple-100 text-purple-700' },
+  Concejo: { active: 'bg-blue-600 text-white', inactive: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400', badge: 'bg-blue-100 text-blue-700' },
+  Vencidas: { active: 'bg-orange-600 text-white', inactive: 'text-orange-600 bg-orange-50 dark:bg-orange-900/20 dark:text-orange-400', badge: 'bg-orange-100 text-orange-700' },
 };
+
+const ORIGEN_LABELS: Record<FiltroOrigen, string> = {
+  Internas: 'Internas',
+  Concejo: 'Concejo Municipal',
+  Vencidas: 'Vencidas',
+};
+
+const ORIGEN_ORDEN: FiltroOrigen[] = ['Internas', 'Concejo', 'Vencidas'];
 
 const ALCANCE_JEFE_STYLES: Record<string, { active: string, inactive: string, badge: string }> = {
   'equipo': { active: 'bg-blue-600 text-white', inactive: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400', badge: 'bg-blue-100 text-blue-700' },
@@ -97,7 +107,7 @@ export default function TareaList({ initialData, tipoVista }: Props) {
   const perfilUsuario = (data?.perfil || initialData.perfil) as PerfilUsuario;
 
   const [isMounted, setIsMounted] = useState(false);
-  const [filtroEstado, setFiltroEstado] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState<FiltroOrigen>('Internas');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [busqueda, setBusqueda] = useState('');
@@ -174,7 +184,7 @@ export default function TareaList({ initialData, tipoVista }: Props) {
   }, [tipoVista, isMounted, alcanceJefe, conteosAlcanceJefe]);
 
   useEffect(() => {
-    setFiltroEstado('');
+    setFiltroEstado('Internas');
   }, [alcanceJefe]);
 
   const tareasFiltradas = useMemo(() => {
@@ -214,18 +224,10 @@ export default function TareaList({ initialData, tipoVista }: Props) {
   }, [tareasPorAlcance, mesSeleccionado, anioSeleccionado, semanaSeleccionada, semanasDisponibles, busqueda, isMounted]);
 
   const conteos = useMemo(() => ({
-      Asignado: tareasFiltradas.filter((t: Tarea) => t.estadoFiltro === 'Asignado' || t.estadoFiltro === 'En Proceso').length,
-      'Completado': tareasFiltradas.filter((t: Tarea) => t.estadoFiltro === 'Completado').length,
-      'Vencido': tareasFiltradas.filter((t: Tarea) => t.estadoFiltro === 'Vencido').length,
+    Internas: tareasFiltradas.filter((t: Tarea) => !t.es_concejo && t.estadoFiltro !== 'Vencido').length,
+    Concejo: tareasFiltradas.filter((t: Tarea) => !!t.es_concejo && t.estadoFiltro !== 'Vencido').length,
+    Vencidas: tareasFiltradas.filter((t: Tarea) => t.estadoFiltro === 'Vencido').length,
   }), [tareasFiltradas]);
-
-  const pestañas = useMemo(() => ['Asignado', 'Completado', 'Vencido'].filter(t => conteos[t as keyof typeof conteos] > 0), [conteos]);
-
-  useEffect(() => {
-    if (isMounted && pestañas.length > 0 && filtroEstado !== '' && !pestañas.includes(filtroEstado)) {
-        setFiltroEstado('');
-    }
-  }, [pestañas, filtroEstado, isMounted]);
 
   const ordenarPorFecha = (lista: Tarea[]) => {
     return [...lista].sort((a, b) => {
@@ -243,7 +245,11 @@ export default function TareaList({ initialData, tipoVista }: Props) {
   };
 
   const listaVisual = useMemo(() => {
-      const filtradas = tareasFiltradas.filter((t: Tarea) => filtroEstado === '' ? true : (filtroEstado === 'Asignado' ? (t.estadoFiltro === 'Asignado' || t.estadoFiltro === 'En Proceso') : t.estadoFiltro === filtroEstado));
+      const filtradas = tareasFiltradas.filter((t: Tarea) => {
+        if (filtroEstado === 'Internas') return !t.es_concejo && t.estadoFiltro !== 'Vencido';
+        if (filtroEstado === 'Concejo') return !!t.es_concejo && t.estadoFiltro !== 'Vencido';
+        return t.estadoFiltro === 'Vencido';
+      });
       return ordenarPorFecha(filtradas);
   }, [tareasFiltradas, filtroEstado, ordenDescendente]);
   
@@ -379,22 +385,26 @@ export default function TareaList({ initialData, tipoVista }: Props) {
             )}
 
             <div className="flex flex-col gap-3 w-full">
-                {pestañas.length > 0 && (
-                    <div className="w-full">
-                        <div className="flex items-center gap-1.5 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 dark:border-neutral-800 shadow-sm w-full">
-                            {pestañas.map((tab) => {
-                                const styles = TAB_STYLES[tab];
-                                const isActive = filtroEstado === tab;
-                                return (
-                                    <button key={tab} onClick={() => setFiltroEstado(isActive ? '' : tab)} className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all ${isActive ? styles.active : styles.inactive}`}>
-                                        <span className="truncate">{tab.toUpperCase()}</span>
-                                        <span className={`px-1.5 py-0.5 rounded-md text-[10px] min-w-[18px] text-center shrink-0 ${isActive ? 'bg-white/20 text-white' : styles.badge}`}>{conteos[tab as keyof typeof conteos]}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
+                <div className="w-full">
+                    <div className="flex items-center gap-1.5 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 dark:border-neutral-800 shadow-sm w-full">
+                        {ORIGEN_ORDEN.map((tab) => {
+                            const styles = ORIGEN_STYLES[tab];
+                            const isActive = filtroEstado === tab;
+                            return (
+                                <button
+                                  key={tab}
+                                  onClick={() => setFiltroEstado(tab)}
+                                  className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 rounded-xl text-[10px] sm:text-xs font-bold transition-all ${isActive ? styles.active : styles.inactive}`}
+                                >
+                                    <span className="truncate">{ORIGEN_LABELS[tab].toUpperCase()}</span>
+                                    <span className={`px-1.5 py-0.5 rounded-md text-[10px] min-w-[18px] text-center shrink-0 ${isActive ? 'bg-white/20 text-white' : styles.badge}`}>
+                                      {conteos[tab]}
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
-                )}
+                </div>
 
                 <div className="flex flex-col lg:flex-row gap-2 w-full lg:items-stretch">
                     <div className="relative w-full lg:flex-1 lg:min-w-[160px] group">
@@ -452,7 +462,7 @@ export default function TareaList({ initialData, tipoVista }: Props) {
            </div>
         )}
 
-        {pestañas.length === 0 ? (
+        {tareasRenderizadas.length === 0 ? (
            <div className="text-center py-16 bg-slate-50 dark:bg-neutral-900/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-neutral-800">
                 <SearchX size={32} className="mx-auto text-slate-300 mb-4" />
                 <h3 className="text-slate-900 dark:text-white font-bold">No se encontraron actividades</h3>

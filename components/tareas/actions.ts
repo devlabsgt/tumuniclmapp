@@ -196,12 +196,25 @@ export async function obtenerDatosGestor(tipoVista: TipoVistaTareas) {
   }
 
   // 4. MAPEAR TAREAS
+  const taskIds = rawTareas.map((t: { id: string }) => t.id);
+  const concejoTaskIds = new Set<string>();
+
+  if (taskIds.length > 0) {
+    const { data: enlacesConcejo } = await supabase
+      .from('tareas_concejo_actividades')
+      .select('task_id')
+      .in('task_id', taskIds);
+
+    (enlacesConcejo || []).forEach((e: { task_id: string }) => concejoTaskIds.add(e.task_id));
+  }
+
   const tareas: Tarea[] = rawTareas.map((t: any) => {
     const creador = todosLosUsuarios.find((u: any) => u.user_id === t.created_by); 
     const asignado = todosLosUsuarios.find((u: any) => u.user_id === t.assigned_to);
 
     return {
       ...t,
+      es_concejo: concejoTaskIds.has(t.id),
       alcance: alcancePorTarea.get(t.id),
       creator: { nombre: creador?.nombre || 'Desconocido' }, 
       assignee: { 
@@ -321,6 +334,14 @@ export async function obtenerActividadPendienteConfirmacion() {
 
   if (!data) return { success: true, data: null };
 
+  const { data: enlaceConcejo } = await supabase
+    .from('tareas_concejo_actividades')
+    .select('id')
+    .eq('task_id', data.id)
+    .maybeSingle();
+
+  const esConcejo = !!enlaceConcejo;
+
   const { data: creador } = await supabase
     .from('info_usuario')
     .select('nombre')
@@ -331,7 +352,8 @@ export async function obtenerActividadPendienteConfirmacion() {
     success: true,
     data: {
       ...data,
-      creador_nombre: creador?.nombre || 'Desconocido',
+      creador_nombre: esConcejo ? 'El Concejo Municipal' : creador?.nombre || 'Desconocido',
+      es_concejo: esConcejo,
     },
   };
 }

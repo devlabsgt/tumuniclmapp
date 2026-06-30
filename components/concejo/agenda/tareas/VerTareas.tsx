@@ -7,7 +7,9 @@ import { fetchTareasDeAgenda, fetchAgendaConcejoPorId, actualizarEstadoAgenda, o
 import { Tarea, AgendaConcejo } from '@/components/concejo/agenda/lib/esquemas';
 import TareaForm from './forms/tareas/Tarea';
 import NotaSeguimiento from './forms/NotaSeguimiento';
+import ActividadesAsignadas from './modals/ActividadesAsignadas';
 import DocumentosModal from './modals/DocumentosModal'; 
+import { obtenerActividadesDeAgenda } from './lib/actividades';
 import Asistencia from './Asistencia';
 import { AnimatePresence, motion } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
@@ -52,6 +54,7 @@ export default function VerTareas() {
   const [filtrosActivos, setFiltrosActivos] = useState<string[]>([]);
   const [isNotaSeguimientoModalOpen, setIsNotaSeguimientoModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'notas' | 'seguimiento' | null>(null);
+  const [isActividadesModalOpen, setIsActividadesModalOpen] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [nombrePuesto, setNombrePuesto] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'agenda' | 'asistencia'>('agenda');
@@ -59,14 +62,20 @@ export default function VerTareas() {
   const [mostrarAvisoAsistencia, setMostrarAvisoAsistencia] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
+  const adjuntarActividades = (
+    listaTareas: Tarea[],
+    actividadesPorTarea: Record<string, Tarea['actividades']>
+  ): Tarea[] => listaTareas.map((t) => ({ ...t, actividades: actividadesPorTarea[t.id] || [] }));
+
   const fetchDatos = async () => {
     if (!agendaId) return;
     try {
-      const [dataTareas, dataAgenda] = await Promise.all([
+      const [dataTareas, dataAgenda, dataActividades] = await Promise.all([
         fetchTareasDeAgenda(agendaId),
-        fetchAgendaConcejoPorId(agendaId)
+        fetchAgendaConcejoPorId(agendaId),
+        obtenerActividadesDeAgenda(agendaId)
       ]);
-      setTareas(dataTareas);
+      setTareas(adjuntarActividades(dataTareas, dataActividades));
       setAgenda(dataAgenda);
     } catch (e: any) {
       setError('Ocurrió un error al cargar los datos.');
@@ -77,8 +86,11 @@ export default function VerTareas() {
 
   const refreshTareasOnly = async () => {
      try {
-        const dataTareas = await fetchTareasDeAgenda(agendaId);
-        setTareas(dataTareas);
+        const [dataTareas, dataActividades] = await Promise.all([
+          fetchTareasDeAgenda(agendaId),
+          obtenerActividadesDeAgenda(agendaId)
+        ]);
+        setTareas(adjuntarActividades(dataTareas, dataActividades));
      } catch (e) {
         console.error("Error actualizando tareas en tiempo real", e);
      }
@@ -293,10 +305,19 @@ export default function VerTareas() {
     setIsNotaSeguimientoModalOpen(true);
   };
 
-  const handleOpenSeguimientoModal = (tarea: Tarea) => {
+  const handleOpenActividadesModal = (tarea: Tarea) => {
+    if (rol === 'INVITADO' || rol === 'ALCALDE') {
+      toast.info('No tiene permisos para gestionar actividades.');
+      return;
+    }
     setTareaSeleccionada(tarea);
-    setModalType('seguimiento');
-    setIsNotaSeguimientoModalOpen(true);
+    setIsActividadesModalOpen(true);
+  };
+
+  const handleCloseActividadesModal = (hasChanged: boolean) => {
+    setIsActividadesModalOpen(false);
+    setTareaSeleccionada(null);
+    if (hasChanged) fetchDatos();
   };
 
   const handleCloseNotaSeguimientoModal = (hasChanged: boolean) => {
@@ -434,7 +455,7 @@ export default function VerTareas() {
                       tareas={tareasFiltradas} 
                       handleOpenEditModal={handleOpenEditModal} 
                       handleOpenNotasModal={handleOpenNotasModal} 
-                      handleOpenSeguimientoModal={handleOpenSeguimientoModal} 
+                      handleOpenActividadesModal={handleOpenActividadesModal} 
                       handleOpenDocumentosModal={handleOpenDocumentosModal}
                       estadoAgenda={agenda?.estado || ''} 
                     />
@@ -459,6 +480,14 @@ export default function VerTareas() {
         )}
         {isNotaSeguimientoModalOpen && tareaSeleccionada && modalType && (
           <NotaSeguimiento isOpen={isNotaSeguimientoModalOpen} onClose={handleCloseNotaSeguimientoModal} tarea={tareaSeleccionada} estadoAgenda={agenda?.estado || ''} tipo={modalType} />
+        )}
+        {isActividadesModalOpen && tareaSeleccionada && (
+          <ActividadesAsignadas
+            isOpen={isActividadesModalOpen}
+            onClose={handleCloseActividadesModal}
+            tarea={tareaSeleccionada}
+            puedeEditar={['SUPER', 'SECRETARIO', 'SEC-TECNICO'].includes(rol)}
+          />
         )}
         {isDocumentosModalOpen && tareaParaDocumentos && (
           <DocumentosModal 

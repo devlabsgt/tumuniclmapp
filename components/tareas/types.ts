@@ -53,6 +53,7 @@ export interface Tarea {
   // Propiedades calculadas en el frontend
   estadoFiltro?: string;
   alcance?: 'equipo' | 'externa';
+  es_concejo?: boolean;
 }
 
 export interface NewTaskState {

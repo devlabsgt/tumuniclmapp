@@ -29,6 +29,23 @@ export interface CategoriaItem {
   nombre: string;
 }
 
+export interface UsuarioAsignable {
+  user_id: string;
+  nombre: string;
+}
+
+export interface ActividadConcejo {
+  id: string;
+  title: string;
+  description: string | null;
+  due_date: string;
+  status: string;
+  assigned_to: string | null;
+  confirmed_at: string | null;
+  assignee_nombre: string;
+  checklist?: { title: string; is_completed: boolean }[] | null;
+}
+
 export interface Tarea {
   id: string;
   agenda_concejo_id?: string;
@@ -41,6 +58,7 @@ export interface Tarea {
   fecha_vencimiento?: string;
   categoria_id?: string;
   categoria?: CategoriaItem;
+  actividades?: ActividadConcejo[];
 }
 
 export const sesionSchema = z.object({

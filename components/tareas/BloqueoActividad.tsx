@@ -33,6 +33,7 @@ interface ActividadPendiente {
   created_by: string;
   assigned_to: string;
   creador_nombre: string;
+  es_concejo?: boolean;
 }
 
 export default function BloqueoActividad() {
@@ -146,9 +147,17 @@ export default function BloqueoActividad() {
           </h1>
 
           <p className="mb-6 text-sm font-medium text-gray-500 dark:text-gray-400">
-            {esAutoAsignada
-              ? 'Te asignaste una actividad. Confirma que estás enterado.'
-              : `${actividad.creador_nombre} te asignó una actividad. Confirma que estás enterado.`}
+            {actividad.es_concejo ? (
+              <>
+                El{' '}
+                <span className="font-bold text-blue-600 dark:text-blue-400">Concejo Municipal</span>{' '}
+                te asignó una actividad. Confirma que estás enterado.
+              </>
+            ) : esAutoAsignada ? (
+              'Te asignaste una actividad. Confirma que estás enterado.'
+            ) : (
+              `${actividad.creador_nombre} te asignó una actividad. Confirma que estás enterado.`
+            )}
           </p>
 
           <div className="w-full bg-indigo-50 dark:bg-indigo-950/30 rounded-xl border border-indigo-100 dark:border-indigo-900/50 p-5 mb-8 text-left">
