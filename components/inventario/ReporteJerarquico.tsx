@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { FilaReporteInventario } from './lib/schemas';
+import { FilaReporteInventario, TipoVistaInventario } from './lib/schemas';
 import { NodoInventarioItem, NodoFila } from './NodoInventarioItem';
 import { FiltroBusquedaInventario, ModoFiltro } from './FiltroBusquedaInventario';
-import { getReporteJerarquicoInventario } from './lib/actions';
+import { useReporteJerarquicoInventario } from './lib/hooks';
 import { ChevronsLeftRight, BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import TrasladoModal from './modals/TrasladoModal';
@@ -18,11 +18,11 @@ const ENCABEZADO_BG = 'bg-slate-200 dark:bg-neutral-800';
 interface ReporteJerarquicoProps {
   onClickItem?: (nodo: NodoFila) => void;
   estadoFiltro?: string;
+  tipoVista?: TipoVistaInventario;
 }
 
-export default function ReporteJerarquico({ onClickItem, estadoFiltro = 'Activo' }: ReporteJerarquicoProps) {
-  const [filasRAW, setFilasRAW] = useState<FilaReporteInventario[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function ReporteJerarquico({ onClickItem, estadoFiltro = 'Activo', tipoVista = 'general' }: ReporteJerarquicoProps) {
+  const { data: filasRAW = [], isLoading: loading } = useReporteJerarquicoInventario(estadoFiltro, tipoVista);
   const [expandidosManuales, setExpandidosManuales] = useState<Set<string>>(new Set());
 
   // Estado para modales
@@ -33,23 +33,6 @@ export default function ReporteJerarquico({ onClickItem, estadoFiltro = 'Activo'
   
   const [modoFiltro, setModoFiltro] = useState<ModoFiltro>('departamento');
   const [filtroTexto, setFiltroTexto] = useState('');
-
-  useEffect(() => {
-    let isMounted = true;
-    setLoading(true);
-    const fetchData = async () => {
-      try {
-        const data = await getReporteJerarquicoInventario(estadoFiltro);
-        if (isMounted) setFilasRAW(data);
-      } catch (err) {
-        console.error("Error cargando reporte:", err);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-    fetchData();
-    return () => { isMounted = false; };
-  }, [estadoFiltro]);
 
   const buildTree = useCallback((
     filas: FilaReporteInventario[],
@@ -214,9 +197,9 @@ export default function ReporteJerarquico({ onClickItem, estadoFiltro = 'Activo'
   }
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-neutral-950 p-4 rounded-xl shadow-sm border border-slate-200 dark:border-neutral-800">
+    <div className="flex flex-col h-full bg-white dark:bg-neutral-950 p-0 sm:p-4 rounded-none sm:rounded-xl shadow-none sm:shadow-sm border-0 sm:border border-slate-200 dark:border-neutral-800">
       
-      <div className="mb-4">
+      <div className="mb-4 pt-2 sm:pt-0">
         <FiltroBusquedaInventario
           modoFiltro={modoFiltro}
           onModoChange={setModoFiltro}
@@ -253,7 +236,7 @@ export default function ReporteJerarquico({ onClickItem, estadoFiltro = 'Activo'
               >
                 <ChevronsLeftRight size={16} />
               </motion.span>
-              <span>{todoExpandido ? 'Contraer Todo' : 'Expandir Todo'}</span>
+              <span className="hidden sm:inline">{todoExpandido ? 'Contraer Todo' : 'Expandir Todo'}</span>
             </button>
           </div>
         </div>
@@ -339,6 +322,7 @@ export default function ReporteJerarquico({ onClickItem, estadoFiltro = 'Activo'
         onClose={() => setEstadisticasModalOpen(false)}
         filas={filasRAW}
         cargando={loading}
+        estadoFiltroContexto={estadoFiltro}
       />
     </div>
   );

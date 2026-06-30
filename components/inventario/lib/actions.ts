@@ -18,18 +18,63 @@ export const getInventarioActivo = async (
   } else if (estadoFiltro === 'Inactivo') {
     query = query.in('estado', ['Inactivo', 'Baja']);
   }
+  // Si es 'Todos', no filtramos por estado
 
   if (user) {
-    if (tipoVista === 'propia') {
-      query = query.eq('id_usuario_asignado', user.id);
+    if (tipoVista === 'general') {
+      const { data: rolesData } = await supabase
+        .from('usuarios_roles')
+        .select(`roles (nombre)`)
+        .eq('user_id', user.id);
+      
+      const rolesUsuario = rolesData?.map((item: any) => item.roles?.nombre) || [];
+      const puedeVerGeneral = rolesUsuario.some((rol: string) => ['SUPER', 'SECRETARIO', 'DAFIM'].includes(rol));
+      
+      if (!puedeVerGeneral) {
+        // Force fallback to 'propia' if they try to bypass
+        query = query.eq('id_usuario', user.id);
+      }
+    } else if (tipoVista === 'propia') {
+      query = query.eq('id_usuario', user.id);
     } else if (tipoVista === 'dependencia') {
       const { data: userData } = await supabase
         .from('info_usuario')
         .select('dependencia_id')
         .eq('user_id', user.id)
         .single();
-      if (userData?.dependencia_id) {
-        query = query.eq('id_dependencia', userData.dependencia_id);
+      
+      const { data: todasDeps } = await supabase
+        .from('dependencias')
+        .select('id, parent_id, jefe_id');
+
+      const depIds = new Set<string>();
+      if (userData?.dependencia_id) depIds.add(userData.dependencia_id);
+      
+      if (todasDeps) {
+        const oficinasJefe = todasDeps.filter(d => d.jefe_id === user.id).map(d => d.id);
+        oficinasJefe.forEach(id => {
+          depIds.add(id);
+          // Add immediate children
+          todasDeps.filter(d => d.parent_id === id).forEach(child => depIds.add(child.id));
+        });
+      }
+
+      const depIdsArray = Array.from(depIds);
+      if (depIdsArray.length > 0) {
+        const { data: usersInDeps } = await supabase
+          .from('info_usuario')
+          .select('user_id')
+          .in('dependencia_id', depIdsArray);
+        
+        const userIdsArray = usersInDeps ? usersInDeps.map(u => u.user_id) : [];
+        
+        const orConditions = [];
+        orConditions.push(`id_dependencia.in.(${depIdsArray.join(',')})`);
+        if (userIdsArray.length > 0) {
+          orConditions.push(`id_usuario.in.(${userIdsArray.join(',')})`);
+        }
+        
+        query = query.or(orConditions.join(','));
       } else {
         query = query.eq('id_dependencia', 'invalid_dep_fallback');
       }
@@ -168,7 +213,10 @@ export const actualizarImagenInventarioAction = async (id: string, path: string 
   return { path };
 };
 
-export const getReporteJerarquicoInventario = async (estadoFiltro: string = 'Activo') => {
+export const getReporteJerarquicoInventario = async (
+  estadoFiltro: string = 'Activo',
+  tipoVista: TipoVistaInventario = 'general'
+) => {
   const supabase = await createClient();
 
   // 1. Obtener todas las dependencias
@@ -185,9 +233,81 @@ export const getReporteJerarquicoInventario = async (estadoFiltro: string = 'Act
   if (infosError) throw infosError;
 
   // 3. Obtener inventario (siempre todo para el reporte jerárquico, así armamos los apartados 9 y 10)
-  const { data: invData, error: invError } = await supabase
+  let invQuery = supabase
     .from('inventario')
     .select('id, serie, descripcion, ctd, valor, estado, id_usuario, id_dependencia, imagen_url');
+  
+  if (estadoFiltro === 'Activo') {
+    invQuery = invQuery.in('estado', ['Activo', 'Regular', 'Malo']);
+  } else if (estadoFiltro === 'Inactivo') {
+    invQuery = invQuery.in('estado', ['Inactivo', 'Baja']);
+  }
+  // Si es 'Todos', no filtramos por estado
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user) {
+    if (tipoVista === 'general') {
+      const { data: rolesData } = await supabase
+        .from('usuarios_roles')
+        .select(`roles (nombre)`)
+        .eq('user_id', user.id);
+      
+      const rolesUsuario = rolesData?.map((item: any) => item.roles?.nombre) || [];
+      const puedeVerGeneral = rolesUsuario.some((rol: string) => ['SUPER', 'SECRETARIO', 'DAFIM'].includes(rol));
+      
+      if (!puedeVerGeneral) {
+        // Force fallback to 'propia' if they try to bypass
+        invQuery = invQuery.eq('id_usuario', user.id);
+      }
+    } else if (tipoVista === 'propia') {
+      invQuery = invQuery.eq('id_usuario', user.id);
+    } else if (tipoVista === 'dependencia') {
+      const { data: userData } = await supabase
+        .from('info_usuario')
+        .select('dependencia_id')
+        .eq('user_id', user.id)
+        .single();
+      
+      const { data: todasDeps } = await supabase
+        .from('dependencias')
+        .select('id, parent_id, jefe_id');
+
+      const depIds = new Set<string>();
+      if (userData?.dependencia_id) depIds.add(userData.dependencia_id);
+      
+      if (todasDeps) {
+        const oficinasJefe = todasDeps.filter(d => d.jefe_id === user.id).map(d => d.id);
+        oficinasJefe.forEach(id => {
+          depIds.add(id);
+          // Add immediate children
+          todasDeps.filter(d => d.parent_id === id).forEach(child => depIds.add(child.id));
+        });
+      }
+
+      const depIdsArray = Array.from(depIds);
+      if (depIdsArray.length > 0) {
+        const { data: usersInDeps } = await supabase
+          .from('info_usuario')
+          .select('user_id')
+          .in('dependencia_id', depIdsArray);
+        
+        const userIdsArray = usersInDeps ? usersInDeps.map(u => u.user_id) : [];
+        
+        const orConditions = [];
+        orConditions.push(`id_dependencia.in.(${depIdsArray.join(',')})`);
+        if (userIdsArray.length > 0) {
+          orConditions.push(`id_usuario.in.(${userIdsArray.join(',')})`);
+        }
+        
+        invQuery = invQuery.or(orConditions.join(','));
+      } else {
+        invQuery = invQuery.eq('id_dependencia', 'invalid_dep_fallback');
+      }
+    }
+  }
+
+  const { data: invData, error: invError } = await invQuery;
   
   if (invError) throw invError;
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Select,
@@ -52,6 +52,7 @@ interface Props {
   onClose: () => void;
   filas: FilaReporteInventario[];
   cargando?: boolean;
+  estadoFiltroContexto?: string;
 }
 
 const PALETA = [
@@ -126,9 +127,25 @@ export default function EstadisticasInventarioModal({
   onClose,
   filas,
   cargando = false,
+  estadoFiltroContexto = 'Activo',
 }: Props) {
   const [limite, setLimite] = useState<LimiteTop>(LIMITE_DEFAULT);
-  const [filtro, setFiltro] = useState<FiltroEstadoInventario>('activos');
+  
+  // Inicializar el filtro del modal según el filtro principal
+  const [filtro, setFiltro] = useState<FiltroEstadoInventario>(() => {
+    if (estadoFiltroContexto === 'Inactivo') return 'inactivos';
+    if (estadoFiltroContexto === 'Todos') return 'todos';
+    return 'activos';
+  });
+
+  // Si el filtro contexto cambia externamente mientras el modal está cerrado, actualizar
+  useEffect(() => {
+    if (open) {
+      if (estadoFiltroContexto === 'Inactivo') setFiltro('inactivos');
+      else if (estadoFiltroContexto === 'Todos') setFiltro('todos');
+      else setFiltro('activos');
+    }
+  }, [open, estadoFiltroContexto]);
 
   const stats = useMemo(() => {
     if (cargando || !filas.length) return null;
@@ -159,16 +176,6 @@ export default function EstadisticasInventarioModal({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <Select value={filtro} onValueChange={(val: FiltroEstadoInventario) => setFiltro(val)}>
-              <SelectTrigger className="w-[140px] h-9 bg-slate-50 border-slate-200 dark:bg-neutral-800 dark:border-neutral-700">
-                <SelectValue placeholder="Estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="activos">Solo Activos</SelectItem>
-                <SelectItem value="inactivos">Inactivos / Baja</SelectItem>
-              </SelectContent>
-            </Select>
-
             <Select value={limite} onValueChange={(val: LimiteTop) => setLimite(val)}>
               <SelectTrigger className="w-[120px] h-9 bg-slate-50 border-slate-200 dark:bg-neutral-800 dark:border-neutral-700">
                 <SelectValue placeholder="Mostrar" />
@@ -404,11 +411,15 @@ function CustomLegend({ data }: { data: ItemEstadistica[] }) {
 
 function ListContainer({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white dark:bg-neutral-900 p-5 rounded-2xl border border-slate-200 dark:border-neutral-800 shadow-sm h-full flex flex-col">
-      <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-5 uppercase tracking-wider">
+    <div className="bg-white dark:bg-neutral-900 p-5 rounded-2xl border border-slate-200 dark:border-neutral-800 shadow-sm h-full flex flex-col overflow-hidden">
+      <h3 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-5 uppercase tracking-wider shrink-0">
         {title}
       </h3>
-      <div className="flex-1 pr-2">{children}</div>
+      <div className="flex-1 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="min-w-full w-max pr-2">
+          {children}
+        </div>
+      </div>
     </div>
   );
 }
@@ -425,12 +436,12 @@ function TopList({ data, totalMax }: { data: ItemEstadistica[]; totalMax: number
         return (
           <div key={i} className="group">
             <div className="flex flex-col mb-2 gap-1">
-              <div className="flex items-center gap-2 text-sm">
-                <span className="font-bold text-slate-800 dark:text-slate-100 truncate">
+              <div className="flex items-center gap-2 text-sm whitespace-nowrap">
+                <span className="font-bold text-slate-800 dark:text-slate-100">
                   {item.nombre}
                 </span>
                 {item.detalle && (
-                  <span className="font-semibold text-blue-600 dark:text-blue-400 truncate text-[13px]">
+                  <span className="font-semibold text-blue-600 dark:text-blue-400 text-[13px]">
                     {item.detalle}
                   </span>
                 )}

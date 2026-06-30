@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import ImageUploader, { ImageUploaderHandle } from '@/components/imgs/ImageUploader';
-import { Loader2, Edit2, Trash2, AlertTriangle, MonitorSmartphone, User, Building2, History, Info, Package, X } from 'lucide-react';
+import { Loader2, Edit2, Trash2, AlertTriangle, MonitorSmartphone, User, Building2, History, Info, Package, X, Save } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { createClient } from '@/utils/supabase/client';
 import HistorialTimeline from '../HistorialTimeline';
@@ -135,6 +135,7 @@ export default function DetalleInventarioModal({ item, open, onOpenChange }: Det
         }}
       >
         {/* Header Institucional */}
+        {/* Header Institucional */}
         <div className="flex items-center justify-between px-5 sm:px-8 py-1.5 sm:py-2 border-b-2 border-blue-600 shrink-0 pr-24">
           <div className="flex items-center gap-4">
             <img
@@ -159,17 +160,17 @@ export default function DetalleInventarioModal({ item, open, onOpenChange }: Det
                 type="submit"
                 disabled={editar.isPending || isUploadingImage}
                 onClick={() => handleSubmit(onSubmitEdit)()}
-                className="px-3 py-1.5 text-xs font-bold bg-emerald-600 text-white rounded-md transition-all shadow hover:bg-emerald-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className="px-2.5 sm:px-3 py-1.5 text-xs font-bold bg-emerald-600 text-white rounded-md transition-all shadow hover:bg-emerald-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                {(editar.isPending || isUploadingImage) ? <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Guardando...</> : 'Guardar'}
+                {(editar.isPending || isUploadingImage) ? <><Loader2 className="sm:mr-1.5 h-3.5 w-3.5 animate-spin" /><span className="hidden sm:inline">Guardando...</span></> : <><Save className="w-3.5 h-3.5 sm:mr-1.5" /><span className="hidden sm:inline">Guardar</span></>}
               </button>
             ) : (
               <button
                 onClick={() => setIsEditing(true)}
-                className="px-3 py-1.5 text-xs font-bold bg-blue-600 text-white rounded-md transition-all shadow hover:bg-blue-700 active:scale-95 flex items-center"
+                className="px-2.5 sm:px-3 py-1.5 text-xs font-bold bg-blue-600 text-white rounded-md transition-all shadow hover:bg-blue-700 active:scale-95 flex items-center"
               >
-                <Edit2 className="w-3.5 h-3.5 mr-1.5" />
-                Editar
+                <Edit2 className="w-3.5 h-3.5 sm:mr-1.5" />
+                <span className="hidden sm:inline">Editar</span>
               </button>
             )}
           </div>
@@ -220,24 +221,13 @@ export default function DetalleInventarioModal({ item, open, onOpenChange }: Det
           ) : isEditing ? (
             <form onSubmit={handleSubmit(onSubmitEdit)} className="space-y-6 py-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="serie">Número de Serie o Placa</Label>
                   <Input id="serie" {...register('serie')} placeholder="Ej. LPT-2023-01" />
                   {errors.serie && <p className="text-sm text-red-500">{errors.serie.message}</p>}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="estado">Estado Físico</Label>
-                  <select
-                    id="estado"
-                    {...register('estado')}
-                    className="flex h-10 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-800 dark:bg-neutral-950 dark:ring-offset-neutral-950 dark:placeholder:text-neutral-400 dark:focus:ring-neutral-300"
-                  >
-                    <option value="Activo">Activo</option>
-                    <option value="Inactivo">Inactivo</option>
-                  </select>
-                  {errors.estado && <p className="text-sm text-red-500">{errors.estado.message}</p>}
-                </div>
+                <input type="hidden" {...register('estado')} />
 
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="descripcion">Descripción del Bien</Label>

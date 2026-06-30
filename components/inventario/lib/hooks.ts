@@ -40,7 +40,7 @@ export const useDependenciasBasicas = () => {
   return useQuery({
     queryKey: KEYS.dependencias,
     queryFn: getDependenciasBasicas,
-    staleTime: ONE_HOUR, // las dependencias no cambian tan seguido
+    staleTime: FIVE_MINUTES,
   });
 };
 
@@ -48,14 +48,17 @@ export const useUsuariosBasicos = () => {
   return useQuery({
     queryKey: KEYS.usuarios,
     queryFn: getUsuariosBasicos,
-    staleTime: ONE_HOUR, // los usuarios no cambian tan seguido
+    staleTime: FIVE_MINUTES,
   });
 };
 
-export const useReporteJerarquicoInventario = (estadoFiltro: string = 'Activo') => {
+export const useReporteJerarquicoInventario = (
+  estadoFiltro: string = 'Activo',
+  tipoVista: TipoVistaInventario = 'general'
+) => {
   return useQuery({
-    queryKey: [...KEYS.reporteJerarquico, estadoFiltro],
-    queryFn: () => getReporteJerarquicoInventario(estadoFiltro),
+    queryKey: [...KEYS.reporteJerarquico, estadoFiltro, tipoVista],
+    queryFn: () => getReporteJerarquicoInventario(estadoFiltro, tipoVista),
     staleTime: FIVE_MINUTES,
   });
 };

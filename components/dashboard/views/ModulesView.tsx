@@ -45,13 +45,14 @@ export default function ModulesView({
           return ["SUPER", "RRHH", "SECRETARIO"].includes(rol);
         }
         if (rol === "SUPER") return true;
-        if (["ACTIVIDADES", "PERMISOS", "SOLICITUDCOMBUSTIBLE"].includes(m.id)) return true;
+        if (["ACTIVIDADES", "PERMISOS", "SOLICITUDCOMBUSTIBLE", "MIS_BIENES"].includes(m.id)) return true;
         if (
           [
             "ASISTENCIA",
             "COMISIONES_JEFE",
             "PERMISOS_JEFE",
             "ACTIVIDADES_JEFE",
+            "INVENTARIO_JEFE",
           ].includes(m.id)
         )
           return esjefe;
@@ -79,7 +80,22 @@ export default function ModulesView({
           );
         }
         if (m.subgrupo === "Gestión de Recursos Municipales") {
-          return ["SUPER", "SECRETARIO", "SEC-TECNICO"].includes(rol);
+          if (m.id === "GESTION_COMBUSTIBLE" || m.id === "CONTRATOS_COMBUSTIBLE") {
+            return (
+              ["SUPER", "SECRETARIO", "SEC-TECNICO"].includes(rol) ||
+              modulos.includes(m.permiso)
+            );
+          }
+          if (m.id === "INVENTARIO_GENERAL") {
+            return (
+              ["SUPER", "SECRETARIO", "DAFIM"].includes(rol) ||
+              modulos.includes(m.permiso)
+            );
+          }
+          return (
+            ["SUPER", "SECRETARIO", "SEC-TECNICO", "DAFIM"].includes(rol) ||
+            modulos.includes(m.permiso)
+          );
         }
         if (m.id === "SOLICITUDES_LAMARAS") {
           return rol === "SECRETARIO" || rol === "SUPER" || esAtencionVecino || esElectricista;
@@ -119,8 +135,11 @@ export default function ModulesView({
     [rol, modulos],
   );
   const showRecursosMunicipalesAccordion = useMemo(
-    () => ["SUPER", "SECRETARIO", "SEC-TECNICO"].includes(rol),
-    [rol],
+    () => ["SUPER", "SECRETARIO", "SEC-TECNICO", "DAFIM"].includes(rol) || 
+          modulos.includes("COMBUSTIBLE") || 
+          modulos.includes("CONTRATOS") || 
+          modulos.includes("INVENTARIO"),
+    [rol, modulos],
   );
   const showRecepcionAccordion = useMemo(
     () => rol === "SECRETARIO" || rol === "SUPER" || esAtencionVecino || esElectricista,

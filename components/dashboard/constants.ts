@@ -45,6 +45,16 @@ export const TODOS_LOS_MODULOS = [
     subgrupo: 'Gestión Propia'
   },
   {
+    id: 'MIS_BIENES',
+    permiso: 'INVENTARIO',
+    titulo: 'Mi Inventario',
+    descripcion: 'Consulta y control de tus bienes asignados.',
+    ruta: '/protected/inventario/propias',
+    iconoKey: 'iuqyhlid',
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Gestión Propia'
+  },
+  {
     id: 'SOLICITUDCOMBUSTIBLE',
     permiso: 'SOLICITUDCOMBUSTIBLE',
     titulo: 'Solicitar Cupón Combustible',
@@ -101,6 +111,16 @@ export const TODOS_LOS_MODULOS = [
     descripcion: 'Revise y gestione las solicitudes de Inter-Oficinas.',
     ruta: '/protected/solicitudes/jefes',
     iconoKey: 'dnkhszms',
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Gestión Jefe de Área'
+  },
+  {
+    id: 'INVENTARIO_JEFE',
+    permiso: 'INVENTARIO',
+    titulo: 'Inventario de Mi Equipo',
+    descripcion: 'Supervise los bienes de su dependencia y personal a cargo.',
+    ruta: '/protected/inventario/jefe',
+    iconoKey: 'iuqyhlid',
     categoria: 'Gestión Administrativa',
     subgrupo: 'Gestión Jefe de Área'
   },
@@ -195,6 +215,16 @@ export const TODOS_LOS_MODULOS = [
     descripcion: 'Seguimiento de contratos con gasolineras.',
     ruta: '/protected/combustible/contrato',
     iconoKey: 'pxglrdrs',
+    categoria: 'Gestión Administrativa',
+    subgrupo: 'Gestión de Recursos Municipales'
+  },
+  {
+    id: 'INVENTARIO_GENERAL',
+    permiso: 'INVENTARIO',
+    titulo: 'Inventario General',
+    descripcion: 'Gestión completa y centralizada de todos los bienes municipales.',
+    ruta: '/protected/inventario/general',
+    iconoKey: 'iuqyhlid',
     categoria: 'Gestión Administrativa',
     subgrupo: 'Gestión de Recursos Municipales'
   },
