@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Calendar as CalendarIcon, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 const MESES = [
@@ -80,11 +80,10 @@ export default function SelectorMesAnio({ mes, anio, onChange, className = '', a
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="flex-1 md:flex-none min-w-0 flex items-center justify-center gap-2 px-2 md:px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500/20 font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-neutral-800 transition-colors border-x border-slate-200 dark:border-neutral-800 whitespace-nowrap"
+            className="flex-1 md:flex-none min-w-0 flex items-center justify-center gap-1 px-1.5 sm:px-2 md:px-4 py-2.5 text-[11px] sm:text-sm outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500/20 font-medium text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-neutral-800 transition-colors border-x border-slate-200 dark:border-neutral-800 whitespace-nowrap"
           >
-            <CalendarIcon size={16} className="text-slate-400 shrink-0" />
             <span className="truncate">{MESES[mes]} {anio}</span>
-            <ChevronDown size={16} className={`text-slate-400 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+            <ChevronDown size={14} className={`text-slate-400 shrink-0 transition-transform sm:w-4 sm:h-4 ${open ? 'rotate-180' : ''}`} />
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-[280px] p-3 rounded-xl border-slate-200 dark:border-neutral-800" align="center">

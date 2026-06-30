@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { Tarea, Usuario, PerfilUsuario, TipoVistaTareas } from './types'; 
 import TareaItem from './TareaItem';
 import NewTarea from './modals/NewTarea'; 
-import { Plus, SearchX, ArrowLeft, Search, Building2, ChevronDown, User } from 'lucide-react';
+import { Plus, SearchX, ArrowLeft, Search, Building2, ChevronDown, User, ArrowDownWideNarrow, ArrowUpWideNarrow } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGestorData } from './hooks';
 import SelectorMesAnio from './SelectorMesAnio';
@@ -39,6 +39,22 @@ const obtenerSemanas = (mes: number, anio: number) => {
   });
 };
 
+const obtenerIndiceSemanaActual = (mes: number, anio: number) => {
+  const semanas = obtenerSemanas(mes, anio);
+  const hoy = new Date();
+  hoy.setHours(12, 0, 0, 0);
+
+  const indice = semanas.findIndex((sem) => {
+    const inicio = new Date(sem.inicio);
+    const fin = new Date(sem.fin);
+    inicio.setHours(0, 0, 0, 0);
+    fin.setHours(23, 59, 59, 999);
+    return hoy >= inicio && hoy <= fin;
+  });
+
+  return indice;
+};
+
 const getFechaCabecera = (fechaIso: string) => {
   if (!fechaIso) return 'Sin fecha';
   const fechaParte = fechaIso.split('T')[0];
@@ -49,10 +65,23 @@ const getFechaCabecera = (fechaIso: string) => {
   return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
+interface TareaCardProps {
+  tarea: Tarea;
+  isExpanded: boolean;
+  onToggle: () => void;
+  isJefe: boolean;
+  usuarioActual: string;
+  usuarios: Usuario[];
+}
+
+function TareaCard(props: TareaCardProps) {
+  return <TareaItem {...props} />;
+}
+
 const TAB_STYLES: Record<string, { active: string, inactive: string, badge: string }> = {
   'Asignado': { active: 'bg-purple-600 text-white', inactive: 'text-purple-600 bg-purple-50 dark:bg-purple-900/20 dark:text-purple-400', badge: 'bg-purple-100 text-purple-700' },
   'Completado': { active: 'bg-emerald-600 text-white', inactive: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400', badge: 'bg-emerald-100 text-emerald-700' },
-  'Vencido': { active: 'bg-red-600 text-white', inactive: 'text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400', badge: 'bg-red-100 text-red-700' }
+  'Vencido': { active: 'bg-orange-600 text-white', inactive: 'text-orange-600 bg-orange-50 dark:bg-orange-900/20 dark:text-orange-400', badge: 'bg-orange-100 text-orange-700' }
 };
 
 const ALCANCE_JEFE_STYLES: Record<string, { active: string, inactive: string, badge: string }> = {
@@ -75,6 +104,7 @@ export default function TareaList({ initialData, tipoVista }: Props) {
   const [mesSeleccionado, setMesSeleccionado] = useState(0); 
   const [anioSeleccionado, setAnioSeleccionado] = useState(ANIO_ACTUAL);
   const [semanaSeleccionada, setSemanaSeleccionada] = useState(-1);
+  const [ordenDescendente, setOrdenDescendente] = useState(true);
   const [alcanceJefe, setAlcanceJefe] = useState<'equipo' | 'externa'>('equipo');
   
   const [oficinasAbiertas, setOficinasAbiertas] = useState<Record<string, boolean>>({});
@@ -82,8 +112,12 @@ export default function TareaList({ initialData, tipoVista }: Props) {
 
   useEffect(() => {
     const hoy = new Date();
-    setMesSeleccionado(hoy.getMonth());
-    setAnioSeleccionado(hoy.getFullYear());
+    const mes = hoy.getMonth();
+    const anio = hoy.getFullYear();
+    setMesSeleccionado(mes);
+    setAnioSeleccionado(anio);
+    const indiceSemana = obtenerIndiceSemanaActual(mes, anio);
+    setSemanaSeleccionada(indiceSemana >= 0 ? indiceSemana : -1);
     setIsMounted(true);
   }, []);
 
@@ -92,8 +126,16 @@ export default function TareaList({ initialData, tipoVista }: Props) {
   }, [mesSeleccionado, anioSeleccionado]);
 
   useEffect(() => {
-    setSemanaSeleccionada(-1);
-  }, [mesSeleccionado, anioSeleccionado]);
+    if (!isMounted) return;
+
+    const hoy = new Date();
+    if (mesSeleccionado === hoy.getMonth() && anioSeleccionado === hoy.getFullYear()) {
+      const indiceSemana = obtenerIndiceSemanaActual(mesSeleccionado, anioSeleccionado);
+      setSemanaSeleccionada(indiceSemana >= 0 ? indiceSemana : -1);
+    } else {
+      setSemanaSeleccionada(-1);
+    }
+  }, [mesSeleccionado, anioSeleccionado, isMounted]);
 
   const toggleAccordion = (id: string) => {
     if (expandedId === id) setExpandedId(null);
@@ -155,12 +197,16 @@ export default function TareaList({ initialData, tipoVista }: Props) {
       } else {
           coincideFecha = (tMonth - 1) === mesSeleccionado && tYear === anioSeleccionado;
       }
+
+      const coincideMes = (tMonth - 1) === mesSeleccionado && tYear === anioSeleccionado;
+      const esActiva = t.status !== 'Completado';
+      const visibleFueraDeSemana = semanaSeleccionada !== -1 && coincideMes && esActiva;
       
       const termino = busqueda.toLowerCase();
       const coincideTitulo = t.title.toLowerCase().includes(termino);
       const coincideUsuario = (t.assignee?.nombre || '').toLowerCase().includes(termino);
       
-      return coincideFecha && (coincideTitulo || coincideUsuario);
+      return (coincideFecha || visibleFueraDeSemana) && (coincideTitulo || coincideUsuario);
     }).map((t: Tarea) => {
       const esVencida = new Date() > new Date(t.due_date) && t.status !== 'Completado';
       return { ...t, estadoFiltro: esVencida ? 'Vencido' : t.status };
@@ -181,9 +227,25 @@ export default function TareaList({ initialData, tipoVista }: Props) {
     }
   }, [pestañas, filtroEstado, isMounted]);
 
+  const ordenarPorFecha = (lista: Tarea[]) => {
+    return [...lista].sort((a, b) => {
+      const prioridad = (t: Tarea) => {
+        if (t.status !== 'Completado' && !t.confirmed_at) return 2;
+        return 0;
+      };
+      const prioA = prioridad(a);
+      const prioB = prioridad(b);
+      if (prioB !== prioA) return prioB - prioA;
+
+      const cmp = new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+      return ordenDescendente ? -cmp : cmp;
+    });
+  };
+
   const listaVisual = useMemo(() => {
-      return tareasFiltradas.filter((t: Tarea) => filtroEstado === '' ? true : (filtroEstado === 'Asignado' ? (t.estadoFiltro === 'Asignado' || t.estadoFiltro === 'En Proceso') : t.estadoFiltro === filtroEstado));
-  }, [tareasFiltradas, filtroEstado]);
+      const filtradas = tareasFiltradas.filter((t: Tarea) => filtroEstado === '' ? true : (filtroEstado === 'Asignado' ? (t.estadoFiltro === 'Asignado' || t.estadoFiltro === 'En Proceso') : t.estadoFiltro === filtroEstado));
+      return ordenarPorFecha(filtradas);
+  }, [tareasFiltradas, filtroEstado, ordenDescendente]);
   
   const tareasRenderizadas = useMemo(() => {
       return expandedId ? listaVisual.filter((t: Tarea) => t.id === expandedId) : listaVisual;
@@ -204,7 +266,9 @@ export default function TareaList({ initialData, tipoVista }: Props) {
               if (!g) { g = { key: fechaKey, titulo: getFechaCabecera(fechaKey), tareas: [] }; grupos.push(g); }
               g.tareas.push(t);
           });
-          return grupos.sort((a, b) => a.key.localeCompare(b.key));
+          return grupos
+            .sort((a, b) => ordenDescendente ? b.key.localeCompare(a.key) : a.key.localeCompare(b.key))
+            .map((g) => ({ ...g, tareas: ordenarPorFecha(g.tareas) }));
       } else {
           const usarSubgruposPersona = tipoVista === 'gestion_jefe' && alcanceJefe === 'equipo';
           const grupos: Record<string, {
@@ -244,15 +308,17 @@ export default function TareaList({ initialData, tipoVista }: Props) {
               key: g.key,
               titulo: g.titulo,
               subgrupos: usarSubgruposPersona
-                ? Object.values(g.subgrupos).sort((a, b) => a.nombre.localeCompare(b.nombre))
+                ? Object.values(g.subgrupos)
+                    .sort((a, b) => a.nombre.localeCompare(b.nombre))
+                    .map((s) => ({ ...s, tareas: ordenarPorFecha(s.tareas) }))
                 : undefined,
               tareas: usarSubgruposPersona
-                ? Object.values(g.subgrupos).flatMap(s => s.tareas)
-                : g.tareas,
+                ? Object.values(g.subgrupos).flatMap(s => ordenarPorFecha(s.tareas))
+                : ordenarPorFecha(g.tareas),
             }))
             .sort((a, b) => a.titulo.localeCompare(b.titulo));
       }
-  }, [tareasRenderizadas, tipoVista, perfilUsuario, isMounted, alcanceJefe]);
+  }, [tareasRenderizadas, tipoVista, perfilUsuario, isMounted, alcanceJefe, ordenDescendente]);
 
   const tituloPagina = useMemo(() => {
       if (tipoVista === 'mis_actividades') return 'Mis Actividades';
@@ -330,29 +396,36 @@ export default function TareaList({ initialData, tipoVista }: Props) {
                     </div>
                 )}
 
-                <div className="flex flex-col gap-3 w-full">
-                    <div className="relative w-full group">
+                <div className="flex flex-col lg:flex-row gap-2 w-full lg:items-stretch">
+                    <div className="relative w-full lg:flex-1 lg:min-w-[160px] group">
                         <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                         <input type="text" placeholder="Buscar..." value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 dark:text-gray-200" />
                     </div>
-                    <div className="flex flex-row gap-2 w-full">
-                        <div className="w-1/2 min-w-0">
-                            <SelectorMesAnio
-                              mes={mesSeleccionado}
-                              anio={anioSeleccionado}
-                              onChange={(mes, anio) => {
-                                setMesSeleccionado(mes);
-                                setAnioSeleccionado(anio);
-                              }}
-                            />
-                        </div>
-                        <div className="relative w-1/2 min-w-0">
-                            <select value={semanaSeleccionada} onChange={(e) => setSemanaSeleccionada(Number(e.target.value))} className="w-full appearance-none pl-3 pr-9 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200">
+                    <div className="flex flex-row gap-2 w-full lg:w-auto lg:shrink-0 items-stretch">
+                        <SelectorMesAnio
+                          className="flex-[1.55] lg:flex-none lg:w-auto min-w-0"
+                          mes={mesSeleccionado}
+                          anio={anioSeleccionado}
+                          onChange={(mes, anio) => {
+                            setMesSeleccionado(mes);
+                            setAnioSeleccionado(anio);
+                          }}
+                        />
+                        <div className="relative flex-[0.85] lg:flex-none lg:w-44 xl:w-48 min-w-0">
+                            <select value={semanaSeleccionada} onChange={(e) => setSemanaSeleccionada(Number(e.target.value))} className="w-full appearance-none pl-2 pr-7 py-2.5 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-[11px] sm:text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer font-medium text-slate-700 dark:text-gray-200 truncate">
                                 <option value={-1}>Todas las semanas</option>
                                 {semanasDisponibles.map(sem => <option key={sem.id} value={sem.id}>{sem.label}</option>)}
                             </select>
-                            <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            <ChevronDown size={16} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => setOrdenDescendente((prev) => !prev)}
+                          title={ordenDescendente ? 'Más recientes primero' : 'Más antiguas primero'}
+                          className="shrink-0 flex items-center justify-center w-11 bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl text-slate-600 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-neutral-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        >
+                          {ordenDescendente ? <ArrowDownWideNarrow size={18} /> : <ArrowUpWideNarrow size={18} />}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -395,7 +468,7 @@ export default function TareaList({ initialData, tipoVista }: Props) {
                className="w-full grid grid-cols-1 gap-3"
              >
                {tareasRenderizadas.map((t: Tarea) => (
-                   <TareaItem
+                   <TareaCard
                      key={t.id}
                      tarea={t}
                      isExpanded
@@ -420,7 +493,7 @@ export default function TareaList({ initialData, tipoVista }: Props) {
                            )}
                            <div className="grid grid-cols-1 gap-3">
                                {grupo.tareas.map((t: Tarea) => (
-                                   <TareaItem key={t.id} tarea={t} isExpanded={false} onToggle={() => toggleAccordion(t.id)} isJefe={perfilUsuario.esJefe} usuarioActual={perfilUsuario.id} usuarios={usuarios} />
+                                   <TareaCard key={t.id} tarea={t} isExpanded={false} onToggle={() => toggleAccordion(t.id)} isJefe={perfilUsuario.esJefe} usuarioActual={perfilUsuario.id} usuarios={usuarios} />
                                ))}
                            </div>
                        </div>
@@ -458,7 +531,7 @@ export default function TareaList({ initialData, tipoVista }: Props) {
                                                </div>
                                                <div className="grid grid-cols-1 gap-2 py-2">
                                                  {persona.tareas.map((t: Tarea) => (
-                                                   <TareaItem key={t.id} tarea={t} isExpanded={false} onToggle={() => toggleAccordion(t.id)} isJefe={perfilUsuario.esJefe} usuarioActual={perfilUsuario.id} usuarios={usuarios} />
+                                                   <TareaCard key={t.id} tarea={t} isExpanded={false} onToggle={() => toggleAccordion(t.id)} isJefe={perfilUsuario.esJefe} usuarioActual={perfilUsuario.id} usuarios={usuarios} />
                                                  ))}
                                                </div>
                                              </div>
@@ -467,7 +540,7 @@ export default function TareaList({ initialData, tipoVista }: Props) {
                                        ) : (
                                          <div className="grid grid-cols-1 gap-2 py-2">
                                            {grupo.tareas.map((t: Tarea) => (
-                                             <TareaItem key={t.id} tarea={t} isExpanded={false} onToggle={() => toggleAccordion(t.id)} isJefe={perfilUsuario.esJefe} usuarioActual={perfilUsuario.id} usuarios={usuarios} />
+                                             <TareaCard key={t.id} tarea={t} isExpanded={false} onToggle={() => toggleAccordion(t.id)} isJefe={perfilUsuario.esJefe} usuarioActual={perfilUsuario.id} usuarios={usuarios} />
                                            ))}
                                          </div>
                                        )}

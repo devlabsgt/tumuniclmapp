@@ -88,17 +88,27 @@ export async function obtenerDatosGestor(tipoVista: TipoVistaTareas) {
   let alcancePorTarea = new Map<string, 'equipo' | 'externa'>();
 
   if (tipoVista === 'mis_actividades') {
-      const { data, error } = await supabase
+      const { data: asignadasAMi, error: errorAsignadas } = await supabase
         .from('tasks')
         .select('*')
         .eq('assigned_to', user.id)
         .order('due_date', { ascending: true });
 
-      if (error) {
-          console.error("Error fetching tasks:", error);
+      const { data: asignadasPorMi, error: errorCreadas } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('created_by', user.id)
+        .neq('assigned_to', user.id)
+        .order('due_date', { ascending: true });
+
+      if (errorAsignadas || errorCreadas) {
+          console.error('Error fetching tasks:', errorAsignadas || errorCreadas);
           return { perfil, tareas: [], usuarios: [] };
       }
-      rawTareas = data || [];
+
+      const porId = new Map<string, any>();
+      [...(asignadasAMi || []), ...(asignadasPorMi || [])].forEach((t) => porId.set(t.id, t));
+      rawTareas = Array.from(porId.values());
   } 
   else if (tipoVista === 'gestion_jefe') {
       if (!perfil.esJefe) return { perfil, tareas: [], usuarios: [] };
@@ -145,6 +155,28 @@ export async function obtenerDatosGestor(tipoVista: TipoVistaTareas) {
           alcancePorTarea.set(t.id, 'externa');
           rawTareas.push(t);
         });
+
+      const idsActuales = new Set(rawTareas.map((t: any) => t.id));
+      const { data: tareasQueAsigne, error: errorAsignaciones } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('created_by', user.id)
+        .order('due_date', { ascending: true });
+
+      if (errorAsignaciones) {
+          console.error('Error fetching assigned tasks:', errorAsignaciones);
+      } else {
+        (tareasQueAsigne || [])
+          .filter((t: any) => !idsActuales.has(t.id))
+          .forEach((t: any) => {
+            if (t.assigned_to === user.id || misEmpleadosIds.includes(t.assigned_to)) {
+              alcancePorTarea.set(t.id, 'equipo');
+            } else {
+              alcancePorTarea.set(t.id, 'externa');
+            }
+            rawTareas.push(t);
+          });
+      }
   }
   else if (tipoVista === 'gestion_rrhh') {
       const esRRHH = ['RRHH', 'SUPER', 'SECRETARIO'].includes(perfil.rol || '');
@@ -264,4 +296,72 @@ export async function duplicarTarea(datos: NewTaskState) {
 
   if (error) throw new Error(error.message);
   revalidatePath('/protected/actividades', 'layout');
+}
+
+export async function obtenerActividadPendienteConfirmacion() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, data: null };
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('id, title, description, due_date, created_by, assigned_to')
+    .eq('assigned_to', user.id)
+    .is('confirmed_at', null)
+    .neq('status', 'Completado')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching pending activity:', error);
+    return { success: false, data: null };
+  }
+
+  if (!data) return { success: true, data: null };
+
+  const { data: creador } = await supabase
+    .from('info_usuario')
+    .select('nombre')
+    .eq('user_id', data.created_by)
+    .single();
+
+  return {
+    success: true,
+    data: {
+      ...data,
+      creador_nombre: creador?.nombre || 'Desconocido',
+    },
+  };
+}
+
+export async function confirmarActividad(id: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, error: 'No autenticado' };
+
+  const confirmedAt = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .update({ confirmed_at: confirmedAt })
+    .eq('id', id)
+    .eq('assigned_to', user.id)
+    .is('confirmed_at', null)
+    .select('id')
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error confirming activity:', error);
+    return { success: false, error: error.message };
+  }
+
+  if (!data) {
+    return { success: false, error: 'No se pudo confirmar la actividad' };
+  }
+
+  revalidatePath('/protected/actividades', 'layout');
+  return { success: true, confirmed_at: confirmedAt };
 }

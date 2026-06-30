@@ -14,6 +14,7 @@ import QueryProvider from "@/components/providers/QueryProvider";
 import SystemGuard from "@/components/system-guard";
 import DevBanner from "@/components/dev/DevBanner";
 import BloqueoCitacion from "@/components/admin/users/BloqueoCitacion";
+import BloqueoActividad from "@/components/tareas/BloqueoActividad";
 
 export const metadata: Metadata = {
   title: "SIGEM -CLM-",
@@ -69,6 +70,7 @@ export default async function RootLayout({
               <div className="flex flex-col min-h-screen">
                 <DevBanner />
                 <BloqueoCitacion />
+                <BloqueoActividad />
 
                 {isStandalonePage ? (
                   <main className="flex-grow w-full">{children}</main>

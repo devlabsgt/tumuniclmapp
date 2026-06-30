@@ -74,6 +74,25 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
     setChecklist(checklist.filter((_, i) => i !== index));
   };
 
+  const sendPushNotification = async (titulo: string, mensaje: string, userIds: string[]) => {
+    try {
+      if (userIds.length === 0) return;
+
+      await fetch('/api/push/broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: titulo,
+          message: mensaje,
+          url: '/protected/actividades',
+          targetIds: userIds,
+        }),
+      });
+    } catch (error) {
+      console.error('Error enviando notificación push:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -85,14 +104,27 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
     }
 
     try {
+      const asignadoA = esJefe ? assignedTo : usuarioActual;
+      const tituloActividad = title.trim();
+      const nombreAsignador = usuarios.find((u) => u.user_id === usuarioActual)?.nombre || 'Alguien';
+      const esAutoAsignada = asignadoA === usuarioActual;
+
       await crear.mutateAsync({
-        title,
+        title: tituloActividad,
         description,
         due_date: new Date(dueDate).toISOString(),
-        assigned_to: esJefe ? assignedTo : usuarioActual,
+        assigned_to: asignadoA,
         checklist: checklist,
         status: 'Asignado'
       });
+
+      sendPushNotification(
+        esAutoAsignada ? '📋 Actividad auto-asignada' : '📋 Nueva Actividad Asignada',
+        esAutoAsignada
+          ? `✅ Te asignaste una actividad: "${tituloActividad}".`
+          : `✅ ${nombreAsignador} te asignó una actividad: "${tituloActividad}".`,
+        [asignadoA]
+      );
       
       toast.success('¡Tarea creada correctamente!'); 
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, type CSSProperties } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -16,13 +16,6 @@ import {
   type EncargadoFolio,
 } from './actions';
 
-const ANCHO_COLUMNA_ENCARGADO = 34;
-
-const estiloTextoVertical180: CSSProperties = {
-  writingMode: 'vertical-rl',
-  textOrientation: 'mixed',
-  transform: 'rotate(180deg)',
-};
 
 const claveGrupoEncargado = (asignacion: EncargadoFolio | null, beneficiarioId: string): string =>
   asignacion
@@ -112,7 +105,7 @@ export function TablaBeneficiarios({
   const mostrarColumnaEdicion = mostrarRegistros && hayAlgunaEdicion;
 
   const anchoMinimoTabla = useMemo(() => {
-    const colsFijas = 1215 + ANCHO_COLUMNA_ENCARGADO;
+    const colsFijas = 1215;
     const foto = 115;
     const acciones = tienePermisoEspecial ? 180 : 0;
     const colRegistrado = mostrarRegistros ? 200 : 0;
@@ -120,29 +113,32 @@ export function TablaBeneficiarios({
     return colsFijas + colRegistrado + colEdicion + acciones + foto;
   }, [mostrarRegistros, mostrarColumnaEdicion, tienePermisoEspecial]);
 
-  const renderEncargadoVertical = (nombre: string | null) => {
-    if (!nombre?.trim()) {
-      return (
-        <span
-          className="text-gray-400 dark:text-neutral-500 text-[8px] tracking-wide inline-block max-h-full italic"
-          style={estiloTextoVertical180}
-          title="Sin encargado asignado"
-        >
-          sin encargado asignado
-        </span>
-      );
-    }
+  const totalColumnasTabla = useMemo(
+    () =>
+      12 +
+      (mostrarRegistros ? 1 : 0) +
+      (mostrarColumnaEdicion ? 1 : 0) +
+      (tienePermisoEspecial ? 1 : 0),
+    [mostrarRegistros, mostrarColumnaEdicion, tienePermisoEspecial],
+  );
 
-    return (
-      <span
-        className="font-bold text-gray-800 dark:text-gray-300 text-[10px] tracking-wide inline-block max-h-full"
-        style={estiloTextoVertical180}
-        title={nombre}
+  const renderFilaEncargado = (nombre: string | null, key: string) => (
+    <tr key={key}>
+      <td
+        colSpan={totalColumnasTabla}
+        className="px-3 py-1.5 text-left md:text-center text-xs bg-gray-50 dark:bg-neutral-800/70 border-l-[2.5px] border-r-[2.5px] border-b-[2.5px] border-gray-400 dark:border-neutral-600"
       >
-        {nombre}
-      </span>
-    );
-  };
+        <span className="font-bold text-gray-800 dark:text-gray-200">Enc.</span>{' '}
+        <span className="font-normal text-gray-700 dark:text-gray-300">
+          {nombre?.trim() || (
+            <span className="italic text-gray-400 dark:text-neutral-500">
+              sin encargado asignado
+            </span>
+          )}
+        </span>
+      </td>
+    </tr>
+  );
 
   useEffect(() => {
     const fetchThumbnails = async () => {
@@ -554,7 +550,6 @@ export function TablaBeneficiarios({
           >
 
             <colgroup>
-              <col style={{ width: `${ANCHO_COLUMNA_ENCARGADO}px` }} />
               <col style={{ width: '50px' }} />
               <col style={{ width: '150px' }} />
               <col style={{ width: '100px' }} />
@@ -576,7 +571,7 @@ export function TablaBeneficiarios({
 
             <thead>
               <tr className="text-left text-[13px] font-semibold bg-gray-200 dark:bg-neutral-800 dark:text-gray-200">
-                <th colSpan={6} className="p-2 border-b-[2.5px] border-r-[2.5px] border-gray-400 dark:border-neutral-600 text-center uppercase tracking-wider">Datos de entrega</th>
+                <th colSpan={5} className="p-2 border-b-[2.5px] border-r-[2.5px] border-gray-400 dark:border-neutral-600 text-center uppercase tracking-wider">Datos de entrega</th>
                 <th colSpan={6} className="p-2 border-b-[2.5px] border-r-[2.5px] border-gray-400 dark:border-neutral-600 text-center uppercase tracking-wider text-blue-800 dark:text-blue-400">Datos del beneficiario</th>
                 <th
                   colSpan={(mostrarRegistros ? 1 : 0) + (mostrarColumnaEdicion ? 1 : 0) + (tienePermisoEspecial ? 1 : 0) + 1}
@@ -588,7 +583,6 @@ export function TablaBeneficiarios({
                 </th>
               </tr>
               <tr className="bg-gray-100 dark:bg-neutral-900/80 text-left border-b-[2.5px] border-gray-400 dark:border-neutral-600 font-bold dark:text-gray-300">
-                <th className="p-2 border-[1.5px] border-gray-300 dark:border-neutral-700 text-center">Enc.</th>
                 <th className="p-2 border-[1.5px] border-gray-300 dark:border-neutral-700">Folio</th>
                 <th className="p-2 border-[1.5px] border-gray-300 dark:border-neutral-700">Lugar</th>
                 <th className="p-2 border-[1.5px] border-gray-300 dark:border-neutral-700">F. Entrega</th>
@@ -612,24 +606,18 @@ export function TablaBeneficiarios({
               {isLoading
                 ? Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i} className="animate-pulse bg-gray-50 dark:bg-neutral-800/40 border-[1.5px] border-gray-300 dark:border-neutral-700">
-                    {Array.from({ length: 13 + (mostrarRegistros ? 1 : 0) + (mostrarColumnaEdicion ? 1 : 0) + (tienePermisoEspecial ? 1 : 0) }).map((_, j) => (
+                    {Array.from({ length: 12 + (mostrarRegistros ? 1 : 0) + (mostrarColumnaEdicion ? 1 : 0) + (tienePermisoEspecial ? 1 : 0) }).map((_, j) => (
                       <td key={j} className="p-2 border-[1.5px] border-gray-300 dark:border-neutral-700">
                         <div className="h-4 bg-gray-400 dark:bg-neutral-600 rounded w-full"></div>
                       </td>
                     ))}
                   </tr>
                 ))
-                : filasConEncargado.map(({ beneficiario: b, nombreEncargado, mostrarCeldaEncargado, rowspanEncargado }, index) => (
-                  <tr key={`${b.id}-${index}`} className="hover:bg-green-50 dark:hover:bg-neutral-800 bg-white dark:bg-neutral-900 border-[2.5px] border-gray-300 dark:border-neutral-700 dark:text-gray-300">
-                    {mostrarCeldaEncargado && (
-                      <td
-                        rowSpan={rowspanEncargado}
-                        className="px-0.5 py-2 border-[1.5px] border-gray-300 dark:border-neutral-700 text-center align-middle min-h-[2.5rem]"
-                        style={{ width: `${ANCHO_COLUMNA_ENCARGADO}px`, minWidth: `${ANCHO_COLUMNA_ENCARGADO}px` }}
-                      >
-                        {renderEncargadoVertical(nombreEncargado)}
-                      </td>
-                    )}
+                : filasConEncargado.map(({ beneficiario: b, nombreEncargado, mostrarCeldaEncargado }, index) => (
+                  <Fragment key={`${b.id}-${index}`}>
+                    {mostrarCeldaEncargado &&
+                      renderFilaEncargado(nombreEncargado, `enc-${b.id}-${index}`)}
+                    <tr className="hover:bg-green-50 dark:hover:bg-neutral-800 bg-white dark:bg-neutral-900 border-[2.5px] border-gray-300 dark:border-neutral-700 dark:text-gray-300">
                     <td className="pl-2 border-[1.5px] text-center border-gray-300 dark:border-neutral-700">{mostrar(b.codigo)}</td>
                     <td className="pl-2 border-[1.5px] border-gray-300 dark:border-neutral-700">{mostrar(b.lugar)}</td>
                     <td className="pl-2 border-[1.5px] border-gray-300 dark:border-neutral-700">{formatearFecha(b.fecha)}</td>
@@ -741,6 +729,7 @@ export function TablaBeneficiarios({
                       )}
                     </td>
                   </tr>
+                  </Fragment>
                 ))}
             </tbody>
           </table>

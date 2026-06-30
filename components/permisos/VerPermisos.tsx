@@ -160,6 +160,15 @@ export default function VerPermisos({ tipoVista }: Props) {
     }).join(' ');
   };
 
+  const formatFechaCompacta = (fecha: string) => {
+    const d = new Date(fecha + 'T00:00:00');
+    let str = format(d, "d MMM yy", { locale: es });
+    return str.split(' ').map(word => {
+      const cleaned = word.replace('.', '');
+      return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+    }).join(' ');
+  };
+
   const formatMes = (mesYear: string) => {
     const d = parseISO(mesYear + "-01");
     let str = format(d, "MMMM yyyy", { locale: es });
@@ -354,8 +363,8 @@ export default function VerPermisos({ tipoVista }: Props) {
     <>
       <div className="w-full lg:w-[95%] mx-auto md:px-4 pb-10 transition-all">
         <div className="p-2 bg-white dark:bg-neutral-900 rounded-lg shadow-md w-full border border-gray-100 dark:border-neutral-800 transition-colors duration-200">
-          <div className="flex flex-col gap-4 mb-6 p-2">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex flex-col gap-2 sm:gap-3 mb-3 sm:mb-4 p-1 sm:p-2">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 md:gap-4">
               <h2
                 className="text-lg lg:text-4xl font-bold text-gray-800 dark:text-gray-200 truncate max-w-2xl"
                 title={tituloPagina}
@@ -382,150 +391,143 @@ export default function VerPermisos({ tipoVista }: Props) {
                     <PartyPopper className="w-3 h-3 lg:w-5 lg:h-5" /> Gestionar Asuetos
                   </Button>
                 )}
-                {/* Botón: Expandir/Colapsar */}
-                <Button
-                  size="sm"
-                  onClick={toggleTodos}
-                   className="h-8 lg:h-12 text-xs lg:text-base bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200 dark:bg-neutral-800 dark:text-gray-300 dark:border-neutral-700 dark:hover:bg-neutral-700 gap-1.5"
-                >
-                  <ChevronsUpDown className="w-3 h-3 lg:w-5 lg:h-5" />
-                  {todosAbiertos ? "Ocultar Todos" : "Ver Todos"}
-                </Button>
               </div>
             </div>
 
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-4 bg-gray-50/50 dark:bg-neutral-900/30 p-3 rounded-xl border border-gray-100 dark:border-neutral-800/50 w-full">
-              
-              {/* Izquierda: Buscador + Todo el Switch de Modos */}
-              <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-                {/* Buscador */}
-                <div className="relative w-full lg:w-auto lg:min-w-[200px]">
+            <div className="flex flex-col gap-2 sm:gap-3 bg-gray-50/50 dark:bg-neutral-900/30 p-2 sm:p-3 rounded-xl border border-gray-100 dark:border-neutral-800/50 w-full">
+              {/* Buscador + Ocultar */}
+              <div className="flex items-center gap-2 w-full">
+                <div className="relative flex-1 min-w-0">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 lg:h-5 lg:w-5 text-gray-400" />
                   <input
                     type="text"
                     placeholder="Buscar..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full h-10 lg:h-11 pl-10 lg:pl-11 pr-3 text-xs lg:text-base border border-gray-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-950 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
+                    className="w-full h-9 sm:h-10 lg:h-11 pl-10 lg:pl-11 pr-3 text-xs lg:text-base border border-gray-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-950 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
                   />
                 </div>
-
-                {/* Switch Unificado */}
-                <div className="flex flex-wrap items-center bg-gray-200/50 dark:bg-neutral-800 p-1 rounded-lg gap-1 min-h-[46px]">
-                  {/* Modos Básicos (Línea 1 en móvil) */}
-                  <div className="flex items-stretch h-[38px] w-full sm:w-auto">
-                    <button
-                      onClick={() => { setModoFiltro('dia'); setFiltroEstado('todos'); }}
-                      className={cn(
-                        "flex-1 sm:flex-none px-3 h-full flex items-center justify-center text-[11px] lg:text-base font-bold rounded-md transition-all",
-                        modoFiltro === 'dia'
-                          ? "bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                          : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                      )}
-                    >
-                      Día
-                    </button>
-                    <button
-                      onClick={() => {
-                        setModoFiltro('semana');
-                        setFiltroEstado('todos');
-                        setMesSemanas(format(new Date(), "yyyy-MM"));
-                        const hoy = format(new Date(), 'yyyy-MM-dd');
-                        const semActual = getSemanasDelMes(format(new Date(), "yyyy-MM")).find(s => s.inicio <= hoy && s.fin >= hoy);
-                        if (semActual) {
-                          setFechaInicio(semActual.inicio);
-                          setFechaFin(semActual.fin);
-                        }
-                      }}
-                      className={cn(
-                        "flex-1 sm:flex-none px-3 h-full flex items-center justify-center text-[11px] lg:text-base font-bold rounded-md transition-all",
-                        modoFiltro === 'semana'
-                          ? "bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                          : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                      )}
-                    >
-                      Semana
-                    </button>
-                    <button
-                      onClick={() => { setModoFiltro('rango'); setFiltroEstado('todos'); }}
-                      className={cn(
-                        "flex-1 sm:flex-none px-3 h-full flex items-center justify-center text-[11px] lg:text-base font-bold rounded-md transition-all",
-                        modoFiltro === 'rango'
-                          ? "bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm"
-                          : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                      )}
-                    >
-                      Rango
-                    </button>
-                  </div>
-
-                  {/* Separador dinámico */}
-                  {(tipoVista === 'gestion_jefe' || tipoVista === 'gestion_rrhh') && (conteosPendientes.pendientes > 0 || conteosPendientes.avalados > 0) && (
-                    <div className="hidden sm:block w-px bg-gray-300 dark:bg-neutral-600 mx-1 h-6" />
-                  )}
-
-                  {/* Botones Pendientes (Línea 2 en móvil) */}
-                  {(tipoVista === 'gestion_jefe' || tipoVista === 'gestion_rrhh') && (conteosPendientes.pendientes > 0 || conteosPendientes.avalados > 0) && (
-                    <div className="flex items-stretch h-[38px] w-full sm:w-auto mt-1 sm:mt-0">
-                      {conteosPendientes.pendientes > 0 && (
-                        <button
-                          onClick={() => {
-                            if (filtroEstado === 'pendiente' && modoFiltro === 'pendientes') {
-                              setFiltroEstado('todos');
-                              setModoFiltro('dia');
-                            } else {
-                              setFiltroEstado('pendiente');
-                              setModoFiltro('pendientes');
-                            }
-                          }}
-                          className={cn(
-                            "flex-1 sm:flex-none px-4 lg:px-6 h-full flex items-center justify-center gap-1.5 text-[11px] lg:text-base font-bold rounded-md transition-all",
-                            modoFiltro === 'pendientes' && filtroEstado === 'pendiente'
-                              ? "bg-white dark:bg-neutral-700 text-amber-600 dark:text-amber-400 shadow-sm"
-                              : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                          )}
-                        >
-                          <span>P. Jefe</span>
-                          <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-gray-200 dark:bg-neutral-600 text-[10px] font-bold text-amber-600 dark:text-amber-400 px-1">
-                            {conteosPendientes.pendientes}
-                          </span>
-                        </button>
-                      )}
-                      
-                      {conteosPendientes.avalados > 0 && (
-                        <button
-                          onClick={() => {
-                            if (filtroEstado === 'aprobado_jefe' && modoFiltro === 'pendientes') {
-                              setFiltroEstado('todos');
-                              setModoFiltro('dia');
-                            } else {
-                              setFiltroEstado('aprobado_jefe');
-                              setModoFiltro('pendientes');
-                            }
-                          }}
-                          className={cn(
-                            "flex-1 sm:flex-none px-4 lg:px-6 h-full flex items-center justify-center gap-1.5 text-[11px] lg:text-base font-bold rounded-md transition-all",
-                            modoFiltro === 'pendientes' && filtroEstado === 'aprobado_jefe'
-                              ? "bg-white dark:bg-neutral-700 text-purple-600 dark:text-purple-400 shadow-sm"
-                              : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                          )}
-                        >
-                          <span>P. RRHH</span>
-                          <span className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-gray-200 dark:bg-neutral-600 text-[10px] font-bold text-purple-600 dark:text-purple-400 px-1">
-                            {conteosPendientes.avalados}
-                          </span>
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
+                <Button
+                  size="sm"
+                  onClick={toggleTodos}
+                  className="shrink-0 h-9 sm:h-10 lg:h-11 px-2.5 sm:px-3 text-[10px] sm:text-xs lg:text-sm font-bold bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200 dark:bg-neutral-800 dark:text-gray-300 dark:border-neutral-700 dark:hover:bg-neutral-700 gap-1"
+                >
+                  <ChevronsUpDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">{todosAbiertos ? "Ocultar Todos" : "Ver Todos"}</span>
+                  <span className="sm:hidden">{todosAbiertos ? "Ocultar" : "Ver"}</span>
+                </Button>
               </div>
 
-              {/* Centro/Derecha: Controles de Fecha */}
-              <div className="flex flex-wrap justify-center items-stretch gap-2 w-full lg:w-auto">
+              {/* Switch: distribución pareja (flex-1) según opciones visibles */}
+              <div className="flex items-stretch h-11 w-full bg-gray-200/50 dark:bg-neutral-800 p-1 rounded-lg gap-1">
+                <button
+                  onClick={() => { setModoFiltro('dia'); setFiltroEstado('todos'); }}
+                  className={cn(
+                    "flex-1 min-w-0 basis-0 h-full flex items-center justify-center text-sm sm:text-base font-bold rounded-md transition-all",
+                    modoFiltro === 'dia'
+                      ? "bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  )}
+                >
+                  Día
+                </button>
+                <button
+                  onClick={() => {
+                    setModoFiltro('semana');
+                    setFiltroEstado('todos');
+                    setMesSemanas(format(new Date(), "yyyy-MM"));
+                    const hoy = format(new Date(), 'yyyy-MM-dd');
+                    const semActual = getSemanasDelMes(format(new Date(), "yyyy-MM")).find(s => s.inicio <= hoy && s.fin >= hoy);
+                    if (semActual) {
+                      setFechaInicio(semActual.inicio);
+                      setFechaFin(semActual.fin);
+                    }
+                  }}
+                  className={cn(
+                    "flex-1 min-w-0 basis-0 h-full flex items-center justify-center text-sm sm:text-base font-bold rounded-md transition-all",
+                    modoFiltro === 'semana'
+                      ? "bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  )}
+                >
+                  Semana
+                </button>
+                <button
+                  onClick={() => { setModoFiltro('rango'); setFiltroEstado('todos'); }}
+                  className={cn(
+                    "flex-1 min-w-0 basis-0 h-full flex items-center justify-center text-sm sm:text-base font-bold rounded-md transition-all",
+                    modoFiltro === 'rango'
+                      ? "bg-white dark:bg-neutral-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  )}
+                >
+                  Rango
+                </button>
+
+                {(tipoVista === 'gestion_jefe' || tipoVista === 'gestion_rrhh') && conteosPendientes.pendientes > 0 && (
+                  <button
+                    onClick={() => {
+                      if (filtroEstado === 'pendiente' && modoFiltro === 'pendientes') {
+                        setFiltroEstado('todos');
+                        setModoFiltro('dia');
+                      } else {
+                        setFiltroEstado('pendiente');
+                        setModoFiltro('pendientes');
+                      }
+                    }}
+                    className={cn(
+                      "flex-1 min-w-0 basis-0 h-full flex items-center justify-center gap-1 text-sm sm:text-base font-bold rounded-md transition-all",
+                      modoFiltro === 'pendientes' && filtroEstado === 'pendiente'
+                        ? "bg-white dark:bg-neutral-700 text-amber-600 dark:text-amber-400 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    )}
+                  >
+                    <span className="truncate">P. Jefe</span>
+                    <span className="flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-gray-200 dark:bg-neutral-600 text-[10px] font-bold text-amber-600 dark:text-amber-400 px-1">
+                      {conteosPendientes.pendientes}
+                    </span>
+                  </button>
+                )}
+
+                {(tipoVista === 'gestion_jefe' || tipoVista === 'gestion_rrhh') && conteosPendientes.avalados > 0 && (
+                  <button
+                    onClick={() => {
+                      if (filtroEstado === 'aprobado_jefe' && modoFiltro === 'pendientes') {
+                        setFiltroEstado('todos');
+                        setModoFiltro('dia');
+                      } else {
+                        setFiltroEstado('aprobado_jefe');
+                        setModoFiltro('pendientes');
+                      }
+                    }}
+                    className={cn(
+                      "flex-1 min-w-0 basis-0 h-full flex items-center justify-center gap-1 text-sm sm:text-base font-bold rounded-md transition-all",
+                      modoFiltro === 'pendientes' && filtroEstado === 'aprobado_jefe'
+                        ? "bg-white dark:bg-neutral-700 text-purple-600 dark:text-purple-400 shadow-sm"
+                        : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    )}
+                  >
+                    <span className="truncate">P. RRHH</span>
+                    <span className="flex h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-gray-200 dark:bg-neutral-600 text-[10px] font-bold text-purple-600 dark:text-purple-400 px-1">
+                      {conteosPendientes.avalados}
+                    </span>
+                  </button>
+                )}
+              </div>
+
+              {/* Fecha + Apr/Rech */}
+              <div
+                className={cn(
+                  "flex gap-2",
+                  modoFiltro === "rango"
+                    ? "flex-col sm:flex-row sm:items-end sm:justify-between"
+                    : "flex-row items-end justify-between",
+                )}
+              >
+                <div className="flex-1 min-w-0 w-full sm:w-auto">
                 {modoFiltro === 'dia' && (
-                  <div className="flex flex-col items-center lg:items-start gap-1">
-                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 ml-1">
+                  <div className="flex flex-col items-start gap-1">
+                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
                     Seleccione un día para mostrar
                   </span>
                   <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
@@ -549,13 +551,13 @@ export default function VerPermisos({ tipoVista }: Props) {
               )}
 
               {modoFiltro === 'semana' && (
-                <div className="flex flex-col items-center lg:items-start gap-1">
-                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 ml-1">
+                <div className="flex flex-col items-start gap-1">
+                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
                     Seleccione una semana para mostrar
                   </span>
                   <div className="flex items-center gap-2 flex-wrap">
                     <select
-                      className="bg-white dark:bg-neutral-950 border border-gray-200 dark:border-neutral-800 rounded-lg px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-blue-400 transition-all shadow-sm cursor-pointer"
+                      className="max-w-[130px] sm:max-w-none bg-white dark:bg-neutral-950 border border-gray-200 dark:border-neutral-800 rounded-lg px-2 sm:px-3 py-1.5 text-[11px] sm:text-xs font-semibold focus:outline-none focus:border-blue-400 transition-all shadow-sm cursor-pointer"
                       onChange={(e) => {
                         const idx = parseInt(e.target.value, 10);
                         const sem = semanasDisponibles[idx];
@@ -573,7 +575,7 @@ export default function VerPermisos({ tipoVista }: Props) {
                     </select>
                     <Popover open={calendarSemanaOpen} onOpenChange={setCalendarSemanaOpen}>
                       <PopoverTrigger asChild>
-                        <button className="flex items-center gap-2 bg-white dark:bg-neutral-950 border border-gray-200 dark:border-neutral-800 rounded-lg px-3 py-1.5 text-xs font-semibold hover:border-blue-400 transition-all shadow-sm min-w-[120px]">
+                        <button className="flex items-center gap-1.5 bg-white dark:bg-neutral-950 border border-gray-200 dark:border-neutral-800 rounded-lg px-2 sm:px-3 py-1.5 text-[11px] sm:text-xs font-semibold hover:border-blue-400 transition-all shadow-sm min-w-0 sm:min-w-[120px]">
                           <Calendar className="w-4 h-4 text-blue-500" />
                           <span className="dark:text-gray-200">{formatMes(mesSemanas)}</span>
                         </button>
@@ -603,16 +605,17 @@ export default function VerPermisos({ tipoVista }: Props) {
               )}
 
               {modoFiltro === 'rango' && (
-                <div className="flex flex-col items-center lg:items-start gap-1">
-                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 ml-1">
+                <div className="flex flex-col items-start gap-1 w-full min-w-0">
+                  <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">
                     Selecciona las fechas que deseas ver
                   </span>
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-1 sm:gap-2 flex-nowrap w-full min-w-0">
                     <Popover open={calendarInicioOpen} onOpenChange={setCalendarInicioOpen}>
                       <PopoverTrigger asChild>
-                        <button className="flex items-center gap-2 bg-white dark:bg-neutral-950 border border-gray-200 dark:border-neutral-800 rounded-lg px-3 py-1.5 text-xs font-semibold cursor-pointer hover:border-emerald-400 transition-all shadow-sm">
-                          <Calendar className="w-4 h-4 text-emerald-500" />
-                          <span className="dark:text-gray-200 capitalize">{formatFechaCorta(fechaInicio)}</span>
+                        <button className="flex items-center gap-1 sm:gap-2 bg-white dark:bg-neutral-950 border border-gray-200 dark:border-neutral-800 rounded-lg px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-semibold cursor-pointer hover:border-emerald-400 transition-all shadow-sm shrink-0 whitespace-nowrap">
+                          <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 shrink-0" />
+                          <span className="dark:text-gray-200 capitalize sm:hidden">{formatFechaCompacta(fechaInicio)}</span>
+                          <span className="dark:text-gray-200 capitalize hidden sm:inline">{formatFechaCorta(fechaInicio)}</span>
                         </button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -625,12 +628,13 @@ export default function VerPermisos({ tipoVista }: Props) {
                         />
                       </PopoverContent>
                     </Popover>
-                    <ArrowRight className="w-3.5 h-3.5 text-gray-400" />
+                    <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400 shrink-0" />
                     <Popover open={calendarFinOpen} onOpenChange={setCalendarFinOpen}>
                       <PopoverTrigger asChild>
-                        <button className="flex items-center gap-2 bg-white dark:bg-neutral-950 border border-gray-200 dark:border-neutral-800 rounded-lg px-3 py-1.5 text-xs font-semibold cursor-pointer hover:border-red-400 transition-all shadow-sm">
-                          <Calendar className="w-4 h-4 text-red-500" />
-                          <span className="dark:text-gray-200 capitalize">{formatFechaCorta(fechaFin)}</span>
+                        <button className="flex items-center gap-1 sm:gap-2 bg-white dark:bg-neutral-950 border border-gray-200 dark:border-neutral-800 rounded-lg px-2 sm:px-3 py-1.5 text-[10px] sm:text-xs font-semibold cursor-pointer hover:border-red-400 transition-all shadow-sm shrink-0 whitespace-nowrap">
+                          <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500 shrink-0" />
+                          <span className="dark:text-gray-200 capitalize sm:hidden">{formatFechaCompacta(fechaFin)}</span>
+                          <span className="dark:text-gray-200 capitalize hidden sm:inline">{formatFechaCorta(fechaFin)}</span>
                         </button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -646,22 +650,22 @@ export default function VerPermisos({ tipoVista }: Props) {
                   </div>
                 </div>
               )}
-              </div>
+                </div>
 
-              {/* Chips de estado (Derecha en desktop, abajo en mobile) */}
-              <div className="flex flex-wrap justify-center lg:justify-end items-center gap-2 w-full lg:w-auto">
-                <Button size="sm" onClick={() => { if (filtroEstado === "aprobado") { setFiltroEstado("todos"); } else { setFiltroEstado("aprobado"); if (modoFiltro === "pendientes") setModoFiltro("dia"); } }} className={cn("h-10 lg:h-11 px-3 text-[11px] font-bold rounded-lg border transition-all shadow-sm", filtroEstado === "aprobado" ? "bg-emerald-600 text-white border-emerald-600" : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800")}>
-                  Apr: {estadisticas.aprobados}
-                </Button>
+                <div className="flex items-center gap-1 shrink-0 w-full sm:w-auto justify-end">
+                  <Button size="sm" onClick={() => { if (filtroEstado === "aprobado") { setFiltroEstado("todos"); } else { setFiltroEstado("aprobado"); if (modoFiltro === "pendientes") setModoFiltro("dia"); } }} className={cn("h-9 sm:h-10 lg:h-11 px-2 sm:px-3 text-[10px] sm:text-[11px] font-bold rounded-lg border transition-all shadow-sm", filtroEstado === "aprobado" ? "bg-emerald-600 text-white border-emerald-600" : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800")}>
+                    Apr: {estadisticas.aprobados}
+                  </Button>
 
-                <Button size="sm" onClick={() => { if (filtroEstado === "rechazado") { setFiltroEstado("todos"); } else { setFiltroEstado("rechazado"); if (modoFiltro === "pendientes") setModoFiltro("dia"); } }} className={cn("h-10 lg:h-11 px-3 text-[11px] font-bold rounded-lg border transition-all shadow-sm", filtroEstado === "rechazado" ? "bg-red-600 text-white border-red-600" : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800")}>
-                  Rech: {estadisticas.rechazados}
-                </Button>
+                  <Button size="sm" onClick={() => { if (filtroEstado === "rechazado") { setFiltroEstado("todos"); } else { setFiltroEstado("rechazado"); if (modoFiltro === "pendientes") setModoFiltro("dia"); } }} className={cn("h-9 sm:h-10 lg:h-11 px-2 sm:px-3 text-[10px] sm:text-[11px] font-bold rounded-lg border transition-all shadow-sm", filtroEstado === "rechazado" ? "bg-red-600 text-white border-red-600" : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800")}>
+                    Rech: {estadisticas.rechazados}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="border-t border-gray-100 dark:border-neutral-800 pt-4">
+          <div className="border-t border-gray-100 dark:border-neutral-800 pt-3 sm:pt-4">
             {loadingPermisos ? (
               <Cargando texto="Cargando permisos..." />
             ) : gruposConDatos.length === 0 ? (

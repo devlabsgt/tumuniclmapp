@@ -15,53 +15,44 @@ self.addEventListener('push', (event) => {
   }
 
   const title = data.title || 'Nueva Notificación'
-  
+
   const options = {
     body: data.body || 'Tienes un nuevo mensaje',
     icon: data.icon || '/icon-192x192.png',
     badge: '/icon-192x192.png',
     data: {
       url: data.data?.url || '/',
-      swal: data.data?.swal || null
-    }
+      swal: data.data?.swal || null,
+    },
   }
 
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-  )
+  event.waitUntil(self.registration.showNotification(title, options))
 })
+
+function navegarCliente(client, path) {
+  return client.focus().then((focusedClient) => {
+    focusedClient.postMessage({
+      type: 'NAVIGATE',
+      url: path,
+    })
+    return focusedClient
+  })
+}
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const notificationData = event.notification.data
-  const urlToOpen = notificationData.url
+  const notificationData = event.notification.data || {}
+  const path = notificationData.url || '/'
+  const targetUrl = new URL(path, self.location.origin).href
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      const client = windowClients.find((c) => c.url === urlToOpen && 'focus' in c)
-      
-      if (client) {
-        return client.focus().then((focusedClient) => {
-          if (notificationData.swal) {
-            focusedClient.postMessage({
-              type: 'SHOW_SWAL',
-              payload: notificationData.swal
-            })
-          }
-        })
+      if (windowClients.length > 0) {
+        return navegarCliente(windowClients[0], path)
       }
-      
+
       if (clients.openWindow) {
-        return clients.openWindow(urlToOpen).then((newClient) => {
-          if (newClient && notificationData.swal) {
-            setTimeout(() => {
-              newClient.postMessage({
-                type: 'SHOW_SWAL',
-                payload: notificationData.swal
-              })
-            }, 1000)
-          }
-        })
+        return clients.openWindow(targetUrl)
       }
     })
   )

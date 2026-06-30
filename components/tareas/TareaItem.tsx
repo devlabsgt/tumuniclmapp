@@ -61,6 +61,33 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
     return new Date(fechaISO).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
+  const formatearFechaHora = (fechaISO: string) => {
+    if (!fechaISO) return '';
+    return new Date(fechaISO).toLocaleString('es-ES', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
+  const formatearConfirmadoAt = (fechaISO: string) => {
+    const d = new Date(fechaISO);
+    const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const diaSemana = dias[d.getDay()];
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = String(d.getFullYear()).slice(-2);
+    let hora = d.getHours();
+    const minutos = String(d.getMinutes()).padStart(2, '0');
+    const period = hora >= 12 ? 'PM' : 'AM';
+    hora = hora % 12;
+    hora = hora ? hora : 12;
+    return `${diaSemana} ${day}/${month}/${year}, ${hora}:${minutos} ${period}`;
+  };
+
   const renderDescripcionConLinks = (texto: string) => {
     if (!texto) return null;
     const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}(\/[^\s]*)?)/g;
@@ -89,7 +116,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
   const isReadOnly = esVencida || tarea.status === 'Completado';
   const puedeEditar = isJefe || (!isReadOnly && (esAsignadoAMi || esCreadoPorMi));
 
-  const loading = cambiarStatus.isPending || eliminar.isPending;
+  const esSinConfirmar = tarea.status !== 'Completado' && !tarea.confirmed_at;
 
   const handleTerminar = async () => {
     if (checklist.some(i => !i.is_completed)) {
@@ -115,6 +142,8 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
     }
   };
 
+  const loading = cambiarStatus.isPending || eliminar.isPending;
+
   const getStatusStyles = () => {
       if (tarea.status === 'Completado') {
           return {
@@ -125,9 +154,16 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
       }
       if (esVencida) {
           return {
-              badge: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
-              border: 'border-l-red-500 dark:border-l-red-500', 
+              badge: 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800',
+              border: 'border-l-orange-500 dark:border-l-orange-500', 
               label: 'Vencido'
+          };
+      }
+      if (esSinConfirmar) {
+          return {
+              badge: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
+              border: 'border-l-red-500 dark:border-l-red-500',
+              label: (tarea.status === 'En Proceso' || !tarea.status) ? 'Asignado' : tarea.status
           };
       }
       return {
@@ -235,6 +271,19 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                         </div>
                     )}
                 </div>
+                {!isExpanded && (
+                  <div className="w-full pt-2 mt-1 text-right sm:text-right">
+                    {tarea.confirmed_at ? (
+                      <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 font-semibold">
+                        Confirmación: {formatearConfirmadoAt(tarea.confirmed_at)}
+                      </p>
+                    ) : tarea.status !== 'Completado' ? (
+                      <p className="text-xs sm:text-sm text-red-600 dark:text-red-400 font-semibold">
+                        Sin confirmar
+                      </p>
+                    ) : null}
+                  </div>
+                )}
             </div>
         )}
       </div>
@@ -259,7 +308,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                         </div>
                     </div>
                     <div className="space-y-4">
-                        <div className={`inline-flex items-center flex-wrap gap-2 px-3 py-2 rounded-lg text-xs font-medium border w-full sm:w-auto ${esVencida ? 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800' : 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'}`}>
+                        <div className={`inline-flex items-center flex-wrap gap-2 px-3 py-2 rounded-lg text-xs font-medium border w-full sm:w-auto ${esVencida ? 'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800' : 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'}`}>
                             <Calendar size={14} />
                             <span>Vence: {new Date(tarea.due_date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'long' })}</span>
                             <span className="border-l pl-2 ml-1 border-current opacity-50"><Clock size={14} className="inline mr-1"/>{new Date(tarea.due_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
@@ -283,7 +332,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                               disabled={loading || esVencida}
                               className={`w-full py-3 rounded-xl font-bold text-sm transition-all flex justify-center items-center gap-2 transform active:scale-[0.98] ${
                                 esVencida
-                                  ? 'bg-red-50 text-red-600 border border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 cursor-not-allowed shadow-none'
+                                  ? 'bg-orange-50 text-orange-600 border border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800 cursor-not-allowed shadow-none'
                                   : 'text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md shadow-blue-500/20 dark:shadow-none'
                               }`}
                             >
@@ -302,7 +351,19 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                 <div className="bg-slate-50 dark:bg-neutral-800 rounded-xl p-3 text-xs text-slate-500 dark:text-gray-400 flex flex-col gap-2">
                       <div className="flex justify-between items-center border-b pb-2 border-slate-200 dark:border-neutral-700">
                         <span className="font-bold text-slate-400 dark:text-gray-500 uppercase text-[10px]">Detalles del Registro</span>
-                        <span className="text-[10px] text-slate-400 dark:text-gray-500">Creado: {formatearFecha(tarea.created_at)}</span>
+                        <div className="flex flex-col items-end gap-0.5">
+                          <span className="text-[10px] text-slate-400 dark:text-gray-500">Creado: {formatearFecha(tarea.created_at)}</span>
+                          {tarea.confirmed_at && (
+                            <span className="text-[10px] text-green-600 dark:text-green-400 font-medium">
+                              Confirmación: {formatearConfirmadoAt(tarea.confirmed_at)}
+                            </span>
+                          )}
+                          {esSinConfirmar && (
+                            <span className="text-[10px] text-red-600 dark:text-red-400 font-semibold">
+                              Sin confirmar
+                            </span>
+                          )}
+                        </div>
                       </div>
                       {esAutoAsignado ? (
                         <div className="flex items-center gap-2.5">

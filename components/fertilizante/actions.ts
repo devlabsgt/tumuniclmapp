@@ -358,9 +358,14 @@ export const filtrarYOrdenarBeneficiarios = (
         orden === 'solo_informes' ? b.estado === 'Informe' :
         true;
 
+      const cumpleGenero =
+        orden === 'genero_hombres_primero' ? b.sexo?.toUpperCase() === 'M' :
+        orden === 'genero_mujeres_primero' ? b.sexo?.toUpperCase() === 'F' :
+        true;
+
       const cumpleSinImagen = !filtros.sinImagen || (b.estado !== 'Anulado' && !b.img_url);
 
-      return cumpleCampo && cumpleLugar && cumpleEstado && cumpleSinImagen;
+      return cumpleCampo && cumpleLugar && cumpleEstado && cumpleGenero && cumpleSinImagen;
     })
     .sort((a, b) => {
       switch (orden) {
@@ -379,9 +384,8 @@ export const filtrarYOrdenarBeneficiarios = (
         case 'codigo_desc':
           return b.codigo.localeCompare(a.codigo);
         case 'genero_hombres_primero':
-          return a.sexo === b.sexo ? 0 : a.sexo === 'M' ? -1 : 1;
         case 'genero_mujeres_primero':
-          return a.sexo === b.sexo ? 0 : a.sexo === 'F' ? -1 : 1;
+          return a.codigo.localeCompare(b.codigo);
         default:
           return 0;
       }

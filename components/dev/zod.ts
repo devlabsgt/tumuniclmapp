@@ -15,4 +15,5 @@ export type MensajeDevFormData = z.infer<typeof mensajeDevSchema>;
 export type MensajeDev = MensajeDevFormData & {
   id: string;
   created_at: string;
+  creador_nombre?: string | null;
 };
