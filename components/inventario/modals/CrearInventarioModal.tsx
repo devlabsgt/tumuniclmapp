@@ -147,7 +147,7 @@ export default function CrearInventarioModal({ open, onOpenChange, onSuccess }: 
 
               {/* Columna Derecha: Datos del Bien y Asignación */}
               <div className="flex flex-col space-y-4">
-                
+
                 {/* Card: Datos del Bien */}
                 <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
 
@@ -224,6 +224,7 @@ export default function CrearInventarioModal({ open, onOpenChange, onSuccess }: 
                   </div>
                 </div>
 
+
                 {/* Card: Asignación */}
                 <div className="bg-white dark:bg-[#111111] border border-slate-200 dark:border-neutral-800 rounded-2xl p-4 sm:p-5 shadow-sm flex-1">
                   <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-3">Asignación Inicial (Opcional)</h4>
@@ -291,8 +292,8 @@ export default function CrearInventarioModal({ open, onOpenChange, onSuccess }: 
         </div>
 
         <div className="flex justify-center items-center pb-6 shrink-0">
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={isSubmitting || isUploadingImage}
             onClick={handleSubmit(onSubmit as any)}
             className="px-12 sm:px-16 py-3 text-base font-bold bg-blue-600 text-white rounded-xl transition-all shadow-xl shadow-blue-500/10 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
