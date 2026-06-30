@@ -46,6 +46,15 @@ export interface ActividadConcejo {
   checklist?: { title: string; is_completed: boolean }[] | null;
 }
 
+export interface ActividadConcejoConContexto extends ActividadConcejo {
+  punto_id: string;
+  punto_titulo: string;
+  agenda_id: string;
+  agenda_titulo: string;
+  agenda_fecha: string;
+  agenda_estado: string;
+}
+
 export interface Tarea {
   id: string;
   agenda_concejo_id?: string;

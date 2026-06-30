@@ -2,7 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
-import { ActividadConcejo, UsuarioAsignable } from '../../lib/esquemas';
+import { ActividadConcejo, ActividadConcejoConContexto, UsuarioAsignable } from '../../lib/esquemas';
 
 interface ChecklistItemInput {
   title: string;
@@ -109,6 +109,91 @@ export async function obtenerActividadesDeAgenda(
     });
 
   return resultado;
+}
+
+export async function obtenerTodasActividadesConcejo(): Promise<ActividadConcejoConContexto[]> {
+  const supabase = await createClient();
+
+  const { data: enlaces, error: errorEnlaces } = await supabase
+    .from('tareas_concejo_actividades')
+    .select('tarea_concejo_id, task_id');
+
+  if (errorEnlaces || !enlaces || enlaces.length === 0) return [];
+
+  const taskIds = Array.from(new Set(enlaces.map((e) => e.task_id)));
+  const puntoIds = Array.from(new Set(enlaces.map((e) => e.tarea_concejo_id)));
+
+  const { data: tasks, error: errorTasks } = await supabase
+    .from('tasks')
+    .select('id, title, description, due_date, status, assigned_to, confirmed_at, created_at, checklist')
+    .in('id', taskIds);
+
+  if (errorTasks || !tasks) return [];
+
+  const { data: puntos } = await supabase
+    .from('tareas_concejo')
+    .select('id, titulo_item, agenda_concejo_id')
+    .in('id', puntoIds);
+
+  const puntoMap = new Map((puntos || []).map((p) => [p.id, p]));
+
+  const agendaIds = Array.from(
+    new Set((puntos || []).map((p) => p.agenda_concejo_id).filter((id): id is string => !!id)),
+  );
+
+  const { data: agendas } = agendaIds.length
+    ? await supabase
+        .from('agenda_concejo')
+        .select('id, titulo, fecha_reunion, estado')
+        .in('id', agendaIds)
+    : { data: [] as { id: string; titulo: string; fecha_reunion: string; estado: string }[] };
+
+  const agendaMap = new Map((agendas || []).map((a) => [a.id, a]));
+
+  const assignedIds = Array.from(
+    new Set(tasks.map((t) => t.assigned_to).filter((id): id is string => !!id)),
+  );
+
+  const { data: usuarios } = assignedIds.length
+    ? await supabase.from('info_usuario').select('user_id, nombre').in('user_id', assignedIds)
+    : { data: [] as { user_id: string; nombre: string }[] };
+
+  const nombrePorId = new Map((usuarios || []).map((u) => [u.user_id, u.nombre]));
+  const taskMap = new Map(tasks.map((t) => [t.id, t]));
+
+  const resultado: ActividadConcejoConContexto[] = [];
+
+  enlaces.forEach((enlace) => {
+    const t = taskMap.get(enlace.task_id);
+    if (!t) return;
+    const punto = puntoMap.get(enlace.tarea_concejo_id);
+    const agenda = punto ? agendaMap.get(punto.agenda_concejo_id || '') : undefined;
+
+    resultado.push({
+      id: t.id,
+      title: t.title,
+      description: t.description,
+      due_date: t.due_date,
+      status: t.status,
+      assigned_to: t.assigned_to,
+      confirmed_at: t.confirmed_at,
+      assignee_nombre: t.assigned_to ? nombrePorId.get(t.assigned_to) || 'Sin asignar' : 'Sin asignar',
+      checklist: t.checklist as ActividadConcejo['checklist'],
+      punto_id: enlace.tarea_concejo_id,
+      punto_titulo: punto?.titulo_item || 'Punto desconocido',
+      agenda_id: punto?.agenda_concejo_id || '',
+      agenda_titulo: agenda?.titulo || 'Sesión desconocida',
+      agenda_fecha: agenda?.fecha_reunion || '',
+      agenda_estado: agenda?.estado || '',
+    });
+  });
+
+  return resultado.sort((a, b) => {
+    const fa = a.agenda_fecha ? new Date(a.agenda_fecha).getTime() : 0;
+    const fb = b.agenda_fecha ? new Date(b.agenda_fecha).getTime() : 0;
+    if (fb !== fa) return fb - fa;
+    return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+  });
 }
 
 export async function obtenerActividadesDePunto(

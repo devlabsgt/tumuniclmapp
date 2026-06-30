@@ -8,7 +8,8 @@ import AgendaForm from './forms/Sesion';
 import ResumenAsistencia from './modals/ResumenAsistencia';
 import InformeDietas from './modals/InformeDietas';
 import GestorActa from '@/components/concejo/agenda/gestorActa';
-import { CalendarPlus, Pencil, ArrowRight, Trash2, CalendarClock, CalendarDays, CalendarCheck, FileText, Table, FileUp, X, ChevronDown, ChevronUp } from 'lucide-react';
+import ListaActividadesAsignadas from './ListaActividadesAsignadas';
+import { CalendarPlus, Pencil, ArrowRight, Trash2, CalendarClock, CalendarDays, CalendarCheck, FileText, Table, FileUp, X, ChevronDown, ChevronUp, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
@@ -171,7 +172,7 @@ const hayActa = Boolean(
 
 AgendaCard.displayName = 'AgendaCard';
 
-type VistaType = 'hoy' | 'proximas' | 'terminadas';
+type VistaType = 'hoy' | 'proximas' | 'terminadas' | 'actividades';
 
 export default function Ver() {
   const router = useRouter();
@@ -410,12 +411,28 @@ export default function Ver() {
                         {vista === 'terminadas' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-[2px] bg-red-600 dark:bg-red-400" />}
                     </button>
                 )}
+                <button onClick={() => setVista('actividades')} className={cn("relative flex items-center gap-1.5 px-2 py-1 text-sm font-medium transition-colors whitespace-nowrap", vista === 'actividades' ? "text-purple-600 dark:text-purple-400" : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")}>
+                    <ClipboardList className="h-4 w-4" /> <span>Actividades Asignadas</span>
+                    {vista === 'actividades' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-[2px] bg-purple-600 dark:bg-purple-400" />}
+                </button>
             </div>
         </div>
 
       </header>
       <div className="w-full">
-        {agendasVisibles.length === 0 ? (
+        {vista === 'actividades' ? (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key="actividades"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ListaActividadesAsignadas />
+            </motion.div>
+          </AnimatePresence>
+        ) : agendasVisibles.length === 0 ? (
           <div className="text-center py-10 border-2 border-dashed border-gray-300 dark:border-neutral-800 rounded-lg">
             <p className="text-gray-500 dark:text-gray-400">Aún no hay sesiones disponibles en esta vista.</p>
           </div>

@@ -197,24 +197,58 @@ export async function obtenerDatosGestor(tipoVista: TipoVistaTareas) {
 
   // 4. MAPEAR TAREAS
   const taskIds = rawTareas.map((t: { id: string }) => t.id);
-  const concejoTaskIds = new Set<string>();
+  const concejoContexto = new Map<string, { punto_titulo: string; agenda_titulo: string; agenda_fecha: string }>();
 
   if (taskIds.length > 0) {
     const { data: enlacesConcejo } = await supabase
       .from('tareas_concejo_actividades')
-      .select('task_id')
+      .select('task_id, tarea_concejo_id')
       .in('task_id', taskIds);
 
-    (enlacesConcejo || []).forEach((e: { task_id: string }) => concejoTaskIds.add(e.task_id));
+    const enlaces = enlacesConcejo || [];
+
+    if (enlaces.length > 0) {
+      const puntoIds = Array.from(new Set(enlaces.map((e: any) => e.tarea_concejo_id)));
+
+      const { data: puntos } = await supabase
+        .from('tareas_concejo')
+        .select('id, titulo_item, agenda_concejo_id')
+        .in('id', puntoIds);
+
+      const puntoMap = new Map((puntos || []).map((p: any) => [p.id, p]));
+      const agendaIds = Array.from(
+        new Set((puntos || []).map((p: any) => p.agenda_concejo_id).filter((id: any): id is string => !!id))
+      );
+
+      const { data: agendas } = agendaIds.length
+        ? await supabase.from('agenda_concejo').select('id, titulo, fecha_reunion').in('id', agendaIds)
+        : { data: [] as any[] };
+
+      const agendaMap = new Map((agendas || []).map((a: any) => [a.id, a]));
+
+      enlaces.forEach((e: any) => {
+        const punto = puntoMap.get(e.tarea_concejo_id);
+        const agenda = punto ? agendaMap.get(punto.agenda_concejo_id) : undefined;
+        concejoContexto.set(e.task_id, {
+          punto_titulo: punto?.titulo_item || 'Punto desconocido',
+          agenda_titulo: agenda?.titulo || 'Sesión desconocida',
+          agenda_fecha: agenda?.fecha_reunion || '',
+        });
+      });
+    }
   }
 
   const tareas: Tarea[] = rawTareas.map((t: any) => {
     const creador = todosLosUsuarios.find((u: any) => u.user_id === t.created_by); 
     const asignado = todosLosUsuarios.find((u: any) => u.user_id === t.assigned_to);
+    const contexto = concejoContexto.get(t.id);
 
     return {
       ...t,
-      es_concejo: concejoTaskIds.has(t.id),
+      es_concejo: !!contexto,
+      punto_titulo: contexto?.punto_titulo,
+      agenda_titulo: contexto?.agenda_titulo,
+      agenda_fecha: contexto?.agenda_fecha,
       alcance: alcancePorTarea.get(t.id),
       creator: { nombre: creador?.nombre || 'Desconocido' }, 
       assignee: { 

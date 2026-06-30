@@ -54,6 +54,9 @@ export interface Tarea {
   estadoFiltro?: string;
   alcance?: 'equipo' | 'externa';
   es_concejo?: boolean;
+  punto_titulo?: string;
+  agenda_titulo?: string;
+  agenda_fecha?: string;
 }
 
 export interface NewTaskState {
