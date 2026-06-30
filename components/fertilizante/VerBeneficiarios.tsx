@@ -187,7 +187,7 @@ export default function VerBeneficiarios() {
             Beneficiarios de Fertilizante
           </h1>
           <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-            {(rol === 'SUPER' || rol === 'SECRETARIO') && (
+            {(rol === 'SUPER' || rol === 'SECRETARIO' || rol === 'DAFIM') && (
               <Button
                 variant="outline"
                 onClick={() => setMostrarConfigMeta(true)}
