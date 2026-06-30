@@ -10,6 +10,10 @@ import { TOTAL_META_SACOS } from "./config";
 
 interface Props {
   data: Beneficiario[];
+  totalMeta: number;
+  anioActual: string;
+  userRol: string;
+  onConfigChange: () => void;
 }
 
 const calcularEdad = (fechaNacimiento: string): number => {
@@ -23,9 +27,8 @@ const calcularEdad = (fechaNacimiento: string): number => {
   return edad;
 };
 
-export default function EstadisticasBeneficiarios({ data }: Props) {
+export default function EstadisticasBeneficiarios({ data, totalMeta, anioActual, userRol, onConfigChange }: Props) {
   const [isOpen, setIsOpen] = useState(false);
-  const totalMeta = TOTAL_META_SACOS;
 
   // --- Cálculos (sin cambios) ---
   const dataFiltrada = data.filter((b) => b.estado !== "Anulado");

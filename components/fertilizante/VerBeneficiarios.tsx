@@ -12,6 +12,7 @@ import {
   ChevronDown,
   UserCog,
   Users,
+  Settings,
 } from "lucide-react";
 import { FiltroBeneficiarios } from "./FiltroBeneficiarios";
 import { TablaBeneficiarios } from "./TablaBeneficiarios";
@@ -19,6 +20,7 @@ import EstadisticasBeneficiarios from "./EstadisticasBeneficiarios";
 import MISSINGFolioModal from "./MISSINGFolioModal";
 import ListadoGeneroModal from "./ListadoGeneroModal";
 import GestionDoctosModal from "./GestionDoctosModal";
+import ConfigMetaModal from "./ConfigMetaModal";
 import EncargadosFoliosModal from "./EncargadosFoliosModal";
 import type { Beneficiario, CampoFiltro, OrdenFiltro } from "./types";
 import {
@@ -26,6 +28,7 @@ import {
   obtenerAniosDisponibles,
   filtrarYOrdenarBeneficiarios,
   generarResumenBeneficiarios,
+  obtenerConfiguracionFertilizante,
 } from "./actions";
 import useUserData from "@/hooks/sesion/useUserData";
 
@@ -46,6 +49,8 @@ export default function VerBeneficiarios() {
   const [mostrarGestionDoctos, setMostrarGestionDoctos] = useState(false);
   const [mostrarEncargadosFolios, setMostrarEncargadosFolios] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [totalSacosMeta, setTotalSacosMeta] = useState(7100);
+  const [mostrarConfigMeta, setMostrarConfigMeta] = useState(false);
 
   const [filtros, setFiltros] = useState(() => {
     const defaults = {
@@ -79,13 +84,15 @@ export default function VerBeneficiarios() {
   };
 
   const router = useRouter();
-  const { permisos, cargando: cargandoUsuario } = useUserData();
+  const { permisos, rol, cargando: cargandoUsuario } = useUserData();
 
   const cargarDatos = useCallback(async (anioParaCargar: string) => {
     if (!anioParaCargar) return;
     setInitialLoading(true);
     const data = await cargarBeneficiariosPorAnio(anioParaCargar);
+    const sacos = await obtenerConfiguracionFertilizante(anioParaCargar);
     setBeneficiarios(data);
+    setTotalSacosMeta(sacos);
     setInitialLoading(false);
   }, []);
 
@@ -180,6 +187,16 @@ export default function VerBeneficiarios() {
             Beneficiarios de Fertilizante
           </h1>
           <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+            {(rol === 'SUPER' || rol === 'SECRETARIO') && (
+              <Button
+                variant="outline"
+                onClick={() => setMostrarConfigMeta(true)}
+                className="h-12 px-4 border-gray-300 dark:border-neutral-700 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors bg-white dark:bg-neutral-900 shadow-sm"
+                title="Configurar meta de sacos"
+              >
+                <Settings size={20} />
+              </Button>
+            )}
             {permisos.includes("CREAR") || permisos.includes("TODO") ? (
               <Button
                 onClick={() =>
@@ -214,13 +231,14 @@ export default function VerBeneficiarios() {
         />
       </motion.div>
 
-      <motion.div
-        initial="hidden"
-        animate="visible"
-        variants={itemVariants}
-        transition={{ duration: 0.5, delay: 0.4 }}
-      >
-        <EstadisticasBeneficiarios data={beneficiariosFiltrados} />
+      <motion.div initial="hidden" animate="visible" variants={itemVariants} transition={{ duration: 0.5, delay: 0.4 }}>
+        <EstadisticasBeneficiarios 
+          data={beneficiariosFiltrados} 
+          totalMeta={totalSacosMeta}
+          anioActual={filtros.anio}
+          userRol={rol}
+          onConfigChange={() => cargarDatos(filtros.anio)}
+        />
       </motion.div>
 
       <motion.div
@@ -411,6 +429,13 @@ export default function VerBeneficiarios() {
         <EncargadosFoliosModal
           visible={mostrarEncargadosFolios}
           onClose={() => setMostrarEncargadosFolios(false)}
+        />
+        <ConfigMetaModal
+          visible={mostrarConfigMeta}
+          onClose={() => setMostrarConfigMeta(false)}
+          anioActual={filtros.anio}
+          totalMeta={totalSacosMeta}
+          onGuardado={() => cargarDatos(filtros.anio)}
         />
       </motion.div>
 

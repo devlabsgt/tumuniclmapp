@@ -628,3 +628,40 @@ export const eliminarEncargadoFolio = async (registro: EncargadoFolio): Promise<
   toast.success('Registro eliminado.');
   return true;
 };
+
+export const obtenerConfiguracionFertilizante = async (anio: string): Promise<number> => {
+  const anioNum = parseInt(anio, 10);
+  if (isNaN(anioNum)) return 7100;
+
+  const { data, error } = await supabase
+    .from('fertilizante_config')
+    .select('sacos')
+    .eq('anio', anioNum)
+    .maybeSingle();
+
+  if (error || !data) return 7100; // Valor por defecto
+  return data.sacos;
+};
+
+export const guardarConfiguracionFertilizante = async (anio: string, sacos: number): Promise<boolean> => {
+  const anioNum = parseInt(anio, 10);
+  if (isNaN(anioNum) || sacos < 0) return false;
+
+  const { error } = await supabase
+    .from('fertilizante_config')
+    .upsert({ anio: anioNum, sacos }, { onConflict: 'anio' });
+
+  if (error) {
+    console.error('Error al guardar configuración:', error.message);
+    toast.error('Error al guardar configuración.');
+    return false;
+  }
+
+  await registrarLog({
+    accion: 'CONFIGURACION_SACOS',
+    nombreModulo: 'FERTILIZANTE',
+    descripcion: `Se actualizó la meta a ${sacos} sacos para el año ${anioNum}`,
+  });
+  toast.success('Configuración guardada correctamente.');
+  return true;
+};
