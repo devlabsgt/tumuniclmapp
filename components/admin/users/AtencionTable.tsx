@@ -62,7 +62,7 @@ export default function AtencionTable({ usuarios, rolActual }: Props) {
   const router = useRouter();
 
   const [listaUsuarios, setListaUsuarios] =
-    useState<UsuarioConJerarquia[]>(usuarios);
+    useState<UsuarioConJerarquia[]>(usuarios.filter(u => u.rol !== "INVITADO"));
   const [terminoBusqueda, setTerminoBusqueda] = useState("");
 
   // Estado para el modal de Crear/Editar usuario
@@ -99,7 +99,7 @@ export default function AtencionTable({ usuarios, rolActual }: Props) {
     rolActual === "SUPER" || rolActual === "RRHH" || rolActual === "SECRETARIO";
 
   useEffect(() => {
-    setListaUsuarios(usuarios);
+    setListaUsuarios(usuarios.filter(u => u.rol !== "INVITADO"));
   }, [usuarios]);
 
   useEffect(() => {
