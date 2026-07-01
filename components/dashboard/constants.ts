@@ -50,7 +50,7 @@ export const TODOS_LOS_MODULOS = [
     titulo: 'Mi Inventario',
     descripcion: 'Consulta y control de tus bienes asignados.',
     ruta: '/protected/inventario/propias',
-    iconoKey: 'iuqyhlid',
+    iconoKey: 'gbzbfgyf',
     categoria: 'Gestión Administrativa',
     subgrupo: 'Gestión Propia'
   },
@@ -120,7 +120,7 @@ export const TODOS_LOS_MODULOS = [
     titulo: 'Inventario de Mi Equipo',
     descripcion: 'Supervise los bienes de su dependencia y personal a cargo.',
     ruta: '/protected/inventario/jefe',
-    iconoKey: 'iuqyhlid',
+    iconoKey: 'gbzbfgyf',
     categoria: 'Gestión Administrativa',
     subgrupo: 'Gestión Jefe de Área'
   },
@@ -224,7 +224,7 @@ export const TODOS_LOS_MODULOS = [
     titulo: 'Inventario General',
     descripcion: 'Gestión completa y centralizada de todos los bienes municipales.',
     ruta: '/protected/inventario/general',
-    iconoKey: 'iuqyhlid',
+    iconoKey: 'gbzbfgyf',
     categoria: 'Gestión Administrativa',
     subgrupo: 'Gestión de Recursos Municipales'
   },

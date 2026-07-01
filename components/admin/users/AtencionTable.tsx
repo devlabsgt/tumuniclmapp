@@ -15,12 +15,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import LlamadaAtencionManager from "./forms/LlamadaAtencionManager";
 import Swal from "sweetalert2";
 import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { useDependencias } from "@/hooks/dependencias/useDependencias";
 import Cargando from "@/components/ui/animations/Cargando";
 import {
@@ -35,6 +41,7 @@ import {
   UserPlus,
   Crown,
   Banknote,
+  Check,
 } from "lucide-react";
 
 // --- 1. IMPORTAMOS EL COMPONENTE DEL INFORME ---
@@ -80,6 +87,11 @@ export default function AtencionTable({ usuarios, rolActual }: Props) {
 
   const [menuAbierto, setMenuAbierto] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  
+  const [openNivel2, setOpenNivel2] = useState(false);
+  const [openNivel3, setOpenNivel3] = useState(false);
+  const [openRol, setOpenRol] = useState(false);
+  const [rolFiltro, setRolFiltro] = useState<string | null>(null);
 
   const hasCreatePermission =
     rolActual === "SUPER" || rolActual === "RRHH" || rolActual === "SECRETARIO";
@@ -120,6 +132,11 @@ export default function AtencionTable({ usuarios, rolActual }: Props) {
       .sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
   }, [dependencias, nivel2Id]);
 
+  const rolesDisponibles = useMemo(() => {
+    const roles = new Set(listaUsuarios.map((u) => u.rol).filter(Boolean));
+    return Array.from(roles).sort();
+  }, [listaUsuarios]);
+
   const usuariosAgrupados = useMemo(() => {
     let usuariosFiltrados = [...listaUsuarios];
 
@@ -150,7 +167,9 @@ export default function AtencionTable({ usuarios, rolActual }: Props) {
       const oficinaCoincide =
         !oficinasPermitidas || oficinasPermitidas.has(usuario.oficina_nombre);
 
-      return busquedaCoincide && oficinaCoincide;
+      const rolCoincide = !rolFiltro || usuario.rol === rolFiltro;
+
+      return busquedaCoincide && oficinaCoincide && rolCoincide;
     });
 
     const grupos: Record<
@@ -179,7 +198,7 @@ export default function AtencionTable({ usuarios, rolActual }: Props) {
       .sort((a, b) =>
         a.path_orden.localeCompare(b.path_orden, undefined, { numeric: true }),
       );
-  }, [listaUsuarios, terminoBusqueda, nivel2Id, nivel3Id, dependencias]);
+  }, [listaUsuarios, terminoBusqueda, nivel2Id, nivel3Id, dependencias, rolFiltro]);
 
   const handleVerUsuario = (id: string) => {
     if (!canOpenModal) return;
@@ -340,58 +359,174 @@ export default function AtencionTable({ usuarios, rolActual }: Props) {
                 <Cargando texto="Cargando..." />
               ) : (
                 <>
-                  <Select
-                    onValueChange={handleNivel2Change}
-                    value={nivel2Id || "todos"}
-                  >
-                    <SelectTrigger className="bg-white dark:bg-neutral-800 dark:text-gray-100 dark:border-neutral-700 text-xs w-full sm:w-[200px] h-9">
-                      <SelectValue placeholder="Dependencia" />
-                    </SelectTrigger>
-                    <SelectContent className="dark:bg-neutral-800 dark:border-neutral-700">
-                      <SelectItem
-                        value="todos"
-                        className="dark:text-gray-200 dark:focus:bg-neutral-700"
+                  <Popover open={openNivel2} onOpenChange={setOpenNivel2}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openNivel2}
+                        className="bg-white dark:bg-neutral-800 dark:text-gray-100 dark:border-neutral-700 text-xs w-full sm:w-[250px] h-9 justify-between font-normal hover:bg-slate-50 dark:hover:bg-neutral-700/50"
                       >
-                        Todas
-                      </SelectItem>
-                      {oficinasNivel2.map((oficina) => (
-                        <SelectItem
-                          key={oficina.id}
-                          value={oficina.id}
-                          className="dark:text-gray-200 dark:focus:bg-neutral-700"
-                        >
-                          {oficina.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        <span className="truncate">
+                        {nivel2Id
+                          ? oficinasNivel2.find((oficina) => oficina.id === nivel2Id)?.nombre || "Todas"
+                          : "Todas las Dependencias"}
+                        </span>
+                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] sm:w-[350px] p-0 dark:bg-neutral-800 dark:border-neutral-700">
+                      <Command>
+                        <CommandInput placeholder="Buscar dependencia..." className="text-xs h-9" />
+                        <CommandList>
+                          <CommandEmpty>No se encontró la dependencia.</CommandEmpty>
+                          <CommandGroup>
+                            <CommandItem
+                              value="todas las dependencias"
+                              onSelect={() => {
+                                handleNivel2Change("todos")
+                                setOpenNivel2(false)
+                              }}
+                              className="dark:text-gray-200 dark:focus:bg-neutral-700 text-xs py-2"
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${!nivel2Id ? "opacity-100" : "opacity-0"}`}
+                              />
+                              Todas las Dependencias
+                            </CommandItem>
+                            {oficinasNivel2.map((oficina) => (
+                              <CommandItem
+                                key={oficina.id}
+                                value={oficina.nombre || ""}
+                                onSelect={() => {
+                                  handleNivel2Change(oficina.id)
+                                  setOpenNivel2(false)
+                                }}
+                                className="dark:text-gray-200 dark:focus:bg-neutral-700 text-xs py-2"
+                              >
+                                <Check
+                                  className={`mr-2 h-4 w-4 shrink-0 ${nivel2Id === oficina.id ? "opacity-100" : "opacity-0"}`}
+                                />
+                                {oficina.nombre}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
 
-                  <Select
-                    onValueChange={handleNivel3Change}
-                    value={nivel3Id || "todos"}
-                    disabled={!nivel2Id}
-                  >
-                    <SelectTrigger className="bg-white dark:bg-neutral-800 dark:text-gray-100 dark:border-neutral-700 text-xs w-full sm:w-[200px] h-9">
-                      <SelectValue placeholder="Oficina" />
-                    </SelectTrigger>
-                    <SelectContent className="dark:bg-neutral-800 dark:border-neutral-700">
-                      <SelectItem
-                        value="todos"
-                        className="dark:text-gray-200 dark:focus:bg-neutral-700"
+                  <Popover open={openNivel3} onOpenChange={setOpenNivel3}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openNivel3}
+                        disabled={!nivel2Id}
+                        className="bg-white dark:bg-neutral-800 dark:text-gray-100 dark:border-neutral-700 text-xs w-full sm:w-[250px] h-9 justify-between font-normal hover:bg-slate-50 dark:hover:bg-neutral-700/50"
                       >
-                        Todas
-                      </SelectItem>
-                      {oficinasNivel3.map((oficina) => (
-                        <SelectItem
-                          key={oficina.id}
-                          value={oficina.id}
-                          className="dark:text-gray-200 dark:focus:bg-neutral-700"
-                        >
-                          {oficina.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        <span className="truncate">
+                        {nivel3Id
+                          ? oficinasNivel3.find((oficina) => oficina.id === nivel3Id)?.nombre || "Todas"
+                          : "Todas las Oficinas"}
+                        </span>
+                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] sm:w-[350px] p-0 dark:bg-neutral-800 dark:border-neutral-700">
+                      <Command>
+                        <CommandInput placeholder="Buscar oficina..." className="text-xs h-9" />
+                        <CommandList>
+                          <CommandEmpty>No se encontró la oficina.</CommandEmpty>
+                          <CommandGroup>
+                            <CommandItem
+                              value="todas las oficinas"
+                              onSelect={() => {
+                                handleNivel3Change("todos")
+                                setOpenNivel3(false)
+                              }}
+                              className="dark:text-gray-200 dark:focus:bg-neutral-700 text-xs py-2"
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${!nivel3Id ? "opacity-100" : "opacity-0"}`}
+                              />
+                              Todas las Oficinas
+                            </CommandItem>
+                            {oficinasNivel3.map((oficina) => (
+                              <CommandItem
+                                key={oficina.id}
+                                value={oficina.nombre || ""}
+                                onSelect={() => {
+                                  handleNivel3Change(oficina.id)
+                                  setOpenNivel3(false)
+                                }}
+                                className="dark:text-gray-200 dark:focus:bg-neutral-700 text-xs py-2"
+                              >
+                                <Check
+                                  className={`mr-2 h-4 w-4 shrink-0 ${nivel3Id === oficina.id ? "opacity-100" : "opacity-0"}`}
+                                />
+                                {oficina.nombre}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <Popover open={openRol} onOpenChange={setOpenRol}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openRol}
+                        className="bg-white dark:bg-neutral-800 dark:text-gray-100 dark:border-neutral-700 text-xs w-full sm:w-[180px] h-9 justify-between font-normal hover:bg-slate-50 dark:hover:bg-neutral-700/50"
+                      >
+                        <span className="truncate">
+                        {rolFiltro || "Todos los Roles"}
+                        </span>
+                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0 dark:bg-neutral-800 dark:border-neutral-700">
+                      <Command>
+                        <CommandInput placeholder="Buscar rol..." className="text-xs h-9" />
+                        <CommandList>
+                          <CommandEmpty>No se encontró el rol.</CommandEmpty>
+                          <CommandGroup>
+                            <CommandItem
+                              value="todos los roles"
+                              onSelect={() => {
+                                setRolFiltro(null)
+                                setOpenRol(false)
+                              }}
+                              className="dark:text-gray-200 dark:focus:bg-neutral-700 text-xs py-2"
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${!rolFiltro ? "opacity-100" : "opacity-0"}`}
+                              />
+                              Todos los Roles
+                            </CommandItem>
+                            {rolesDisponibles.map((rol) => (
+                              <CommandItem
+                                key={rol}
+                                value={rol || ""}
+                                onSelect={() => {
+                                  setRolFiltro(rol)
+                                  setOpenRol(false)
+                                }}
+                                className="dark:text-gray-200 dark:focus:bg-neutral-700 text-xs py-2"
+                              >
+                                <Check
+                                  className={`mr-2 h-4 w-4 shrink-0 ${rolFiltro === rol ? "opacity-100" : "opacity-0"}`}
+                                />
+                                {rol}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </>
               )}
             </div>

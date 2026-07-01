@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { ItemInventario, TipoVistaInventario } from './lib/schemas';
-import { useInventarioActivo, useDependenciasBasicas, useUsuariosBasicos } from './lib/hooks';
+import { useInventarioActivo, useDependenciasBasicas, useUsuariosBasicos, useReporteJerarquicoInventario } from './lib/hooks';
 import InventarioList from './InventarioList';
 import CrearInventarioModal from './modals/CrearInventarioModal';
 import TrasladoModal from './modals/TrasladoModal';
@@ -10,7 +10,7 @@ import BajaModal from './modals/BajaModal';
 import DetalleInventarioModal from './modals/DetalleInventarioModal';
 import ReporteJerarquico from './ReporteJerarquico';
 import { Button } from '@/components/ui/button';
-import { Plus, RefreshCcw, LayoutList, Network } from 'lucide-react';
+import { Plus, RefreshCcw, LayoutList, List } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FiltroBusquedaLista, ModoFiltroLista } from './FiltroBusquedaLista';
 
@@ -21,7 +21,10 @@ interface GestorInventarioProps {
 export default function GestorInventario({ tipoVista = 'general' }: GestorInventarioProps) {
   const [estadoFiltro, setEstadoFiltro] = useState('Activo');
   // Fetch 'Todos' from server to filter on client side instantly
-  const { data: todosItems = [], isLoading, refetch: cargarDatos } = useInventarioActivo('Todos', tipoVista);
+  const { data: todosItems = [], isLoading: isLoadingItems, refetch: cargarDatos } = useInventarioActivo('Todos', tipoVista);
+  const { data: filasRAW = [], isLoading: isLoadingJerarquia } = useReporteJerarquicoInventario('Todos', tipoVista);
+  const isLoading = isLoadingItems || isLoadingJerarquia;
+  
   const { data: dependenciasBasicas = [] } = useDependenciasBasicas();
   const { data: usuariosBasicos = [] } = useUsuariosBasicos();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,33 +48,100 @@ export default function GestorInventario({ tipoVista = 'general' }: GestorInvent
   }, [todosItems]);
 
   const itemsPorEstado = React.useMemo(() => {
-    if (estadoFiltro === 'Activo') {
-      return todosItems.filter(item => ['Activo', 'Regular', 'Malo'].includes(item.estado || ''));
-    } else if (estadoFiltro === 'Inactivo') {
-      return todosItems.filter(item => ['Inactivo', 'Baja'].includes(item.estado || ''));
-    }
-    return todosItems;
-  }, [todosItems, estadoFiltro]);
+    const itemsInOrder: ItemInventario[] = [];
+    const mappedIds = new Set<string>();
+    
+    const filasMap = new Map(filasRAW.map(f => [f.id, f]));
+    const findTrueDependency = (parentId: string | undefined | null) => {
+      if (!parentId) return null;
+      let current = filasMap.get(parentId);
+      while (current) {
+        if (current.tipo === 'dependencia' && !current.esPuesto) {
+          return current;
+        }
+        if (!current.parentId) break;
+        current = filasMap.get(current.parentId);
+      }
+      return null;
+    };
+
+    filasRAW.forEach(fila => {
+      if (fila.tipo === 'bien') {
+        const realId = fila.id.replace('bien-', '');
+        const realItem = todosItems.find(i => i.id === realId);
+        if (realItem) {
+          const estado = realItem.estado || '';
+          const matchesEstado = 
+            estadoFiltro === 'Todos' ||
+            (estadoFiltro === 'Activo' && ['Activo', 'Regular', 'Malo'].includes(estado)) ||
+            (estadoFiltro === 'Inactivo' && ['Inactivo', 'Baja'].includes(estado));
+
+          if (matchesEstado) {
+            const trueDep = findTrueDependency(fila.parentId);
+            const gPrefix = trueDep ? trueDep.prefix : fila.branchPrefix;
+            const gNombre = trueDep ? trueDep.nombre : (fila.nombreDepartamento || 'SIN ASIGNAR');
+            const gLevel = trueDep ? trueDep.level : fila.level - 1;
+
+            itemsInOrder.push({
+              ...realItem,
+              __groupName: gPrefix ? `${gPrefix} ${gNombre}` : gNombre,
+              __groupLevel: gLevel,
+              __groupPrefix: gPrefix,
+              __groupNombre: gNombre
+            });
+            mappedIds.add(realId);
+          }
+        }
+      }
+    });
+
+    todosItems.forEach(item => {
+      if (!mappedIds.has(item.id)) {
+        const estado = item.estado || '';
+        const matchesEstado = 
+            estadoFiltro === 'Todos' ||
+            (estadoFiltro === 'Activo' && ['Activo', 'Regular', 'Malo'].includes(estado)) ||
+            (estadoFiltro === 'Inactivo' && ['Inactivo', 'Baja'].includes(estado));
+            
+        if (matchesEstado) {
+          itemsInOrder.push({ 
+            ...item, 
+            __groupName: 'SIN CLASIFICAR',
+            __groupLevel: -1,
+            __groupPrefix: '',
+            __groupNombre: 'SIN CLASIFICAR'
+          });
+        }
+      }
+    });
+
+    return itemsInOrder;
+  }, [todosItems, filasRAW, estadoFiltro]);
 
   const itemsFiltradosLista = React.useMemo(() => {
     const term = textoFiltroLista.toLowerCase().trim();
-    if (!term) return itemsPorEstado;
-    return itemsPorEstado.filter(item => {
-      const matchDepto = item.dependencia_real?.nombre?.toLowerCase().includes(term);
-      const matchEmpleado = item.info_usuario?.nombre?.toLowerCase().includes(term);
-      const matchBien = item.descripcion?.toLowerCase().includes(term) || (item.serie && item.serie.toLowerCase().includes(term));
-      
-      if (modoFiltroLista === 'todos') {
-        return matchDepto || matchEmpleado || matchBien;
-      } else if (modoFiltroLista === 'departamento') {
-        return matchDepto;
-      } else if (modoFiltroLista === 'nombre') {
-        return matchEmpleado;
-      } else if (modoFiltroLista === 'bien') {
-        return matchBien;
-      }
-      return true;
-    });
+    
+    let filtered = itemsPorEstado;
+    if (term) {
+      filtered = itemsPorEstado.filter(item => {
+        const matchDepto = item.dependencia_real?.nombre?.toLowerCase().includes(term);
+        const matchEmpleado = item.info_usuario?.nombre?.toLowerCase().includes(term);
+        const matchBien = item.descripcion?.toLowerCase().includes(term) || (item.serie && item.serie.toLowerCase().includes(term));
+        
+        if (modoFiltroLista === 'todos') {
+          return matchDepto || matchEmpleado || matchBien;
+        } else if (modoFiltroLista === 'departamento') {
+          return matchDepto;
+        } else if (modoFiltroLista === 'nombre') {
+          return matchEmpleado;
+        } else if (modoFiltroLista === 'bien') {
+          return matchBien;
+        }
+        return true;
+      });
+    }
+
+    return filtered;
   }, [itemsPorEstado, modoFiltroLista, textoFiltroLista]);
 
   useEffect(() => {
@@ -162,9 +232,9 @@ export default function GestorInventario({ tipoVista = 'general' }: GestorInvent
               activeTab === 'jerarquia' ? "bg-white text-slate-950 shadow-sm dark:bg-neutral-950 dark:text-slate-50" : "hover:text-slate-900 dark:hover:text-slate-50 hover:bg-slate-200/50 dark:hover:bg-neutral-700/50"
             )}
           >
-            <Network className="w-4 h-4" />
-            <span className="hidden sm:inline">Reporte Jerárquico</span>
-            <span className="sm:hidden">Reporte</span>
+            <List className="w-4 h-4" />
+            <span className="hidden sm:inline">Lista</span>
+            <span className="sm:hidden">Lista</span>
           </button>
           <button
             onClick={() => handleTabChange('lista')}
@@ -174,8 +244,8 @@ export default function GestorInventario({ tipoVista = 'general' }: GestorInvent
             )}
           >
             <LayoutList className="w-4 h-4" />
-            <span className="hidden sm:inline">Vista de Lista</span>
-            <span className="sm:hidden">Lista</span>
+            <span className="hidden sm:inline">Tarjetas</span>
+            <span className="sm:hidden">Tarjetas</span>
           </button>
         </div>
 

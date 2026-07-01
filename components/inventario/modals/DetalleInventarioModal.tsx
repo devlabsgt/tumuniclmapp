@@ -121,7 +121,7 @@ export default function DetalleInventarioModal({ item, open, onOpenChange }: Det
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         aria-describedby={undefined}
-        className="sm:max-w-[950px] lg:max-w-[1000px] p-0 overflow-hidden bg-white dark:bg-neutral-900 border-0 sm:border border-gray-100 dark:border-neutral-800 flex flex-col max-h-[96vh] [&>button]:bg-blue-600 [&>button]:text-white [&>button]:opacity-100 [&>button]:hover:opacity-100 [&>button]:hover:bg-blue-700 [&>button]:rounded-md [&>button]:shadow [&>button]:active:scale-95 [&>button]:transition-all [&>button]:top-[14px] [&>button]:sm:top-[16px] [&>button]:p-1.5"
+        className="sm:max-w-[950px] lg:max-w-[1000px] p-0 overflow-hidden bg-white dark:bg-neutral-900 border-0 sm:border border-gray-100 dark:border-neutral-800 flex flex-col max-h-[96vh] [&>button]:text-slate-500 hover:[&>button]:text-slate-700 dark:[&>button]:text-slate-400 dark:hover:[&>button]:text-slate-200 [&>button]:top-[18px] [&>button]:sm:top-[20px] [&>button]:right-5"
         onInteractOutside={(e) => {
           if (isFullscreen) {
             e.preventDefault();

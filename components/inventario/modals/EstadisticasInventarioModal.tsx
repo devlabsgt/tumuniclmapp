@@ -18,11 +18,16 @@ import {
 import {
   ResponsiveContainer,
   Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
   PieChart,
   Pie,
   Cell,
   Label,
 } from 'recharts';
+import { Skeleton } from '../Skeleton';
 import {
   Building2,
   Users,
@@ -199,9 +204,30 @@ export default function EstadisticasInventarioModal({
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar relative">
           {cargando ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50/50 dark:bg-neutral-950/50 backdrop-blur-sm z-20">
-              <Loader2 className="animate-spin text-blue-500 mb-4" size={40} />
-              <p className="text-slate-500 dark:text-slate-400 font-medium">Procesando datos...</p>
+            <div className="space-y-6">
+              {/* Cards Skeleton */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl p-5 flex flex-col gap-3">
+                    <div className="flex justify-between items-center">
+                      <Skeleton className="h-4 w-1/2" />
+                      <Skeleton className="h-8 w-8 rounded-lg" />
+                    </div>
+                    <Skeleton className="h-8 w-3/4" />
+                    <Skeleton className="h-3 w-2/3 mt-1" />
+                  </div>
+                ))}
+              </div>
+
+              {/* Charts Skeleton */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {[...Array(2)].map((_, i) => (
+                  <div key={i} className="bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-xl p-6 h-[400px] flex flex-col">
+                    <Skeleton className="h-6 w-1/3 mb-6" />
+                    <Skeleton className="flex-1 w-full" />
+                  </div>
+                ))}
+              </div>
             </div>
           ) : !stats ? (
             <div className="h-full flex items-center justify-center text-slate-500 dark:text-slate-400">
