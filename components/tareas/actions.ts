@@ -196,12 +196,59 @@ export async function obtenerDatosGestor(tipoVista: TipoVistaTareas) {
   }
 
   // 4. MAPEAR TAREAS
+  const taskIds = rawTareas.map((t: { id: string }) => t.id);
+  const concejoContexto = new Map<string, { punto_titulo: string; agenda_titulo: string; agenda_fecha: string }>();
+
+  if (taskIds.length > 0) {
+    const { data: enlacesConcejo } = await supabase
+      .from('tareas_concejo_actividades')
+      .select('task_id, tarea_concejo_id')
+      .in('task_id', taskIds);
+
+    const enlaces = enlacesConcejo || [];
+
+    if (enlaces.length > 0) {
+      const puntoIds = Array.from(new Set(enlaces.map((e: any) => e.tarea_concejo_id)));
+
+      const { data: puntos } = await supabase
+        .from('tareas_concejo')
+        .select('id, titulo_item, agenda_concejo_id')
+        .in('id', puntoIds);
+
+      const puntoMap = new Map((puntos || []).map((p: any) => [p.id, p]));
+      const agendaIds = Array.from(
+        new Set((puntos || []).map((p: any) => p.agenda_concejo_id).filter((id: any): id is string => !!id))
+      );
+
+      const { data: agendas } = agendaIds.length
+        ? await supabase.from('agenda_concejo').select('id, titulo, fecha_reunion').in('id', agendaIds)
+        : { data: [] as any[] };
+
+      const agendaMap = new Map((agendas || []).map((a: any) => [a.id, a]));
+
+      enlaces.forEach((e: any) => {
+        const punto = puntoMap.get(e.tarea_concejo_id);
+        const agenda = punto ? agendaMap.get(punto.agenda_concejo_id) : undefined;
+        concejoContexto.set(e.task_id, {
+          punto_titulo: punto?.titulo_item || 'Punto desconocido',
+          agenda_titulo: agenda?.titulo || 'Sesión desconocida',
+          agenda_fecha: agenda?.fecha_reunion || '',
+        });
+      });
+    }
+  }
+
   const tareas: Tarea[] = rawTareas.map((t: any) => {
     const creador = todosLosUsuarios.find((u: any) => u.user_id === t.created_by); 
     const asignado = todosLosUsuarios.find((u: any) => u.user_id === t.assigned_to);
+    const contexto = concejoContexto.get(t.id);
 
     return {
       ...t,
+      es_concejo: !!contexto,
+      punto_titulo: contexto?.punto_titulo,
+      agenda_titulo: contexto?.agenda_titulo,
+      agenda_fecha: contexto?.agenda_fecha,
       alcance: alcancePorTarea.get(t.id),
       creator: { nombre: creador?.nombre || 'Desconocido' }, 
       assignee: { 
@@ -321,6 +368,14 @@ export async function obtenerActividadPendienteConfirmacion() {
 
   if (!data) return { success: true, data: null };
 
+  const { data: enlaceConcejo } = await supabase
+    .from('tareas_concejo_actividades')
+    .select('id')
+    .eq('task_id', data.id)
+    .maybeSingle();
+
+  const esConcejo = !!enlaceConcejo;
+
   const { data: creador } = await supabase
     .from('info_usuario')
     .select('nombre')
@@ -331,7 +386,8 @@ export async function obtenerActividadPendienteConfirmacion() {
     success: true,
     data: {
       ...data,
-      creador_nombre: creador?.nombre || 'Desconocido',
+      creador_nombre: esConcejo ? 'El Concejo Municipal' : creador?.nombre || 'Desconocido',
+      es_concejo: esConcejo,
     },
   };
 }

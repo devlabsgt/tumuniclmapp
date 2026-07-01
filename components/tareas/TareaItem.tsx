@@ -10,7 +10,7 @@ import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
 import { 
   Edit2, Trash2, ChevronDown, MoreHorizontal, Calendar, 
-  User, Clock, AlertCircle, Copy, ArrowRight
+  User, Clock, AlertCircle, Copy, ArrowRight, FileText
 } from 'lucide-react';
 import { useTareaMutations } from './hooks'; 
 
@@ -174,6 +174,48 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
   };
 
   const { badge, border, label } = getStatusStyles();
+
+  const formatearSesion = (fechaISO: string) => {
+    if (!fechaISO) return '';
+    const d = new Date(fechaISO);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = String(d.getFullYear()).slice(-2);
+    let hora = d.getHours();
+    const minutos = String(d.getMinutes()).padStart(2, '0');
+    const period = hora >= 12 ? 'PM' : 'AM';
+    hora = hora % 12;
+    hora = hora ? hora : 12;
+    const horaStr = String(hora).padStart(2, '0');
+    return `${day}/${month}/${year} a las ${horaStr}:${minutos} ${period}`;
+  };
+
+  const textoAsignacionConcejo = (
+    <div className="flex flex-col gap-1 text-xs">
+      <div className="flex items-center gap-1.5">
+        <div className="bg-slate-100 dark:bg-neutral-800 p-1 rounded-full">
+          <User size={10} className="text-blue-500" />
+        </div>
+        <span className="text-slate-600 dark:text-gray-300">
+          Actividad asignada por el{' '}
+          <span className="font-bold text-blue-600 dark:text-blue-400">Concejo Municipal</span>
+        </span>
+      </div>
+      {tarea.agenda_titulo && (
+        <span className="flex items-center gap-1.5 text-slate-500 dark:text-gray-400 pl-1">
+          <Calendar size={11} className="text-slate-400 shrink-0" />
+          <span className="font-medium text-slate-600 dark:text-gray-300">{tarea.agenda_titulo}</span>
+          {tarea.agenda_fecha && <span>· {formatearSesion(tarea.agenda_fecha)}</span>}
+        </span>
+      )}
+      {tarea.punto_titulo && (
+        <span className="flex items-start gap-1.5 text-slate-500 dark:text-gray-400 pl-1">
+          <FileText size={11} className="text-slate-400 shrink-0 mt-0.5" />
+          <span><span className="text-slate-400">Punto:</span> {tarea.punto_titulo}</span>
+        </span>
+      )}
+    </div>
+  );
   
   let colorBarra = 'bg-slate-200 dark:bg-neutral-600';
   if (porcentaje === 100) colorBarra = 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]';
@@ -201,6 +243,10 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                     <span className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider border ${badge}`}>
                         {esVencida && <AlertCircle size={12} strokeWidth={3} />}
                         {label}
+                    </span>
+                    <span className="flex items-center gap-1 text-[10px] font-medium text-slate-500 dark:text-gray-400">
+                        <Clock size={11} className="text-slate-400 dark:text-gray-500 shrink-0" />
+                        {formatearSesion(tarea.due_date)}
                     </span>
                 </div>
                 <h3 className="font-bold text-base text-slate-800 dark:text-gray-100 leading-snug break-words">
@@ -231,23 +277,19 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
 
         {!isExpanded && (
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 dark:text-gray-400 font-medium w-full border-t pt-3 sm:border-t-0 sm:pt-0 border-slate-100 dark:border-neutral-800 sm:mt-2">
-                <span className="flex items-center gap-1.5 shrink-0 text-slate-600 dark:text-gray-300">
-                    <Clock size={13} className="text-slate-400 dark:text-gray-500"/> {formatearHora(tarea.due_date)}
-                </span>
                 {total > 0 && (
-                    <>
-                        <span className="text-slate-300 dark:text-gray-600 hidden sm:inline">•</span>
-                        <div className="flex items-center gap-2 mr-2 sm:mr-0">
-                            <span className={`text-xs font-bold shrink-0 ${porcentaje === 100 ? 'text-green-600 dark:text-green-400' : 'text-slate-600 dark:text-gray-400'}`}>{porcentaje}%</span>
-                            <div className="w-24 sm:w-32 md:w-52 bg-slate-200 dark:bg-neutral-700 h-1.5 rounded-full overflow-hidden flex-shrink-0">
-                                <div className={`h-full rounded-full transition-all duration-500 ease-out ${colorBarra}`} style={{ width: `${porcentaje}%` }} />
-                            </div>
+                    <div className="flex items-center gap-2 mr-2 sm:mr-0">
+                        <span className={`text-xs font-bold shrink-0 ${porcentaje === 100 ? 'text-green-600 dark:text-green-400' : 'text-slate-600 dark:text-gray-400'}`}>{porcentaje}%</span>
+                        <div className="w-24 sm:w-32 md:w-52 bg-slate-200 dark:bg-neutral-700 h-1.5 rounded-full overflow-hidden flex-shrink-0">
+                            <div className={`h-full rounded-full transition-all duration-500 ease-out ${colorBarra}`} style={{ width: `${porcentaje}%` }} />
                         </div>
-                    </>
+                    </div>
                 )}
-                <span className="text-slate-300 dark:text-gray-600 hidden sm:inline">•</span>
+                {total > 0 && <span className="text-slate-300 dark:text-gray-600 hidden sm:inline">•</span>}
                 <div className="w-full mt-2 pt-2 border-t border-dashed border-slate-200 dark:border-neutral-700 sm:w-auto sm:mt-0 sm:pt-0 sm:border-t-0 sm:border-none sm:flex-1">
-                    {esAutoAsignado ? (
+                    {tarea.es_concejo ? (
+                        textoAsignacionConcejo
+                    ) : esAutoAsignado ? (
                         <div className="flex items-center gap-1.5 text-xs">
                              <div className="bg-slate-100 dark:bg-neutral-800 p-1 rounded-full"><User size={10} className={esAsignadoAMi ? 'text-blue-500' : 'text-slate-400'}/></div>
                              <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Creado y asignado por:</span>
@@ -365,7 +407,34 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                           )}
                         </div>
                       </div>
-                      {esAutoAsignado ? (
+                      {tarea.es_concejo ? (
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 flex items-center justify-center text-[10px] font-bold border border-blue-200 dark:border-blue-800">
+                              C
+                            </div>
+                            <span className="text-slate-600 dark:text-gray-400">
+                              Actividad asignada por el{' '}
+                              <span className="font-bold text-blue-600 dark:text-blue-400">Concejo Municipal</span>
+                            </span>
+                          </div>
+                          {tarea.agenda_titulo && (
+                            <div className="flex items-center gap-2 pl-1 text-slate-600 dark:text-gray-400">
+                              <Calendar size={13} className="text-slate-400 shrink-0" />
+                              <span>
+                                <span className="font-semibold text-slate-700 dark:text-gray-300">{tarea.agenda_titulo}</span>
+                                {tarea.agenda_fecha && <span className="text-slate-400"> · {formatearSesion(tarea.agenda_fecha)}</span>}
+                              </span>
+                            </div>
+                          )}
+                          {tarea.punto_titulo && (
+                            <div className="flex items-start gap-2 pl-1 text-slate-600 dark:text-gray-400">
+                              <FileText size={13} className="text-slate-400 shrink-0 mt-0.5" />
+                              <span><span className="text-slate-400">Punto:</span> {tarea.punto_titulo}</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : esAutoAsignado ? (
                         <div className="flex items-center gap-2.5">
                             <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 flex items-center justify-center text-[10px] font-bold border border-blue-200 dark:border-blue-800">
                                 {nombreCreador.charAt(0)}

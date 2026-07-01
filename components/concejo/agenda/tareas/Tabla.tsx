@@ -7,7 +7,7 @@ import {
   flexRender,
   ColumnDef,
 } from '@tanstack/react-table';
-import { ChevronDown, ChevronUp, Edit, FileText, Activity, Paperclip } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit, FileText, ClipboardList, Paperclip, User } from 'lucide-react';
 import { Tarea } from '../lib/esquemas';
 import { Button } from '@/components/ui/button';
 
@@ -54,12 +54,12 @@ interface TablaProps {
   tareas: Tarea[];
   handleOpenEditModal: (tarea: Tarea) => void;
   handleOpenNotasModal: (tarea: Tarea) => void;
-  handleOpenSeguimientoModal: (tarea: Tarea) => void;
+  handleOpenActividadesModal: (tarea: Tarea) => void;
   handleOpenDocumentosModal: (tarea: Tarea) => void;
   estadoAgenda: string;
 }
 
-export default function Tabla({ rol, tareas, handleOpenEditModal, handleOpenNotasModal, handleOpenSeguimientoModal, handleOpenDocumentosModal, estadoAgenda }: TablaProps) {
+export default function Tabla({ rol, tareas, handleOpenEditModal, handleOpenNotasModal, handleOpenActividadesModal, handleOpenDocumentosModal, estadoAgenda }: TablaProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const puedeEditar = ['SUPER', 'SECRETARIO', 'SEC-TECNICO'].includes(rol);
@@ -152,19 +152,30 @@ export default function Tabla({ rol, tareas, handleOpenEditModal, handleOpenNota
           ),
         },
         {
-          accessorKey: 'seguimiento',
-          header: 'Seguimiento',
+          accessorKey: 'actividades',
+          header: 'Actividades asignadas',
           size: 350,
-          cell: info => (
-            <div className="flex flex-col gap-2 w-full justify-start items-start max-h-32 overflow-y-auto custom-scrollbar">
-              {(info.getValue() as string[] | null)?.map((seg, index, array) => (
-                <div key={index} className="w-full">
-                  {array.length > 1 && index > 0 && <div className="h-px bg-gray-200 dark:bg-neutral-800 my-1 w-full"></div>}
-                  <p className="text-xs text-gray-600 dark:text-gray-400">{seg}</p>
-                </div>
-              )) || <span className="text-gray-400 dark:text-gray-600 text-xs italic"></span>}
-            </div>
-          ),
+          cell: info => {
+            const actividades = info.row.original.actividades || [];
+            if (actividades.length === 0) {
+              return <span className="text-gray-400 dark:text-gray-600 text-xs italic">Sin actividades</span>;
+            }
+            return (
+              <ol className="flex flex-col gap-1.5 w-full justify-start items-start max-h-32 overflow-y-auto custom-scrollbar">
+                {actividades.map((actividad, index) => (
+                  <li key={actividad.id} className="w-full flex items-start gap-1.5">
+                    <span className="text-xs font-bold text-gray-400 dark:text-gray-500 shrink-0">{index + 1}.</span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300 leading-snug">{actividad.title}</p>
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                        <User size={10} /> {actividad.assignee_nombre}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            );
+          },
         },
       );
     }
@@ -241,8 +252,8 @@ export default function Tabla({ rol, tareas, handleOpenEditModal, handleOpenNota
 
                       if (cell.column.id === 'notas') {
                         handleOpenNotasModal(row.original);
-                      } else if (cell.column.id === 'seguimiento') {
-                        handleOpenSeguimientoModal(row.original);
+                      } else if (cell.column.id === 'actividades') {
+                        handleOpenActividadesModal(row.original);
                       } else {
                         handleOpenEditModal(row.original);
                       }
@@ -262,10 +273,11 @@ export default function Tabla({ rol, tareas, handleOpenEditModal, handleOpenNota
           const isExpanded = expandedId === tarea.id;
           const estadoClass = getStatusClasses(tarea.estado);
           const tieneNotas = tarea.notas && tarea.notas.length > 0;
-          const tieneSeguimiento = tarea.seguimiento && tarea.seguimiento.length > 0;
+          const actividades = tarea.actividades || [];
+          const tieneActividades = actividades.length > 0;
 
           const mostrarNotas = tieneNotas || puedeEditar;
-          const mostrarSeguimiento = tieneSeguimiento || puedeEditar;
+          const mostrarActividades = tieneActividades || puedeEditar;
           
           return (
             <div 
@@ -340,17 +352,25 @@ export default function Tabla({ rol, tareas, handleOpenEditModal, handleOpenNota
                             </div>
                         )}
 
-                        {mostrarSeguimiento && (
+                        {mostrarActividades && (
                             <div className="bg-white dark:bg-neutral-900 p-3 rounded border border-gray-200 dark:border-neutral-800">
                                 <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
-                                    <Activity size={12} /> Seguimiento
+                                    <ClipboardList size={12} /> Actividades asignadas
                                 </p>
-                                {tieneSeguimiento ? (
-                                    <ul className="list-disc list-inside text-xs text-gray-600 dark:text-gray-300 space-y-1">
-                                        {tarea.seguimiento!.map((s, i) => <li key={i}>{s}</li>)}
-                                    </ul>
+                                {tieneActividades ? (
+                                    <ol className="text-xs text-gray-600 dark:text-gray-300 space-y-1.5">
+                                        {actividades.map((actividad, i) => (
+                                            <li key={actividad.id} className="flex items-start gap-1.5">
+                                                <span className="font-bold text-gray-400 dark:text-gray-500">{i + 1}.</span>
+                                                <span className="min-w-0">
+                                                    {actividad.title}
+                                                    <span className="block text-[10px] text-gray-400 dark:text-gray-500">{actividad.assignee_nombre}</span>
+                                                </span>
+                                            </li>
+                                        ))}
+                                    </ol>
                                 ) : (
-                                    <p className="text-xs text-gray-400 dark:text-gray-600 italic">Sin seguimiento</p>
+                                    <p className="text-xs text-gray-400 dark:text-gray-600 italic">Sin actividades</p>
                                 )}
                             </div>
                         )}
@@ -379,12 +399,12 @@ export default function Tabla({ rol, tareas, handleOpenEditModal, handleOpenNota
                                     <FileText size={14} className="mr-1.5" /> + Notas
                                 </Button>
                                 <Button 
-                                    onClick={() => handleOpenSeguimientoModal(tarea)} 
+                                    onClick={() => handleOpenActividadesModal(tarea)} 
                                     variant="outline" 
                                     size="sm"
                                     className="flex-1 bg-white hover:bg-blue-50 dark:bg-neutral-800 dark:hover:bg-blue-900/20 dark:text-gray-300 dark:border-neutral-700 text-xs h-8"
                                 >
-                                    <Activity size={14} className="mr-1.5" /> + Seg.
+                                    <ClipboardList size={14} className="mr-1.5" /> Actividades
                                 </Button>
                             </>
                         )}
