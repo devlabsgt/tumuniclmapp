@@ -166,7 +166,7 @@ export default function InventarioItem({ item, onTrasladar, onBaja, onClick }: I
         {/* Totales (Cant y Precio) */}
         <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0 bg-slate-50 dark:bg-neutral-900/50 sm:bg-transparent px-3 py-2 sm:p-0 rounded-lg sm:rounded-none mt-1 sm:mt-0 w-full sm:w-auto">
           <div className="text-[13px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            Cant: <span className="font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 px-1.5 py-0.5 rounded shadow-sm">{item.ctd}</span>
+            Cant: <span className="font-semibold text-slate-700 dark:text-slate-300 ml-1">{item.ctd}</span>
           </div>
           <div className="text-sm sm:text-[17px] font-black text-slate-800 dark:text-white tracking-tight">
             {formatearQ(item.valor)}

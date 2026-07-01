@@ -70,6 +70,10 @@ export interface ItemInventario {
   info_usuario?: UsuarioBasico | null;
   dependencias?: DependenciaBasica | null;
   dependencia_real?: DependenciaBasica | null;
+  __groupName?: string;
+  __groupLevel?: number;
+  __groupPrefix?: string;
+  __groupNombre?: string;
 }
 
 export interface FilaReporteInventario {

@@ -5,7 +5,7 @@ export const FOLIO_INICIO = 2;
 export const FOLIO_FIN = 7100;
 
 /** Límite superior por defecto en el modal de folios faltantes. */
-export const FOLIO_FIN_PRESET_MODAL = 7200;
+export const FOLIO_FIN_PRESET_MODAL = 7205;
 
 /** Meta total de sacos a entregar (suele coincidir con FOLIO_FIN). */
 export const TOTAL_META_SACOS = FOLIO_FIN;

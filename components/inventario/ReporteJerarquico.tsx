@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import TrasladoModal from './modals/TrasladoModal';
 import BajaModal from './modals/BajaModal';
 import EstadisticasInventarioModal from './modals/EstadisticasInventarioModal';
+import { Skeleton } from './Skeleton';
 
 const GRID_TABLA = 'grid grid-cols-[5rem_1fr_6rem_8.5rem] items-stretch';
 const BORDE_TABLA = 'border-slate-300 dark:border-neutral-500';
@@ -193,7 +194,36 @@ export default function ReporteJerarquico({ onClickItem, estadoFiltro = 'Activo'
   }, []);
 
   if (loading) {
-     return <div className="p-4">Cargando reporte jerárquico...</div>;
+    return (
+      <div className="flex flex-col h-full bg-white dark:bg-neutral-950 p-0 sm:p-4 rounded-none sm:rounded-xl shadow-none sm:shadow-sm border-0 sm:border border-slate-200 dark:border-neutral-800 space-y-4">
+        {/* Search bar skeleton */}
+        <Skeleton className="h-10 w-full md:w-1/3 rounded-md" />
+        
+        <div className="flex-1 border border-slate-300 dark:border-neutral-600 rounded-xl overflow-hidden flex flex-col">
+          {/* Header toolbar skeleton */}
+          <div className="bg-slate-50/80 dark:bg-neutral-800/40 border-b border-slate-300 dark:border-neutral-500 px-4 py-3 flex justify-between items-center">
+            <Skeleton className="h-4 w-40" />
+            <div className="flex gap-2">
+              <Skeleton className="h-8 w-28 rounded-lg" />
+              <Skeleton className="h-8 w-28 rounded-lg" />
+            </div>
+          </div>
+          
+          {/* Table skeleton */}
+          <div className="flex-1 bg-white dark:bg-[#0a0a0a] p-4 flex flex-col gap-3">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex gap-4 items-center">
+                <Skeleton className={`h-6 w-6 rounded-md ml-${Math.min(i * 4, 12)}`} />
+                <Skeleton className="h-6 w-1/3 rounded-md" />
+                <div className="flex-1"></div>
+                <Skeleton className="h-6 w-16 rounded-md" />
+                <Skeleton className="h-6 w-24 rounded-md" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
