@@ -186,10 +186,6 @@ export default function CrearSolicitud({ isOpen, onClose, onSuccess, editData }:
       toast.warning('Debe ingresar el nombre del solicitante.');
       return;
     }
-    if (!formData.telefono_contacto.trim()) {
-      toast.warning('Debe ingresar un teléfono.');
-      return;
-    }
     if (!formData.ubicacion.trim()) {
       toast.warning('Debe ingresar la ubicación.');
       return;
@@ -283,7 +279,7 @@ export default function CrearSolicitud({ isOpen, onClose, onSuccess, editData }:
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                     <label className="block text-xs font-bold text-gray-500 dark:text-neutral-400 uppercase tracking-widest ml-1">
-                        Teléfono <span className="text-red-500">*</span>
+                        Teléfono
                     </label>
                     <input
                         type="tel"

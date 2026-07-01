@@ -157,6 +157,12 @@ export default function ModulesView({
     "RECEPCION_DOCS",
   ]);
 
+  const RECEPCION_MODULE_ORDER: Record<string, number> = {
+    SOLICITUDES_LAMARAS: 0,
+    SOLICITUDES_MOBILIARIO: 1,
+    SOLICITUDES_JEFE: 2,
+  };
+
   const getNavigationDelay = (modulo: (typeof TODOS_LOS_MODULOS)[number]) =>
     MODULOS_CON_DELAY.has(modulo.id) || modulo.subgrupo === "Recepción"
       ? MODULOS_NAVEGACION_DELAY_MS
@@ -266,6 +272,11 @@ export default function ModulesView({
               >
                 {modulosGestion
                   .filter((m) => m.subgrupo === "Recepción" || m.id === "SOLICITUDES_JEFE")
+                  .sort(
+                    (a, b) =>
+                      (RECEPCION_MODULE_ORDER[a.id] ?? 99) -
+                      (RECEPCION_MODULE_ORDER[b.id] ?? 99),
+                  )
                   .map(renderModuleCard)}
               </ModuleAccordion>
             )}
