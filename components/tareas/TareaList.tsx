@@ -73,6 +73,7 @@ interface TareaCardProps {
   onToggle: () => void;
   isJefe: boolean;
   usuarioActual: string;
+  nombreUsuarioActual: string;
   usuarios: Usuario[];
 }
 
@@ -693,6 +694,7 @@ export default function TareaList({ initialData, tipoVista }: Props) {
                      onToggle={() => toggleAccordion(t.id)}
                      isJefe={perfilUsuario.esJefe}
                      usuarioActual={perfilUsuario.id}
+                     nombreUsuarioActual={perfilUsuario.nombre}
                      usuarios={usuarios}
                    />
                ))}
@@ -718,13 +720,12 @@ export default function TareaList({ initialData, tipoVista }: Props) {
                            )}
                            <div className="grid grid-cols-1 gap-3">
                                {grupo.tareas.map((t: Tarea) => (
-                                   <TareaCard key={t.id} tarea={t} isExpanded={false} onToggle={() => toggleAccordion(t.id)} isJefe={perfilUsuario.esJefe} usuarioActual={perfilUsuario.id} usuarios={usuarios} />
+                                   <TareaCard key={t.id} tarea={t} isExpanded={false} onToggle={() => toggleAccordion(t.id)} isJefe={perfilUsuario.esJefe} usuarioActual={perfilUsuario.id} nombreUsuarioActual={perfilUsuario.nombre} usuarios={usuarios} />
                                ))}
                            </div>
                        </div>
                    );
-               } 
-               else {
+               } else {
                    const estaAbierta = oficinasAbiertas[grupo.key] || false;
                    const tieneSubgrupos = grupo.subgrupos && grupo.subgrupos.length > 0;
                    return (
@@ -756,7 +757,7 @@ export default function TareaList({ initialData, tipoVista }: Props) {
                                                </div>
                                                <div className="grid grid-cols-1 gap-2 py-2">
                                                  {persona.tareas.map((t: Tarea) => (
-                                                   <TareaCard key={t.id} tarea={t} isExpanded={false} onToggle={() => toggleAccordion(t.id)} isJefe={perfilUsuario.esJefe} usuarioActual={perfilUsuario.id} usuarios={usuarios} />
+                                                   <TareaCard key={t.id} tarea={t} isExpanded={false} onToggle={() => toggleAccordion(t.id)} isJefe={perfilUsuario.esJefe} usuarioActual={perfilUsuario.id} nombreUsuarioActual={perfilUsuario.nombre} usuarios={usuarios} />
                                                  ))}
                                                </div>
                                              </div>
@@ -765,7 +766,7 @@ export default function TareaList({ initialData, tipoVista }: Props) {
                                        ) : (
                                          <div className="grid grid-cols-1 gap-2 py-2">
                                            {grupo.tareas.map((t: Tarea) => (
-                                             <TareaCard key={t.id} tarea={t} isExpanded={false} onToggle={() => toggleAccordion(t.id)} isJefe={perfilUsuario.esJefe} usuarioActual={perfilUsuario.id} usuarios={usuarios} />
+                                             <TareaCard key={t.id} tarea={t} isExpanded={false} onToggle={() => toggleAccordion(t.id)} isJefe={perfilUsuario.esJefe} usuarioActual={perfilUsuario.id} nombreUsuarioActual={perfilUsuario.nombre} usuarios={usuarios} />
                                            ))}
                                          </div>
                                        )}

@@ -2,16 +2,17 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Tarea, ChecklistItem, Usuario } from './types';
+import { Tarea, ChecklistItem, Usuario, ActMiembro } from './types';
 import EditarTarea from './modals/EditarTarea';
 import DuplicateTarea from './modals/DuplicateTarea'; 
 import TareaChecklist from './TareaChecklist'; 
+import MiembroChecklist from './MiembroChecklist';
 import GestorArchivos from './GestorArchivos';
 import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
 import { 
   Edit2, Trash2, ChevronDown, MoreVertical, MoreHorizontal, Calendar, 
-  User, Clock, AlertCircle, Copy, ArrowRight, FileText
+  User, Clock, AlertCircle, Copy, ArrowRight, FileText, Users
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -27,6 +28,7 @@ interface Props {
   onToggle?: () => void;
   isJefe: boolean;
   usuarioActual: string;
+  nombreUsuarioActual: string;
   usuarios: Usuario[]; 
 }
 
@@ -52,32 +54,18 @@ const getNombreCorto = (nombreCompleto: string | undefined | null) => {
   return `${primerNombre} ${partesApellido.join(' ')}`;
 };
 
-export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe, usuarioActual, usuarios }: Props) { 
+export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe, usuarioActual, nombreUsuarioActual, usuarios }: Props) { 
   const { cambiarStatus, eliminar } = useTareaMutations(); 
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false); 
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  // Tab activo en la vista grupal del encargado: 'encargado' o el id del miembro
+  const [tabActivo, setTabActivo] = useState<string>('encargado');
 
+  // ── Helpers de formato ────────────────────────────────────────────────────
   const formatearFecha = (fechaISO: string) => {
     if (!fechaISO) return '';
     return new Date(fechaISO).toLocaleDateString('es-ES', { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' });
-  };
-
-  const formatearHora = (fechaISO: string) => {
-    if (!fechaISO) return '';
-    return new Date(fechaISO).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
-  };
-
-  const formatearFechaHora = (fechaISO: string) => {
-    if (!fechaISO) return '';
-    return new Date(fechaISO).toLocaleString('es-ES', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    });
   };
 
   const formatearConfirmadoAt = (fechaISO: string) => {
@@ -109,79 +97,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
     });
   };
 
-  const esAutoAsignado = tarea.created_by === tarea.assigned_to;
-  const esAsignadoAMi = tarea.assigned_to === usuarioActual;
-  const esCreadoPorMi = tarea.created_by === usuarioActual;
-  const nombreCreador = getNombreCorto(tarea.creator?.nombre || 'Desconocido');
-  const nombreAsignado = getNombreCorto(tarea.assignee?.nombre || 'Sin asignar');
-  const checklist = (tarea.checklist as unknown as ChecklistItem[]) || [];
-  const completados = checklist.filter(c => c.is_completed).length;
-  const total = checklist.length;
-  const porcentaje = total === 0 ? 0 : Math.round((completados / total) * 100);
-  const fechaLimite = new Date(tarea.due_date);
-  const esVencida = new Date() > fechaLimite && tarea.status !== 'Completado';
-  const isReadOnly = esVencida || tarea.status === 'Completado';
-  const puedeEditar = isJefe || (!isReadOnly && (esAsignadoAMi || esCreadoPorMi));
-
-  const esSinConfirmar = tarea.status !== 'Completado' && !tarea.confirmed_at;
-
-  const handleTerminar = async () => {
-    if (checklist.some(i => !i.is_completed)) {
-        Swal.fire({ icon: 'warning', title: 'Falta poco...', text: 'Completa el checklist primero.', confirmButtonColor: '#4f46e5' });
-        return;
-    }
-    try {
-      await cambiarStatus.mutateAsync({ id: tarea.id, estado: 'Completado' });
-      Swal.fire({ icon: 'success', title: '¡Completada!', timer: 1500, showConfirmButton: false });
-      if (isExpanded && onToggle) { onToggle(); }
-    } catch (error: any) { toast.error(error.message); }
-  };
-
-  const handleEliminar = async (e?: React.MouseEvent) => {
-    if(e) { e.preventDefault(); e.stopPropagation(); }
-    const result = await Swal.fire({ title: '¿Eliminar?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'Sí, borrar', cancelButtonText: 'Cancelar' });
-    if (result.isConfirmed) {
-        try { 
-            await eliminar.mutateAsync(tarea.id); 
-            toast.info('Tarea eliminada'); 
-        } 
-        catch { toast.error('Error al eliminar'); }
-    }
-  };
-
-  const loading = cambiarStatus.isPending || eliminar.isPending;
-
-  const getStatusStyles = () => {
-      if (tarea.status === 'Completado') {
-          return {
-              badge: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800',
-              border: 'border-l-green-500 dark:border-l-green-500', 
-              label: 'Completado'
-          };
-      }
-      if (esVencida) {
-          return {
-              badge: 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800',
-              border: 'border-l-orange-500 dark:border-l-orange-500', 
-              label: 'Vencido'
-          };
-      }
-      if (esSinConfirmar) {
-          return {
-              badge: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
-              border: 'border-l-red-500 dark:border-l-red-500',
-              label: (tarea.status === 'En Proceso' || !tarea.status) ? 'Asignado' : tarea.status
-          };
-      }
-      return {
-          badge: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
-          border: 'border-l-purple-500 dark:border-l-purple-500', 
-          label: (tarea.status === 'En Proceso' || !tarea.status) ? 'Asignado' : tarea.status
-      };
-  };
-
-  const { badge, border, label } = getStatusStyles();
-
   const formatearSesion = (fechaISO: string) => {
     if (!fechaISO) return '';
     const d = new Date(fechaISO);
@@ -201,6 +116,105 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
     return `${diaSemana} ${day}/${month}/${year} a las ${horaStr}:${minutos} ${period}`;
   };
 
+  // ── Lógica grupal ─────────────────────────────────────────────────────────
+  const miembros: ActMiembro[] = tarea.miembros || [];
+  const esGrupal = miembros.length > 0;
+  const esEncargado = tarea.assigned_to === usuarioActual;
+  const miMiembro = miembros.find(m => m.id_user === usuarioActual);
+  const soySoloMiembro = !esEncargado && !!miMiembro;
+
+  // ── Cálculo de progreso ────────────────────────────────────────────────────
+  const checklist = (tarea.checklist as unknown as ChecklistItem[]) || [];
+  const completadosEncargado = checklist.filter(c => c.is_completed).length;
+  const totalEncargado = checklist.length;
+
+  let porcentaje: number;
+  if (esGrupal) {
+    const totalMiembros = miembros.reduce((s, m) => s + (m.asignaciones?.length || 0), 0);
+    const completadosMiembros = miembros.reduce((s, m) => s + (m.asignaciones?.filter(a => a.is_complete).length || 0), 0);
+    const totalGlobal = totalEncargado + totalMiembros;
+    const completosGlobal = completadosEncargado + completadosMiembros;
+    porcentaje = totalGlobal === 0 ? 0 : Math.round((completosGlobal / totalGlobal) * 100);
+  } else {
+    porcentaje = totalEncargado === 0 ? 0 : Math.round((completadosEncargado / totalEncargado) * 100);
+  }
+
+  const fechaLimite = new Date(tarea.due_date);
+  const esVencida = new Date() > fechaLimite && tarea.status !== 'Completado';
+  const isReadOnly = esVencida || tarea.status === 'Completado';
+  const esAutoAsignado = tarea.created_by === tarea.assigned_to;
+  const esAsignadoAMi = tarea.assigned_to === usuarioActual;
+  const esCreadoPorMi = tarea.created_by === usuarioActual;
+  const nombreCreador = getNombreCorto(tarea.creator?.nombre || 'Desconocido');
+  const nombreAsignado = getNombreCorto(tarea.assignee?.nombre || 'Sin asignar');
+  const puedeEditar = isJefe || (!isReadOnly && (esAsignadoAMi || esCreadoPorMi));
+  const esSinConfirmar = tarea.status !== 'Completado' && !tarea.confirmed_at;
+
+  // Color de la barra de progreso
+  const getColorBarra = (pct: number) => {
+    if (pct === 100) return 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]';
+    if (pct > 75) return 'bg-yellow-300';
+    if (pct > 50) return 'bg-yellow-500';
+    if (pct > 25) return 'bg-orange-500';
+    if (pct > 0) return 'bg-red-600';
+    return 'bg-slate-200 dark:bg-neutral-600';
+  };
+  const colorBarra = getColorBarra(porcentaje);
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
+  const handleTerminar = async () => {
+    // Verificación en cliente (la real es en el SA)
+    if (!esGrupal && checklist.some(i => !i.is_completed)) {
+      Swal.fire({ icon: 'warning', title: 'Falta poco...', text: 'Completa el checklist primero.', confirmButtonColor: '#4f46e5' });
+      return;
+    }
+    try {
+      await cambiarStatus.mutateAsync({ id: tarea.id, estado: 'Completado' });
+      Swal.fire({ icon: 'success', title: '¡Completada!', timer: 1500, showConfirmButton: false });
+      if (isExpanded && onToggle) { onToggle(); }
+    } catch (error: any) { 
+      Swal.fire({ 
+        icon: 'warning', 
+        title: 'Acción no permitida', 
+        text: error.message || 'No se puede completar la actividad.', 
+        confirmButtonColor: '#4f46e5' 
+      });
+    }
+  };
+
+  const handleEliminar = async (e?: React.MouseEvent) => {
+    if(e) { e.preventDefault(); e.stopPropagation(); }
+    const result = await Swal.fire({ title: '¿Eliminar?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'Sí, borrar', cancelButtonText: 'Cancelar' });
+    if (result.isConfirmed) {
+        try { 
+            await eliminar.mutateAsync(tarea.id); 
+            toast.info('Actividad eliminada'); 
+        } 
+        catch { toast.error('Error al eliminar'); }
+    }
+  };
+
+  const loading = cambiarStatus.isPending || eliminar.isPending;
+
+  // ── Estilos de estado ──────────────────────────────────────────────────────
+  const getStatusStyles = () => {
+      if (tarea.status === 'Completado') {
+          return { badge: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800', border: 'border-l-green-500 dark:border-l-green-500', label: 'Completado' };
+      }
+      if (esVencida) {
+          return { badge: 'bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800', border: 'border-l-orange-500 dark:border-l-orange-500', label: 'Vencido' };
+      }
+      if (esSinConfirmar) {
+          return { badge: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800', border: 'border-l-red-500 dark:border-l-red-500', label: (tarea.status === 'En Proceso' || !tarea.status) ? 'Asignado' : tarea.status };
+      }
+      if (esGrupal) {
+          return { badge: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800', border: 'border-l-purple-500 dark:border-l-purple-500', label: (tarea.status === 'En Proceso' || !tarea.status) ? 'Grupal' : tarea.status };
+      }
+      return { badge: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800', border: 'border-l-purple-500 dark:border-l-purple-500', label: (tarea.status === 'En Proceso' || !tarea.status) ? 'Asignado' : tarea.status };
+  };
+  const { badge, border, label } = getStatusStyles();
+
+  // ── Texto de concejo ───────────────────────────────────────────────────────
   const textoAsignacionConcejo = (
     <div className="flex flex-col gap-1 text-xs">
       <div className="flex items-center gap-1.5">
@@ -227,13 +241,6 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
       )}
     </div>
   );
-  
-  let colorBarra = 'bg-slate-200 dark:bg-neutral-600';
-  if (porcentaje === 100) colorBarra = 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]';
-  else if (porcentaje > 75) colorBarra = 'bg-yellow-300';
-  else if (porcentaje > 50) colorBarra = 'bg-yellow-500';
-  else if (porcentaje > 25) colorBarra = 'bg-orange-500';
-  else if (porcentaje > 0) colorBarra = 'bg-red-600';
 
   return (
     <>
@@ -247,12 +254,14 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
         overflow-hidden 
         ${isExpanded ? 'ring-2 ring-blue-400/50 dark:ring-blue-900/40 shadow-xl z-10' : 'hover:-translate-y-0.5'}
     `}>
+      {/* ── Cabecera (click para expandir) ─────────────────────────────── */}
       <div onClick={onToggle} className="p-4 sm:p-5 cursor-pointer flex flex-col gap-2.5 sm:gap-3">
         <div className="flex justify-between items-start gap-3 sm:gap-4 w-full">
             <div className="flex-1 min-w-0 flex flex-col gap-2.5 sm:gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                     <span className={`flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-md uppercase tracking-wider border ${badge}`}>
                         {esVencida && <AlertCircle size={12} strokeWidth={3} />}
+                        {esGrupal && !esVencida && tarea.status !== 'Completado' && <Users size={10} strokeWidth={3} />}
                         {label}
                     </span>
                 </div>
@@ -283,10 +292,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                         >
                             {isJefe && (
                                 <DropdownMenuItem
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setIsDuplicateModalOpen(true);
-                                    }}
+                                    onClick={(e) => { e.stopPropagation(); setIsDuplicateModalOpen(true); }}
                                     className="cursor-pointer font-medium"
                                 >
                                     <Copy className="mr-2 h-4 w-4" />
@@ -295,10 +301,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                             )}
                             {puedeEditar && (
                                 <DropdownMenuItem
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setIsEditModalOpen(true);
-                                    }}
+                                    onClick={(e) => { e.stopPropagation(); setIsEditModalOpen(true); }}
                                     className="cursor-pointer font-medium"
                                 >
                                     <Edit2 className="mr-2 h-4 w-4" />
@@ -307,10 +310,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                             )}
                             {isJefe && (
                                 <DropdownMenuItem
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        void handleEliminar();
-                                    }}
+                                    onClick={(e) => { e.stopPropagation(); void handleEliminar(); }}
                                     className="cursor-pointer font-medium text-red-600 dark:text-red-400"
                                 >
                                     <Trash2 className="mr-2 h-4 w-4" />
@@ -326,20 +326,20 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
             </div>
         </div>
 
+        {/* Mini-preview colapsado */}
         {!isExpanded && (
             <div className="flex flex-col gap-2.5 text-xs text-slate-500 dark:text-gray-400 font-medium w-full border-t pt-3 border-slate-100 dark:border-neutral-800">
-                {total > 0 && (
+                {porcentaje > 0 && (
                     <div className="flex items-center gap-2">
                         <span className={`text-xs font-bold shrink-0 ${porcentaje === 100 ? 'text-green-600 dark:text-green-400' : 'text-slate-600 dark:text-gray-400'}`}>{porcentaje}%</span>
                         <div className="w-24 sm:w-32 md:w-52 bg-slate-200 dark:bg-neutral-700 h-1.5 rounded-full overflow-hidden flex-shrink-0">
                             <div className={`h-full rounded-full transition-all duration-500 ease-out ${colorBarra}`} style={{ width: `${porcentaje}%` }} />
                         </div>
+                        {esGrupal && <span className="text-[9px] font-bold text-purple-500 dark:text-purple-400 uppercase tracking-wider">Grupal</span>}
                     </div>
                 )}
                 <div className="w-full">
-                    {tarea.es_concejo ? (
-                        textoAsignacionConcejo
-                    ) : esAutoAsignado ? (
+                    {tarea.es_concejo ? textoAsignacionConcejo : esAutoAsignado ? (
                         <div className="flex items-center gap-1.5 text-xs flex-wrap">
                              <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Creado y asignado por:</span>
                              <span className={`truncate max-w-[200px] ${esAsignadoAMi ? 'text-blue-600 font-bold' : 'font-bold text-slate-800 dark:text-slate-200'}`}>
@@ -354,7 +354,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                             </div>
                             <ArrowRight size={12} className="hidden sm:block text-slate-300 dark:text-gray-600 shrink-0" />
                             <div className="flex items-center gap-1.5 text-slate-700 dark:text-gray-300 w-full sm:w-auto">
-                                <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider shrink-0">Asignado a: </span>
+                                <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider shrink-0">Encargado: </span>
                                 <span className={`font-bold truncate block w-full sm:w-auto ${esAsignadoAMi ? 'text-blue-600' : 'text-slate-800 dark:text-slate-200'}`}>
                                     {esAsignadoAMi ? `${nombreAsignado} (Yo)` : nombreAsignado}
                                 </span>
@@ -377,6 +377,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
         )}
       </div>
 
+      {/* ── Contenido expandido ─────────────────────────────────────────── */}
       <AnimatePresence initial={false}>
         {isExpanded && (
           <motion.div
@@ -389,32 +390,131 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
           >
         <div className="px-4 sm:px-5 pb-5 pt-0 border-t border-slate-100 dark:border-neutral-800 mt-1">
             <div className="grid grid-cols-1 lg:grid-cols-5 lg:gap-8 gap-6 mt-5">
+                
+                {/* ── Columna izquierda ─────────────────────────────────── */}
                 <div className="flex flex-col gap-5 lg:col-span-2">
+                    {/* Descripción */}
                     <div className="bg-slate-50 dark:bg-neutral-800 p-4 rounded-xl border border-slate-100 dark:border-neutral-700 h-fit">
                         <label className="text-[10px] uppercase font-bold text-slate-400 dark:text-gray-500 mb-2 block">Descripción</label>
                         <div className="text-sm text-slate-700 dark:text-gray-300 whitespace-pre-line leading-relaxed break-words">
                             {tarea.description ? renderDescripcionConLinks(tarea.description) : <span className="italic text-slate-400 dark:text-gray-500 flex items-center gap-2"><MoreHorizontal size={16}/> Sin descripción...</span>}
                         </div>
                     </div>
+
                     <div className="space-y-4">
+                        {/* Fecha */}
                         <div className={`inline-flex items-center flex-wrap gap-2 px-3 py-2 rounded-lg text-xs font-medium border w-full sm:w-auto ${esVencida ? 'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800' : 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'}`}>
                             <Calendar size={14} />
                             <span>Vence: {new Date(tarea.due_date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'long' })}</span>
                             <span className="border-l pl-2 ml-1 border-current opacity-50"><Clock size={14} className="inline mr-1"/>{new Date(tarea.due_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
-                        {checklist.length > 0 && (
+
+                        {/* Barras de progreso */}
+                        {(totalEncargado > 0 || esGrupal) && (
                             <div className="bg-slate-50 dark:bg-neutral-800/50 p-3 rounded-xl border border-slate-100 dark:border-neutral-800">
-                                <div className="flex justify-between items-end mb-1.5">
-                                    <span className="text-[10px] font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wide">Progreso Total</span>
-                                    <span className={`text-xs font-bold ${porcentaje === 100 ? 'text-green-600 dark:text-green-400' : 'text-slate-700 dark:text-gray-300'}`}>{porcentaje}%</span>
-                                </div>
-                                <div className="w-full bg-slate-200 dark:bg-neutral-700 h-2.5 rounded-full overflow-hidden">
-                                    <div className={`h-full rounded-full transition-all duration-500 ease-out ${colorBarra}`} style={{ width: `${porcentaje}%` }}></div>
-                                </div>
+                                {esGrupal && soySoloMiembro && miMiembro ? (() => {
+                                  // Vista de Miembro: Su barra es la principal, la global es secundaria
+                                  const mTotal = miMiembro.asignaciones?.length || 0;
+                                  const mComp = miMiembro.asignaciones?.filter(a => a.is_complete).length || 0;
+                                  const mPct = mTotal === 0 ? 0 : Math.round((mComp / mTotal) * 100);
+                                  const mColor = getColorBarra(mPct);
+                                  return (
+                                    <>
+                                      <div className="flex justify-between items-end mb-1.5">
+                                          <span className="text-[10px] font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wide">
+                                            Mi Progreso
+                                          </span>
+                                          <span className={`text-xs font-bold ${mPct === 100 ? 'text-green-600 dark:text-green-400' : 'text-slate-700 dark:text-gray-300'}`}>
+                                            {mPct}%
+                                          </span>
+                                      </div>
+                                      <div className="w-full bg-slate-200 dark:bg-neutral-700 h-2.5 rounded-full overflow-hidden">
+                                          <div className={`h-full rounded-full transition-all duration-500 ease-out ${mColor}`} style={{ width: `${mPct}%` }}></div>
+                                      </div>
+
+                                      <div className="mt-3 border-t border-slate-100 dark:border-neutral-700 pt-3">
+                                        <div className="flex justify-between items-center mb-0.5">
+                                          <span className="text-[10px] text-slate-500 dark:text-gray-400 font-medium truncate">
+                                            Progreso Global
+                                          </span>
+                                          <span className="text-[10px] font-bold text-slate-600 dark:text-gray-400">
+                                            {porcentaje}%
+                                          </span>
+                                        </div>
+                                        <div className="w-full bg-slate-200 dark:bg-neutral-700 h-1.5 rounded-full overflow-hidden">
+                                          <div className={`h-full rounded-full transition-all duration-500 ${colorBarra}`} style={{ width: `${porcentaje}%` }} />
+                                        </div>
+                                      </div>
+                                    </>
+                                  );
+                                })() : (
+                                  // Vista Encargado o Individual: Global es principal, las demás secundarias
+                                  <>
+                                    <div className="flex justify-between items-end mb-1.5">
+                                        <span className="text-[10px] font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wide">
+                                          {esGrupal ? 'Progreso Global' : 'Progreso Total'}
+                                        </span>
+                                        <span className={`text-xs font-bold ${porcentaje === 100 ? 'text-green-600 dark:text-green-400' : 'text-slate-700 dark:text-gray-300'}`}>{porcentaje}%</span>
+                                    </div>
+                                    <div className="w-full bg-slate-200 dark:bg-neutral-700 h-2.5 rounded-full overflow-hidden">
+                                        <div className={`h-full rounded-full transition-all duration-500 ease-out ${colorBarra}`} style={{ width: `${porcentaje}%` }}></div>
+                                    </div>
+
+                                    {/* Sub-barras individuales para actividades grupales (solo Encargado) */}
+                                    {esGrupal && esEncargado && (
+                                      <div className="mt-3 space-y-2 border-t border-slate-100 dark:border-neutral-700 pt-3">
+                                        {/* Barra del encargado */}
+                                        {totalEncargado > 0 && (
+                                          <div>
+                                            <div className="flex justify-between items-center mb-0.5">
+                                              <span className="text-[10px] text-slate-500 dark:text-gray-400 font-medium truncate max-w-[65%]">
+                                                {getNombreCorto(nombreUsuarioActual)} <span className="text-blue-500 dark:text-blue-400">(Encargado)</span>
+                                              </span>
+                                              <span className="text-[10px] font-bold text-slate-600 dark:text-gray-400">
+                                                {totalEncargado === 0 ? '—' : `${completadosEncargado}/${totalEncargado}`}
+                                              </span>
+                                            </div>
+                                            <div className="w-full bg-slate-200 dark:bg-neutral-700 h-1.5 rounded-full overflow-hidden">
+                                              <div
+                                                className={`h-full rounded-full transition-all duration-500 ${getColorBarra(totalEncargado === 0 ? 0 : Math.round((completadosEncargado / totalEncargado) * 100))}`}
+                                                style={{ width: `${totalEncargado === 0 ? 0 : Math.round((completadosEncargado / totalEncargado) * 100)}%` }}
+                                              />
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        {/* Barras de miembros */}
+                                        {miembros.map(m => {
+                                            const total = m.asignaciones?.length || 0;
+                                            const comp = m.asignaciones?.filter(a => a.is_complete).length || 0;
+                                            const pct = total === 0 ? 0 : Math.round((comp / total) * 100);
+                                            return (
+                                              <div key={m.id}>
+                                                <div className="flex justify-between items-center mb-0.5">
+                                                  <span className="text-[10px] text-slate-500 dark:text-gray-400 font-medium truncate max-w-[65%]">
+                                                    {getNombreCorto(m.nombre_usuario)}
+                                                  </span>
+                                                  <span className="text-[10px] font-bold text-slate-600 dark:text-gray-400">{comp}/{total}</span>
+                                                </div>
+                                                <div className="w-full bg-slate-200 dark:bg-neutral-700 h-1.5 rounded-full overflow-hidden">
+                                                  <div
+                                                    className={`h-full rounded-full transition-all duration-500 ${getColorBarra(pct)}`}
+                                                    style={{ width: `${pct}%` }}
+                                                  />
+                                                </div>
+                                              </div>
+                                            );
+                                        })}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
                             </div>
                         )}
                     </div>
-                    {tarea.status !== 'Completado' && (
+
+                    {/* Botón completar (solo encargado o tarea individual) */}
+                    {tarea.status !== 'Completado' && (esEncargado || !esGrupal) && (
                         <div className="mt-auto pt-2">
                             <button
                               onClick={handleTerminar}
@@ -425,26 +525,105 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                                   : 'text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md shadow-blue-500/20 dark:shadow-none'
                               }`}
                             >
-                            {loading ? <Clock size={18} className="animate-spin" /> : esVencida ? 'Tarea Vencida' : 'Completar Tarea'}
+                            {loading ? <Clock size={18} className="animate-spin" /> : esVencida ? 'Actividad Vencida' : 'Completar Actividad'}
                             </button>
                         </div>
                     )}
                 </div>
+
+                {/* ── Columna derecha: Checklist / Tabs grupales ────────── */}
                 <div className="flex flex-col h-full lg:col-span-3">
-                      <div className="bg-slate-50/50 dark:bg-neutral-800/30 rounded-xl border border-slate-100 dark:border-neutral-800 p-4 h-full min-h-[300px]">
-                        <TareaChecklist tareaId={tarea.id} checklist={checklist} isReadOnly={isReadOnly} />
+                  <div className="bg-slate-50/50 dark:bg-neutral-800/30 rounded-xl border border-slate-100 dark:border-neutral-800 p-4 h-full min-h-[300px]">
+
+                    {/* ACTIVIDAD INDIVIDUAL → TareaChecklist normal */}
+                    {!esGrupal && (
+                      <TareaChecklist tareaId={tarea.id} checklist={checklist} isReadOnly={isReadOnly} />
+                    )}
+
+                    {/* ACTIVIDAD GRUPAL → Vista del Encargado con Tabs */}
+                    {esGrupal && esEncargado && (
+                      <div className="flex flex-col h-full">
+                        {/* Tabs */}
+                        <div className="flex justify-center gap-6 mb-6 overflow-x-auto overflow-y-hidden border-b border-slate-200 dark:border-neutral-700 px-2">
+                          <button
+                            onClick={() => setTabActivo('encargado')}
+                            className={`relative pb-3 text-sm font-semibold whitespace-nowrap transition-colors ${
+                              tabActivo === 'encargado'
+                                ? 'text-blue-600 dark:text-blue-400 after:absolute after:bottom-[-1px] after:left-0 after:w-full after:h-[2px] after:bg-blue-600 dark:after:bg-blue-400'
+                                : 'text-slate-500 hover:text-slate-700 dark:text-gray-400 dark:hover:text-gray-300'
+                            }`}
+                          >
+                            Mi Parte
+                          </button>
+                          {miembros.map(m => (
+                            <button
+                              key={m.id}
+                              onClick={() => setTabActivo(m.id)}
+                              className={`relative pb-3 text-sm font-semibold whitespace-nowrap flex items-center gap-1.5 transition-colors ${
+                                tabActivo === m.id
+                                  ? 'text-purple-600 dark:text-purple-400 after:absolute after:bottom-[-1px] after:left-0 after:w-full after:h-[2px] after:bg-purple-600 dark:after:bg-purple-400'
+                                  : 'text-slate-500 hover:text-slate-700 dark:text-gray-400 dark:hover:text-gray-300'
+                              }`}
+                            >
+                              {getNombreCorto(m.nombre_usuario)}
+                              {m.completed_at && <span className="text-[10px]">✓</span>}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Contenido del tab activo */}
+                        {tabActivo === 'encargado' && (
+                          <TareaChecklist tareaId={tarea.id} checklist={checklist} isReadOnly={isReadOnly} />
+                        )}
+                        {tabActivo !== 'encargado' && (() => {
+                          const miembro = miembros.find(m => m.id === tabActivo);
+                          if (!miembro) return null;
+                          return (
+                            <MiembroChecklist
+                              miembroId={miembro.id}
+                              asignaciones={miembro.asignaciones || []}
+                              isReadOnly={isReadOnly} // Si no está completada toda la tarea o vencida, el encargado también puede editar
+                              comentario={miembro.comentario}
+                              completedAt={miembro.completed_at}
+                            />
+                          );
+                        })()}
                       </div>
+                    )}
+
+                    {/* ACTIVIDAD GRUPAL → Vista del Miembro */}
+                    {esGrupal && soySoloMiembro && miMiembro && (
+                      <MiembroChecklist
+                        miembroId={miMiembro.id}
+                        asignaciones={miMiembro.asignaciones || []}
+                        isReadOnly={isReadOnly}
+                        comentario={miMiembro.comentario}
+                        completedAt={miMiembro.completed_at}
+                      />
+                    )}
+
+                    {/* ACTIVIDAD GRUPAL → Usuario sin rol definido (solo ve descripción) */}
+                    {esGrupal && !esEncargado && !soySoloMiembro && (
+                      <div className="flex flex-col items-center justify-center h-full gap-2 text-slate-400 dark:text-gray-500 py-8">
+                        <Users size={28} strokeWidth={1.5} />
+                        <p className="text-sm text-center">Solo los participantes asignados pueden ver las sub-tareas.</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
             </div>
             
+            {/* Archivos adjuntos */}
             <div className="mt-6 pt-4 border-t border-slate-100 dark:border-neutral-800">
                 <GestorArchivos 
                     tareaId={tarea.id} 
                     archivosIniciales={tarea.archivos} 
                     esLectura={isReadOnly}
+                    nombreUsuarioActual={nombreUsuarioActual}
                 />
             </div>
 
+            {/* Detalles del registro */}
             <div className="mt-4 pt-4 border-t border-slate-100 dark:border-neutral-800">
                 <div className="bg-slate-50 dark:bg-neutral-800 rounded-xl p-3 text-xs text-slate-500 dark:text-gray-400 flex flex-col gap-2">
                       <div className="flex justify-between items-center border-b pb-2 border-slate-200 dark:border-neutral-700">
@@ -515,9 +694,19 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                                     {nombreAsignado.charAt(0)}
                                 </div>
                                 <span className="truncate" title={tarea.assignee?.nombre}>
-                                    Asignado a: <span className="font-medium text-slate-700 dark:text-gray-300">{esAsignadoAMi ? `${nombreAsignado} (Yo)` : nombreAsignado}</span>
+                                    Encargado: <span className="font-medium text-slate-700 dark:text-gray-300">{esAsignadoAMi ? `${nombreAsignado} (Yo)` : nombreAsignado}</span>
                                 </span>
                             </div>
+                            {esGrupal && (
+                              <div className="flex items-center gap-2">
+                                <div className="shrink-0 w-6 h-6 rounded-full bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400 flex items-center justify-center text-[10px] font-bold border border-purple-200 dark:border-purple-800">
+                                  <Users size={10} />
+                                </div>
+                                <span className="text-slate-600 dark:text-gray-400">
+                                  {miembros.length} participante{miembros.length !== 1 ? 's' : ''}
+                                </span>
+                              </div>
+                            )}
                         </div>
                       )}
                 </div>
@@ -527,7 +716,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
         )}
       </AnimatePresence>
     </div>
-    {isEditModalOpen && ( <EditarTarea isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); if (isExpanded && onToggle) { onToggle(); } }} tarea={tarea} esJefe={isJefe} /> )}
+    {isEditModalOpen && ( <EditarTarea isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); if (isExpanded && onToggle) { onToggle(); } }} tarea={tarea} esJefe={isJefe} usuarios={usuarios} /> )}
     {isDuplicateModalOpen && ( <DuplicateTarea isOpen={isDuplicateModalOpen} onClose={() => setIsDuplicateModalOpen(false)} tareaOriginal={tarea} usuarios={usuarios} esJefe={isJefe} /> )}
     </>
   );

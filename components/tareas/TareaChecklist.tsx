@@ -26,10 +26,7 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
   const allCompleted = checklist.length > 0 && checklist.every(item => item.is_completed);
 
   const sortedChecklist = checklist
-    .map((item, index) => ({ ...item, originalIndex: index }))
-    .sort((a, b) => {
-        return Number(a.is_completed) - Number(b.is_completed);
-    });
+    .map((item, index) => ({ ...item, originalIndex: index }));
 
   const toggleAll = async () => {
     if (isReadOnly || isTogglingAll || checklist.length === 0) return;
