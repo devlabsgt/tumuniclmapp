@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Settings, Home, Info, LayoutDashboard, MoreVertical, X, FileText } from 'lucide-react';
+import { Settings, MoreVertical, X } from 'lucide-react';
+import { FileText, Info, Globe, Monitor, Phone, Home, LayoutDashboard, Folder, Database, CreditCard } from 'lucide';
 import { AnimatePresence, motion } from 'framer-motion';
+import { MorphIcon } from 'morphicons/react';
 import { FaFacebook, FaTiktok, FaInstagram, FaYoutube } from 'react-icons/fa6';
 import { ThemeSwitcher } from '@/components/themes/theme-switcher';
 import AnimatedIcon from '@/components/ui/AnimatedIcon';
@@ -13,19 +15,40 @@ import type { ConfiguracionPortal } from '@/components/home/lib/actions';
 
 
 const NAV_LINKS = [
-  { label: 'Información Pública', href: '/informacionpublica', icon: FileText, iconBg: 'bg-[#0066cc]/10 text-[#0066cc] dark:bg-blue-900/40 dark:text-blue-400' },
-  { label: 'Albergues', href: '/albergues', icon: Info, iconBg: 'bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400' },
+  { label: 'Información Pública', href: '/informacionpublica', icon: Database, iconSequence: [Database, Folder, CreditCard], iconBg: 'bg-[#0066cc]/10 text-[#0066cc] dark:bg-blue-900/40 dark:text-blue-400' },
+  { label: 'Albergues', href: '/albergues', icon: FileText, iconSequence: [FileText, Globe, Monitor, Phone], iconBg: 'bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400' },
 ];
 
-function MenuCard({ label, href, icon: Icon, onClick, iconBg, className = '' }: any) {
+function MenuCard({ label, href, icon, hoverIcon, iconSequence, onClick, iconBg, className = '' }: any) {
+  const [isHovered, setHovered] = useState(false);
+  const [seqIndex, setSeqIndex] = useState(0);
+  
+  useEffect(() => {
+    let interval: any;
+    if (isHovered && iconSequence && iconSequence.length > 0) {
+      interval = setInterval(() => {
+        setSeqIndex(prev => (prev + 1) % iconSequence.length);
+      }, 1000); // cambia cada segundo
+    } else {
+      setSeqIndex(0);
+    }
+    return () => clearInterval(interval);
+  }, [isHovered, iconSequence]);
+
+  const CurrentIcon = iconSequence && isHovered 
+    ? iconSequence[seqIndex] 
+    : (hoverIcon && isHovered ? hoverIcon : icon);
+
   return (
     <a
       href={href}
       onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       className={`w-full flex items-center gap-4 p-3.5 rounded-2xl text-left cursor-pointer bg-neutral-50 dark:bg-neutral-900/40 border border-neutral-200/80 dark:border-neutral-700/80 hover:border-[#0066cc]/35 dark:hover:border-blue-500/35 transition-colors group ${className}`}
     >
       <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${iconBg} transition-transform group-hover:scale-105`}>
-        <Icon className="w-5 h-5" />
+        <MorphIcon icon={CurrentIcon} size={20} className="w-5 h-5" />
       </div>
       <span className="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-gray-100 flex-1">
         {label}
@@ -266,6 +289,7 @@ export function PublicHeader({ configuracion, modoAdmin = false, forceSolid = fa
                       label={link.label}
                       href={link.href}
                       icon={link.icon}
+                      iconSequence={link.iconSequence}
                       iconBg={link.iconBg}
                       onClick={() => setSheetOpen(false)}
                     />
