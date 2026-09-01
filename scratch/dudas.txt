@@ -1,2 +1,0 @@
-- Aclarar si se mantiene o elimina la "Lista de pendientes" en el formulario de creación del Concejo.
-- Confirmar si al editar (añadiendo una nueva nota a la bitácora) y escribir un `@nombre`, ese usuario se debe agregar a la actividad.

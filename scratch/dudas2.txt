@@ -1,1 +1,0 @@
-- Preguntar sobre cómo renderizar la tarea grupal dentro de `ActividadesAsignadas.tsx` (si quieren las pestañas ahí también o solo en el módulo de tareas principal).

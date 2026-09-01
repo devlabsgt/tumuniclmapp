@@ -302,7 +302,7 @@ function DetalleActividadPanel({
                         ) : (
                           <Clock size={14} className="shrink-0 text-zinc-400" />
                         )}
-                        <span className={item.is_completed ? 'text-zinc-400 line-through' : ''}>{item.title}</span>
+                        <span>{item.title}</span>
                       </li>
                     ))}
                   </ul>
@@ -332,7 +332,7 @@ function DetalleActividadPanel({
                         ) : (
                           <Clock size={14} className="shrink-0 text-zinc-400" />
                         )}
-                        <span className={asig.is_complete ? 'text-zinc-400 line-through' : ''}>{asig.title}</span>
+                        <span>{asig.title}</span>
                       </li>
                     ))}
                   </ul>
@@ -377,7 +377,7 @@ function DetalleActividadPanel({
                     ) : (
                       <Clock size={14} className="shrink-0 text-zinc-400" />
                     )}
-                    <span className={item.is_completed ? 'text-zinc-400 line-through' : ''}>{item.title}</span>
+                    <span>{item.title}</span>
                   </li>
                 ))}
               </ul>
