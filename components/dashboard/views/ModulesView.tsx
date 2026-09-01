@@ -52,6 +52,7 @@ export default function ModulesView({
           return ["SUPER", "RRHH", "SECRETARIO"].includes(rol);
         }
         if (rol === "SUPER") return true;
+        if (rol === "PRACTICANTE") return m.id === "RRHH";
         if (
           [
             "ACTIVIDADES",
@@ -167,7 +168,7 @@ export default function ModulesView({
     [rol, modulos],
   );
   const showRRHHAccordion = useMemo(
-    () => ["RRHH", "SECRETARIO"].includes(rol) || modulos.includes("RRHH"),
+    () => ["RRHH", "SECRETARIO", "PRACTICANTE"].includes(rol) || modulos.includes("RRHH"),
     [rol, modulos],
   );
   const showRecursosMunicipalesAccordion = useMemo(

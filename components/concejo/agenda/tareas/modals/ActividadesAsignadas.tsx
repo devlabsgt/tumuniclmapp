@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
+import React, { Fragment, useEffect, useMemo, useState, useRef, type ReactNode } from 'react';
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from '@headlessui/react';
 import {
   X,
@@ -14,6 +14,8 @@ import {
   ArrowLeft,
   CheckCircle2,
   Clock,
+  Crown,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'react-toastify';
@@ -90,6 +92,15 @@ const progresoChecklist = (checklist: ActividadConcejo['checklist']) => {
   return { items, total, completados, porcentaje };
 };
 
+const getColorBarra = (pct: number) => {
+  if (pct === 100) return 'bg-emerald-500';
+  if (pct > 75) return 'bg-yellow-300';
+  if (pct > 50) return 'bg-yellow-500';
+  if (pct > 25) return 'bg-orange-500';
+  if (pct > 0) return 'bg-red-600';
+  return 'bg-zinc-200 dark:bg-zinc-700';
+};
+
 function DetalleActividadPanel({
   actividad,
   indice,
@@ -101,8 +112,39 @@ function DetalleActividadPanel({
   acciones?: ReactNode;
   onVerPdf?: (archivo: ArchivoAdjunto) => void;
 }) {
-  const { items: checklist, total, completados, porcentaje } = progresoChecklist(actividad.checklist);
+  const [tabActivo, setTabActivo] = useState<string>('encargado');
+  const miembros = actividad.miembros || [];
+  const esGrupal = miembros.length > 0;
+
+  const { items: checklist, total: totalEncargado, completados: completadosEncargado, porcentaje: porcentajeEncargado } = progresoChecklist(actividad.checklist);
+
+  const totalMiembros = miembros.reduce((s, m) => s + (m.asignaciones?.length || 0) + 1, 0);
+  const completadosMiembros = miembros.reduce((s, m) => s + (m.asignaciones?.filter((a) => a.is_complete).length || 0) + (m.completed_at ? 1 : 0), 0);
+  const totalGlobal = totalEncargado + (esGrupal ? totalMiembros : 0);
+  const completosGlobal = completadosEncargado + (esGrupal ? completadosMiembros : 0);
+  const porcentajeGlobal = totalGlobal === 0 ? 0 : Math.round((completosGlobal / totalGlobal) * 100);
+
   const badge = estadoBadge(actividad);
+
+  const tabs = useMemo(() => {
+    if (!esGrupal) return [];
+    return [
+      {
+        id: 'encargado',
+        label: actividad.assignee_nombre || 'Encargado',
+        completedAt: actividad.status === 'Completado' || !!actividad.confirmed_at,
+        rol: 'Encargado',
+      },
+      ...miembros.map((m) => ({
+        id: m.id,
+        label: m.nombre_usuario || 'Miembro',
+        completedAt: !!m.completed_at,
+        rol: 'Miembro',
+      })),
+    ];
+  }, [esGrupal, actividad.assignee_nombre, actividad.status, actividad.confirmed_at, miembros]);
+
+  const activeMember = miembros.find((m) => m.id === tabActivo);
 
   return (
     <article className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
@@ -122,7 +164,7 @@ function DetalleActividadPanel({
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
             <span className="flex items-center gap-1">
-              <User size={12} /> {actividad.assignee_nombre}
+              <Crown size={13} className="text-amber-500" /> <span className="font-semibold">{actividad.assignee_nombre}</span> (Encargado)
             </span>
             <span className="flex items-center gap-1">
               <Calendar size={12} /> {formatearFechaActividad(actividad.due_date)}
@@ -140,37 +182,210 @@ function DetalleActividadPanel({
           </div>
         )}
 
-        {total > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-end justify-between gap-2">
-              <p className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                <CheckSquare size={14} /> Lista de pendientes
+        {/* Barra de progreso global / total */}
+        {(totalGlobal > 0 || esGrupal) && (
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3.5 dark:border-zinc-700 dark:bg-zinc-800/50 space-y-2.5">
+            <div className="flex justify-between items-end">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                {esGrupal ? 'Progreso Global' : 'Progreso de la actividad'}
               </p>
-              <span className={`text-xs font-bold ${porcentaje === 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-600 dark:text-zinc-300'}`}>
-                {completados}/{total} · {porcentaje}%
+              <span className={`text-xs font-bold ${porcentajeGlobal === 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-700 dark:text-zinc-300'}`}>
+                {completosGlobal}/{totalGlobal} · {porcentajeGlobal}%
               </span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
               <div
-                className={`h-full rounded-full transition-all duration-500 ${porcentaje === 100 ? 'bg-emerald-500' : 'bg-[#0066cc] dark:bg-blue-400'}`}
-                style={{ width: `${porcentaje}%` }}
+                className={`h-full rounded-full transition-all duration-500 ${getColorBarra(porcentajeGlobal)}`}
+                style={{ width: `${porcentajeGlobal}%` }}
               />
             </div>
-            <ul className="space-y-1.5">
-              {checklist.map((item, i) => (
-                <li key={i} className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                  {item.is_completed ? (
-                    <CheckCircle2 size={14} className="shrink-0 text-emerald-500" />
-                  ) : (
-                    <Clock size={14} className="shrink-0 text-zinc-400" />
-                  )}
-                  <span className={item.is_completed ? 'text-zinc-400 line-through' : ''}>{item.title}</span>
-                </li>
-              ))}
-            </ul>
+
+            {/* Sub-barras individuales para cada miembro en actividades grupales */}
+            {esGrupal && (
+              <div className="pt-2 mt-2 border-t border-zinc-200 dark:border-zinc-700 space-y-2">
+                {/* Barra Encargado */}
+                <div>
+                  <div className="flex justify-between items-center text-[11px] mb-1">
+                    <span className="flex items-center gap-1 font-medium text-zinc-700 dark:text-zinc-300">
+                      <Crown size={12} className="text-amber-500" />
+                      {actividad.assignee_nombre} <span className="text-blue-500 text-[10px]">(Encargado)</span>
+                    </span>
+                    <span className="text-[10px] font-semibold text-zinc-500">{completadosEncargado}/{totalEncargado}</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${getColorBarra(porcentajeEncargado)}`}
+                      style={{ width: `${porcentajeEncargado}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Barras de cada miembro */}
+                {miembros.map((m) => {
+                  const mTotal = (m.asignaciones?.length || 0) + 1;
+                  const mComp = (m.asignaciones?.filter((a) => a.is_complete).length || 0) + (m.completed_at ? 1 : 0);
+                  const mPct = Math.round((mComp / mTotal) * 100);
+                  return (
+                    <div key={m.id}>
+                      <div className="flex justify-between items-center text-[11px] mb-1">
+                        <span className="flex items-center gap-1 font-medium text-zinc-700 dark:text-zinc-300">
+                          <User size={12} className="text-purple-500" />
+                          {m.nombre_usuario}
+                        </span>
+                        <span className="text-[10px] font-semibold text-zinc-500">{mComp}/{mTotal}</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${getColorBarra(mPct)}`}
+                          style={{ width: `${mPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
+        {/* ACTIVIDAD GRUPAL: Tabs de Participantes y Contenido */}
+        {esGrupal ? (
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-4 dark:border-zinc-700 dark:bg-zinc-800/30">
+            {/* Tabs */}
+            <div className="flex justify-center gap-4 mb-4 overflow-x-auto border-b border-zinc-200 dark:border-zinc-700 px-2 pb-2">
+              {tabs.map((t) => {
+                const isActive = tabActivo === t.id;
+                const isEncargadoTab = t.id === 'encargado';
+                const activeColorClass = isEncargadoTab
+                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                  : 'text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400';
+
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setTabActivo(t.id)}
+                    className={`pb-2 text-xs font-semibold whitespace-nowrap flex flex-col items-center transition-colors ${
+                      isActive
+                        ? activeColorClass
+                        : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300'
+                    }`}
+                  >
+                    <span className={`text-[9px] uppercase font-bold tracking-wider mb-0.5 ${isActive ? 'opacity-90' : 'opacity-60'}`}>
+                      {t.rol}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {isEncargadoTab ? (
+                        <Crown size={14} className={isActive ? 'text-amber-500' : 'opacity-40'} />
+                      ) : (
+                        <User size={14} className={isActive ? 'text-purple-500' : 'opacity-40'} />
+                      )}
+                      <span>{t.label}</span>
+                      {t.completedAt && <CheckCircle2 size={12} className="text-emerald-500" />}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Contenido del Tab Activo */}
+            {tabActivo === 'encargado' ? (
+              <div className="space-y-3">
+                <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                  <CheckSquare size={14} /> Asignaciones del Encargado ({totalEncargado})
+                </p>
+                {checklist.length > 0 ? (
+                  <ul className="space-y-1.5">
+                    {checklist.map((item, i) => (
+                      <li key={i} className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800/70 p-2 rounded-lg border border-zinc-100 dark:border-zinc-700/50">
+                        {item.is_completed ? (
+                          <CheckCircle2 size={14} className="shrink-0 text-emerald-500" />
+                        ) : (
+                          <Clock size={14} className="shrink-0 text-zinc-400" />
+                        )}
+                        <span className={item.is_completed ? 'text-zinc-400 line-through' : ''}>{item.title}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-zinc-400 italic py-2">Sin tareas secundarias para el encargado.</p>
+                )}
+              </div>
+            ) : activeMember ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
+                    <User size={14} /> Asignaciones de {activeMember.nombre_usuario}
+                  </p>
+                  {activeMember.completed_at && (
+                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                      <CheckCircle2 size={12} /> Completado el {formatearFechaActividad(activeMember.completed_at)}
+                    </span>
+                  )}
+                </div>
+
+                {activeMember.asignaciones && activeMember.asignaciones.length > 0 ? (
+                  <ul className="space-y-1.5">
+                    {activeMember.asignaciones.map((asig, i) => (
+                      <li key={i} className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800/70 p-2 rounded-lg border border-zinc-100 dark:border-zinc-700/50">
+                        {asig.is_complete ? (
+                          <CheckCircle2 size={14} className="shrink-0 text-emerald-500" />
+                        ) : (
+                          <Clock size={14} className="shrink-0 text-zinc-400" />
+                        )}
+                        <span className={asig.is_complete ? 'text-zinc-400 line-through' : ''}>{asig.title}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-zinc-400 italic py-2">Sin tareas secundarias asignadas individualmente.</p>
+                )}
+
+                {activeMember.comentario && (
+                  <div className="mt-3 p-2.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs text-zinc-600 dark:text-zinc-300">
+                    <p className="text-[10px] font-bold uppercase text-zinc-400 mb-0.5 flex items-center gap-1">
+                      <MessageSquare size={11} /> Comentario final
+                    </p>
+                    <p className="italic">{activeMember.comentario}</p>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          /* ACTIVIDAD INDIVIDUAL: Lista de pendientes tradicional */
+          totalEncargado > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-end justify-between gap-2">
+                <p className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                  <CheckSquare size={14} /> Lista de pendientes
+                </p>
+                <span className={`text-xs font-bold ${porcentajeEncargado === 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-600 dark:text-zinc-300'}`}>
+                  {completadosEncargado}/{totalEncargado} · {porcentajeEncargado}%
+                </span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${porcentajeEncargado === 100 ? 'bg-emerald-500' : 'bg-[#0066cc] dark:bg-blue-400'}`}
+                  style={{ width: `${porcentajeEncargado}%` }}
+                />
+              </div>
+              <ul className="space-y-1.5">
+                {checklist.map((item, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+                    {item.is_completed ? (
+                      <CheckCircle2 size={14} className="shrink-0 text-emerald-500" />
+                    ) : (
+                      <Clock size={14} className="shrink-0 text-zinc-400" />
+                    )}
+                    <span className={item.is_completed ? 'text-zinc-400 line-through' : ''}>{item.title}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        )}
+
+        {/* Confirmación */}
         {actividad.confirmed_at ? (
           <p className="flex items-center gap-1.5 text-sm text-emerald-600 dark:text-emerald-400">
             <CheckCircle2 size={14} />
@@ -183,6 +398,7 @@ function DetalleActividadPanel({
           </p>
         )}
 
+        {/* Archivos adjuntos */}
         <GestorArchivos
           tareaId={actividad.id}
           archivosIniciales={actividad.archivos ?? null}
@@ -228,6 +444,13 @@ export default function ActividadesAsignadas({ isOpen, onClose, tarea, puedeEdit
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [pdfViendo, setPdfViendo] = useState<ArchivoAdjunto | null>(null);
 
+  // Menciones @
+  const [miembros, setMiembros] = useState<{ userId: string; nombre: string; asignaciones: any[] }[]>([]);
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
+  const [mentionSearchTerm, setMentionSearchTerm] = useState('');
+  const [mentionPosition, setMentionPosition] = useState(-1);
+  const backdropRef = useRef<HTMLDivElement>(null);
+
   const cargarDatos = async () => {
     setCargando(true);
     try {
@@ -268,6 +491,16 @@ export default function ActividadesAsignadas({ isOpen, onClose, tarea, puedeEdit
     [usuarios, searchTerm],
   );
 
+  const usuariosParaMencion = useMemo(() => {
+    return usuarios.filter(
+      (u) =>
+        (u.activo === undefined || u.activo) &&
+        u.nombre.toLowerCase().includes(mentionSearchTerm.toLowerCase()) &&
+        u.user_id !== assignedTo &&
+        !miembros.some((m) => m.userId === u.user_id),
+    );
+  }, [usuarios, mentionSearchTerm, assignedTo, miembros]);
+
   const limpiarFormulario = () => {
     setEditandoId(null);
     setTitle('');
@@ -279,6 +512,10 @@ export default function ActividadesAsignadas({ isOpen, onClose, tarea, puedeEdit
     setShowDropdown(false);
     setChecklistInput('');
     setChecklist([]);
+    setMiembros([]);
+    setShowMentionDropdown(false);
+    setMentionPosition(-1);
+    setMentionSearchTerm('');
   };
 
   const abrirNueva = () => {
@@ -297,6 +534,10 @@ export default function ActividadesAsignadas({ isOpen, onClose, tarea, puedeEdit
     setShowDropdown(false);
     setChecklistInput('');
     setChecklist([]);
+    setMiembros([]);
+    setShowMentionDropdown(false);
+    setMentionPosition(-1);
+    setMentionSearchTerm('');
     setVista('formulario');
   };
 
@@ -304,6 +545,106 @@ export default function ActividadesAsignadas({ isOpen, onClose, tarea, puedeEdit
     setAssignedTo(userId);
     setSearchTerm(nombre);
     setShowDropdown(false);
+    // Si el encargado cambia y era miembro, quitarlo de la lista
+    setMiembros((prev) => prev.filter((m) => m.userId !== userId));
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+    if (backdropRef.current) {
+      backdropRef.current.scrollTop = e.currentTarget.scrollTop;
+      backdropRef.current.scrollLeft = e.currentTarget.scrollLeft;
+    }
+  };
+
+  const renderHighlightedText = () => {
+    if (!description) return null;
+
+    if (miembros.length === 0) {
+      return description;
+    }
+
+    const sortedMiembros = [...miembros].sort((a, b) => b.nombre.length - a.nombre.length);
+    const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const names = sortedMiembros.map((m) => `@${escapeRegExp(m.nombre)}`);
+    const regex = new RegExp(`(${names.join('|')})`, 'g');
+
+    const parts = description.split(regex);
+
+    return parts.map((part, i) => {
+      if (sortedMiembros.some((m) => `@${m.nombre}` === part)) {
+        return (
+          <span key={i} className="text-blue-500 dark:text-blue-400">
+            {part}
+          </span>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Backspace') {
+      const el = e.target as HTMLTextAreaElement;
+      const cursor = el.selectionStart;
+      if (cursor === el.selectionEnd && cursor > 0) {
+        const textBeforeCursor = description.slice(0, cursor);
+        for (const m of miembros) {
+          const mentionText = `@${m.nombre}`;
+          if (textBeforeCursor.endsWith(mentionText)) {
+            e.preventDefault();
+            const newDescription = description.slice(0, cursor - mentionText.length) + description.slice(cursor);
+            setDescription(newDescription);
+            setMiembros((prev) => prev.filter((x) => x.userId !== m.userId));
+            setTimeout(() => {
+              el.setSelectionRange(cursor - mentionText.length, cursor - mentionText.length);
+            }, 0);
+            return;
+          }
+        }
+      }
+    }
+
+    if (showMentionDropdown && usuariosParaMencion.length === 1) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        insertMention(usuariosParaMencion[0]);
+      }
+    }
+  };
+
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setDescription(val);
+
+    setMiembros((prev) => prev.filter((m) => val.includes(`@${m.nombre}`)));
+
+    const cursor = e.target.selectionStart;
+    const textBeforeCursor = val.slice(0, cursor);
+
+    // Buscar si estamos escribiendo una mención (ej: "@Juan Perez")
+    const mentionMatch = textBeforeCursor.match(/(?:^|\s)@([^@\n]*)$/);
+    if (mentionMatch && mentionMatch[1].length >= 3) {
+      setShowMentionDropdown(true);
+      setMentionSearchTerm(mentionMatch[1]);
+      setMentionPosition(cursor - mentionMatch[1].length);
+    } else {
+      setShowMentionDropdown(false);
+    }
+  };
+
+  const insertMention = (user: UsuarioAsignable) => {
+    const val = description;
+    const cursor = mentionPosition;
+    const beforeAt = val.slice(0, cursor - 1); // everything before '@'
+    const textAfterCursor = val.slice(cursor + mentionSearchTerm.length);
+
+    const newDescription = `${beforeAt}@${user.nombre} ${textAfterCursor}`;
+    setDescription(newDescription);
+    setShowMentionDropdown(false);
+
+    if (!miembros.some((m) => m.userId === user.user_id) && user.user_id !== assignedTo) {
+      setMiembros((prev) => [...prev, { userId: user.user_id, nombre: user.nombre, asignaciones: [] }]);
+    }
   };
 
   const agregarChecklist = () => {
@@ -316,8 +657,9 @@ export default function ActividadesAsignadas({ isOpen, onClose, tarea, puedeEdit
     setChecklist(checklist.filter((_, i) => i !== index));
   };
 
-  const enviarPush = async (titulo: string, mensaje: string, userId: string) => {
+  const sendPushNotification = async (titulo: string, mensaje: string, userIds: string[]) => {
     try {
+      if (userIds.length === 0) return;
       await fetch('/api/push/broadcast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -325,7 +667,7 @@ export default function ActividadesAsignadas({ isOpen, onClose, tarea, puedeEdit
           title: titulo,
           message: mensaje,
           url: '/protected/actividades',
-          targetIds: [userId],
+          targetIds: userIds,
         }),
       });
     } catch (e) {
@@ -347,6 +689,7 @@ export default function ActividadesAsignadas({ isOpen, onClose, tarea, puedeEdit
     try {
       const dueIso = new Date(dueDate).toISOString();
       const nombreAsignado = usuarios.find((u) => u.user_id === assignedTo)?.nombre || 'el usuario';
+      const esGrupal = miembros.length > 0;
 
       if (editandoId) {
         const actual = actividades.find((a) => a.id === editandoId);
@@ -373,14 +716,25 @@ export default function ActividadesAsignadas({ isOpen, onClose, tarea, puedeEdit
           }),
           due_date: dueIso,
           assigned_to: actual?.assigned_to || assignedTo,
+          nuevosMiembros: esGrupal ? miembros.map((m) => ({ userId: m.userId, asignaciones: m.asignaciones })) : undefined,
         });
+
         if (actual?.assigned_to) {
-          enviarPush(
+          sendPushNotification(
             '📋 Actividad actualizada',
             `Se actualizó la actividad del Concejo: "${title.trim()}".`,
-            actual.assigned_to,
+            [actual.assigned_to],
           );
         }
+
+        if (esGrupal) {
+          sendPushNotification(
+            '👥 Nueva Actividad Grupal',
+            `Se te ha asignado como participante en la actividad del Concejo: "${title.trim()}"`,
+            miembros.map((m) => m.userId),
+          );
+        }
+
         toast.success(`Actividad actualizada. Se notificó a ${nombreAsignado}.`);
       } else {
         await crearActividadConcejo({
@@ -390,12 +744,23 @@ export default function ActividadesAsignadas({ isOpen, onClose, tarea, puedeEdit
           due_date: dueIso,
           assigned_to: assignedTo,
           checklist,
+          miembros: esGrupal ? miembros.map((m) => ({ userId: m.userId, asignaciones: m.asignaciones })) : undefined,
         });
-        enviarPush(
+
+        sendPushNotification(
           '📋 Nueva Actividad Asignada',
           `Se te asignó una actividad del Concejo: "${title.trim()}".`,
-          assignedTo,
+          [assignedTo],
         );
+
+        if (esGrupal) {
+          sendPushNotification(
+            '👥 Nueva Actividad Grupal',
+            `Se te ha asignado como participante en la actividad del Concejo: "${title.trim()}"`,
+            miembros.map((m) => m.userId),
+          );
+        }
+
         toast.success(`Actividad asignada a ${nombreAsignado}.`);
       }
 
@@ -606,16 +971,54 @@ export default function ActividadesAsignadas({ isOpen, onClose, tarea, puedeEdit
                       )}
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-2 relative">
                       <label className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         <AlignLeft size={14} /> {editandoId ? 'Nueva nota' : 'Descripción'}
                       </label>
-                      <textarea
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        rows={3}
-                        className="w-full p-3 bg-gray-50 dark:bg-neutral-800 border border-gray-100 dark:border-neutral-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-base text-gray-700 dark:text-gray-100 resize-none"
-                      />
+                      <div className="relative">
+                        <div
+                          ref={backdropRef}
+                          className="absolute inset-0 border border-transparent p-3 sm:p-4 text-base font-sans leading-normal tracking-normal whitespace-pre-wrap break-words overflow-hidden pointer-events-none rounded-xl"
+                          style={{
+                            letterSpacing: 'normal',
+                            wordSpacing: 'normal',
+                            color: 'var(--tw-text-opacity) == 1 ? currentColor : "transparent"',
+                          }}
+                          aria-hidden="true"
+                        >
+                          <div className={`w-full h-full text-gray-700 dark:text-gray-100 ${!description ? 'opacity-0' : 'opacity-100'}`}>
+                            {renderHighlightedText()}
+                            {description.endsWith('\n') ? <br /> : null}
+                          </div>
+                        </div>
+                        <textarea
+                          value={description}
+                          onChange={handleDescriptionChange}
+                          onKeyDown={handleKeyDown}
+                          onScroll={handleScroll}
+                          placeholder={editandoId ? 'Escribe una nueva nota para la bitácora... (Usa @ para mencionar usuarios)' : 'Detalles de la actividad... (Usa @ para mencionar usuarios)'}
+                          rows={4}
+                          className={`w-full p-3 sm:p-4 bg-transparent border border-gray-100 dark:border-neutral-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-base font-sans leading-normal tracking-normal whitespace-pre-wrap break-words placeholder-gray-400 dark:placeholder-gray-500 resize-none relative z-10 custom-scrollbar ${description ? 'text-transparent' : 'text-gray-700 dark:text-gray-100'}`}
+                          style={{ caretColor: '#3b82f6', letterSpacing: 'normal', wordSpacing: 'normal' }}
+                        />
+                        {showMentionDropdown && usuariosParaMencion.length > 0 && (
+                          <div className="absolute z-50 w-full bottom-full mb-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl max-h-40 overflow-y-auto ring-1 ring-black/5 dark:ring-white/10">
+                            {usuariosParaMencion.map((u) => (
+                              <button
+                                key={u.user_id}
+                                type="button"
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  insertMention(u);
+                                }}
+                                className="w-full text-left px-4 py-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-gray-800 dark:text-gray-100 text-sm border-b border-slate-200 dark:border-slate-700/50 last:border-0 transition-colors"
+                              >
+                                {u.nombre}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       {editandoId ? (
                         <>
                           <p className="text-[11px] text-muted-foreground">
@@ -687,14 +1090,14 @@ export default function ActividadesAsignadas({ isOpen, onClose, tarea, puedeEdit
             </DialogPanel>
           </TransitionChild>
         </div>
+        <VerPDF
+          isOpen={!!pdfViendo?.ruta_storage}
+          onClose={() => setPdfViendo(null)}
+          filePath={pdfViendo?.ruta_storage || ''}
+          fileName={pdfViendo?.nombre || ''}
+          bucketName="archivos_actividades"
+        />
       </Dialog>
-      <VerPDF
-        isOpen={!!pdfViendo?.ruta_storage}
-        onClose={() => setPdfViendo(null)}
-        filePath={pdfViendo?.ruta_storage || ''}
-        fileName={pdfViendo?.nombre || ''}
-        bucketName="archivos_actividades"
-      />
     </Transition>
   );
 }

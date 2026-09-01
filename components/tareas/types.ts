@@ -54,6 +54,7 @@ export interface ActMiembro {
   id_user: string;
   asignaciones: AsignacionMiembro[];
   completed_at: string | null;
+  confirmed_at?: string | null;
   comentario: string | null;
   created_at: string;
   // Resuelto en el SA por join lógico con info_usuario

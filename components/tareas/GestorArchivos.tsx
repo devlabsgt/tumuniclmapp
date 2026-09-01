@@ -135,8 +135,12 @@ export default function GestorArchivos({ tareaId, archivosIniciales, esLectura, 
     }
 
     e.preventDefault();
-    if (archivo.tipo === 'pdf' && archivo.ruta_storage) {
-      abrirPdf(archivo);
+    if (archivo.tipo === 'pdf') {
+      if (archivo.ruta_storage) {
+        abrirPdf(archivo);
+      } else if (archivo.url) {
+        window.open(archivo.url, '_blank', 'noopener,noreferrer');
+      }
     }
   };
 

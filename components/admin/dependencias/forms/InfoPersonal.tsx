@@ -20,6 +20,8 @@ const formSchema = z.object({
   nit: z.string().optional(),
   igss: z.string().optional(),
   cuenta_no: z.string().optional(),
+  domicilio: z.string().optional(),
+  vecindad: z.string().optional(),
 });
 
 export type InfoPersonalFormData = z.infer<typeof formSchema>;
@@ -44,6 +46,8 @@ export default function InfoPersonalForm({ isOpen, onClose, onSubmit, usuario, i
       nit: initialData?.nit || '',
       igss: initialData?.igss || '',
       cuenta_no: initialData?.cuenta_no || '',
+      domicilio: initialData?.domicilio || '',
+      vecindad: initialData?.vecindad || '',
     },
   });
 
@@ -57,6 +61,8 @@ export default function InfoPersonalForm({ isOpen, onClose, onSubmit, usuario, i
         nit: initialData?.nit || '',
         igss: initialData?.igss || '',
         cuenta_no: initialData?.cuenta_no || '',
+        domicilio: initialData?.domicilio || '',
+        vecindad: initialData?.vecindad || '',
       });
     }
   }, [initialData, usuario, form]);
@@ -88,6 +94,8 @@ export default function InfoPersonalForm({ isOpen, onClose, onSubmit, usuario, i
                   <FormField control={form.control} name="nit" render={({ field }) => ( <FormItem><FormLabel>NIT</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                   <FormField control={form.control} name="igss" render={({ field }) => ( <FormItem><FormLabel>Afiliación IGSS</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                   <FormField control={form.control} name="cuenta_no" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>No. de Cuenta Bancaria</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="domicilio" render={({ field }) => ( <FormItem><FormLabel>Domicilio</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="vecindad" render={({ field }) => ( <FormItem><FormLabel>Vecindad</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                   <div className="flex justify-end gap-2 pt-4 md:col-span-2">
                     <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
                     <Button type="submit" disabled={form.formState.isSubmitting}>

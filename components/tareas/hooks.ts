@@ -14,6 +14,7 @@ import {
   eliminarMiembro,
   actualizarAsignacionesMiembro,
   actualizarComentarioMiembro,
+  marcarParteMiembroCompletada,
 } from "./actions";
 import { TipoVistaTareas, NewTaskState, ChecklistItem, ArchivoAdjunto, AsignacionMiembro } from "./types";
 import { BLOQUEOS_GLOBALES_KEY, useBloqueosGlobales } from "@/components/layout/bloqueos/hooks";
@@ -41,8 +42,10 @@ export const useTareaMutations = () => {
   const queryClient = useQueryClient();
 
   const invalidar = () => {
-    queryClient.invalidateQueries({ queryKey: KEYS.all });
-    queryClient.invalidateQueries({ queryKey: BLOQUEOS_GLOBALES_KEY });
+    return Promise.all([
+      queryClient.invalidateQueries({ queryKey: TAREAS_KEYS.all }),
+      queryClient.invalidateQueries({ queryKey: BLOQUEOS_GLOBALES_KEY })
+    ]);
   };
 
   const crear = useMutation({
@@ -111,6 +114,11 @@ export const useTareaMutations = () => {
     onSuccess: invalidar,
   });
 
+  const completarParteMiembro = useMutation({
+    mutationFn: (miembroId: string) => marcarParteMiembroCompletada(miembroId),
+    onSuccess: invalidar,
+  });
+
   return {
     crear,
     actualizar,
@@ -123,6 +131,7 @@ export const useTareaMutations = () => {
     removeMiembro,
     actualizarAsignaciones,
     actualizarComentario,
+    completarParteMiembro,
   };
 };
 

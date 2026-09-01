@@ -12,7 +12,8 @@ import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
 import { 
   Edit2, Trash2, ChevronDown, MoreVertical, MoreHorizontal, Calendar, 
-  User, Clock, AlertCircle, Copy, ArrowRight, FileText, Users
+  User, Clock, AlertCircle, Copy, ArrowRight, FileText, Users, CheckCircle2,
+  Crown
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -27,6 +28,7 @@ interface Props {
   isExpanded?: boolean;
   onToggle?: () => void;
   isJefe: boolean;
+  isRRHH?: boolean;
   usuarioActual: string;
   nombreUsuarioActual: string;
   usuarios: Usuario[]; 
@@ -54,13 +56,34 @@ const getNombreCorto = (nombreCompleto: string | undefined | null) => {
   return `${primerNombre} ${partesApellido.join(' ')}`;
 };
 
-export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe, usuarioActual, nombreUsuarioActual, usuarios }: Props) { 
+const renderConfirmacion = (isoString?: string | null) => {
+  if (!isoString) {
+    return <span className="text-[10px] text-orange-500 font-medium ml-1">Pendiente</span>;
+  }
+  const d = new Date(isoString);
+  const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const diaSemana = dias[d.getDay()];
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = String(d.getFullYear()).slice(-2);
+  let hora = d.getHours();
+  const minutos = String(d.getMinutes()).padStart(2, '0');
+  const period = hora >= 12 ? 'PM' : 'AM';
+  hora = hora % 12;
+  hora = hora ? hora : 12;
+  return <span className="text-[10px] text-green-500 font-medium ml-1 whitespace-nowrap">Confirmación: {diaSemana} {day}/{month}/{year}, {hora}:{minutos} {period}</span>;
+};
+
+export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe, isRRHH, usuarioActual, nombreUsuarioActual, usuarios }: Props) { 
   const { cambiarStatus, eliminar } = useTareaMutations(); 
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
-  // Tab activo en la vista grupal del encargado: 'encargado' o el id del miembro
-  const [tabActivo, setTabActivo] = useState<string>('encargado');
+  // Tab activo en la vista grupal: si soy miembro, mi tab por defecto, sino el del encargado
+  const [tabActivo, setTabActivo] = useState<string>(() => {
+    const miMiembro = tarea.miembros?.find(m => m.id_user === usuarioActual);
+    return miMiembro ? miMiembro.id : 'encargado';
+  });
 
   // ── Helpers de formato ────────────────────────────────────────────────────
   const formatearFecha = (fechaISO: string) => {
@@ -119,29 +142,29 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
   // ── Lógica grupal ─────────────────────────────────────────────────────────
   const miembros: ActMiembro[] = tarea.miembros || [];
   const esGrupal = miembros.length > 0;
-  const esEncargado = tarea.assigned_to === usuarioActual;
+  const esEncargado = tarea.assigned_to === usuarioActual || isJefe || !!isRRHH;
   const miMiembro = miembros.find(m => m.id_user === usuarioActual);
   const soySoloMiembro = !esEncargado && !!miMiembro;
 
   // ── Cálculo de progreso ────────────────────────────────────────────────────
   const checklist = (tarea.checklist as unknown as ChecklistItem[]) || [];
-  const completadosEncargado = checklist.filter(c => c.is_completed).length;
-  const totalEncargado = checklist.length;
+  const completadosEncargado = checklist.filter(c => c.is_completed).length + (tarea.status === 'Completado' ? 1 : 0);
+  const totalEncargado = checklist.length + 1;
 
   let porcentaje: number;
   if (esGrupal) {
-    const totalMiembros = miembros.reduce((s, m) => s + (m.asignaciones?.length || 0), 0);
-    const completadosMiembros = miembros.reduce((s, m) => s + (m.asignaciones?.filter(a => a.is_complete).length || 0), 0);
+    const totalMiembros = miembros.reduce((s, m) => s + (m.asignaciones?.length || 0) + 1, 0);
+    const completadosMiembros = miembros.reduce((s, m) => s + (m.asignaciones?.filter(a => a.is_complete).length || 0) + (m.completed_at ? 1 : 0), 0);
     const totalGlobal = totalEncargado + totalMiembros;
     const completosGlobal = completadosEncargado + completadosMiembros;
-    porcentaje = totalGlobal === 0 ? 0 : Math.round((completosGlobal / totalGlobal) * 100);
+    porcentaje = Math.round((completosGlobal / totalGlobal) * 100);
   } else {
-    porcentaje = totalEncargado === 0 ? 0 : Math.round((completadosEncargado / totalEncargado) * 100);
+    porcentaje = Math.round((completadosEncargado / totalEncargado) * 100);
   }
 
   const fechaLimite = new Date(tarea.due_date);
   const esVencida = new Date() > fechaLimite && tarea.status !== 'Completado';
-  const isReadOnly = esVencida || tarea.status === 'Completado';
+  const isReadOnly = esVencida || tarea.status === 'Completado' || !!isRRHH;
   const esAutoAsignado = tarea.created_by === tarea.assigned_to;
   const esAsignadoAMi = tarea.assigned_to === usuarioActual;
   const esCreadoPorMi = tarea.created_by === usuarioActual;
@@ -164,10 +187,16 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleTerminar = async () => {
     // Verificación en cliente (la real es en el SA)
-    if (!esGrupal && checklist.some(i => !i.is_completed)) {
-      Swal.fire({ icon: 'warning', title: 'Falta poco...', text: 'Completa el checklist primero.', confirmButtonColor: '#4f46e5' });
+    if (checklist.some(i => !i.is_completed)) {
+      Swal.fire({ icon: 'warning', title: 'Falta poco...', text: 'Completa tus actividades asignadas primero.', confirmButtonColor: '#4f46e5' });
       return;
     }
+    // Si es grupal, verificar que los miembros hayan completado
+    if (esGrupal && miembros.some(m => !m.completed_at)) {
+      Swal.fire({ icon: 'warning', title: 'Falta poco...', text: 'Todos los participantes deben completar sus actividades primero.', confirmButtonColor: '#4f46e5' });
+      return;
+    }
+
     try {
       await cambiarStatus.mutateAsync({ id: tarea.id, estado: 'Completado' });
       Swal.fire({ icon: 'success', title: '¡Completada!', timer: 1500, showConfirmButton: false });
@@ -412,47 +441,10 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                         {/* Barras de progreso */}
                         {(totalEncargado > 0 || esGrupal) && (
                             <div className="bg-slate-50 dark:bg-neutral-800/50 p-3 rounded-xl border border-slate-100 dark:border-neutral-800">
-                                {esGrupal && soySoloMiembro && miMiembro ? (() => {
-                                  // Vista de Miembro: Su barra es la principal, la global es secundaria
-                                  const mTotal = miMiembro.asignaciones?.length || 0;
-                                  const mComp = miMiembro.asignaciones?.filter(a => a.is_complete).length || 0;
-                                  const mPct = mTotal === 0 ? 0 : Math.round((mComp / mTotal) * 100);
-                                  const mColor = getColorBarra(mPct);
-                                  return (
-                                    <>
-                                      <div className="flex justify-between items-end mb-1.5">
-                                          <span className="text-[10px] font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wide">
-                                            Mi Progreso
-                                          </span>
-                                          <span className={`text-xs font-bold ${mPct === 100 ? 'text-green-600 dark:text-green-400' : 'text-slate-700 dark:text-gray-300'}`}>
-                                            {mPct}%
-                                          </span>
-                                      </div>
-                                      <div className="w-full bg-slate-200 dark:bg-neutral-700 h-2.5 rounded-full overflow-hidden">
-                                          <div className={`h-full rounded-full transition-all duration-500 ease-out ${mColor}`} style={{ width: `${mPct}%` }}></div>
-                                      </div>
-
-                                      <div className="mt-3 border-t border-slate-100 dark:border-neutral-700 pt-3">
-                                        <div className="flex justify-between items-center mb-0.5">
-                                          <span className="text-[10px] text-slate-500 dark:text-gray-400 font-medium truncate">
-                                            Progreso Global
-                                          </span>
-                                          <span className="text-[10px] font-bold text-slate-600 dark:text-gray-400">
-                                            {porcentaje}%
-                                          </span>
-                                        </div>
-                                        <div className="w-full bg-slate-200 dark:bg-neutral-700 h-1.5 rounded-full overflow-hidden">
-                                          <div className={`h-full rounded-full transition-all duration-500 ${colorBarra}`} style={{ width: `${porcentaje}%` }} />
-                                        </div>
-                                      </div>
-                                    </>
-                                  );
-                                })() : (
-                                  // Vista Encargado o Individual: Global es principal, las demás secundarias
                                   <>
                                     <div className="flex justify-between items-end mb-1.5">
                                         <span className="text-[10px] font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wide">
-                                          {esGrupal ? 'Progreso Global' : 'Progreso Total'}
+                                          {esGrupal ? 'Progreso Global' : 'Progreso Total (Miembros: {miembros.length})'}
                                         </span>
                                         <span className={`text-xs font-bold ${porcentaje === 100 ? 'text-green-600 dark:text-green-400' : 'text-slate-700 dark:text-gray-300'}`}>{porcentaje}%</span>
                                     </div>
@@ -461,14 +453,15 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                                     </div>
 
                                     {/* Sub-barras individuales para actividades grupales (solo Encargado) */}
-                                    {esGrupal && esEncargado && (
+                                    {esGrupal && (esEncargado || soySoloMiembro) && (
                                       <div className="mt-3 space-y-2 border-t border-slate-100 dark:border-neutral-700 pt-3">
                                         {/* Barra del encargado */}
                                         {totalEncargado > 0 && (
                                           <div>
                                             <div className="flex justify-between items-center mb-0.5">
-                                              <span className="text-[10px] text-slate-500 dark:text-gray-400 font-medium truncate max-w-[65%]">
-                                                {getNombreCorto(nombreUsuarioActual)} <span className="text-blue-500 dark:text-blue-400">(Encargado)</span>
+                                              <span className="text-[10px] text-slate-500 dark:text-gray-400 font-medium truncate max-w-[65%] flex items-center gap-1">
+                                                {esAsignadoAMi ? `${getNombreCorto(nombreUsuarioActual)} (Yo)` : getNombreCorto(tarea.assignee?.nombre || 'Encargado')} <span className="text-blue-500 dark:text-blue-400">(Encargado)</span>
+                                                {renderConfirmacion(tarea.confirmed_at)}
                                               </span>
                                               <span className="text-[10px] font-bold text-slate-600 dark:text-gray-400">
                                                 {totalEncargado === 0 ? '—' : `${completadosEncargado}/${totalEncargado}`}
@@ -483,16 +476,17 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                                           </div>
                                         )}
 
-                                        {/* Barras de miembros */}
+                                         {/* Barras de miembros */}
                                         {miembros.map(m => {
-                                            const total = m.asignaciones?.length || 0;
-                                            const comp = m.asignaciones?.filter(a => a.is_complete).length || 0;
-                                            const pct = total === 0 ? 0 : Math.round((comp / total) * 100);
+                                            const total = (m.asignaciones?.length || 0) + 1;
+                                            const comp = (m.asignaciones?.filter(a => a.is_complete).length || 0) + (m.completed_at ? 1 : 0);
+                                            const pct = Math.round((comp / total) * 100);
                                             return (
                                               <div key={m.id}>
                                                 <div className="flex justify-between items-center mb-0.5">
-                                                  <span className="text-[10px] text-slate-500 dark:text-gray-400 font-medium truncate max-w-[65%]">
+                                                  <span className="text-[10px] text-slate-500 dark:text-gray-400 font-medium truncate max-w-[65%] flex items-center gap-1">
                                                     {getNombreCorto(m.nombre_usuario)}
+                                                    {renderConfirmacion(m.confirmed_at)}
                                                   </span>
                                                   <span className="text-[10px] font-bold text-slate-600 dark:text-gray-400">{comp}/{total}</span>
                                                 </div>
@@ -508,13 +502,12 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                                       </div>
                                     )}
                                   </>
-                                )}
                             </div>
                         )}
                     </div>
-
+                    
                     {/* Botón completar (solo encargado o tarea individual) */}
-                    {tarea.status !== 'Completado' && (esEncargado || !esGrupal) && (
+                    {tarea.status !== 'Completado' && ((esEncargado && !isRRHH) || (!esGrupal && !isRRHH)) && (
                         <div className="mt-auto pt-2">
                             <button
                               onClick={handleTerminar}
@@ -525,7 +518,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                                   : 'text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md shadow-blue-500/20 dark:shadow-none'
                               }`}
                             >
-                            {loading ? <Clock size={18} className="animate-spin" /> : esVencida ? 'Actividad Vencida' : 'Completar Actividad'}
+                            {loading ? <Clock size={18} className="animate-spin" /> : esVencida ? 'Actividad Vencida' : 'Finalizar Actividad'}
                             </button>
                         </div>
                     )}
@@ -537,43 +530,89 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
 
                     {/* ACTIVIDAD INDIVIDUAL → TareaChecklist normal */}
                     {!esGrupal && (
-                      <TareaChecklist tareaId={tarea.id} checklist={checklist} isReadOnly={isReadOnly} />
+                      <TareaChecklist 
+                        tareaId={tarea.id} 
+                        checklist={checklist} 
+                        isReadOnly={isReadOnly} 
+                      />
                     )}
 
-                    {/* ACTIVIDAD GRUPAL → Vista del Encargado con Tabs */}
-                    {esGrupal && esEncargado && (
+                    {/* ACTIVIDAD GRUPAL → Vista del Encargado y Miembros con Tabs */}
+                    {esGrupal && (esEncargado || soySoloMiembro) && (
                       <div className="flex flex-col h-full">
                         {/* Tabs */}
                         <div className="flex justify-center gap-6 mb-6 overflow-x-auto overflow-y-hidden border-b border-slate-200 dark:border-neutral-700 px-2">
-                          <button
-                            onClick={() => setTabActivo('encargado')}
-                            className={`relative pb-3 text-sm font-semibold whitespace-nowrap transition-colors ${
-                              tabActivo === 'encargado'
-                                ? 'text-blue-600 dark:text-blue-400 after:absolute after:bottom-[-1px] after:left-0 after:w-full after:h-[2px] after:bg-blue-600 dark:after:bg-blue-400'
-                                : 'text-slate-500 hover:text-slate-700 dark:text-gray-400 dark:hover:text-gray-300'
-                            }`}
-                          >
-                            Mi Parte
-                          </button>
-                          {miembros.map(m => (
-                            <button
-                              key={m.id}
-                              onClick={() => setTabActivo(m.id)}
-                              className={`relative pb-3 text-sm font-semibold whitespace-nowrap flex items-center gap-1.5 transition-colors ${
-                                tabActivo === m.id
-                                  ? 'text-purple-600 dark:text-purple-400 after:absolute after:bottom-[-1px] after:left-0 after:w-full after:h-[2px] after:bg-purple-600 dark:after:bg-purple-400'
-                                  : 'text-slate-500 hover:text-slate-700 dark:text-gray-400 dark:hover:text-gray-300'
-                              }`}
-                            >
-                              {getNombreCorto(m.nombre_usuario)}
-                              {m.completed_at && <span className="text-[10px]">✓</span>}
-                            </button>
-                          ))}
+                          {(() => {
+                            const tabs = [
+                              {
+                                id: 'encargado',
+                                label: esAsignadoAMi ? 'Mi Parte' : nombreAsignado,
+                                isMiParte: esAsignadoAMi,
+                                completedAt: false,
+                                rol: 'Encargado'
+                              },
+                              ...miembros.map(m => ({
+                                id: m.id,
+                                label: m.id_user === usuarioActual ? 'Mi Parte' : getNombreCorto(m.nombre_usuario),
+                                isMiParte: m.id_user === usuarioActual,
+                                completedAt: m.completed_at,
+                                rol: 'Miembro'
+                              }))
+                            ];
+
+                            // Ordenar: 'Mi Parte' siempre de primero. Si no hay 'Mi Parte', 'encargado' de primero.
+                            tabs.sort((a, b) => {
+                              if (a.isMiParte) return -1;
+                              if (b.isMiParte) return 1;
+                              if (a.id === 'encargado') return -1;
+                              if (b.id === 'encargado') return 1;
+                              return 0;
+                            });
+
+                            return tabs.map(t => {
+                              const isActive = tabActivo === t.id;
+                              const isEncargadoTab = t.id === 'encargado';
+                              const activeColorClass = isEncargadoTab
+                                ? 'text-blue-600 dark:text-blue-400 after:bg-blue-600 dark:after:bg-blue-400'
+                                : 'text-purple-600 dark:text-purple-400 after:bg-purple-600 dark:after:bg-purple-400';
+
+                              return (
+                                <button
+                                  key={t.id}
+                                  onClick={() => setTabActivo(t.id)}
+                                  className={`relative pb-3 text-sm font-semibold whitespace-nowrap flex flex-col items-center transition-colors ${
+                                    isActive
+                                      ? `${activeColorClass} after:absolute after:bottom-[-1px] after:left-0 after:w-full after:h-[2px]`
+                                      : 'text-slate-500 hover:text-slate-700 dark:text-gray-400 dark:hover:text-gray-300'
+                                  }`}
+                                >
+                                  <span className={`text-[9px] uppercase font-bold tracking-wider mb-0.5 ${isActive ? 'opacity-80' : 'opacity-60'}`}>
+                                    {t.rol}
+                                  </span>
+                                  <div className="flex items-center gap-1.5 leading-tight">
+                                    {isEncargadoTab ? (
+                                      <Crown size={15} className={isActive ? 'text-blue-500 dark:text-blue-400' : 'opacity-40'} strokeWidth={2.5} />
+                                    ) : (
+                                      <User size={15} className={isActive ? 'text-purple-500 dark:text-purple-400' : 'opacity-40'} strokeWidth={2.5} />
+                                    )}
+                                    <span className="flex items-center gap-1.5">
+                                      {t.label}
+                                      {t.completedAt && <CheckCircle2 size={13} className="text-green-500" strokeWidth={3} />}
+                                    </span>
+                                  </div>
+                                </button>
+                              );
+                            });
+                          })()}
                         </div>
 
                         {/* Contenido del tab activo */}
                         {tabActivo === 'encargado' && (
-                          <TareaChecklist tareaId={tarea.id} checklist={checklist} isReadOnly={isReadOnly} />
+                          <TareaChecklist 
+                            tareaId={tarea.id} 
+                            checklist={checklist} 
+                            isReadOnly={isReadOnly || soySoloMiembro} 
+                          />
                         )}
                         {tabActivo !== 'encargado' && (() => {
                           const miembro = miembros.find(m => m.id === tabActivo);
@@ -582,24 +621,13 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                             <MiembroChecklist
                               miembroId={miembro.id}
                               asignaciones={miembro.asignaciones || []}
-                              isReadOnly={isReadOnly} // Si no está completada toda la tarea o vencida, el encargado también puede editar
+                              isReadOnly={isReadOnly || (soySoloMiembro && miMiembro?.id !== miembro.id)}
                               comentario={miembro.comentario}
                               completedAt={miembro.completed_at}
                             />
                           );
                         })()}
                       </div>
-                    )}
-
-                    {/* ACTIVIDAD GRUPAL → Vista del Miembro */}
-                    {esGrupal && soySoloMiembro && miMiembro && (
-                      <MiembroChecklist
-                        miembroId={miMiembro.id}
-                        asignaciones={miMiembro.asignaciones || []}
-                        isReadOnly={isReadOnly}
-                        comentario={miMiembro.comentario}
-                        completedAt={miMiembro.completed_at}
-                      />
                     )}
 
                     {/* ACTIVIDAD GRUPAL → Usuario sin rol definido (solo ve descripción) */}

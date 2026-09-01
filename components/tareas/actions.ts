@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server';
+import supabaseAdmin from '@/utils/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import { ChecklistItem, NewTaskState, Tarea, Usuario, PerfilUsuario, TipoVistaTareas, AsignacionMiembro, ActMiembro } from './types'; 
 
@@ -245,11 +246,41 @@ export async function obtenerDatosGestor(tipoVista: TipoVistaTareas) {
   const miembrosPorTarea = new Map<string, ActMiembro[]>();
 
   if (taskIds.length > 0) {
-    const { data: rawMiembros } = await supabase
-      .from('act_miembros')
-      .select('*')
-      .in('id_act', taskIds)
-      .order('created_at', { ascending: true });
+    let rawMiembros: any[] = [];
+    
+      if (tipoVista === 'gestion_rrhh') {
+        try {
+          // Chunking para evitar 414 URI Too Long (max ~200 uuids)
+          const chunkSize = 100;
+          for (let i = 0; i < taskIds.length; i += chunkSize) {
+            const chunk = taskIds.slice(i, i + chunkSize);
+            const { data, error } = await supabaseAdmin
+              .from('act_miembros')
+              .select('*')
+              .in('id_act', chunk)
+              .order('created_at', { ascending: true });
+            
+            if (error) console.error("Error chunk rrhh:", error);
+            if (data) rawMiembros.push(...data);
+          }
+        } catch (err) {
+          console.error("Error fetching admin miembros:", err);
+        }
+      } else {
+        // Chunking para vista normal
+        const chunkSize = 100;
+        for (let i = 0; i < taskIds.length; i += chunkSize) {
+          const chunk = taskIds.slice(i, i + chunkSize);
+          const { data, error } = await supabase
+            .from('act_miembros')
+            .select('*')
+            .in('id_act', chunk)
+            .order('created_at', { ascending: true });
+            
+          if (error) console.error("Error chunk normal:", error);
+          if (data) rawMiembros.push(...data);
+        }
+      }
 
     if (rawMiembros && rawMiembros.length > 0) {
       // Resolver nombres de usuarios de miembros
@@ -381,20 +412,6 @@ export async function crearTarea(formData: NewTaskState) {
     }
   }
 
-  // Reunir a todos los que deben recibir la notificación (creador, encargado y miembros)
-  const userIdsParaNotificar = new Set<string>();
-  userIdsParaNotificar.add(user.id); // El que la creó
-  userIdsParaNotificar.add(asignadoFinal); // El encargado
-  if (formData.miembros && formData.miembros.length > 0) {
-    formData.miembros.forEach(m => userIdsParaNotificar.add(m.userId));
-  }
-
-  // Enviar notificación a todos
-  await enviarNotificacion(
-    '📋 Nueva Actividad',
-    `Se ha registrado la actividad: "${formData.title}"`,
-    Array.from(userIdsParaNotificar)
-  );
 
   revalidatePath('/protected/actividades');
   revalidatePath('/protected/actividades/jefe');
@@ -474,7 +491,7 @@ export async function duplicarTarea(datos: NewTaskState) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("No autenticado");
 
-  const { error } = await supabase.from('tasks').insert([{
+  const { data: nuevaTarea, error } = await supabase.from('tasks').insert([{
         title: datos.title,
         description: datos.description || null,
         due_date: datos.due_date,
@@ -482,9 +499,26 @@ export async function duplicarTarea(datos: NewTaskState) {
         created_by: user.id,
         status: 'Asignado',
         checklist: datos.checklist?.map(i => ({ title: String(i.title), is_completed: false })) || []
-  }]);
+  }]).select('id').single();
 
   if (error) throw new Error(error.message);
+
+  if (datos.miembros && datos.miembros.length > 0 && nuevaTarea) {
+    const registrosMiembros = datos.miembros.map(m => ({
+      id_act: nuevaTarea.id,
+      id_user: m.userId,
+      asignaciones: m.asignaciones || [],
+    }));
+
+    const { error: errorMiembros } = await supabase
+      .from('act_miembros')
+      .insert(registrosMiembros);
+
+    if (errorMiembros) {
+      console.error('Error insertando miembros duplicados:', errorMiembros);
+    }
+  }
+
   revalidatePath('/protected/actividades', 'layout');
 }
 
@@ -496,7 +530,12 @@ export async function obtenerActividadPendienteConfirmacion() {
 
   if (!user) return { success: false, data: null };
 
-  const { data, error } = await supabase
+  let pendingData: any = null;
+  let confirmRole: 'encargado' | 'miembro' = 'encargado';
+  let actMiembroId: string | null = null;
+
+  // 1. Buscar como encargado (assigned_to)
+  const { data: taskData, error: taskErr } = await supabase
     .from('tasks')
     .select('id, title, description, due_date, created_by, assigned_to')
     .eq('assigned_to', user.id)
@@ -506,17 +545,52 @@ export async function obtenerActividadPendienteConfirmacion() {
     .limit(1)
     .maybeSingle();
 
-  if (error) {
-    console.error('Error fetching pending activity:', error);
+  if (taskErr) {
+    console.error('Error fetching pending activity (encargado):', taskErr);
     return { success: false, data: null };
   }
 
-  if (!data) return { success: true, data: null };
+  if (taskData) {
+    pendingData = taskData;
+  } else {
+    // 2. Si no hay como encargado, buscar como miembro grupal
+    const { data: memberData, error: memberErr } = await supabase
+      .from('act_miembros')
+      .select('id, id_act')
+      .eq('id_user', user.id)
+      .is('confirmed_at', null)
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (memberErr) {
+      console.error('Error fetching pending activity (miembro):', memberErr);
+      return { success: false, data: null };
+    }
+
+    if (memberData) {
+      // Obtener detalles de la tarea a la que pertenece
+      const { data: parentTask, error: parentErr } = await supabase
+        .from('tasks')
+        .select('id, title, description, due_date, created_by, assigned_to')
+        .eq('id', memberData.id_act)
+        .neq('status', 'Completado')
+        .single();
+        
+      if (parentTask) {
+        pendingData = parentTask;
+        confirmRole = 'miembro';
+        actMiembroId = memberData.id;
+      }
+    }
+  }
+
+  if (!pendingData) return { success: true, data: null };
 
   const { data: enlaceConcejo } = await supabase
     .from('tareas_concejo_actividades')
     .select('id')
-    .eq('task_id', data.id)
+    .eq('task_id', pendingData.id)
     .maybeSingle();
 
   const esConcejo = !!enlaceConcejo;
@@ -524,20 +598,22 @@ export async function obtenerActividadPendienteConfirmacion() {
   const { data: creador } = await supabase
     .from('info_usuario')
     .select('nombre')
-    .eq('user_id', data.created_by)
+    .eq('user_id', pendingData.created_by)
     .single();
 
   return {
     success: true,
     data: {
-      ...data,
+      ...pendingData,
       creador_nombre: esConcejo ? 'El Concejo Municipal' : creador?.nombre || 'Desconocido',
       es_concejo: esConcejo,
+      rol_confirmacion: confirmRole,
+      id_miembro: actMiembroId
     },
   };
 }
 
-export async function confirmarActividad(id: string) {
+export async function confirmarActividad(id: string, rol_confirmacion: 'encargado' | 'miembro' = 'encargado', id_miembro?: string | null) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -545,22 +621,37 @@ export async function confirmarActividad(id: string) {
 
   const confirmedAt = new Date().toISOString();
 
-  const { data, error } = await supabase
-    .from('tasks')
-    .update({ confirmed_at: confirmedAt })
-    .eq('id', id)
-    .eq('assigned_to', user.id)
-    .is('confirmed_at', null)
-    .select('id')
-    .maybeSingle();
+  if (rol_confirmacion === 'encargado') {
+    const { data, error } = await supabase
+      .from('tasks')
+      .update({ confirmed_at: confirmedAt })
+      .eq('id', id)
+      .eq('assigned_to', user.id)
+      .is('confirmed_at', null)
+      .select('id')
+      .maybeSingle();
 
-  if (error) {
-    console.error('Error confirming activity:', error);
-    return { success: false, error: error.message };
-  }
+    if (error) {
+      console.error('Error confirming activity (encargado):', error);
+      return { success: false, error: error.message };
+    }
+    if (!data) return { success: false, error: 'No se pudo confirmar la actividad' };
+  } 
+  else if (rol_confirmacion === 'miembro' && id_miembro) {
+    const { data, error } = await supabase
+      .from('act_miembros')
+      .update({ confirmed_at: confirmedAt })
+      .eq('id', id_miembro)
+      .eq('id_user', user.id)
+      .is('confirmed_at', null)
+      .select('id')
+      .maybeSingle();
 
-  if (!data) {
-    return { success: false, error: 'No se pudo confirmar la actividad' };
+    if (error) {
+      console.error('Error confirming activity (miembro):', error);
+      return { success: false, error: error.message };
+    }
+    if (!data) return { success: false, error: 'No se pudo confirmar la actividad grupal' };
   }
 
   revalidatePath('/protected/actividades', 'layout');
@@ -639,7 +730,7 @@ export async function eliminarMiembro(miembroId: string) {
 
 /**
  * Actualiza las asignaciones (sub-tareas) de un miembro.
- * Si todas están completadas, setea completed_at; si no, lo limpia.
+ * Si no están todas completas, limpia completed_at.
  */
 export async function actualizarAsignacionesMiembro(
   miembroId: string,
@@ -647,12 +738,29 @@ export async function actualizarAsignacionesMiembro(
 ) {
   const supabase = await createClient();
 
-  const todasCompletas = asignaciones.length > 0 && asignaciones.every(a => a.is_complete);
-  const completed_at = todasCompletas ? new Date().toISOString() : null;
+  const todasCompletas = asignaciones.every(a => a.is_complete);
+  const updateData: any = { asignaciones };
+  if (!todasCompletas) {
+    updateData.completed_at = null;
+  }
 
   const { error } = await supabase
     .from('act_miembros')
-    .update({ asignaciones, completed_at })
+    .update(updateData)
+    .eq('id', miembroId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/protected/actividades', 'layout');
+}
+
+/**
+ * Marca la parte del miembro como completada manualmente.
+ */
+export async function marcarParteMiembroCompletada(miembroId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('act_miembros')
+    .update({ completed_at: new Date().toISOString() })
     .eq('id', miembroId);
 
   if (error) throw new Error(error.message);

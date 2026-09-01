@@ -20,6 +20,8 @@ export interface InfoUsuarioData {
   igss: string | null;
   cuenta_no: string | null;
   nacimiento: string | null;
+  domicilio: string | null;
+  vecindad: string | null;
   puesto_nombre: string | null;
   puesto_path_jerarquico: string | null;
   puesto_path_ordenado: string | null;
@@ -163,6 +165,8 @@ export async function getDetalleUsuarioAction(
     igss: user.igss || null,
     cuenta_no: user.cuenta_no || null,
     nacimiento: user.nacimiento || null,
+    domicilio: user.domicilio || null,
+    vecindad: user.vecindad || null,
     puesto_nombre: dependenciaData?.nombre || null,
     renglon: dependenciaData?.renglon || null,
     salario: dependenciaData?.salario || 0,

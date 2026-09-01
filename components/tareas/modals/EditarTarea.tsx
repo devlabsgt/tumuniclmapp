@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Tarea, ActMiembro, AsignacionMiembro, Usuario } from '../types';
 import { X, Save, Calendar, AlignLeft, Type, Lock, Users, Plus, Trash2, ChevronDown } from 'lucide-react'; 
 import { toast } from 'react-toastify';
@@ -21,15 +21,15 @@ export default function EditarTarea({ isOpen, onClose, tarea, esJefe, usuarios }
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
 
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
+  const [mentionSearchTerm, setMentionSearchTerm] = useState('');
+  const [mentionPosition, setMentionPosition] = useState(0);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const [mencionesTextuales, setMencionesTextuales] = useState<{ userId: string; nombre: string }[]>([]);
+
   // ── Estado de miembros ─────────────────────────────────────────────────────
   const [miembrosActuales, setMiembrosActuales] = useState<ActMiembro[]>([]);
-  const [mostrarPanelMiembros, setMostrarPanelMiembros] = useState(false);
-  const [miembroSearchTerm, setMiembroSearchTerm] = useState('');
-  const [showMiembroDropdown, setShowMiembroDropdown] = useState(false);
-  const [miembroSeleccionado, setMiembroSeleccionado] = useState<{ userId: string; nombre: string } | null>(null);
-  const [miembroAsignacionInput, setMiembroAsignacionInput] = useState('');
-  const [miembroAsignaciones, setMiembroAsignaciones] = useState<AsignacionMiembro[]>([]);
-  const [agregandoMiembro, setAgregandoMiembro] = useState(false);
+
 
   const formatDateForInput = (isoString: string) => {
     if (!isoString) return '';
@@ -48,81 +48,117 @@ export default function EditarTarea({ isOpen, onClose, tarea, esJefe, usuarios }
       setDescription(tarea.description || '');
       setDueDate(formatDateForInput(tarea.due_date));
       setMiembrosActuales(tarea.miembros || []);
-      // Abrir panel si ya es grupal
-      setMostrarPanelMiembros((tarea.miembros || []).length > 0);
+
+      if (tarea.description) {
+        const initialMentions = usuarios
+          .filter(u => tarea.description?.includes(`@${u.nombre}`))
+          .map(u => ({ userId: u.user_id, nombre: u.nombre }));
+        setMencionesTextuales(initialMentions);
+      } else {
+        setMencionesTextuales([]);
+      }
     }
-  }, [isOpen, tarea]);
+  }, [isOpen, tarea, usuarios]);
 
   if (!isOpen) return null;
 
   const isSubmitting = actualizar.isPending;
 
-  // Usuarios disponibles para agregar como miembro
-  const usuariosParaMiembro = usuarios.filter(u =>
-    u.nombre.toLowerCase().includes(miembroSearchTerm.toLowerCase()) &&
-    u.user_id !== tarea.assigned_to &&
-    !miembrosActuales.some(m => m.id_user === u.user_id)
+
+  // ── Helpers mentions ─────────────────────────────────────────────────────
+  const usuariosParaMencion = usuarios.filter(u => 
+    u.activo &&
+    u.nombre.toLowerCase().includes(mentionSearchTerm.toLowerCase()) &&
+    u.user_id !== tarea.assigned_to
   );
 
-  const handleSelectMiembro = (userId: string, nombre: string) => {
-    setMiembroSeleccionado({ userId, nombre });
-    setMiembroSearchTerm(nombre);
-    setShowMiembroDropdown(false);
-    setMiembroAsignaciones([]);
-    setMiembroAsignacionInput('');
-  };
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Backspace') {
+      const el = e.target as HTMLTextAreaElement;
+      const cursor = el.selectionStart;
+      if (cursor === el.selectionEnd && cursor > 0) {
+        const textBeforeCursor = description.slice(0, cursor);
+        for (const m of mencionesTextuales) {
+          const mentionText = `@${m.nombre}`;
+          if (textBeforeCursor.endsWith(mentionText)) {
+            e.preventDefault();
+            const newDescription = description.slice(0, cursor - mentionText.length) + description.slice(cursor);
+            setDescription(newDescription);
+            setMencionesTextuales(prev => prev.filter(x => x.userId !== m.userId));
+            setTimeout(() => {
+              el.setSelectionRange(cursor - mentionText.length, cursor - mentionText.length);
+            }, 0);
+            return;
+          }
+        }
+      }
+    }
 
-  const addAsignacionMiembro = () => {
-    if (!miembroAsignacionInput.trim()) return;
-    setMiembroAsignaciones(prev => [...prev, { title: miembroAsignacionInput.trim(), is_complete: false }]);
-    setMiembroAsignacionInput('');
-  };
-
-  const removeAsignacionMiembro = (idx: number) => {
-    setMiembroAsignaciones(prev => prev.filter((_, i) => i !== idx));
-  };
-
-  const handleAgregarMiembro = async () => {
-    if (!miembroSeleccionado) return;
-    setAgregandoMiembro(true);
-    try {
-      await addMiembro.mutateAsync({
-        taskId: tarea.id,
-        userId: miembroSeleccionado.userId,
-        asignaciones: miembroAsignaciones,
-        tituloTarea: tarea.title,
-      });
-      // Actualizar lista local
-      setMiembrosActuales(prev => [...prev, {
-        id: crypto.randomUUID(),
-        id_act: tarea.id,
-        id_user: miembroSeleccionado.userId,
-        nombre_usuario: miembroSeleccionado.nombre,
-        asignaciones: miembroAsignaciones,
-        completed_at: null,
-        comentario: null,
-        created_at: new Date().toISOString(),
-      }]);
-      // Resetear
-      setMiembroSeleccionado(null);
-      setMiembroSearchTerm('');
-      setMiembroAsignaciones([]);
-      setMiembroAsignacionInput('');
-      toast.success(`${miembroSeleccionado.nombre} agregado y notificado`);
-    } catch (err: any) {
-      toast.error(err.message || 'Error al agregar miembro');
-    } finally {
-      setAgregandoMiembro(false);
+    if (showMentionDropdown && usuariosParaMencion.length === 1) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        insertMention(usuariosParaMencion[0]);
+      }
     }
   };
 
-  const handleEliminarMiembro = async (miembro: ActMiembro) => {
-    try {
-      await removeMiembro.mutateAsync(miembro.id);
-      setMiembrosActuales(prev => prev.filter(m => m.id !== miembro.id));
-      toast.info(`${miembro.nombre_usuario || 'Miembro'} eliminado`);
-    } catch (err: any) {
-      toast.error(err.message || 'Error al eliminar miembro');
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setDescription(val);
+    
+    setMencionesTextuales(prev => prev.filter(m => val.includes(`@${m.nombre}`)));
+
+    const cursor = e.target.selectionStart;
+    const textBeforeCursor = val.slice(0, cursor);
+    
+    const mentionMatch = textBeforeCursor.match(/(?:^|\s)@([^@\n]*)$/);
+    if (mentionMatch && mentionMatch[1].length >= 3) {
+      setShowMentionDropdown(true);
+      setMentionSearchTerm(mentionMatch[1]);
+      setMentionPosition(cursor - mentionMatch[1].length);
+    } else {
+      setShowMentionDropdown(false);
+    }
+  };
+
+  const insertMention = (user: Usuario) => {
+    const val = description;
+    const cursor = mentionPosition; 
+    const beforeAt = val.slice(0, cursor - 1); 
+    const textAfterCursor = val.slice(cursor + mentionSearchTerm.length);
+    
+    const newDescription = `${beforeAt}@${user.nombre} ${textAfterCursor}`;
+    setDescription(newDescription);
+    setShowMentionDropdown(false);
+    
+    if (!mencionesTextuales.some(m => m.userId === user.user_id)) {
+      setMencionesTextuales(prev => [...prev, { userId: user.user_id, nombre: user.nombre }]);
+    }
+  };
+
+  const renderHighlightedText = () => {
+    if (!description) return null;
+    if (mencionesTextuales.length === 0) return description;
+
+    const sortedMiembros = [...mencionesTextuales].sort((a, b) => b.nombre.length - a.nombre.length);
+    const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const names = sortedMiembros.map(m => `@${escapeRegExp(m.nombre)}`);
+    const regex = new RegExp(`(${names.join('|')})`, 'g');
+    
+    const parts = description.split(regex);
+    
+    return parts.map((part, i) => {
+      if (sortedMiembros.some(m => `@${m.nombre}` === part)) {
+        return <span key={i} className="text-blue-500 dark:text-blue-400">{part}</span>;
+      }
+      return <span key={i}>{part}</span>;
+    });
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+    if (backdropRef.current) {
+      backdropRef.current.scrollTop = e.currentTarget.scrollTop;
+      backdropRef.current.scrollLeft = e.currentTarget.scrollLeft;
     }
   };
 
@@ -162,7 +198,7 @@ export default function EditarTarea({ isOpen, onClose, tarea, esJefe, usuarios }
   return (
     <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
       <div className="fixed -inset-[100vmax] bg-black/5 dark:bg-black/20 backdrop-blur-md -z-10 pointer-events-none" />
-      <div className="bg-white dark:bg-neutral-900 w-full sm:rounded-2xl rounded-t-2xl shadow-2xl sm:max-w-2xl lg:max-w-3xl flex flex-col transition-colors duration-200 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-neutral-900 w-full rounded-none sm:rounded-2xl shadow-2xl sm:max-w-2xl lg:max-w-3xl flex flex-col transition-colors duration-200 h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto">
         
         <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-100 dark:border-neutral-800 sticky top-0 bg-white dark:bg-neutral-900 z-10">
           <h2 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-gray-100">
@@ -216,163 +252,52 @@ export default function EditarTarea({ isOpen, onClose, tarea, esJefe, usuarios }
           </div>
 
           {/* Descripción */}
-          <div className="space-y-2">
+          <div className="space-y-2 relative">
             <label className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               <AlignLeft size={14} /> Descripción
             </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-              placeholder="Añade detalles o actualizaciones..."
-              className="w-full p-3 bg-gray-50 dark:bg-neutral-800 border-gray-100 dark:border-neutral-700 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all text-base text-gray-700 dark:text-gray-100 resize-none"
-            />
-          </div>
-
-          {/* ── Sección de miembros (solo jefe) ───────────────────────────── */}
-          {esJefe && (
-            <div className="border-t border-gray-100 dark:border-neutral-800 pt-4 space-y-3">
-              <button
-                type="button"
-                onClick={() => setMostrarPanelMiembros(!mostrarPanelMiembros)}
-                className={`flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl w-full transition-all border ${
-                  mostrarPanelMiembros
-                    ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800'
-                    : 'bg-gray-50 dark:bg-neutral-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-neutral-700 hover:border-purple-300'
-                }`}
+            <div className="relative bg-gray-50 dark:bg-neutral-800 border-gray-100 dark:border-neutral-700 border rounded-xl">
+              <div 
+                ref={backdropRef}
+                className="absolute inset-0 border border-transparent p-3 text-base font-sans leading-normal tracking-normal whitespace-pre-wrap break-words overflow-hidden pointer-events-none rounded-xl"
+                style={{ 
+                  letterSpacing: 'normal',
+                  wordSpacing: 'normal',
+                  color: 'var(--tw-text-opacity) == 1 ? currentColor : "transparent"',
+                }}
+                aria-hidden="true"
               >
-                <Users size={16} />
-                Participantes grupales {miembrosActuales.length > 0 && `(${miembrosActuales.length})`}
-                <ChevronDown size={14} className={`ml-auto transition-transform ${mostrarPanelMiembros ? 'rotate-180' : ''}`} />
-              </button>
-
-              {mostrarPanelMiembros && (
-                <div className="space-y-3 bg-purple-50/30 dark:bg-purple-900/10 p-4 rounded-xl border border-purple-100 dark:border-purple-900/50 animate-in fade-in duration-200">
-                  
-                  {/* Lista de miembros actuales */}
-                  {miembrosActuales.length > 0 && (
-                    <div className="space-y-2">
-                      {miembrosActuales.map((m) => (
-                        <div key={m.id} className="flex items-start justify-between bg-white dark:bg-neutral-900 p-3 rounded-xl border border-purple-100 dark:border-purple-900/40">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold text-slate-800 dark:text-gray-100">
-                                {m.nombre_usuario || 'Usuario'}
-                              </span>
-                              {m.completed_at && (
-                                <span className="text-[10px] font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-full">
-                                  ✓ Completó
-                                </span>
-                              )}
-                            </div>
-                            {m.asignaciones.length > 0 ? (
-                              <p className="text-xs text-slate-400 dark:text-gray-500 mt-0.5">
-                                {m.asignaciones.length} sub-tarea(s) · {m.asignaciones.filter(a => a.is_complete).length} completadas
-                              </p>
-                            ) : (
-                              <p className="text-xs text-slate-400 dark:text-gray-500 italic mt-0.5">Sin sub-tareas</p>
-                            )}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleEliminarMiembro(m)}
-                            disabled={removeMiembro.isPending}
-                            className="ml-3 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors shrink-0 disabled:opacity-50"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Agregar nuevo miembro */}
-                  <div className="bg-white dark:bg-neutral-900 p-4 rounded-xl border border-purple-100 dark:border-purple-900/50 space-y-3">
-                    <p className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">
-                      + Agregar participante
-                    </p>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={miembroSearchTerm}
-                        onChange={(e) => { setMiembroSearchTerm(e.target.value); setShowMiembroDropdown(true); setMiembroSeleccionado(null); }}
-                        onFocus={() => setShowMiembroDropdown(true)}
-                        onBlur={() => setTimeout(() => setShowMiembroDropdown(false), 200)}
-                        placeholder="Buscar participante..."
-                        className="w-full p-3 bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-400 focus:outline-none text-sm text-gray-700 dark:text-gray-100 placeholder-gray-400"
-                      />
-                      {showMiembroDropdown && usuariosParaMiembro.length > 0 && (
-                        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-neutral-800 border border-gray-100 dark:border-neutral-700 rounded-xl shadow-xl max-h-36 overflow-y-auto">
-                          {usuariosParaMiembro.map(u => (
-                            <button
-                              key={u.user_id}
-                              type="button"
-                              onClick={() => handleSelectMiembro(u.user_id, u.nombre)}
-                              className="w-full text-left px-4 py-2.5 hover:bg-purple-50 dark:hover:bg-purple-900/20 text-gray-700 dark:text-gray-200 text-sm border-b border-gray-50 dark:border-neutral-700/50 last:border-0"
-                            >
-                              {u.nombre}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {miembroSeleccionado && (
-                      <div className="space-y-2 animate-in fade-in duration-200">
-                        <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">
-                          Sub-tareas para <span className="font-bold">{miembroSeleccionado.nombre}</span>:
-                        </p>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={miembroAsignacionInput}
-                            onChange={(e) => setMiembroAsignacionInput(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addAsignacionMiembro())}
-                            placeholder="Escribe una sub-tarea..."
-                            className="flex-1 p-2.5 text-sm bg-gray-50 dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700 rounded-lg focus:ring-2 focus:ring-purple-400 focus:outline-none text-gray-700 dark:text-gray-100 placeholder-gray-400"
-                          />
-                          <button type="button" onClick={addAsignacionMiembro} className="bg-purple-600 hover:bg-purple-700 text-white p-2.5 rounded-lg transition-colors">
-                            <Plus size={18} />
-                          </button>
-                        </div>
-                        {miembroAsignaciones.map((a, idx) => (
-                          <div key={idx} className="flex items-center justify-between bg-gray-50 dark:bg-neutral-800 p-2.5 rounded-lg border border-gray-100 dark:border-neutral-700 text-sm">
-                            <span className="text-gray-600 dark:text-gray-300 truncate flex-1 mr-2">• {a.title}</span>
-                            <button type="button" onClick={() => removeAsignacionMiembro(idx)} className="text-red-400 hover:text-red-600 p-1 rounded transition-colors">
-                              <Trash2 size={15} />
-                            </button>
-                          </div>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={handleAgregarMiembro}
-                          disabled={agregandoMiembro}
-                          className="w-full py-2.5 text-sm font-bold bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
-                        >
-                          {agregandoMiembro ? (
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          ) : (
-                            <Plus size={16} />
-                          )}
-                          Confirmar y notificar
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                <div className={`w-full h-full text-gray-700 dark:text-gray-100 ${!description ? 'opacity-0' : 'opacity-100'}`}>
+                  {renderHighlightedText()}
+                  {description.endsWith('\n') ? <br /> : null}
+                </div>
+              </div>
+              <textarea 
+                value={description} 
+                onChange={handleDescriptionChange}
+                onKeyDown={handleKeyDown}
+                onScroll={handleScroll}
+                placeholder="Añade detalles o actualizaciones... (Usa @ para mencionar usuarios)" 
+                rows={4}
+                className={`w-full p-3 bg-transparent border-transparent focus:border-transparent focus:ring-0 outline-none text-base font-sans leading-normal tracking-normal whitespace-pre-wrap break-words resize-none relative z-10 custom-scrollbar ${description ? 'text-transparent' : 'text-gray-700 dark:text-gray-100'}`}
+                style={{ caretColor: '#3b82f6', letterSpacing: 'normal', wordSpacing: 'normal' }}
+              />
+              {showMentionDropdown && usuariosParaMencion.length > 0 && (
+                <div className="absolute z-50 w-full bottom-full mb-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl max-h-40 overflow-y-auto ring-1 ring-black/5 dark:ring-white/10">
+                  {usuariosParaMencion.map(u => (
+                    <button key={u.user_id} type="button" onMouseDown={(e) => { e.preventDefault(); insertMention(u); }}
+                      className="w-full text-left px-4 py-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-gray-800 dark:text-gray-100 text-sm border-b border-slate-200 dark:border-slate-700/50 last:border-0 transition-colors">
+                      {u.nombre}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
-          )}
+          </div>
+
 
           {/* Botones */}
           <div className="pt-2 flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
-            <button
-                type="button"
-                onClick={onClose}
-                className="w-full sm:w-auto px-5 py-3 sm:py-2.5 rounded-xl font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors text-center"
-            >
-                Cancelar
-            </button>
             <button
               type="submit"
               disabled={isSubmitting}

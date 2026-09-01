@@ -31,7 +31,7 @@ export const MODAL_SECONDARY_BTN_CLASS =
 type ModalShellProps = {
   open: boolean;
   onClose: () => void;
-  title: string;
+  title: ReactNode;
   subtitle?: string;
   children: ReactNode;
   footer?: ReactNode;

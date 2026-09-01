@@ -22,6 +22,8 @@ import {
   Building2,
   Calendar,
   Cake,
+  Home,
+  Map,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useInfoUsuario } from "@/hooks/usuarios/useInfoUsuario";
@@ -368,6 +370,16 @@ export default function GeneradorFicha({
                               icon={<CircleDollarSign />}
                               label="No. Cuenta"
                               value={datos?.cuenta_no}
+                            />
+                            <TableRow
+                              icon={<Home />}
+                              label="Domicilio"
+                              value={datos?.domicilio}
+                            />
+                            <TableRow
+                              icon={<Map />}
+                              label="Vecindad"
+                              value={datos?.vecindad}
                             />
                             <TableRow
                               icon={<MapPin />}

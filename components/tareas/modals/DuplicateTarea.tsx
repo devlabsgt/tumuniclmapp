@@ -1,306 +1,420 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X, Copy, Calendar, User, AlignLeft, CheckSquare, Plus, Trash2, Edit2, Check } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Usuario, AsignacionMiembro } from '../types';
+import { X, Plus, Calendar, User, AlignLeft } from 'lucide-react';
 import { toast } from 'react-toastify';
-import Swal from 'sweetalert2'; 
-import { Tarea, Usuario, ChecklistItem } from '../types'; 
-import { useTareaMutations } from '../hooks'; 
+import { useTareaMutations } from '../hooks';
 
-interface Props {
+interface NuevoMiembro {
+  userId: string;
+  nombre: string;
+  asignaciones: AsignacionMiembro[];
+}
+
+interface NewTareaProps {
+  tareaOriginal: Tarea | null | undefined;
   isOpen: boolean;
   onClose: () => void;
-  tareaOriginal: Tarea | null | undefined; 
   usuarios: Usuario[];
+  usuarioActual: string;
   esJefe: boolean;
 }
 
-export default function DuplicateTarea({ isOpen, onClose, tareaOriginal, usuarios, esJefe }: Props) {
-  const { duplicar } = useTareaMutations(); 
-  
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [dueDate, setDueDate] = useState('');
-  const [assignedTo, setAssignedTo] = useState('');
-  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
-  
-  const [newItemText, setNewItemText] = useState('');
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editingText, setEditingText] = useState('');
+export default function DuplicateTarea({ isOpen, onClose, usuarios, usuarioActual, esJefe, tareaOriginal }: NewTareaProps) {
+  const { duplicar } = useTareaMutations();
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showDropdown, setShowDropdown] = useState(false);
-
-  const isSubmitting = duplicar.isPending;
-
-  useEffect(() => {
-    if (!isOpen || !tareaOriginal) return;
-
-    setTitle(`${tareaOriginal.title || ''} (Copia)`);
-    setDescription(tareaOriginal.description || '');
-    setAssignedTo(tareaOriginal.assigned_to || '');
-
-    let fechaInput = '';
-    if (tareaOriginal.due_date) {
-        try {
-            const d = new Date(tareaOriginal.due_date);
-            const offset = d.getTimezoneOffset() * 60000;
-            const localDate = new Date(d.getTime() - offset);
-            fechaInput = localDate.toISOString().slice(0, 16);
-        } catch(e) { }
-    }
-    setDueDate(fechaInput);
-
-    const chk = Array.isArray(tareaOriginal.checklist) 
-        ? tareaOriginal.checklist.map(c => ({ title: c.title || '', is_completed: false }))
-        : [];
-    setChecklist(chk);
-    
-    setEditingIndex(null);
-    setEditingText('');
-    setNewItemText('');
-
-  }, [isOpen, tareaOriginal]);
-
-  const handleAddItem = () => {
-    if (!newItemText.trim()) return;
-    setChecklist([...checklist, { title: newItemText, is_completed: false }]);
-    setNewItemText('');
+  const obtenerFechaPorDefecto = () => {
+    const d = new Date();
+    d.setHours(16, 0, 0, 0);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
-  const handleRemoveItem = (index: number) => {
-    Swal.fire({
-      title: '¿Estás seguro?',
-      text: "Este ítem se eliminará de la lista",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#ef4444', 
-      cancelButtonColor: '#6b7280', 
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar',
-      background: '#fff', 
-      customClass: { popup: 'rounded-2xl' }
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setChecklist(checklist.filter((_, i) => i !== index));
-        if (editingIndex === index) {
-            cancelEditing();
-        }
+  const [error, setError] = useState('');
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [dueDate, setDueDate] = useState(obtenerFechaPorDefecto);
+
+  // Encargado
+  const [assignedTo, setAssignedTo] = useState(usuarioActual);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  // Miembros (Mentions)
+  const [miembros, setMiembros] = useState<NuevoMiembro[]>([]);
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
+  const [mentionSearchTerm, setMentionSearchTerm] = useState('');
+  const [mentionPosition, setMentionPosition] = useState(-1);
+  
+  const backdropRef = useRef<HTMLDivElement>(null);
+
+  const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+    if (backdropRef.current) {
+      backdropRef.current.scrollTop = e.currentTarget.scrollTop;
+      backdropRef.current.scrollLeft = e.currentTarget.scrollLeft;
+    }
+  };
+
+  const renderHighlightedText = () => {
+    if (!description) return null;
+    
+    if (miembros.length === 0) {
+      return description;
+    }
+
+    const sortedMiembros = [...miembros].sort((a, b) => b.nombre.length - a.nombre.length);
+    const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const names = sortedMiembros.map(m => `@${escapeRegExp(m.nombre)}`);
+    const regex = new RegExp(`(${names.join('|')})`, 'g');
+    
+    const parts = description.split(regex);
+    
+    return parts.map((part, i) => {
+      if (sortedMiembros.some(m => `@${m.nombre}` === part)) {
+        return <span key={i} className="text-blue-500 dark:text-blue-400">{part}</span>;
       }
+      return <span key={i}>{part}</span>;
     });
   };
 
-  const startEditing = (index: number, currentTitle: string) => {
-    setEditingIndex(index);
-    setEditingText(currentTitle);
+  if (!isOpen) return null;
+  const isSubmitting = duplicar.isPending;
+
+  // ── Helpers encargado ────────────────────────────────────────────────────
+  const filteredUsuarios = usuarios.filter(u =>
+    u.activo && u.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  
+  useEffect(() => {
+    if (isOpen && tareaOriginal) {
+      setTitle(tareaOriginal.title + ' (Copia)');
+      setDescription(tareaOriginal.description || '');
+      const d = new Date(tareaOriginal.due_date);
+      setDueDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}T${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`);
+      setAssignedTo(tareaOriginal.assigned_to || usuarioActual);
+      
+      const assignedUser = usuarios.find(u => u.user_id === tareaOriginal.assigned_to);
+      if (assignedUser) setSearchTerm(assignedUser.nombre);
+      else if (tareaOriginal.assigned_to === usuarioActual) setSearchTerm('(A mí mismo)');
+      
+      const initialMentions = usuarios
+          .filter(u => tareaOriginal.description?.includes(`@${u.nombre}`))
+          .map(u => ({ userId: u.user_id, nombre: u.nombre, asignaciones: [] }));
+      setMiembros(initialMentions);
+    } else if (isOpen) {
+      setTitle("");
+      setDescription("");
+      setDueDate("");
+      setAssignedTo(usuarioActual);
+      setSearchTerm("");
+      setMiembros([]);
+    }
+  }, [isOpen, tareaOriginal, usuarios, usuarioActual]);
+
+  const handleSelectEncargado = (userId: string, nombre: string) => {
+    setAssignedTo(userId);
+    setSearchTerm(nombre);
+    setShowDropdown(false);
+    // Si el encargado cambia y era miembro, quitarlo de la lista
+    setMiembros(prev => prev.filter(m => m.userId !== userId));
   };
 
-  const saveEditing = () => {
-    if (editingIndex === null || !editingText.trim()) return;
-    const updatedChecklist = [...checklist];
-    updatedChecklist[editingIndex].title = editingText.trim();
-    setChecklist(updatedChecklist);
-    cancelEditing();
-  };
+  // ── Helpers mentions ─────────────────────────────────────────────────────
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Backspace') {
+      const el = e.target as HTMLTextAreaElement;
+      const cursor = el.selectionStart;
+      if (cursor === el.selectionEnd && cursor > 0) {
+        const textBeforeCursor = description.slice(0, cursor);
+        for (const m of miembros) {
+          const mentionText = `@${m.nombre}`;
+          if (textBeforeCursor.endsWith(mentionText)) {
+            e.preventDefault();
+            const newDescription = description.slice(0, cursor - mentionText.length) + description.slice(cursor);
+            setDescription(newDescription);
+            setMiembros(prev => prev.filter(x => x.userId !== m.userId));
+            setTimeout(() => {
+              el.setSelectionRange(cursor - mentionText.length, cursor - mentionText.length);
+            }, 0);
+            return;
+          }
+        }
+      }
+    }
 
-  const cancelEditing = () => {
-    setEditingIndex(null);
-    setEditingText('');
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!title.trim()) { toast.warning('Falta el título'); return; }
-    if (!dueDate) { toast.warning('Falta la fecha'); return; }
-
-    try {
-        const fechaISO = new Date(dueDate).toISOString();
-        
-        await duplicar.mutateAsync({
-            title: title.trim(),
-            description: description.trim(),
-            due_date: fechaISO,
-            assigned_to: assignedTo,
-            checklist: checklist
-        });
-
-        toast.success('¡Tarea duplicada correctamente!');
-        onClose();
-
-    } catch (error: any) {
-        toast.error(`Error: ${error.message}`);
+    if (showMentionDropdown && usuariosParaMencion.length === 1) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        insertMention(usuariosParaMencion[0]);
+      }
     }
   };
 
-  if (!isOpen) return null;
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setDescription(val);
+    
+    setMiembros(prev => prev.filter(m => val.includes(`@${m.nombre}`)));
 
-  const filteredUsuarios = usuarios.filter(u => u.nombre.toLowerCase().includes(searchTerm.toLowerCase()));
-  const selectedUser = usuarios.find(u => u.user_id === assignedTo);
-  const nombreAsignado = selectedUser?.nombre || 'Seleccionar...';
+    const cursor = e.target.selectionStart;
+    const textBeforeCursor = val.slice(0, cursor);
+    
+    // Buscar si estamos escribiendo una mención (ej: "@Juan Perez")
+    const mentionMatch = textBeforeCursor.match(/(?:^|\s)@([^@\n]*)$/);
+    if (mentionMatch && mentionMatch[1].length >= 3) {
+      setShowMentionDropdown(true);
+      setMentionSearchTerm(mentionMatch[1]);
+      setMentionPosition(cursor - mentionMatch[1].length);
+    } else {
+      setShowMentionDropdown(false);
+    }
+  };
+
+  const insertMention = (user: Usuario) => {
+    const val = description;
+    const cursor = mentionPosition; 
+    const beforeAt = val.slice(0, cursor - 1); // everything before '@'
+    const textAfterCursor = val.slice(cursor + mentionSearchTerm.length);
+    
+    const newDescription = `${beforeAt}@${user.nombre} ${textAfterCursor}`;
+    setDescription(newDescription);
+    setShowMentionDropdown(false);
+    
+    if (!miembros.some(m => m.userId === user.user_id) && user.user_id !== assignedTo) {
+      setMiembros(prev => [...prev, { userId: user.user_id, nombre: user.nombre, asignaciones: [] }]);
+    }
+  };
+
+  const usuariosParaMencion = usuarios.filter(u => 
+    u.activo &&
+    u.nombre.toLowerCase().includes(mentionSearchTerm.toLowerCase()) &&
+    u.user_id !== assignedTo &&
+    !miembros.some(m => m.userId === u.user_id)
+  );
+
+  const sendPushNotification = async (titulo: string, mensaje: string, userIds: string[]) => {
+    try {
+      if (userIds.length === 0) return;
+      await fetch('/api/push/broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: titulo,
+          message: mensaje,
+          url: '/protected/actividades',
+          targetIds: userIds,
+        }),
+      });
+    } catch (error) {
+      console.error('Error enviando notificación push:', error);
+    }
+  };
+
+  // ── Submit ───────────────────────────────────────────────────────────────
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!title.trim() || !dueDate) {
+      setError('Por favor completa el título y la fecha.');
+      toast.warning('Faltan datos obligatorios');
+      return;
+    }
+    
+    try {
+      const asignadoA = esJefe ? assignedTo : usuarioActual;
+      const tituloActividad = title.trim();
+      const nombreAsignador = usuarios.find((u) => u.user_id === usuarioActual)?.nombre || 'Alguien';
+      const esAutoAsignada = asignadoA === usuarioActual;
+      const esGrupal = miembros.length > 0;
+
+      await duplicar.mutateAsync({
+        checklist: [],
+
+        title: tituloActividad,
+        description,
+        due_date: new Date(dueDate).toISOString(),
+        assigned_to: asignadoA,
+        checklist: [],
+        status: 'Asignado',
+        miembros: esGrupal
+          ? miembros.map(m => ({ userId: m.userId, asignaciones: m.asignaciones }))
+          : undefined,
+      });
+
+      // Notificar al encargado
+      sendPushNotification(
+        esAutoAsignada ? '📋 Actividad auto-asignada' : '📋 Nueva Actividad Asignada',
+        esAutoAsignada
+          ? `✅ Te asignaste una actividad: "${tituloActividad}".`
+          : `✅ ${nombreAsignador} te asignó una actividad: "${tituloActividad}".`,
+        [asignadoA]
+      );
+
+      // Notificar a los miembros grupales
+      if (esGrupal) {
+        sendPushNotification(
+          '👥 Nueva Actividad Grupal',
+          `Se te ha asignado como participante en: "${tituloActividad}"`,
+          miembros.map(m => m.userId)
+        );
+      }
+
+      toast.success('¡Actividad creada correctamente!');
+       // Clear cache after success
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'Error al crear la actividad');
+      toast.error(err.message || 'Error al guardar');
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
       <div className="fixed -inset-[100vmax] bg-black/5 dark:bg-black/20 backdrop-blur-md -z-10 pointer-events-none" />
-      <div className="bg-white dark:bg-[#1e1e1e] w-full sm:max-w-4xl lg:max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
-        
-        <div className="px-6 py-4 border-b border-gray-100 dark:border-neutral-800 flex justify-between items-center bg-gray-50 dark:bg-neutral-900/50">
-            <div className="flex items-center gap-3">
-                <div className="bg-indigo-100 dark:bg-indigo-900/30 p-2 rounded-lg text-indigo-600 dark:text-indigo-400">
-                    <Copy size={20} />
-                </div>
-                <h2 className="text-lg font-bold text-gray-800 dark:text-white">Duplicar Actividad</h2>
-            </div>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-colors text-gray-500 dark:text-gray-400">
-                <X size={20} />
-            </button>
+      <div className="bg-white dark:bg-neutral-900 w-full sm:max-w-lg lg:max-w-xl rounded-none sm:rounded-2xl shadow-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto flex flex-col transition-colors duration-200">
+
+        {/* Header */}
+        <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 sticky top-0 z-10">
+          <h2 className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-500">Duplicar Actividad</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-colors text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
+            <X size={24} />
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="space-y-5">
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Título</label>
-                        <input 
-                            className="w-full px-4 py-3 border border-gray-200 dark:border-neutral-700 rounded-xl bg-gray-50 dark:bg-neutral-800 text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-medium"
-                            value={title} 
-                            onChange={e => setTitle(e.target.value)} 
-                            placeholder="Título de la tarea"
-                            autoFocus
-                        />
-                    </div>
-
-                    <div>
-                        <label className=" text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
-                            <Calendar size={14} /> Fecha
-                        </label>
-                        <input 
-                            type="datetime-local"
-                            className="w-full px-4 py-2.5 border border-gray-200 dark:border-neutral-700 rounded-xl bg-gray-50 dark:bg-neutral-800 text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                            value={dueDate} 
-                            onChange={e => setDueDate(e.target.value)} 
-                        />
-                    </div>
-
-                    <div>
-                          <label className=" text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
-                            <User size={14} /> Asignado
-                          </label>
-                          <div className="relative">
-                            <button 
-                                type="button" 
-                                disabled={!esJefe}
-                                onClick={() => setShowDropdown(!showDropdown)} 
-                                className={`w-full px-4 py-2.5 border border-gray-200 dark:border-neutral-700 rounded-xl bg-gray-50 dark:bg-neutral-800 text-left flex justify-between items-center text-sm ${!esJefe ? 'opacity-70 cursor-not-allowed' : 'hover:border-indigo-300 dark:hover:border-neutral-600'}`}
-                            >
-                                <span className="text-gray-800 dark:text-white truncate">{nombreAsignado}</span>
-                                {esJefe && <span className="text-gray-400 text-xs">▼</span>}
-                            </button>
-
-                            {showDropdown && esJefe && (
-                                <div className="absolute top-full left-0 w-full mt-1 bg-white dark:bg-[#252525] border border-gray-100 dark:border-neutral-700 rounded-xl shadow-xl z-20 max-h-48 overflow-y-auto">
-                                    <div className="p-2 sticky top-0 bg-white dark:bg-[#252525] border-b dark:border-neutral-700">
-                                        <input
-                                          type="text"
-                                          placeholder="Buscar..."
-                                          className="w-full px-3 py-1.5 bg-gray-50 dark:bg-neutral-800 rounded-lg text-sm outline-none focus:ring-1 focus:ring-indigo-500 dark:text-white"
-                                          value={searchTerm}
-                                          onChange={(e) => setSearchTerm(e.target.value)}
-                                          autoFocus
-                                        />
-                                    </div>
-                                    {filteredUsuarios.map(u => (
-                                        <div 
-                                            key={u.user_id} 
-                                            onClick={() => { setAssignedTo(u.user_id); setShowDropdown(false);}} 
-                                            className={`px-4 py-2.5 text-sm cursor-pointer transition-colors flex items-center gap-2 ${assignedTo === u.user_id ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 font-medium' : 'hover:bg-gray-50 dark:hover:bg-neutral-800 text-gray-700 dark:text-gray-300'}`}
-                                        >
-                                            <div className={`w-2 h-2 rounded-full ${u.activo ? 'bg-emerald-500' : 'bg-gray-300'}`} />
-                                            {u.nombre}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                          </div>
-                    </div>
-
-                    <div>
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-2">
-                            <AlignLeft size={14} /> Descripción
-                        </label>
-                        <textarea 
-                            className="w-full px-4 py-3 border border-gray-200 dark:border-neutral-700 rounded-xl bg-gray-50 dark:bg-neutral-800 text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none text-sm resize-none"
-                            rows={3}
-                            value={description} 
-                            onChange={e => setDescription(e.target.value)} 
-                            placeholder="Detalles de la tarea..."
-                        />
-                    </div>
-                </div>
-
-                <div className="flex flex-col justify-stretch">
-                     <div className="h-full flex flex-col min-h-[260px] lg:min-h-full">
-                        <label className=" text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-                            <CheckSquare size={14} /> Pendientes ({checklist.length})
-                        </label>
-                        <div className="border border-gray-200 dark:border-neutral-700 rounded-xl bg-gray-50 dark:bg-neutral-800/50 overflow-hidden flex-1 flex flex-col justify-between">
-                            {checklist.length > 0 ? (
-                                <div className="divide-y divide-gray-100 dark:divide-neutral-700 overflow-y-auto max-h-[300px] lg:max-h-none flex-1">
-                                    {checklist.map((item, idx) => (
-                                        <div key={idx} className="flex gap-3 items-center p-3 hover:bg-white dark:hover:bg-neutral-800 transition-colors group">
-                                            <span className="text-gray-400 dark:text-gray-600 self-center">•</span>
-                                            
-                                            {editingIndex === idx ? (
-                                                <div className="flex-1 flex gap-2 items-center animate-in fade-in duration-200">
-                                                    <input 
-                                                        type="text"
-                                                        className="flex-1 px-2 py-1 bg-white dark:bg-neutral-900 border border-indigo-300 dark:border-indigo-700 rounded-md outline-none text-sm text-gray-800 dark:text-white"
-                                                        value={editingText}
-                                                        onChange={(e) => setEditingText(e.target.value)}
-                                                        autoFocus
-                                                        onKeyDown={(e) => {
-                                                            if(e.key === 'Enter') { e.preventDefault(); saveEditing(); }
-                                                            if(e.key === 'Escape') cancelEditing();
-                                                        }}
-                                                    />
-                                                    <button type="button" onClick={saveEditing} className="p-1.5 text-green-600 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-900/30 rounded-lg"><Check size={16}/></button>
-                                                    <button type="button" onClick={cancelEditing} className="p-1.5 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg"><X size={16}/></button>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <span className="flex-1 text-sm text-gray-700 dark:text-gray-200 cursor-pointer" onClick={() => startEditing(idx, item.title)}>{item.title}</span>
-                                                    <div className="flex items-center gap-1">
-                                                        <button type="button" onClick={() => startEditing(idx, item.title)} className="text-gray-400 hover:text-indigo-600 p-2 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"><Edit2 size={16}/></button>
-                                                        <button type="button" onClick={() => handleRemoveItem(idx)} className="text-gray-400 hover:text-red-500 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"><Trash2 size={16}/></button>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="p-8 text-center text-gray-400 text-sm italic my-auto">Sin pendientes</div>
-                            )}
-                            
-                            <div className="p-2 flex gap-2 border-t border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800">
-                                <input className="flex-1 px-3 py-2 bg-transparent text-sm text-gray-700 dark:text-white outline-none placeholder:text-gray-400" placeholder="Añadir..." value={newItemText} onChange={e => setNewItemText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddItem())} />
-                                <button type="button" onClick={handleAddItem} disabled={!newItemText.trim()} className="p-2 bg-gray-100 dark:bg-neutral-700 text-gray-500 dark:text-gray-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg transition-colors disabled:opacity-50"><Plus size={18}/></button>
-                            </div>
-                        </div>
-                     </div>
-                </div>
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5">
+          <div className="flex flex-col gap-5">
+            {/* Título */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Título de la actividad</label>
+              <input
+                type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ej. Revisar documentación..."
+                className="w-full p-3 sm:p-4 bg-gray-50 dark:bg-neutral-800 border border-gray-100 dark:border-neutral-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-base text-gray-700 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                autoFocus
+              />
             </div>
+
+            {/* Fecha */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <Calendar size={14} /> Fecha Límite
+              </label>
+              <input
+                type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
+                className="w-full p-3 bg-gray-50 dark:bg-neutral-800 border border-gray-100 dark:border-neutral-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-base text-gray-700 dark:text-gray-100 dark:[color-scheme:dark]"
+              />
+            </div>
+
+            {/* Encargado */}
+            <div className="space-y-2 relative">
+              <label className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <User size={14} /> Encargado
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={!esJefe ? '(Auto-asignado a mí)' : searchTerm}
+                  onChange={(e) => { setSearchTerm(e.target.value); setShowDropdown(true); if (!e.target.value.trim()) setAssignedTo(usuarioActual); }}
+                  onFocus={() => esJefe && setShowDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                  disabled={!esJefe}
+                  placeholder={esJefe ? "Escribe un nombre..." : "(Auto-asignado a mí)"}
+                  className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-base transition-colors
+                    ${esJefe ? 'bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-100 placeholder-gray-400' : 'bg-gray-100 dark:bg-neutral-800/50 border-gray-200 dark:border-neutral-700 text-gray-400 cursor-not-allowed'}`}
+                />
+                {esJefe && showDropdown && (
+                  <div className="absolute z-50 w-full mt-1 bg-white dark:bg-neutral-800 border border-gray-100 dark:border-neutral-700 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+                    <button type="button" onClick={() => handleSelectEncargado(usuarioActual, '(A mí mismo)')}
+                      className="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-sm text-blue-600 dark:text-blue-400 font-medium border-b border-gray-50 dark:border-neutral-700">
+                      Asignarme a mí
+                    </button>
+                    {filteredUsuarios.filter(u => u.user_id !== usuarioActual).map(u => (
+                      <button key={u.user_id} type="button" onMouseDown={(e) => { e.preventDefault(); handleSelectEncargado(u.user_id, u.nombre); }}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-200 text-sm transition-colors border-b border-gray-50 dark:border-neutral-700/50 last:border-0">
+                        {u.nombre}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {esJefe && (
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 ml-1">
+                  {searchTerm.trim() === '' ? '* Vacío = Se te asigna a ti.' : 'Selecciona de la lista.'}
+                </p>
+              )}
+            </div>
+
+            {/* Descripción */}
+            <div className="space-y-2 relative">
+              <label className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <AlignLeft size={14} /> Descripción
+              </label>
+              <div className="relative">
+                <div 
+                  ref={backdropRef}
+                  className="absolute inset-0 border border-transparent p-3 sm:p-4 text-base font-sans leading-normal tracking-normal whitespace-pre-wrap break-words overflow-hidden pointer-events-none rounded-xl"
+                  style={{ 
+                    letterSpacing: 'normal',
+                    wordSpacing: 'normal',
+                    color: 'var(--tw-text-opacity) == 1 ? currentColor : "transparent"',
+                  }}
+                  aria-hidden="true"
+                >
+                  <div className={`w-full h-full text-gray-700 dark:text-gray-100 ${!description ? 'opacity-0' : 'opacity-100'}`}>
+                    {renderHighlightedText()}
+                    {description.endsWith('\n') ? <br /> : null}
+                  </div>
+                </div>
+                <textarea 
+                  value={description} 
+                  onChange={handleDescriptionChange}
+                  onKeyDown={handleKeyDown}
+                  onScroll={handleScroll}
+                  placeholder="Detalles adicionales... (Usa @ para mencionar usuarios)" 
+                  rows={4}
+                  className={`w-full p-3 sm:p-4 bg-transparent border border-gray-100 dark:border-neutral-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-base font-sans leading-normal tracking-normal whitespace-pre-wrap break-words placeholder-gray-400 dark:placeholder-gray-500 resize-none relative z-10 custom-scrollbar ${description ? 'text-transparent' : 'text-gray-700 dark:text-gray-100'}`}
+                  style={{ caretColor: '#3b82f6', letterSpacing: 'normal', wordSpacing: 'normal' }}
+                />
+                {showMentionDropdown && usuariosParaMencion.length > 0 && (
+                  <div className="absolute z-50 w-full bottom-full mb-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl max-h-40 overflow-y-auto ring-1 ring-black/5 dark:ring-white/10">
+                    {usuariosParaMencion.map(u => (
+                      <button key={u.user_id} type="button" onMouseDown={(e) => { e.preventDefault(); insertMention(u); }}
+                        className="w-full text-left px-4 py-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-gray-800 dark:text-gray-100 text-sm border-b border-slate-200 dark:border-slate-700/50 last:border-0 transition-colors">
+                        {u.nombre}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+
+          {/* Footer */}
+          <div className="flex flex-col items-center justify-center gap-4 pt-4 mt-2 border-t border-gray-100 dark:border-neutral-800">
+            {error && (
+              <div className="w-full p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg border border-red-100 dark:border-red-900 flex items-center justify-center gap-2">
+                <span>⚠️</span> {error}
+              </div>
+            )}
+            <div className="w-full pb-2">
+              <button type="submit" disabled={isSubmitting}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 sm:py-4 rounded-xl shadow-lg shadow-blue-200 dark:shadow-none active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base">
+                {isSubmitting ? (
+                  <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Duplicando...</>
+                ) : (
+                  <><Plus size={20} /> Crear Actividad</>
+                )}
+              </button>
+            </div>
+          </div>
         </form>
-
-        <div className="px-6 py-4 border-t border-gray-100 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-900 grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="hidden lg:block"></div>
-            <div className="flex justify-end gap-3 w-full">
-                <button onClick={onClose} className="px-5 py-2.5 rounded-xl font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-neutral-800 transition-colors text-sm">Cancelar</button>
-                <button onClick={handleSubmit} disabled={isSubmitting} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed text-sm w-full sm:w-auto">
-                    {isSubmitting ? 'Duplicando...' : 'Crear Duplicado'}
-                </button>
-            </div>
-        </div>
-
       </div>
     </div>
   );

@@ -32,6 +32,12 @@ export default function VerUsuarios() {
   });
 
   useEffect(() => {
+    if (rolActual === 'PRACTICANTE' && vistaActiva !== 'usuarios') {
+      setVistaActiva('usuarios');
+    }
+  }, [rolActual, vistaActiva]);
+
+  useEffect(() => {
     localStorage.setItem('admin_tab', vistaActiva);
   }, [vistaActiva]);
 
@@ -84,27 +90,31 @@ export default function VerUsuarios() {
             >
               Usuarios
             </button>
-            <button
-              type="button"
-              onClick={() => setVistaActiva('asistencia')}
-              className={tabClass(vistaActiva === 'asistencia', 'bg-green-100 text-green-800')}
-            >
-              Asistencia
-            </button>
-            <button
-              type="button"
-              onClick={() => setVistaActiva('citaciones')}
-              className={tabClass(vistaActiva === 'citaciones', 'bg-purple-100 text-purple-800')}
-            >
-              Citaciones
-            </button>
-            <button
-              type="button"
-              onClick={() => setVistaActiva('faltas')}
-              className={tabClass(vistaActiva === 'faltas', 'bg-orange-100 text-orange-800')}
-            >
-              Faltas
-            </button>
+            {rolActual !== 'PRACTICANTE' && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setVistaActiva('asistencia')}
+                  className={tabClass(vistaActiva === 'asistencia', 'bg-green-100 text-green-800')}
+                >
+                  Asistencia
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVistaActiva('citaciones')}
+                  className={tabClass(vistaActiva === 'citaciones', 'bg-purple-100 text-purple-800')}
+                >
+                  Citaciones
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVistaActiva('faltas')}
+                  className={tabClass(vistaActiva === 'faltas', 'bg-orange-100 text-orange-800')}
+                >
+                  Faltas
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

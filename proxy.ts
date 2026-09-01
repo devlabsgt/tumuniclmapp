@@ -54,6 +54,7 @@ export async function proxy(request: NextRequest) {
       "ALCALDE",
       "CONCEJAL",
       "RRHH",
+      "PRACTICANTE",
     ];
 
     if (
