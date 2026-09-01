@@ -143,9 +143,11 @@ const USUARIO_TAB_INDICATOR =
 function UsuarioFormTabBar({
   active,
   onChange,
+  tabs,
 }: {
   active: TabState;
   onChange: (tab: TabState) => void;
+  tabs: { id: TabState; label: string }[];
 }) {
   const barRef = useRef<HTMLDivElement>(null);
   const tabRefs = useRef(new Map<TabState, HTMLButtonElement>());
@@ -179,8 +181,8 @@ function UsuarioFormTabBar({
   }, [updateIndicator, active]);
 
   return (
-    <div ref={barRef} className={USUARIO_TAB_WRAP}>
-      {USUARIO_TABS.map((tab) => {
+    <div ref={barRef} className={cn("relative grid w-full gap-2 pt-2 pb-2.5", tabs.length === 1 ? "grid-cols-1" : "grid-cols-2")}>
+      {tabs.map((tab) => {
         const activa = active === tab.id;
         return (
           <button
@@ -232,7 +234,16 @@ export default function UserForm({
   rolUsuarioActual,
   botonEliminar,
 }: UserFormProps) {
-  const [activeTab, setActiveTab] = useState<TabState>("informacion");
+  const tabsDisponibles = useMemo(() => {
+    if (rolUsuarioActual === "PRACTICANTE") {
+      return [{ id: "personal" as TabState, label: "Información Personal" }];
+    }
+    return USUARIO_TABS;
+  }, [rolUsuarioActual]);
+
+  const [activeTab, setActiveTab] = useState<TabState>(
+    rolUsuarioActual === "PRACTICANTE" ? "personal" : "informacion"
+  );
   const [nombre, setNombre] = useState("");
   const [usuarioLogin, setUsuarioLogin] = useState("");
   const [rol, setRol] = useState<string | null>(null);
@@ -561,7 +572,7 @@ export default function UserForm({
 
       <div className="flex items-center gap-2">
         <div className="min-w-0 flex-1">
-          <UsuarioFormTabBar active={activeTab} onChange={setActiveTab} />
+          <UsuarioFormTabBar active={activeTab} onChange={setActiveTab} tabs={tabsDisponibles} />
         </div>
         {botonEliminar}
       </div>

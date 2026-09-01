@@ -79,7 +79,7 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
 
   const [menuAbierto, setMenuAbierto] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  
+
   const [openNivel2, setOpenNivel2] = useState(false);
   const [openNivel3, setOpenNivel3] = useState(false);
   const [openRol, setOpenRol] = useState(false);
@@ -88,7 +88,7 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
   const hasCreatePermission =
     rolActual === "SUPER" || rolActual === "RRHH" || rolActual === "SECRETARIO";
   const canOpenModal =
-    rolActual === "SUPER" || rolActual === "RRHH" || rolActual === "SECRETARIO";
+    rolActual === "SUPER" || rolActual === "RRHH" || rolActual === "SECRETARIO" || rolActual === "PRACTICANTE";
 
   useEffect(() => {
     setListaUsuarios(usuarios.filter(u => u.rol !== "INVITADO"));
@@ -347,9 +347,9 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                         className="bg-white dark:bg-neutral-800 dark:text-gray-100 dark:border-neutral-700 text-xs w-full sm:w-[250px] h-9 justify-between font-normal hover:bg-slate-50 dark:hover:bg-neutral-700/50"
                       >
                         <span className="truncate">
-                        {nivel2Id
-                          ? oficinasNivel2.find((oficina) => oficina.id === nivel2Id)?.nombre || "Todas"
-                          : "Todas las Dependencias"}
+                          {nivel2Id
+                            ? oficinasNivel2.find((oficina) => oficina.id === nivel2Id)?.nombre || "Todas"
+                            : "Todas las Dependencias"}
                         </span>
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
@@ -405,9 +405,9 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                         className="bg-white dark:bg-neutral-800 dark:text-gray-100 dark:border-neutral-700 text-xs w-full sm:w-[250px] h-9 justify-between font-normal hover:bg-slate-50 dark:hover:bg-neutral-700/50"
                       >
                         <span className="truncate">
-                        {nivel3Id
-                          ? oficinasNivel3.find((oficina) => oficina.id === nivel3Id)?.nombre || "Todas"
-                          : "Todas las Oficinas"}
+                          {nivel3Id
+                            ? oficinasNivel3.find((oficina) => oficina.id === nivel3Id)?.nombre || "Todas"
+                            : "Todas las Oficinas"}
                         </span>
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
@@ -461,7 +461,7 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
                         className="bg-white dark:bg-neutral-800 dark:text-gray-100 dark:border-neutral-700 text-xs w-full sm:w-[180px] h-9 justify-between font-normal hover:bg-slate-50 dark:hover:bg-neutral-700/50"
                       >
                         <span className="truncate">
-                        {rolFiltro || "Todos los Roles"}
+                          {rolFiltro || "Todos los Roles"}
                         </span>
                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
@@ -750,11 +750,17 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
       <ModalShell
         open={Boolean(usuarioIdSeleccionado)}
         onClose={handleCancel}
-        title="Editar usuario"
-        subtitle={
-          listaUsuarios.find((u) => u.id === usuarioIdSeleccionado)?.nombre ||
-          listaUsuarios.find((u) => u.id === usuarioIdSeleccionado)?.email ||
-          "Cuenta"
+        panelClassName="max-w-5xl"
+        bodyClassName="!pt-1"
+        title={
+          <>
+            Editar : {" "}
+            <span className="text-blue-800 dark:text-blue-200 underline underline-offset-4">
+              {listaUsuarios.find((u) => u.id === usuarioIdSeleccionado)?.nombre ||
+                listaUsuarios.find((u) => u.id === usuarioIdSeleccionado)?.email ||
+                "Cuenta"}
+            </span>
+          </>
         }
       >
         {usuarioIdSeleccionado ? (

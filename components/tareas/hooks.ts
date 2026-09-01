@@ -10,8 +10,13 @@ import {
   eliminarTarea,
   duplicarTarea,
   actualizarArchivosTarea,
+  agregarMiembro,
+  eliminarMiembro,
+  actualizarAsignacionesMiembro,
+  actualizarComentarioMiembro,
+  marcarParteMiembroCompletada,
 } from "./actions";
-import { TipoVistaTareas, NewTaskState, ChecklistItem, ArchivoAdjunto } from "./types";
+import { TipoVistaTareas, NewTaskState, ChecklistItem, ArchivoAdjunto, AsignacionMiembro } from "./types";
 import { BLOQUEOS_GLOBALES_KEY, useBloqueosGlobales } from "@/components/layout/bloqueos/hooks";
 
 export const TAREAS_KEYS = {
@@ -37,8 +42,10 @@ export const useTareaMutations = () => {
   const queryClient = useQueryClient();
 
   const invalidar = () => {
-    queryClient.invalidateQueries({ queryKey: KEYS.all });
-    queryClient.invalidateQueries({ queryKey: BLOQUEOS_GLOBALES_KEY });
+    return Promise.all([
+      queryClient.invalidateQueries({ queryKey: TAREAS_KEYS.all }),
+      queryClient.invalidateQueries({ queryKey: BLOQUEOS_GLOBALES_KEY })
+    ]);
   };
 
   const crear = useMutation({
@@ -76,7 +83,56 @@ export const useTareaMutations = () => {
     onSuccess: invalidar,
   });
 
-  return { crear, actualizar, actualizarChecklist, cambiarStatus, eliminar, duplicar, actualizarArchivos };
+  // ── Miembros grupales ──────────────────────────────────────────────────────
+
+  const addMiembro = useMutation({
+    mutationFn: ({ taskId, userId, asignaciones, tituloTarea }: {
+      taskId: string;
+      userId: string;
+      asignaciones: AsignacionMiembro[];
+      tituloTarea: string;
+    }) => agregarMiembro(taskId, userId, asignaciones, tituloTarea),
+    onSuccess: invalidar,
+  });
+
+  const removeMiembro = useMutation({
+    mutationFn: (miembroId: string) => eliminarMiembro(miembroId),
+    onSuccess: invalidar,
+  });
+
+  const actualizarAsignaciones = useMutation({
+    mutationFn: ({ miembroId, asignaciones }: {
+      miembroId: string;
+      asignaciones: AsignacionMiembro[];
+    }) => actualizarAsignacionesMiembro(miembroId, asignaciones),
+    onSuccess: invalidar,
+  });
+
+  const actualizarComentario = useMutation({
+    mutationFn: ({ miembroId, comentario }: { miembroId: string; comentario: string }) =>
+      actualizarComentarioMiembro(miembroId, comentario),
+    onSuccess: invalidar,
+  });
+
+  const completarParteMiembro = useMutation({
+    mutationFn: (miembroId: string) => marcarParteMiembroCompletada(miembroId),
+    onSuccess: invalidar,
+  });
+
+  return {
+    crear,
+    actualizar,
+    actualizarChecklist,
+    cambiarStatus,
+    eliminar,
+    duplicar,
+    actualizarArchivos,
+    addMiembro,
+    removeMiembro,
+    actualizarAsignaciones,
+    actualizarComentario,
+    completarParteMiembro,
+  };
 };
 
 export function useActividadPendiente() {

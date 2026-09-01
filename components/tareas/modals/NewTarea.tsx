@@ -1,10 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { Usuario, ChecklistItem } from '../types';
-import { X, Plus, Trash2, Calendar, User, AlignLeft, CheckSquare } from 'lucide-react';
-import { toast } from 'react-toastify'; 
-import { useTareaMutations } from '../hooks'; 
+import { useState, useEffect, useRef } from 'react';
+import { Usuario, AsignacionMiembro } from '../types';
+import { X, Plus, Calendar, User, AlignLeft } from 'lucide-react';
+import { toast } from 'react-toastify';
+import { useTareaMutations } from '../hooks';
+
+interface NuevoMiembro {
+  userId: string;
+  nombre: string;
+  asignaciones: AsignacionMiembro[];
+}
 
 interface NewTareaProps {
   isOpen: boolean;
@@ -15,11 +21,11 @@ interface NewTareaProps {
 }
 
 export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJefe }: NewTareaProps) {
-  const { crear } = useTareaMutations(); 
-  
+  const { crear } = useTareaMutations();
+
   const obtenerFechaPorDefecto = () => {
     const d = new Date();
-    d.setHours(16, 0, 0, 0); // 4:00 PM
+    d.setHours(16, 0, 0, 0);
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
@@ -32,52 +38,197 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState(obtenerFechaPorDefecto);
+
+  // Encargado
+  const [assignedTo, setAssignedTo] = useState(usuarioActual);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  // Miembros (Mentions)
+  const [miembros, setMiembros] = useState<NuevoMiembro[]>([]);
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
+  const [mentionSearchTerm, setMentionSearchTerm] = useState('');
+  const [mentionPosition, setMentionPosition] = useState(-1);
   
-  const [assignedTo, setAssignedTo] = useState(usuarioActual); 
-  const [searchTerm, setSearchTerm] = useState(''); 
-  const [showDropdown, setShowDropdown] = useState(false); 
+  const backdropRef = useRef<HTMLDivElement>(null);
 
-  const [checklistInput, setChecklistInput] = useState('');
-  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
-
-  if (!isOpen) return null;
-
-  const isSubmitting = crear.isPending; 
-
-  const filteredUsuarios = usuarios.filter(u => 
-    u.nombre.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    setShowDropdown(true);
-    if (value.trim() === '') {
-      setAssignedTo(usuarioActual);
+  const handleScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+    if (backdropRef.current) {
+      backdropRef.current.scrollTop = e.currentTarget.scrollTop;
+      backdropRef.current.scrollLeft = e.currentTarget.scrollLeft;
     }
   };
 
-  const handleSelectUser = (userId: string, nombre: string) => {
+  const renderHighlightedText = () => {
+    if (!description) return null;
+    
+    if (miembros.length === 0) {
+      return description;
+    }
+
+    const sortedMiembros = [...miembros].sort((a, b) => b.nombre.length - a.nombre.length);
+    const escapeRegExp = (string: string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const names = sortedMiembros.map(m => `@${escapeRegExp(m.nombre)}`);
+    const regex = new RegExp(`(${names.join('|')})`, 'g');
+    
+    const parts = description.split(regex);
+    
+    return parts.map((part, i) => {
+      if (sortedMiembros.some(m => `@${m.nombre}` === part)) {
+        return <span key={i} className="text-blue-500 dark:text-blue-400">{part}</span>;
+      }
+      return <span key={i}>{part}</span>;
+    });
+  };
+
+  const CACHE_KEY = `newTareaDraft_${usuarioActual}`;
+  const CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutos
+
+  const [isRestored, setIsRestored] = useState(false);
+
+  // Load from cache on mount
+  useEffect(() => {
+    if (isOpen) {
+      const cachedStr = localStorage.getItem(CACHE_KEY);
+      if (cachedStr) {
+        try {
+          const cached = JSON.parse(cachedStr);
+          if (Date.now() - cached.timestamp < CACHE_EXPIRY_MS) {
+            setTitle(cached.title || '');
+            setDescription(cached.description || '');
+            setDueDate(cached.dueDate || obtenerFechaPorDefecto());
+            setAssignedTo(cached.assignedTo || usuarioActual);
+            setSearchTerm(cached.searchTerm || '');
+            setMiembros(cached.miembros || []);
+          } else {
+            localStorage.removeItem(CACHE_KEY);
+          }
+        } catch (e) {
+          localStorage.removeItem(CACHE_KEY);
+        }
+      } else {
+        // Reset if no cache
+        setTitle('');
+        setDescription('');
+        setDueDate(obtenerFechaPorDefecto());
+        setAssignedTo(usuarioActual);
+        setSearchTerm('');
+        setMiembros([]);
+      }
+      setIsRestored(true);
+    } else {
+      setIsRestored(false);
+    }
+  }, [isOpen, usuarioActual]);
+
+  // Save to cache on change
+  useEffect(() => {
+    if (isOpen && isRestored) {
+      const draft = {
+        title,
+        description,
+        dueDate,
+        assignedTo,
+        searchTerm,
+        miembros,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem(CACHE_KEY, JSON.stringify(draft));
+    }
+  }, [title, description, dueDate, assignedTo, searchTerm, miembros, isOpen, isRestored, usuarioActual]);
+
+  if (!isOpen) return null;
+  const isSubmitting = crear.isPending;
+
+  // ── Helpers encargado ────────────────────────────────────────────────────
+  const filteredUsuarios = usuarios.filter(u =>
+    u.activo && u.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleSelectEncargado = (userId: string, nombre: string) => {
     setAssignedTo(userId);
-    setSearchTerm(nombre); 
-    setShowDropdown(false); 
+    setSearchTerm(nombre);
+    setShowDropdown(false);
+    // Si el encargado cambia y era miembro, quitarlo de la lista
+    setMiembros(prev => prev.filter(m => m.userId !== userId));
   };
 
-  const addChecklistItem = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!checklistInput.trim()) return;
-    setChecklist([...checklist, { title: checklistInput.trim(), is_completed: false }]);
-    setChecklistInput('');
+  // ── Helpers mentions ─────────────────────────────────────────────────────
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Backspace') {
+      const el = e.target as HTMLTextAreaElement;
+      const cursor = el.selectionStart;
+      if (cursor === el.selectionEnd && cursor > 0) {
+        const textBeforeCursor = description.slice(0, cursor);
+        for (const m of miembros) {
+          const mentionText = `@${m.nombre}`;
+          if (textBeforeCursor.endsWith(mentionText)) {
+            e.preventDefault();
+            const newDescription = description.slice(0, cursor - mentionText.length) + description.slice(cursor);
+            setDescription(newDescription);
+            setMiembros(prev => prev.filter(x => x.userId !== m.userId));
+            setTimeout(() => {
+              el.setSelectionRange(cursor - mentionText.length, cursor - mentionText.length);
+            }, 0);
+            return;
+          }
+        }
+      }
+    }
+
+    if (showMentionDropdown && usuariosParaMencion.length === 1) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        insertMention(usuariosParaMencion[0]);
+      }
+    }
   };
 
-  const removeChecklistItem = (index: number) => {
-    setChecklist(checklist.filter((_, i) => i !== index));
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setDescription(val);
+    
+    setMiembros(prev => prev.filter(m => val.includes(`@${m.nombre}`)));
+
+    const cursor = e.target.selectionStart;
+    const textBeforeCursor = val.slice(0, cursor);
+    
+    // Buscar si estamos escribiendo una mención (ej: "@Juan Perez")
+    const mentionMatch = textBeforeCursor.match(/(?:^|\s)@([^@\n]*)$/);
+    if (mentionMatch && mentionMatch[1].length >= 3) {
+      setShowMentionDropdown(true);
+      setMentionSearchTerm(mentionMatch[1]);
+      setMentionPosition(cursor - mentionMatch[1].length);
+    } else {
+      setShowMentionDropdown(false);
+    }
   };
+
+  const insertMention = (user: Usuario) => {
+    const val = description;
+    const cursor = mentionPosition; 
+    const beforeAt = val.slice(0, cursor - 1); // everything before '@'
+    const textAfterCursor = val.slice(cursor + mentionSearchTerm.length);
+    
+    const newDescription = `${beforeAt}@${user.nombre} ${textAfterCursor}`;
+    setDescription(newDescription);
+    setShowMentionDropdown(false);
+    
+    if (!miembros.some(m => m.userId === user.user_id) && user.user_id !== assignedTo) {
+      setMiembros(prev => [...prev, { userId: user.user_id, nombre: user.nombre, asignaciones: [] }]);
+    }
+  };
+
+  const usuariosParaMencion = usuarios.filter(u => 
+    u.activo &&
+    u.nombre.toLowerCase().includes(mentionSearchTerm.toLowerCase()) &&
+    u.user_id !== assignedTo &&
+    !miembros.some(m => m.userId === u.user_id)
+  );
 
   const sendPushNotification = async (titulo: string, mensaje: string, userIds: string[]) => {
     try {
       if (userIds.length === 0) return;
-
       await fetch('/api/push/broadcast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -93,31 +244,36 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
     }
   };
 
+  // ── Submit ───────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
     if (!title.trim() || !dueDate) {
       setError('Por favor completa el título y la fecha.');
-      toast.warning('Faltan datos obligatorios'); 
+      toast.warning('Faltan datos obligatorios');
       return;
     }
-
+    
     try {
       const asignadoA = esJefe ? assignedTo : usuarioActual;
       const tituloActividad = title.trim();
       const nombreAsignador = usuarios.find((u) => u.user_id === usuarioActual)?.nombre || 'Alguien';
       const esAutoAsignada = asignadoA === usuarioActual;
+      const esGrupal = miembros.length > 0;
 
       await crear.mutateAsync({
         title: tituloActividad,
         description,
         due_date: new Date(dueDate).toISOString(),
         assigned_to: asignadoA,
-        checklist: checklist,
-        status: 'Asignado'
+        checklist: [],
+        status: 'Asignado',
+        miembros: esGrupal
+          ? miembros.map(m => ({ userId: m.userId, asignaciones: m.asignaciones }))
+          : undefined,
       });
 
+      // Notificar al encargado
       sendPushNotification(
         esAutoAsignada ? '📋 Actividad auto-asignada' : '📋 Nueva Actividad Asignada',
         esAutoAsignada
@@ -125,28 +281,31 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
           : `✅ ${nombreAsignador} te asignó una actividad: "${tituloActividad}".`,
         [asignadoA]
       );
-      
-      toast.success('¡Tarea creada correctamente!'); 
 
-      setTitle('');
-      setDescription('');
-      setDueDate(obtenerFechaPorDefecto());
-      setChecklist([]);
-      setAssignedTo(usuarioActual);
-      setSearchTerm(''); 
+      // Notificar a los miembros grupales
+      if (esGrupal) {
+        sendPushNotification(
+          '👥 Nueva Actividad Grupal',
+          `Se te ha asignado como participante en: "${tituloActividad}"`,
+          miembros.map(m => m.userId)
+        );
+      }
+
+      toast.success('¡Actividad creada correctamente!');
+      localStorage.removeItem(CACHE_KEY); // Clear cache after success
       onClose();
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'Error al crear la tarea');
-      toast.error(err.message || 'Error al guardar'); 
+      setError(err.message || 'Error al crear la actividad');
+      toast.error(err.message || 'Error al guardar');
     }
   };
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
       <div className="fixed -inset-[100vmax] bg-black/5 dark:bg-black/20 backdrop-blur-md -z-10 pointer-events-none" />
-      <div className="bg-white dark:bg-neutral-900 w-full rounded-t-2xl sm:rounded-2xl shadow-2xl sm:max-w-4xl lg:max-w-5xl max-h-[90vh] overflow-y-auto flex flex-col transition-colors duration-200">
-        
+      <div className="bg-white dark:bg-neutral-900 w-full sm:max-w-lg lg:max-w-xl rounded-none sm:rounded-2xl shadow-2xl h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto flex flex-col transition-colors duration-200">
+
+        {/* Header */}
         <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-100 dark:border-neutral-800 bg-white dark:bg-neutral-900 sticky top-0 z-10">
           <h2 className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-500">Nueva Actividad</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-colors text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
@@ -155,164 +314,132 @@ export default function NewTarea({ isOpen, onClose, usuarios, usuarioActual, esJ
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="space-y-5">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Título de la actividad</label>
+          <div className="flex flex-col gap-5">
+            {/* Título */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Título de la actividad</label>
+              <input
+                type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ej. Revisar documentación..."
+                className="w-full p-3 sm:p-4 bg-gray-50 dark:bg-neutral-800 border border-gray-100 dark:border-neutral-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-base text-gray-700 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+                autoFocus
+              />
+            </div>
+
+            {/* Fecha */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <Calendar size={14} /> Fecha Límite
+              </label>
+              <input
+                type="datetime-local" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
+                className="w-full p-3 bg-gray-50 dark:bg-neutral-800 border border-gray-100 dark:border-neutral-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-base text-gray-700 dark:text-gray-100 dark:[color-scheme:dark]"
+              />
+            </div>
+
+            {/* Encargado */}
+            <div className="space-y-2 relative">
+              <label className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <User size={14} /> Encargado
+              </label>
+              <div className="relative">
                 <input
                   type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Ej. Revisar documentación..."
-                  className="w-full p-3 sm:p-4 bg-gray-50 dark:bg-neutral-800 border-gray-100 dark:border-neutral-700 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all text-base text-gray-700 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
-                  autoFocus
+                  value={!esJefe ? '(Auto-asignado a mí)' : searchTerm}
+                  onChange={(e) => { setSearchTerm(e.target.value); setShowDropdown(true); if (!e.target.value.trim()) setAssignedTo(usuarioActual); }}
+                  onFocus={() => esJefe && setShowDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                  disabled={!esJefe}
+                  placeholder={esJefe ? "Escribe un nombre..." : "(Auto-asignado a mí)"}
+                  className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-base transition-colors
+                    ${esJefe ? 'bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-100 placeholder-gray-400' : 'bg-gray-100 dark:bg-neutral-800/50 border-gray-200 dark:border-neutral-700 text-gray-400 cursor-not-allowed'}`}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  <Calendar size={14} /> Fecha Límite
-                </label>
-                <input
-                  type="datetime-local"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="w-full p-3 bg-gray-50 dark:bg-neutral-800 border-gray-100 dark:border-neutral-700 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-base text-gray-700 dark:text-gray-100 dark:[color-scheme:dark]"
-                />
-              </div>
-
-              <div className="space-y-2 relative">
-                <label className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  <User size={14} /> Asignar a
-                </label>
-                
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={!esJefe ? '(Auto-asignado a mí)' : searchTerm}
-                    onChange={handleSearchChange}
-                    onFocus={() => esJefe && setShowDropdown(true)}
-                    onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-                    disabled={!esJefe}
-                    placeholder={esJefe ? "Escribe un nombre..." : "(Auto-asignado a mí)"}
-                    className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-base transition-colors
-                      ${esJefe 
-                        ? 'bg-white dark:bg-neutral-800 border-gray-200 dark:border-neutral-700 text-gray-700 dark:text-gray-100 placeholder-gray-400' 
-                        : 'bg-gray-100 dark:bg-neutral-800/50 border-gray-200 dark:border-neutral-700 text-gray-400 cursor-not-allowed'
-                      }`}
-                  />
-
-                  {esJefe && showDropdown && (
-                    <div className="absolute z-50 w-full mt-1 bg-white dark:bg-neutral-800 border border-gray-100 dark:border-neutral-700 rounded-xl shadow-xl max-h-48 overflow-y-auto">
-                      <button
-                        type="button"
-                        onClick={() => handleSelectUser(usuarioActual, '(A mí mismo)')}
-                        className="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-sm text-blue-600 dark:text-blue-400 font-medium border-b border-gray-50 dark:border-neutral-700"
-                      >
-                        Asignarme a mí
+                {esJefe && showDropdown && (
+                  <div className="absolute z-50 w-full mt-1 bg-white dark:bg-neutral-800 border border-gray-100 dark:border-neutral-700 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+                    <button type="button" onClick={() => handleSelectEncargado(usuarioActual, '(A mí mismo)')}
+                      className="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-sm text-blue-600 dark:text-blue-400 font-medium border-b border-gray-50 dark:border-neutral-700">
+                      Asignarme a mí
+                    </button>
+                    {filteredUsuarios.filter(u => u.user_id !== usuarioActual).map(u => (
+                      <button key={u.user_id} type="button" onMouseDown={(e) => { e.preventDefault(); handleSelectEncargado(u.user_id, u.nombre); }}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-200 text-sm transition-colors border-b border-gray-50 dark:border-neutral-700/50 last:border-0">
+                        {u.nombre}
                       </button>
-                      {filteredUsuarios.length > 0 ? (
-                        filteredUsuarios.filter(u => u.user_id !== usuarioActual).map((user) => (
-                          <button
-                            key={user.user_id}
-                            type="button"
-                            onClick={() => handleSelectUser(user.user_id, user.nombre)}
-                            className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-200 text-sm transition-colors border-b border-gray-50 dark:border-neutral-700/50 last:border-0"
-                          >
-                            {user.nombre}
-                          </button>
-                        ))
-                      ) : (
-                        <div className="p-3 text-center text-gray-400 text-xs italic">No se encontraron empleados</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                {esJefe && (
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500 ml-1">
-                    {searchTerm.trim() === '' ? '* Vacío = Se te asigna a ti.' : 'Selecciona de la lista.'}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  <AlignLeft size={14} /> Descripción
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Detalles adicionales..."
-                  rows={3}
-                  className="w-full p-3 sm:p-4 bg-gray-50 dark:bg-neutral-800 border-gray-100 dark:border-neutral-700 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all text-base text-gray-700 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 resize-none"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col justify-stretch">
-              <div className="space-y-3 bg-blue-50/30 dark:bg-blue-900/10 p-3 sm:p-4 rounded-xl border border-blue-100/50 dark:border-blue-800/50 h-full flex flex-col min-h-[260px] lg:min-h-full">
-                <label className="flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                  <CheckSquare size={14} /> Lista de pendientes
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={checklistInput}
-                    onChange={(e) => setChecklistInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && addChecklistItem(e)}
-                    placeholder="Escribe aquí..."
-                    className="flex-1 p-3 bg-white dark:bg-neutral-900 border border-blue-100 dark:border-blue-900 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none text-base text-gray-700 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
-                  />
-                  <button type="button" onClick={() => addChecklistItem()} className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-colors flex items-center justify-center shrink-0">
-                    <Plus size={20} />
-                  </button>
-                </div>
-                {checklist.length > 0 ? (
-                  <div className="space-y-2 max-h-56 lg:max-h-none overflow-y-auto pr-1 mt-2 custom-scrollbar flex-1">
-                    {checklist.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between bg-white dark:bg-neutral-900 p-3 rounded-lg border border-gray-100 dark:border-neutral-800 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-                        <span className="text-sm text-gray-600 dark:text-gray-300 truncate flex-1 mr-2">• {item.title}</span>
-                        <button type="button" onClick={() => removeChecklistItem(idx)} className="text-red-400 hover:text-red-600 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors">
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-center text-gray-400 dark:text-gray-500 text-sm py-12 italic my-auto">Sin pendientes asignados</p>
+                )}
+              </div>
+              {esJefe && (
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 ml-1">
+                  {searchTerm.trim() === '' ? '* Vacío = Se te asigna a ti.' : 'Selecciona de la lista.'}
+                </p>
+              )}
+            </div>
+
+            {/* Descripción */}
+            <div className="space-y-2 relative">
+              <label className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <AlignLeft size={14} /> Descripción
+              </label>
+              <div className="relative">
+                <div 
+                  ref={backdropRef}
+                  className="absolute inset-0 border border-transparent p-3 sm:p-4 text-base font-sans leading-normal tracking-normal whitespace-pre-wrap break-words overflow-hidden pointer-events-none rounded-xl"
+                  style={{ 
+                    letterSpacing: 'normal',
+                    wordSpacing: 'normal',
+                    color: 'var(--tw-text-opacity) == 1 ? currentColor : "transparent"',
+                  }}
+                  aria-hidden="true"
+                >
+                  <div className={`w-full h-full text-gray-700 dark:text-gray-100 ${!description ? 'opacity-0' : 'opacity-100'}`}>
+                    {renderHighlightedText()}
+                    {description.endsWith('\n') ? <br /> : null}
+                  </div>
+                </div>
+                <textarea 
+                  value={description} 
+                  onChange={handleDescriptionChange}
+                  onKeyDown={handleKeyDown}
+                  onScroll={handleScroll}
+                  placeholder="Detalles adicionales... (Usa @ para mencionar usuarios)" 
+                  rows={4}
+                  className={`w-full p-3 sm:p-4 bg-transparent border border-gray-100 dark:border-neutral-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-base font-sans leading-normal tracking-normal whitespace-pre-wrap break-words placeholder-gray-400 dark:placeholder-gray-500 resize-none relative z-10 custom-scrollbar ${description ? 'text-transparent' : 'text-gray-700 dark:text-gray-100'}`}
+                  style={{ caretColor: '#3b82f6', letterSpacing: 'normal', wordSpacing: 'normal' }}
+                />
+                {showMentionDropdown && usuariosParaMencion.length > 0 && (
+                  <div className="absolute z-50 w-full bottom-full mb-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl max-h-40 overflow-y-auto ring-1 ring-black/5 dark:ring-white/10">
+                    {usuariosParaMencion.map(u => (
+                      <button key={u.user_id} type="button" onMouseDown={(e) => { e.preventDefault(); insertMention(u); }}
+                        className="w-full text-left px-4 py-2 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-gray-800 dark:text-gray-100 text-sm border-b border-slate-200 dark:border-slate-700/50 last:border-0 transition-colors">
+                        {u.nombre}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
+
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-2">
-            <div>
-              {error && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg border border-red-100 dark:border-red-900 flex items-center gap-2">
-                  <span>⚠️</span> {error}
-                </div>
-              )}
-            </div>
-            <div className="pb-2 sm:pb-0">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 sm:py-4 rounded-xl shadow-lg shadow-blue-200 dark:shadow-none active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base"
-              >
+          {/* Footer */}
+          <div className="flex flex-col items-center justify-center gap-4 pt-4 mt-2 border-t border-gray-100 dark:border-neutral-800">
+            {error && (
+              <div className="w-full p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg border border-red-100 dark:border-red-900 flex items-center justify-center gap-2">
+                <span>⚠️</span> {error}
+              </div>
+            )}
+            <div className="w-full pb-2">
+              <button type="submit" disabled={isSubmitting}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 sm:py-4 rounded-xl shadow-lg shadow-blue-200 dark:shadow-none active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-base">
                 {isSubmitting ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Creando...
-                  </>
+                  <><div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Creando...</>
                 ) : (
-                  <>
-                    <Plus size={20} /> Crear Actividad
-                  </>
+                  <><Plus size={20} /> Crear Actividad</>
                 )}
               </button>
             </div>
           </div>
-
         </form>
       </div>
     </div>

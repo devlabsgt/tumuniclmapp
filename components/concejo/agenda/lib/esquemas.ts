@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { ArchivoAdjunto } from '@/components/tareas/types';
+import type { ArchivoAdjunto, ActMiembro } from '@/components/tareas/types';
 
 export interface AgendaConcejo {
   id: string;
@@ -33,6 +33,7 @@ export interface CategoriaItem {
 export interface UsuarioAsignable {
   user_id: string;
   nombre: string;
+  activo?: boolean;
 }
 
 export interface ActividadConcejo {
@@ -48,6 +49,7 @@ export interface ActividadConcejo {
   checklist?: { title: string; is_completed: boolean }[] | null;
   archivos?: ArchivoAdjunto[] | null;
   created_at?: string;
+  miembros?: ActMiembro[];
 }
 
 export interface ActividadConcejoConContexto extends ActividadConcejo {

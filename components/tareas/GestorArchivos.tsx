@@ -12,9 +12,11 @@ interface Props {
   archivosIniciales: ArchivoAdjunto[] | null;
   esLectura?: boolean;
   onVerPdf?: (archivo: ArchivoAdjunto) => void;
+  nombreUsuarioActual?: string;
 }
 
-export default function GestorArchivos({ tareaId, archivosIniciales, esLectura, onVerPdf }: Props) {
+
+export default function GestorArchivos({ tareaId, archivosIniciales, esLectura, onVerPdf, nombreUsuarioActual }: Props) {
   const [archivos, setArchivos] = useState<ArchivoAdjunto[]>(archivosIniciales || []);
   const [isUploading, setIsUploading] = useState(false);
   const [mostrarLinkInput, setMostrarLinkInput] = useState(false);
@@ -67,7 +69,8 @@ export default function GestorArchivos({ tareaId, archivosIniciales, esLectura, 
         tipo: 'pdf',
         nombre: file.name,
         url: publicUrlData.publicUrl,
-        ruta_storage: filePath
+        ruta_storage: filePath,
+        cargado_por: nombreUsuarioActual || undefined,
       });
     }
 
@@ -89,7 +92,8 @@ export default function GestorArchivos({ tareaId, archivosIniciales, esLectura, 
       id: crypto.randomUUID(),
       tipo: 'enlace',
       nombre: nuevoLinkNombre || urlToSave,
-      url: urlToSave
+      url: urlToSave,
+      cargado_por: nombreUsuarioActual || undefined,
     }];
 
     setArchivos(nuevos);
@@ -131,8 +135,12 @@ export default function GestorArchivos({ tareaId, archivosIniciales, esLectura, 
     }
 
     e.preventDefault();
-    if (archivo.tipo === 'pdf' && archivo.ruta_storage) {
-      abrirPdf(archivo);
+    if (archivo.tipo === 'pdf') {
+      if (archivo.ruta_storage) {
+        abrirPdf(archivo);
+      } else if (archivo.url) {
+        window.open(archivo.url, '_blank', 'noopener,noreferrer');
+      }
     }
   };
 
@@ -222,6 +230,9 @@ export default function GestorArchivos({ tareaId, archivosIniciales, esLectura, 
                   <span className="text-[11px] text-slate-400 dark:text-gray-500 truncate flex items-center gap-1 font-medium mt-0.5">
                     {archivo.tipo === 'pdf' ? 'Documento PDF' : 'Enlace externo'}
                     {archivo.tipo === 'enlace' ? <ExternalLink size={10} className="opacity-70" /> : null}
+                    {archivo.cargado_por && (
+                      <span className="ml-1 text-slate-300 dark:text-gray-600">· Subido por: {archivo.cargado_por}</span>
+                    )}
                   </span>
                 </div>
               </button>

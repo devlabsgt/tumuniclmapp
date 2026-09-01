@@ -15,6 +15,8 @@ export async function actualizarInfoPersonal(userId: string, formData: any) {
       cuenta_no: formData.cuenta_no || null,
       direccion: formData.direccion || null,
       nacimiento: formData.nacimiento || null,
+      domicilio: formData.domicilio || null,
+      vecindad: formData.vecindad || null,
     })
     .eq('user_id', userId);
 
@@ -31,7 +33,7 @@ export async function obtenerInfoUsuario(userId: string) {
 
   const { data, error } = await supabase
     .from('info_usuario')
-    .select('telefono, dpi, nit, igss, cuenta_no, direccion, nacimiento')
+    .select('telefono, dpi, nit, igss, cuenta_no, direccion, nacimiento, domicilio, vecindad')
     .eq('user_id', userId)
     .single();
 
@@ -48,5 +50,7 @@ export async function obtenerInfoUsuario(userId: string) {
     cuenta_no: data.cuenta_no || null,
     direccion: data.direccion || null,
     nacimiento: data.nacimiento || null,
+    domicilio: data.domicilio || null,
+    vecindad: data.vecindad || null,
   };
 }

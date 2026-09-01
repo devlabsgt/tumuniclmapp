@@ -9,6 +9,11 @@ interface ChecklistItemInput {
   is_completed: boolean;
 }
 
+export interface MiembroInput {
+  userId: string;
+  asignaciones?: { title: string; is_complete: boolean }[];
+}
+
 interface CrearActividadInput {
   tareaConcejoId: string;
   title: string;
@@ -16,6 +21,7 @@ interface CrearActividadInput {
   due_date: string;
   assigned_to: string;
   checklist?: ChecklistItemInput[];
+  miembros?: MiembroInput[];
 }
 
 interface EditarActividadInput {
@@ -23,6 +29,7 @@ interface EditarActividadInput {
   description?: string | null;
   due_date: string;
   assigned_to: string;
+  nuevosMiembros?: MiembroInput[];
 }
 
 export async function obtenerUsuariosAsignables(): Promise<UsuarioAsignable[]> {
@@ -76,12 +83,31 @@ export async function obtenerActividadesDeAgenda(
     new Set(tasks.map((t) => t.assigned_to).filter((id): id is string => !!id)),
   );
 
-  const { data: usuarios } = assignedIds.length
-    ? await supabase.from('info_usuario').select('user_id, nombre').in('user_id', assignedIds)
+  const { data: rawMiembros } = await supabase
+    .from('act_miembros')
+    .select('*')
+    .in('id_act', taskIds)
+    .order('created_at', { ascending: true });
+
+  const memberUserIds = (rawMiembros || []).map((m: any) => m.id_user);
+  const allUserIds = Array.from(new Set([...assignedIds, ...memberUserIds]));
+
+  const { data: usuarios } = allUserIds.length
+    ? await supabase.from('info_usuario').select('user_id, nombre').in('user_id', allUserIds)
     : { data: [] as { user_id: string; nombre: string }[] };
 
   const nombrePorId = new Map((usuarios || []).map((u) => [u.user_id, u.nombre]));
   const tareaPorTask = new Map(enlaces.map((e) => [e.task_id, e.tarea_concejo_id]));
+
+  const miembrosPorTask = new Map<string, any[]>();
+  (rawMiembros || []).forEach((m: any) => {
+    const list = miembrosPorTask.get(m.id_act) || [];
+    list.push({
+      ...m,
+      nombre_usuario: nombrePorId.get(m.id_user) || 'Desconocido',
+    });
+    miembrosPorTask.set(m.id_act, list);
+  });
 
   const resultado: Record<string, ActividadConcejo[]> = {};
 
@@ -105,6 +131,7 @@ export async function obtenerActividadesDeAgenda(
         checklist: t.checklist as ActividadConcejo['checklist'],
         archivos: (t.archivos as ActividadConcejo['archivos']) ?? null,
         created_at: t.created_at,
+        miembros: miembrosPorTask.get(t.id) || [],
       };
 
       if (!resultado[tareaConcejoId]) resultado[tareaConcejoId] = [];
@@ -146,9 +173,9 @@ export async function obtenerTodasActividadesConcejo(): Promise<ActividadConcejo
 
   const { data: agendas } = agendaIds.length
     ? await supabase
-        .from('agenda_concejo')
-        .select('id, titulo, fecha_reunion, estado, descripcion')
-        .in('id', agendaIds)
+      .from('agenda_concejo')
+      .select('id, titulo, fecha_reunion, estado, descripcion')
+      .in('id', agendaIds)
     : { data: [] as { id: string; titulo: string; fecha_reunion: string; estado: string; descripcion: string }[] };
 
   const agendaMap = new Map((agendas || []).map((a) => [a.id, a]));
@@ -157,12 +184,31 @@ export async function obtenerTodasActividadesConcejo(): Promise<ActividadConcejo
     new Set(tasks.map((t) => t.assigned_to).filter((id): id is string => !!id)),
   );
 
-  const { data: usuarios } = assignedIds.length
-    ? await supabase.from('info_usuario').select('user_id, nombre').in('user_id', assignedIds)
+  const { data: rawMiembros } = await supabase
+    .from('act_miembros')
+    .select('*')
+    .in('id_act', taskIds)
+    .order('created_at', { ascending: true });
+
+  const memberUserIds = (rawMiembros || []).map((m: any) => m.id_user);
+  const allUserIds = Array.from(new Set([...assignedIds, ...memberUserIds]));
+
+  const { data: usuarios } = allUserIds.length
+    ? await supabase.from('info_usuario').select('user_id, nombre').in('user_id', allUserIds)
     : { data: [] as { user_id: string; nombre: string }[] };
 
   const nombrePorId = new Map((usuarios || []).map((u) => [u.user_id, u.nombre]));
   const taskMap = new Map(tasks.map((t) => [t.id, t]));
+
+  const miembrosPorTask = new Map<string, any[]>();
+  (rawMiembros || []).forEach((m: any) => {
+    const list = miembrosPorTask.get(m.id_act) || [];
+    list.push({
+      ...m,
+      nombre_usuario: nombrePorId.get(m.id_user) || 'Desconocido',
+    });
+    miembrosPorTask.set(m.id_act, list);
+  });
 
   const resultado: ActividadConcejoConContexto[] = [];
 
@@ -185,6 +231,7 @@ export async function obtenerTodasActividadesConcejo(): Promise<ActividadConcejo
       checklist: t.checklist as ActividadConcejo['checklist'],
       archivos: (t.archivos as ActividadConcejo['archivos']) ?? null,
       created_at: t.created_at,
+      miembros: miembrosPorTask.get(t.id) || [],
       punto_id: enlace.tarea_concejo_id,
       punto_titulo: punto?.titulo_item || 'Punto desconocido',
       agenda_id: punto?.agenda_concejo_id || '',
@@ -229,11 +276,30 @@ export async function obtenerActividadesDePunto(
     new Set(tasks.map((t) => t.assigned_to).filter((id): id is string => !!id)),
   );
 
-  const { data: usuarios } = assignedIds.length
-    ? await supabase.from('info_usuario').select('user_id, nombre').in('user_id', assignedIds)
+  const { data: rawMiembros } = await supabase
+    .from('act_miembros')
+    .select('*')
+    .in('id_act', taskIds)
+    .order('created_at', { ascending: true });
+
+  const memberUserIds = (rawMiembros || []).map((m: any) => m.id_user);
+  const allUserIds = Array.from(new Set([...assignedIds, ...memberUserIds]));
+
+  const { data: usuarios } = allUserIds.length
+    ? await supabase.from('info_usuario').select('user_id, nombre').in('user_id', allUserIds)
     : { data: [] as { user_id: string; nombre: string }[] };
 
   const nombrePorId = new Map((usuarios || []).map((u) => [u.user_id, u.nombre]));
+
+  const miembrosPorTask = new Map<string, any[]>();
+  (rawMiembros || []).forEach((m: any) => {
+    const list = miembrosPorTask.get(m.id_act) || [];
+    list.push({
+      ...m,
+      nombre_usuario: nombrePorId.get(m.id_user) || 'Desconocido',
+    });
+    miembrosPorTask.set(m.id_act, list);
+  });
 
   return tasks.map((t) => ({
     id: t.id,
@@ -248,6 +314,7 @@ export async function obtenerActividadesDePunto(
     checklist: t.checklist as ActividadConcejo['checklist'],
     archivos: (t.archivos as ActividadConcejo['archivos']) ?? null,
     created_at: t.created_at,
+    miembros: miembrosPorTask.get(t.id) || [],
   }));
 }
 
@@ -281,6 +348,27 @@ export async function crearActividadConcejo(input: CrearActividadInput): Promise
   if (errorEnlace) {
     await supabase.from('tasks').delete().eq('id', task.id);
     throw new Error(errorEnlace.message);
+  }
+
+  // Insertar miembros si los hay
+  if (input.miembros && input.miembros.length > 0) {
+    const miembrosInsert = input.miembros
+      .filter((m) => m.userId !== input.assigned_to)
+      .map((m) => ({
+        id_act: task.id,
+        id_user: m.userId,
+        asignaciones: m.asignaciones || [],
+      }));
+
+    if (miembrosInsert.length > 0) {
+      const { error: errorMiembros } = await supabase
+        .from('act_miembros')
+        .insert(miembrosInsert);
+
+      if (errorMiembros) {
+        console.error('Error insertando miembros en concejo:', errorMiembros);
+      }
+    }
   }
 
   revalidatePath('/sigem/actividades', 'layout');
@@ -330,6 +418,27 @@ export async function editarActividadConcejo(
 
   const { error } = await supabase.from('tasks').update(updates).eq('id', taskId);
   if (error) throw new Error(error.message);
+
+  // Insertar nuevos miembros si se especificaron
+  if (input.nuevosMiembros && input.nuevosMiembros.length > 0) {
+    const { data: existing } = await supabase
+      .from('act_miembros')
+      .select('id_user')
+      .eq('id_act', taskId);
+
+    const existingUserIds = new Set((existing || []).map((e: any) => e.id_user));
+    const toInsert = input.nuevosMiembros
+      .filter((m) => m.userId !== (actual?.assigned_to || input.assigned_to) && !existingUserIds.has(m.userId))
+      .map((m) => ({
+        id_act: taskId,
+        id_user: m.userId,
+        asignaciones: m.asignaciones || [],
+      }));
+
+    if (toInsert.length > 0) {
+      await supabase.from('act_miembros').insert(toInsert);
+    }
+  }
 
   revalidatePath('/sigem/actividades', 'layout');
 }

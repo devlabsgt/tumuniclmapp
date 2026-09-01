@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ChecklistItem } from './types';
 import Swal from 'sweetalert2';
 import { toast } from 'react-toastify';
@@ -11,10 +11,16 @@ interface Props {
   tareaId: string;
   checklist: ChecklistItem[];
   isReadOnly: boolean; 
+  onComplete?: () => void;
+  canComplete?: boolean;
+  isCompleting?: boolean;
 }
 
-export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props) {
+export default function TareaChecklist({ tareaId, checklist, isReadOnly, onComplete, canComplete, isCompleting }: Props) {
   const { actualizarChecklist } = useTareaMutations(); 
+
+  const [localChecklist, setLocalChecklist] = useState<ChecklistItem[]>(checklist);
+  const latestChecklist = useRef<ChecklistItem[]>(checklist);
 
   const [newItemText, setNewItemText] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -23,21 +29,36 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
   const [pendingIndices, setPendingIndices] = useState<number[]>([]);
   const [isTogglingAll, setIsTogglingAll] = useState(false);
 
-  const allCompleted = checklist.length > 0 && checklist.every(item => item.is_completed);
+  // Mecanismo para evitar que react-query sobrescriba la UI con caché viejo justo después de mutar
+  const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isSyncPaused, setIsSyncPaused] = useState(false);
 
-  const sortedChecklist = checklist
-    .map((item, index) => ({ ...item, originalIndex: index }))
-    .sort((a, b) => {
-        return Number(a.is_completed) - Number(b.is_completed);
-    });
+  const pauseSync = () => {
+      setIsSyncPaused(true);
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+      syncTimeoutRef.current = setTimeout(() => setIsSyncPaused(false), 2000);
+  };
+
+  useEffect(() => {
+    // Sincronizar solo si no hay operaciones en curso y no estamos en pausa (evita parpadeos de caché)
+    if (pendingIndices.length === 0 && !isTogglingAll && !isAdding && editingStepIndex === null && !isSyncPaused) {
+      setLocalChecklist(checklist);
+      latestChecklist.current = checklist;
+    }
+  }, [checklist, pendingIndices.length, isTogglingAll, isAdding, editingStepIndex, isSyncPaused]);
+
+  const allCompleted = localChecklist.length > 0 && localChecklist.every(item => item.is_completed);
+
+  const sortedChecklist = localChecklist
+    .map((item, index) => ({ ...item, originalIndex: index }));
 
   const toggleAll = async () => {
-    if (isReadOnly || isTogglingAll || checklist.length === 0) return;
+    if (isReadOnly || isTogglingAll || localChecklist.length === 0) return;
 
     const actionText = allCompleted ? 'desmarcar' : 'completar';
     const result = await Swal.fire({
-        title: `¿${allCompleted ? 'Desmarcar' : 'Completar'} todos los pasos?`,
-        text: `¿Estás seguro de que deseas ${actionText} todos los pasos de la lista?`,
+        title: `¿${allCompleted ? 'Desmarcar' : 'Completar'} todas las actividades?`,
+        text: `¿Estás seguro de que deseas ${actionText} todas las actividades de la lista?`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#3b82f6',
@@ -48,14 +69,22 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
 
     if (!result.isConfirmed) return;
 
+    pauseSync();
     setIsTogglingAll(true);
     const newState = !allCompleted;
-    const newChecklist = checklist.map(item => ({ ...item, is_completed: newState }));
+    
+    // UI Optimista a prueba de carreras
+    const actuales = latestChecklist.current.map(item => ({ ...item, is_completed: newState }));
+    latestChecklist.current = actuales;
+    setLocalChecklist(actuales);
 
     try {
-        await actualizarChecklist.mutateAsync({ id: tareaId, items: newChecklist });
+        await actualizarChecklist.mutateAsync({ id: tareaId, items: actuales });
         toast.success(newState ? 'Todos completados' : 'Todos desmarcados');
     } catch (error) {
+        // En caso de error extremo revierte al estado del servidor original
+        latestChecklist.current = checklist;
+        setLocalChecklist(checklist); 
         toast.error('Error al actualizar todos');
     } finally {
         setIsTogglingAll(false);
@@ -65,14 +94,22 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
   const toggleCheck = async (idx: number) => {
     if (editingStepIndex !== null || isReadOnly || pendingIndices.includes(idx)) return;
 
+    pauseSync();
     setPendingIndices(prev => [...prev, idx]);
 
-    const newChecklist = [...checklist];
-    newChecklist[idx].is_completed = !newChecklist[idx].is_completed;
+    // UI Optimista robusta
+    const actuales = [...latestChecklist.current];
+    actuales[idx] = { ...actuales[idx], is_completed: !actuales[idx].is_completed };
+    
+    latestChecklist.current = actuales;
+    setLocalChecklist(actuales);
 
     try { 
-        await actualizarChecklist.mutateAsync({ id: tareaId, items: newChecklist });
+        await actualizarChecklist.mutateAsync({ id: tareaId, items: actuales });
     } catch (error) { 
+        actuales[idx].is_completed = !actuales[idx].is_completed;
+        latestChecklist.current = actuales;
+        setLocalChecklist([...actuales]);
         toast.error('Error al actualizar'); 
     } finally {
         setPendingIndices(prev => prev.filter(i => i !== idx));
@@ -81,20 +118,34 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
 
   const handleAddItem = async () => {
     if (!newItemText.trim() || isReadOnly) return;
+    pauseSync();
     setIsAdding(true);
     const newItem: ChecklistItem = { title: newItemText, is_completed: false };
-    const newChecklist = [...checklist, newItem];
+    
+    const actuales = [...latestChecklist.current, newItem];
+    latestChecklist.current = actuales;
+    setLocalChecklist(actuales);
+    
+    const previousText = newItemText;
+    setNewItemText('');
+
     try {
-        await actualizarChecklist.mutateAsync({ id: tareaId, items: newChecklist });
-        setNewItemText('');
-        toast.success('Paso agregado');
-    } catch (error) { toast.error('Error'); } finally { setIsAdding(false); }
+        await actualizarChecklist.mutateAsync({ id: tareaId, items: actuales });
+        toast.success('Actividad agregada');
+    } catch (error) { 
+        setNewItemText(previousText);
+        latestChecklist.current = checklist;
+        setLocalChecklist(checklist);
+        toast.error('Error al agregar actividad'); 
+    } finally { 
+        setIsAdding(false); 
+    }
   };
 
   const handleDeleteItem = async (idx: number) => {
     if (isReadOnly) return;
     const result = await Swal.fire({
-        title: '¿Eliminar paso?',
+        title: '¿Eliminar actividad?',
         text: "No podrás revertir esta acción",
         icon: 'warning',
         showCancelButton: true,
@@ -104,12 +155,20 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
         cancelButtonText: 'Cancelar'
     });
 
-    if (result.isConfirmed) {
-        const newChecklist = checklist.filter((_, index) => index !== idx);
-        try { 
-            await actualizarChecklist.mutateAsync({ id: tareaId, items: newChecklist });
-            toast.info('Paso eliminado'); 
-        } catch (error) { toast.error('Error al eliminar paso'); }
+    if (!result.isConfirmed) return;
+
+    pauseSync();
+    const actuales = latestChecklist.current.filter((_, i) => i !== idx);
+    latestChecklist.current = actuales;
+    setLocalChecklist(actuales);
+
+    try {
+        await actualizarChecklist.mutateAsync({ id: tareaId, items: actuales });
+        toast.success('Actividad eliminada');
+    } catch (error) {
+        latestChecklist.current = checklist;
+        setLocalChecklist(checklist);
+        toast.error('Error al eliminar');
     }
   };
 
@@ -120,15 +179,33 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
   };
 
   const saveStepEdit = async (idx: number) => {
-    if (!editingStepText.trim()) return;
-    const newChecklist = [...checklist];
-    newChecklist[idx].title = editingStepText;
-    try {
-        await actualizarChecklist.mutateAsync({ id: tareaId, items: newChecklist });
+    if (!editingStepText.trim()) {
         setEditingStepIndex(null);
-        setEditingStepText('');
-        toast.success('Paso modificado');
-    } catch (error) { toast.error('Error al guardar paso'); }
+        return;
+    }
+    
+    pauseSync();
+    const actuales = [...latestChecklist.current];
+    actuales[idx] = { ...actuales[idx], title: editingStepText };
+    
+    latestChecklist.current = actuales;
+    setLocalChecklist(actuales);
+
+    const prevIndex = editingStepIndex;
+    const prevText = editingStepText;
+    setEditingStepIndex(null);
+    setEditingStepText('');
+
+    try {
+        await actualizarChecklist.mutateAsync({ id: tareaId, items: actuales });
+        toast.success('Actividad guardada');
+    } catch (error) { 
+        setEditingStepIndex(prevIndex);
+        setEditingStepText(prevText);
+        latestChecklist.current = checklist;
+        setLocalChecklist(checklist);
+        toast.error('Error al guardar'); 
+    }
   };
 
   return (
@@ -176,13 +253,9 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
                 <li key={idx} 
                     className={`
                         flex items-start sm:items-center justify-between text-sm p-2 rounded-lg transition-all duration-300 group border
-                        ${isPending 
-                            ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800' 
-                            : 'border-transparent'
-                        }
-                        ${item.is_completed && !isPending
-                            ? 'bg-slate-50/50 dark:bg-neutral-800/30' 
-                            : !isPending && 'hover:bg-slate-50 dark:hover:bg-neutral-800 hover:border-slate-100 dark:hover:border-neutral-700'}
+                        ${item.is_completed
+                            ? 'bg-slate-50/50 dark:bg-neutral-800/30 border-transparent' 
+                            : 'hover:bg-slate-50 dark:hover:bg-neutral-800 hover:border-slate-100 dark:hover:border-neutral-700 border-transparent'}
                     `}
                 >
                       <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -193,23 +266,18 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
                                 transition-all duration-200 ease-in-out transform
                                 ${!isReadOnly && !isPending ? 'active:scale-75 active:bg-slate-200 cursor-pointer' : ''}
                                 ${isReadOnly ? 'cursor-not-allowed opacity-60' : ''}
-                                ${isPending
-                                    ? 'bg-white dark:bg-neutral-800 border-blue-400 dark:border-blue-500 ring-2 ring-blue-200 dark:ring-blue-900 shadow-md scale-105' 
-                                    : item.is_completed 
-                                        ? 'bg-green-500 border-green-500 shadow-sm rotate-0' 
-                                        : 'bg-white dark:bg-neutral-800 border-slate-300 dark:border-neutral-600 hover:border-blue-400 dark:hover:border-blue-500 rotate-0'
+                                ${item.is_completed 
+                                    ? 'bg-green-500 border-green-500 shadow-sm rotate-0' 
+                                    : 'bg-white dark:bg-neutral-800 border-slate-300 dark:border-neutral-600 hover:border-blue-400 dark:hover:border-blue-500 rotate-0'
                                 }
+                                ${isPending ? 'opacity-80' : ''}
                             `}
                         >
-                            {isPending ? (
-                                <Loader2 size={12} className="animate-spin text-blue-500" />
-                            ) : (
-                                <Check 
-                                    size={14} 
-                                    className={`text-white transition-all duration-200 ${item.is_completed ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} 
-                                    strokeWidth={4} 
-                                />
-                            )}
+                            <Check 
+                                size={14} 
+                                className={`text-white transition-all duration-200 ${item.is_completed ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} 
+                                strokeWidth={4} 
+                            />
                         </div>
                         
                         {editingStepIndex === idx ? (
@@ -233,7 +301,6 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
                                     leading-tight select-none flex-1 transition-all break-words duration-200
                                     ${(isReadOnly || isPending) ? 'cursor-default' : 'cursor-pointer'}
                                     text-slate-700 dark:text-gray-200
-                                    ${isPending ? 'opacity-80 font-medium text-blue-700 dark:text-blue-300' : ''} 
                                 `}
                             >
                                 {item.title}
@@ -256,9 +323,40 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
                                 <Trash2 size={16} />
                             </button>
                         </div>
-                    )}
+                )}
                 </li>
             )})}
+            
+            {/* Fake checklist item para finalizar la actividad */}
+            {onComplete && !isReadOnly && (
+              <li
+                className={`
+                  flex items-start sm:items-center justify-between text-sm p-2 rounded-lg transition-all duration-300 border border-transparent mt-2
+                  ${!canComplete ? 'bg-slate-50 dark:bg-neutral-800/50 opacity-70' : 'bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-50 dark:hover:bg-blue-900/20'}
+                `}
+              >
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  <div
+                    onClick={() => canComplete && onComplete()}
+                    className={`
+                      mt-0.5 min-w-[20px] w-[20px] h-[20px] rounded flex items-center justify-center border shrink-0 transition-all duration-200
+                      ${!canComplete ? 'bg-slate-100 border-slate-200 dark:bg-neutral-800 dark:border-neutral-700 cursor-not-allowed' : 'bg-white border-blue-400 dark:bg-neutral-800 hover:border-blue-500 cursor-pointer shadow-sm'}
+                    `}
+                  >
+                    {isCompleting && <Loader2 size={12} className="animate-spin text-blue-500" />}
+                  </div>
+                  <span
+                    onClick={() => canComplete && onComplete()}
+                    className={`
+                      leading-tight select-none flex-1 break-words transition-all duration-200
+                      ${!canComplete ? 'text-slate-400 dark:text-gray-500 cursor-not-allowed' : 'text-blue-700 dark:text-blue-400 font-medium cursor-pointer'}
+                    `}
+                  >
+                    Finalizar Actividad
+                  </span>
+                </div>
+              </li>
+            )}
         </ul>
 
         {!isReadOnly && (
@@ -269,7 +367,7 @@ export default function TareaChecklist({ tareaId, checklist, isReadOnly }: Props
                         value={newItemText} 
                         onChange={(e) => setNewItemText(e.target.value)} 
                         onKeyDown={(e) => e.key === 'Enter' && handleAddItem()} 
-                        placeholder="Escribe un nuevo paso..."
+                        placeholder="Escribe una nueva actividad..."
                         disabled={isAdding} 
                         className="w-full text-base pl-9 pr-3 py-2.5 bg-slate-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400 dark:placeholder-gray-500 text-slate-700 dark:text-gray-100" 
                     />

@@ -9,6 +9,8 @@ import {
   MapPin,
   Phone,
   Shield,
+  Map,
+  Home,
 } from "lucide-react";
 import { MODAL_FIELD_CLASS, ModalInput } from "@/components/ui/general-modal";
 import {
@@ -26,6 +28,8 @@ type InfoFormData = {
   cuenta_no: string;
   direccion: string;
   nacimiento: string;
+  domicilio: string;
+  vecindad: string;
 };
 
 type InfoFormUser = {
@@ -38,6 +42,8 @@ type InfoFormUser = {
   cuenta_no?: string | null;
   direccion?: string | null;
   nacimiento?: string | null;
+  domicilio?: string | null;
+  vecindad?: string | null;
 };
 
 export default function InfoForm({ userData }: { userData: InfoFormUser }) {
@@ -54,6 +60,8 @@ export default function InfoForm({ userData }: { userData: InfoFormUser }) {
     cuenta_no: "",
     direccion: "",
     nacimiento: "",
+    domicilio: "",
+    vecindad: "",
   });
   const [original, setOriginal] = useState<InfoFormData>({
     telefono: "",
@@ -63,6 +71,8 @@ export default function InfoForm({ userData }: { userData: InfoFormUser }) {
     cuenta_no: "",
     direccion: "",
     nacimiento: "",
+    domicilio: "",
+    vecindad: "",
   });
 
   const cleanNumbers = (val: string) => val.toString().replace(/\D/g, "");
@@ -77,6 +87,8 @@ export default function InfoForm({ userData }: { userData: InfoFormUser }) {
     nacimiento: datos.nacimiento
       ? String(datos.nacimiento).split("T")[0]
       : "",
+    domicilio: datos.domicilio || "",
+    vecindad: datos.vecindad || "",
   });
 
   const formatPhoneDisplay = (val: string) => {
@@ -116,7 +128,9 @@ export default function InfoForm({ userData }: { userData: InfoFormUser }) {
       formData.igss !== original.igss ||
       formData.cuenta_no !== original.cuenta_no ||
       formData.direccion !== original.direccion ||
-      formData.nacimiento !== original.nacimiento,
+      formData.nacimiento !== original.nacimiento ||
+      formData.domicilio !== original.domicilio ||
+      formData.vecindad !== original.vecindad,
     [formData, original],
   );
 
@@ -138,7 +152,7 @@ export default function InfoForm({ userData }: { userData: InfoFormUser }) {
   if (isLoadingData) {
     return (
       <div className="flex flex-col gap-3 py-1" aria-busy>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i}>
               <div className="flex items-center gap-2 pt-1">
@@ -148,7 +162,7 @@ export default function InfoForm({ userData }: { userData: InfoFormUser }) {
               <div className="h-12 w-full animate-pulse rounded-xl bg-zinc-200 dark:bg-zinc-700" />
             </div>
           ))}
-          <div className="md:col-span-2">
+          <div className="sm:col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 pt-1">
               <div className="h-9 w-9 animate-pulse rounded-xl bg-zinc-200 dark:bg-zinc-700" />
               <div className="h-3 w-40 animate-pulse rounded-xl bg-zinc-200 dark:bg-zinc-700" />
@@ -169,7 +183,7 @@ export default function InfoForm({ userData }: { userData: InfoFormUser }) {
       onSubmit={onSubmit}
       className="flex animate-in flex-col gap-3 py-1 duration-500 fade-in"
     >
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
         <CampoFormulario icon={Calendar} label="Fecha de nacimiento">
           <ModalInput
             type="date"
@@ -239,10 +253,26 @@ export default function InfoForm({ userData }: { userData: InfoFormUser }) {
           />
         </CampoFormulario>
 
+        <CampoFormulario icon={Home} label="Domicilio">
+          <ModalInput
+            name="domicilio"
+            value={formData.domicilio}
+            onChange={handleChange}
+          />
+        </CampoFormulario>
+
+        <CampoFormulario icon={Map} label="Vecindad">
+          <ModalInput
+            name="vecindad"
+            value={formData.vecindad}
+            onChange={handleChange}
+          />
+        </CampoFormulario>
+
         <CampoFormulario
           icon={MapPin}
           label="Dirección de residencia"
-          className="md:col-span-2"
+          className="sm:col-span-2 md:col-span-1"
         >
           <ModalInput
             name="direccion"

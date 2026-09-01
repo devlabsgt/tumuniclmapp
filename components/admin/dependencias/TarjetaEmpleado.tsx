@@ -25,6 +25,8 @@ import {
   Download,
   Calendar,
   Cake,
+  Home,
+  Map,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Cargando from "@/components/ui/animations/Cargando";
@@ -466,6 +468,16 @@ export default function TarjetaEmpleado({
                       icon={<CircleDollarSign size={18} />}
                       label="No. Cuenta"
                       value={formatEveryFour(datosCompletos?.cuenta_no)}
+                    />
+                    <InfoItem
+                      icon={<Home size={18} />}
+                      label="Domicilio"
+                      value={datosCompletos?.domicilio}
+                    />
+                    <InfoItem
+                      icon={<Map size={18} />}
+                      label="Vecindad"
+                      value={datosCompletos?.vecindad}
                     />
                     <InfoItem
                       icon={<MapPin size={18} />}

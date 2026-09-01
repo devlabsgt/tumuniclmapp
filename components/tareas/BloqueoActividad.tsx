@@ -36,6 +36,8 @@ interface ActividadPendiente {
   assigned_to: string;
   creador_nombre: string;
   es_concejo?: boolean;
+  rol_confirmacion?: 'encargado' | 'miembro';
+  id_miembro?: string;
 }
 
 export default function BloqueoActividad() {
@@ -80,7 +82,11 @@ export default function BloqueoActividad() {
     setConfirming(true);
 
     try {
-      const result = await confirmarActividad(actividad.id);
+      const result = await confirmarActividad(
+        actividad.id,
+        actividad.rol_confirmacion || 'encargado',
+        actividad.id_miembro
+      );
 
       if (!result.success) {
         await Swal.fire({

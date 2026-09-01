@@ -36,6 +36,29 @@ export interface ArchivoAdjunto {
   nombre: string;
   url: string;
   ruta_storage?: string; // Solo para PDFs
+  cargado_por?: string;  // Nombre del usuario que subió el archivo
+}
+
+// --- Tipos para actividades grupales ---
+
+/** Una sub-tarea dentro del JSONB de asignaciones de un miembro */
+export interface AsignacionMiembro {
+  title: string;
+  is_complete: boolean;
+}
+
+/** Un registro de la tabla act_miembros */
+export interface ActMiembro {
+  id: string;
+  id_act: string;
+  id_user: string;
+  asignaciones: AsignacionMiembro[];
+  completed_at: string | null;
+  confirmed_at?: string | null;
+  comentario: string | null;
+  created_at: string;
+  // Resuelto en el SA por join lógico con info_usuario
+  nombre_usuario?: string;
 }
 
 export interface Tarea {
@@ -59,6 +82,9 @@ export interface Tarea {
   };
   creator?: { nombre: string };
   
+  // Miembros grupales (solo presente si la tarea tiene registros en act_miembros)
+  miembros?: ActMiembro[];
+  
   // Propiedades calculadas en el frontend
   estadoFiltro?: string;
   alcance?: 'equipo' | 'externa';
@@ -75,4 +101,6 @@ export interface NewTaskState {
   assigned_to: string;
   checklist: ChecklistItem[];
   status?: string;
+  // Miembros para actividades grupales (opcional)
+  miembros?: { userId: string; asignaciones: AsignacionMiembro[] }[];
 }
