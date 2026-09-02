@@ -22,6 +22,10 @@ export interface InfoUsuarioData {
   nacimiento: string | null;
   domicilio: string | null;
   vecindad: string | null;
+  estado_civil: string | null;
+  genero: string | null;
+  profesion: string | null;
+  fecha_antiguedad: string | null;
   puesto_nombre: string | null;
   puesto_path_jerarquico: string | null;
   puesto_path_ordenado: string | null;
@@ -167,6 +171,10 @@ export async function getDetalleUsuarioAction(
     nacimiento: user.nacimiento || null,
     domicilio: user.domicilio || null,
     vecindad: user.vecindad || null,
+    estado_civil: user.estado_civil || null,
+    genero: user.genero || null,
+    profesion: user.profesion || null,
+    fecha_antiguedad: user.fecha_antiguedad || null,
     puesto_nombre: dependenciaData?.nombre || null,
     renglon: dependenciaData?.renglon || null,
     salario: dependenciaData?.salario || 0,

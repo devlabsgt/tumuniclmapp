@@ -24,6 +24,9 @@ import {
   Cake,
   Home,
   Map,
+  Heart,
+  Clock,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useInfoUsuario } from "@/hooks/usuarios/useInfoUsuario";
@@ -71,7 +74,7 @@ const TableRow = ({
 }: {
   icon?: React.ReactNode;
   label: string;
-  value?: string | number | null;
+  value?: React.ReactNode;
   isTotal?: boolean;
   isHeader?: boolean;
 }) => {
@@ -380,6 +383,32 @@ export default function GeneradorFicha({
                               icon={<Map />}
                               label="Vecindad"
                               value={datos?.vecindad}
+                            />
+                            <TableRow
+                              icon={<User />}
+                              label="Género"
+                              value={
+                                datos?.genero ? (
+                                  <span className={`font-bold ${datos.genero === 'F' ? 'text-pink-500' : 'text-blue-500'}`}>
+                                    {datos.genero}
+                                  </span>
+                                ) : null
+                              }
+                            />
+                            <TableRow
+                              icon={<Heart />}
+                              label="Estado Civil"
+                              value={datos?.estado_civil}
+                            />
+                            <TableRow
+                              icon={<Briefcase />}
+                              label="Profesión"
+                              value={datos?.profesion}
+                            />
+                            <TableRow
+                              icon={<Clock />}
+                              label="Fecha de antigüedad"
+                              value={formatearFecha(datos?.fecha_antiguedad)}
                             />
                             <TableRow
                               icon={<MapPin />}

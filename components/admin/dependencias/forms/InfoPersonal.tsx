@@ -22,6 +22,10 @@ const formSchema = z.object({
   cuenta_no: z.string().optional(),
   domicilio: z.string().optional(),
   vecindad: z.string().optional(),
+  estado_civil: z.string().optional(),
+  genero: z.string().optional(),
+  profesion: z.string().optional(),
+  fecha_antiguedad: z.string().optional(),
 });
 
 export type InfoPersonalFormData = z.infer<typeof formSchema>;
@@ -48,6 +52,10 @@ export default function InfoPersonalForm({ isOpen, onClose, onSubmit, usuario, i
       cuenta_no: initialData?.cuenta_no || '',
       domicilio: initialData?.domicilio || '',
       vecindad: initialData?.vecindad || '',
+      estado_civil: initialData?.estado_civil || '',
+      genero: initialData?.genero || '',
+      profesion: initialData?.profesion || '',
+      fecha_antiguedad: initialData?.fecha_antiguedad || '',
     },
   });
 
@@ -63,6 +71,10 @@ export default function InfoPersonalForm({ isOpen, onClose, onSubmit, usuario, i
         cuenta_no: initialData?.cuenta_no || '',
         domicilio: initialData?.domicilio || '',
         vecindad: initialData?.vecindad || '',
+        estado_civil: initialData?.estado_civil || '',
+        genero: initialData?.genero || '',
+        profesion: initialData?.profesion || '',
+        fecha_antiguedad: initialData?.fecha_antiguedad || '',
       });
     }
   }, [initialData, usuario, form]);
@@ -96,6 +108,10 @@ export default function InfoPersonalForm({ isOpen, onClose, onSubmit, usuario, i
                   <FormField control={form.control} name="cuenta_no" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>No. de Cuenta Bancaria</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                   <FormField control={form.control} name="domicilio" render={({ field }) => ( <FormItem><FormLabel>Domicilio</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                   <FormField control={form.control} name="vecindad" render={({ field }) => ( <FormItem><FormLabel>Vecindad</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="estado_civil" render={({ field }) => ( <FormItem><FormLabel>Estado Civil</FormLabel><FormControl><select {...field} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"><option value="">Seleccione...</option><option value="Soltero/a">Soltero/a</option><option value="Casado/a">Casado/a</option><option value="Divorciado/a">Divorciado/a</option><option value="Viudo/a">Viudo/a</option><option value="Unido/a de hecho">Unido/a de hecho</option></select></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="genero" render={({ field }) => ( <FormItem><FormLabel>Género (M/F)</FormLabel><FormControl><Input {...field} maxLength={1} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="profesion" render={({ field }) => ( <FormItem><FormLabel>Profesión</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="fecha_antiguedad" render={({ field }) => ( <FormItem><FormLabel>Fecha de antigüedad</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem> )} />
                   <div className="flex justify-end gap-2 pt-4 md:col-span-2">
                     <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
                     <Button type="submit" disabled={form.formState.isSubmitting}>

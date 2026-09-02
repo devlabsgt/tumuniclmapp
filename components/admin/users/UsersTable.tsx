@@ -750,7 +750,7 @@ export default function UsersTable({ usuarios, rolActual }: Props) {
       <ModalShell
         open={Boolean(usuarioIdSeleccionado)}
         onClose={handleCancel}
-        panelClassName="max-w-5xl"
+        panelClassName="max-w-4xl"
         bodyClassName="!pt-1"
         title={
           <>

@@ -84,6 +84,51 @@ const formatearFechaActividad = (iso: string) => {
 
 const formatearConfirmacion = (iso: string) => `Confirmada el: ${formatearFechaActividad(iso)}`;
 
+const getNombreCorto = (nombreCompleto: string | undefined | null) => {
+  if (!nombreCompleto) return 'Sin nombre';
+  const partes = nombreCompleto.trim().split(/\s+/);
+  const total = partes.length;
+  if (total === 1) return partes[0];
+  const primerNombre = partes[0];
+  let indexApellido = 1;
+  const p1 = partes[1] ? partes[1].toLowerCase() : '';
+  const p2 = partes[2] ? partes[2].toLowerCase() : '';
+  const conectores = ['de', 'del', 'la', 'las', 'los', 'san', 'da', 'di', 'van', 'von', 'y'];
+  const sufijosNombreCompuesto = ['jesús', 'jesus', 'carmen', 'pilar', 'rocío', 'rocio', 'luz', 'maría', 'maria', 'ángeles', 'angeles', 'fatima', 'fátima'];
+  if (total > 3 && (p1 === 'de' || p1 === 'del') && sufijosNombreCompuesto.includes(p2)) { indexApellido = 3; } 
+  else if (total >= 3) { if (!conectores.includes(p1)) { indexApellido = 2; } }
+  const partesApellido = [];
+  for (let i = indexApellido; i < total; i++) {
+      const palabra = partes[i];
+      partesApellido.push(palabra);
+      if (!conectores.includes(palabra.toLowerCase())) { break; }
+  }
+  return `${primerNombre} ${partesApellido.join(' ')}`;
+};
+
+const renderConfirmacion = (isoString?: string | null) => {
+  if (!isoString) {
+    return <span className="text-[10px] text-orange-500 font-medium ml-1.5 whitespace-nowrap">Pendiente</span>;
+  }
+  const d = new Date(isoString);
+  const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const diaSemana = dias[d.getDay()];
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = String(d.getFullYear()).slice(-2);
+  let hora = d.getHours();
+  const minutos = String(d.getMinutes()).padStart(2, '0');
+  const period = hora >= 12 ? 'PM' : 'AM';
+  hora = hora % 12;
+  hora = hora ? hora : 12;
+  const horaStr = String(hora).padStart(2, '0');
+  return (
+    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium ml-1.5 whitespace-nowrap">
+      Confirmación: {diaSemana} {day}/{month}/{year}, {horaStr}:{minutos} {period}
+    </span>
+  );
+};
+
 const progresoChecklist = (checklist: ActividadConcejo['checklist']) => {
   const items = checklist || [];
   const total = items.length;
@@ -131,13 +176,15 @@ function DetalleActividadPanel({
     return [
       {
         id: 'encargado',
-        label: actividad.assignee_nombre || 'Encargado',
-        completedAt: actividad.status === 'Completado' || !!actividad.confirmed_at,
+        label: getNombreCorto(actividad.assignee_nombre) || 'Encargado',
+        confirmedAt: actividad.confirmed_at,
+        completedAt: actividad.status === 'Completado',
         rol: 'Encargado',
       },
       ...miembros.map((m) => ({
         id: m.id,
-        label: m.nombre_usuario || 'Miembro',
+        label: getNombreCorto(m.nombre_usuario) || 'Miembro',
+        confirmedAt: m.confirmed_at,
         completedAt: !!m.completed_at,
         rol: 'Miembro',
       })),
@@ -205,12 +252,18 @@ function DetalleActividadPanel({
               <div className="pt-2 mt-2 border-t border-zinc-200 dark:border-zinc-700 space-y-2">
                 {/* Barra Encargado */}
                 <div>
-                  <div className="flex justify-between items-center text-[11px] mb-1">
-                    <span className="flex items-center gap-1 font-medium text-zinc-700 dark:text-zinc-300">
-                      <Crown size={12} className="text-amber-500" />
-                      {actividad.assignee_nombre} <span className="text-blue-500 text-[10px]">(Encargado)</span>
-                    </span>
-                    <span className="text-[10px] font-semibold text-zinc-500">{completadosEncargado}/{totalEncargado}</span>
+                  <div className="flex justify-between items-start sm:items-center text-[11px] mb-1 gap-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1 font-medium text-zinc-700 dark:text-zinc-300 min-w-0 flex-1">
+                      <div className="flex items-center gap-1 min-w-0">
+                        <Crown size={12} className="text-amber-500 shrink-0" />
+                        <span className="truncate">{actividad.assignee_nombre}</span>
+                        <span className="text-blue-500 text-[10px] shrink-0">(Encargado)</span>
+                      </div>
+                      <div className="sm:ml-1 shrink-0">
+                        {renderConfirmacion(actividad.confirmed_at)}
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-semibold text-zinc-500 shrink-0 mt-0.5 sm:mt-0">{completadosEncargado}/{totalEncargado}</span>
                   </div>
                   <div className="h-1.5 w-full bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
                     <div
@@ -227,12 +280,17 @@ function DetalleActividadPanel({
                   const mPct = Math.round((mComp / mTotal) * 100);
                   return (
                     <div key={m.id}>
-                      <div className="flex justify-between items-center text-[11px] mb-1">
-                        <span className="flex items-center gap-1 font-medium text-zinc-700 dark:text-zinc-300">
-                          <User size={12} className="text-purple-500" />
-                          {m.nombre_usuario}
-                        </span>
-                        <span className="text-[10px] font-semibold text-zinc-500">{mComp}/{mTotal}</span>
+                      <div className="flex justify-between items-start sm:items-center text-[11px] mb-1 gap-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1 font-medium text-zinc-700 dark:text-zinc-300 min-w-0 flex-1">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <User size={12} className="text-purple-500 shrink-0" />
+                            <span className="truncate">{m.nombre_usuario}</span>
+                          </div>
+                          <div className="sm:ml-1 shrink-0">
+                            {renderConfirmacion(m.confirmed_at)}
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-semibold text-zinc-500 shrink-0 mt-0.5 sm:mt-0">{mComp}/{mTotal}</span>
                       </div>
                       <div className="h-1.5 w-full bg-zinc-200 dark:bg-zinc-700 rounded-full overflow-hidden">
                         <div
@@ -252,7 +310,7 @@ function DetalleActividadPanel({
         {esGrupal ? (
           <div className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-4 dark:border-zinc-700 dark:bg-zinc-800/30">
             {/* Tabs */}
-            <div className="flex justify-center gap-4 mb-4 overflow-x-auto border-b border-zinc-200 dark:border-zinc-700 px-2 pb-2">
+            <div className="flex justify-start sm:justify-center gap-6 mb-4 overflow-x-auto border-b border-zinc-200 dark:border-zinc-700 px-2 pb-2 scrollbar-none w-full">
               {tabs.map((t) => {
                 const isActive = tabActivo === t.id;
                 const isEncargadoTab = t.id === 'encargado';
@@ -264,7 +322,7 @@ function DetalleActividadPanel({
                   <button
                     key={t.id}
                     onClick={() => setTabActivo(t.id)}
-                    className={`pb-2 text-xs font-semibold whitespace-nowrap flex flex-col items-center transition-colors ${
+                    className={`pb-2 text-xs font-semibold whitespace-nowrap flex flex-col items-center shrink-0 transition-colors ${
                       isActive
                         ? activeColorClass
                         : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300'
@@ -280,7 +338,7 @@ function DetalleActividadPanel({
                         <User size={14} className={isActive ? 'text-purple-500' : 'opacity-40'} />
                       )}
                       <span>{t.label}</span>
-                      {t.completedAt && <CheckCircle2 size={12} className="text-emerald-500" />}
+                      {t.confirmedAt && <CheckCircle2 size={12} className="text-emerald-500" />}
                     </div>
                   </button>
                 );
@@ -291,7 +349,7 @@ function DetalleActividadPanel({
             {tabActivo === 'encargado' ? (
               <div className="space-y-3">
                 <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                  <CheckSquare size={14} /> Asignaciones del Encargado ({totalEncargado})
+                  <CheckSquare size={14} /> Actividades del Encargado ({totalEncargado})
                 </p>
                 {checklist.length > 0 ? (
                   <ul className="space-y-1.5">
@@ -312,9 +370,9 @@ function DetalleActividadPanel({
               </div>
             ) : activeMember ? (
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
-                    <User size={14} /> Asignaciones de {activeMember.nombre_usuario}
+                    <User size={14} /> Actividades de {activeMember.nombre_usuario}
                   </p>
                   {activeMember.completed_at && (
                     <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">

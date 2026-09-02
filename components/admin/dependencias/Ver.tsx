@@ -689,6 +689,12 @@ export default function Ver() {
         nit: data.nit,
         igss: data.igss,
         cuenta_no: data.cuenta_no,
+        domicilio: data.domicilio,
+        vecindad: data.vecindad,
+        estado_civil: data.estado_civil,
+        genero: data.genero,
+        profesion: data.profesion,
+        fecha_antiguedad: data.fecha_antiguedad,
       })
       .eq("user_id", selectedUsuario.id);
     if (error) {

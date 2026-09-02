@@ -27,6 +27,7 @@ import {
   Cake,
   Home,
   Map,
+  Heart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Cargando from "@/components/ui/animations/Cargando";
@@ -41,6 +42,37 @@ type RenglonConfig = {
   bonoLabel?: string;
   tieneBono: boolean;
 };
+
+function calcularAntiguedad(fechaStr?: string | null) {
+  if (!fechaStr) return null;
+  const fecha = new Date(fechaStr);
+  if (isNaN(fecha.getTime())) return null;
+  
+  const hoy = new Date();
+  
+  let years = hoy.getFullYear() - fecha.getFullYear();
+  let months = hoy.getMonth() - fecha.getMonth();
+  
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+  
+  if (hoy.getDate() < fecha.getDate()) {
+    months--;
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+  }
+
+  const partes = [];
+  if (years > 0) partes.push(`${years} año${years > 1 ? 's' : ''}`);
+  if (months > 0) partes.push(`${months} mes${months > 1 ? 'es' : ''}`);
+  
+  if (partes.length === 0) return "Menos de un mes";
+  return partes.join(' y ');
+}
 
 const renglonConfig: Record<string, RenglonConfig> = {
   "011": {
@@ -73,8 +105,8 @@ const InfoItem = ({
   isTotal = false,
 }: {
   icon: React.ReactNode;
-  label: string;
-  value?: string | number | null;
+  label: React.ReactNode;
+  value?: React.ReactNode;
   isLoading?: boolean;
   isDeduction?: boolean;
   isTotal?: boolean;
@@ -421,69 +453,117 @@ export default function TarjetaEmpleado({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 md:gap-x-8">
-                  <div className="flex flex-col">
+                <div className="grid grid-cols-1 md:grid-cols-3 md:gap-x-8">
+                  <div className="flex flex-col md:col-span-2">
                     <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-300 border-b pb-2 mb-2">
                       Información Personal
                     </h3>
-                    <InfoItem
-                      icon={<User size={18} />}
-                      label="Nombre Completo"
-                      value={datosCompletos?.nombre}
-                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 sm:gap-x-4">
+                      {/* Fila 1 */}
+                      <InfoItem
+                        icon={<User size={18} />}
+                        label="Nombre Completo"
+                        value={datosCompletos?.nombre}
+                      />
+                      <InfoItem
+                        icon={<Calendar size={18} />}
+                        label="Fecha de Nacimiento"
+                        value={fechaNacimiento}
+                      />
 
-                    <InfoItem
-                      icon={<Calendar size={18} />}
-                      label="Fecha de Nacimiento"
-                      value={fechaNacimiento}
-                    />
+                      {/* Fila 2 */}
+                      <InfoItem
+                        icon={<Phone size={18} />}
+                        label="Teléfono"
+                        value={formatPhone(datosCompletos?.telefono)}
+                      />
+                      <InfoItem
+                        icon={<Fingerprint size={18} />}
+                        label="DPI"
+                        value={formatDPI(datosCompletos?.dpi)}
+                      />
 
-                    <InfoItem
-                      icon={<Phone size={18} />}
-                      label="Teléfono"
-                      value={formatPhone(datosCompletos?.telefono)}
-                    />
-                    <InfoItem
-                      icon={<Fingerprint size={18} />}
-                      label="DPI"
-                      value={formatDPI(datosCompletos?.dpi)}
-                    />
-                    <InfoItem
-                      icon={<Shield size={18} />}
-                      label="IGSS"
-                      value={
-                        cleanDigits(datosCompletos?.igss) ===
-                          cleanDigits(datosCompletos?.dpi) &&
-                        datosCompletos?.igss
-                          ? formatDPI(datosCompletos?.igss)
-                          : datosCompletos?.igss
-                      }
-                    />
-                    <InfoItem
-                      icon={<Hash size={18} />}
-                      label="NIT"
-                      value={formatEveryFour(datosCompletos?.nit)}
-                    />
-                    <InfoItem
-                      icon={<CircleDollarSign size={18} />}
-                      label="No. Cuenta"
-                      value={formatEveryFour(datosCompletos?.cuenta_no)}
-                    />
-                    <InfoItem
-                      icon={<Home size={18} />}
-                      label="Domicilio"
-                      value={datosCompletos?.domicilio}
-                    />
-                    <InfoItem
-                      icon={<Map size={18} />}
-                      label="Vecindad"
-                      value={datosCompletos?.vecindad}
-                    />
-                    <InfoItem
-                      icon={<MapPin size={18} />}
-                      label="Dirección"
-                      value={datosCompletos?.direccion}
-                    />
+                      {/* Fila 3 */}
+                      <InfoItem
+                        icon={<Shield size={18} />}
+                        label="IGSS"
+                        value={
+                          cleanDigits(datosCompletos?.igss) ===
+                            cleanDigits(datosCompletos?.dpi) &&
+                          datosCompletos?.igss
+                            ? formatDPI(datosCompletos?.igss)
+                            : datosCompletos?.igss
+                        }
+                      />
+                      <InfoItem
+                        icon={<Hash size={18} />}
+                        label="NIT"
+                        value={formatEveryFour(datosCompletos?.nit)}
+                      />
+
+                      {/* Fila 4 */}
+                      <InfoItem
+                        icon={<CircleDollarSign size={18} />}
+                        label="No. Cuenta"
+                        value={formatEveryFour(datosCompletos?.cuenta_no)}
+                      />
+                      <InfoItem
+                        icon={<User size={18} />}
+                        label="Género"
+                        value={
+                          datosCompletos?.genero ? (
+                            <span className={`font-bold ${datosCompletos.genero === 'F' ? 'text-pink-500' : 'text-blue-500'}`}>
+                              {datosCompletos.genero}
+                            </span>
+                          ) : null
+                        }
+                      />
+
+                      {/* Fila 5 */}
+                      <InfoItem
+                        icon={<Home size={18} />}
+                        label="Domicilio"
+                        value={datosCompletos?.domicilio}
+                      />
+                      <InfoItem
+                        icon={<Briefcase size={18} />}
+                        label="Profesión"
+                        value={datosCompletos?.profesion}
+                      />
+
+                      {/* Fila 6 */}
+                      <InfoItem
+                        icon={<Map size={18} />}
+                        label="Vecindad"
+                        value={datosCompletos?.vecindad}
+                      />
+                      <InfoItem
+                        icon={<Heart size={18} />}
+                        label="Estado Civil"
+                        value={datosCompletos?.estado_civil}
+                      />
+
+                      {/* Fila 7 */}
+                      <InfoItem
+                        icon={<MapPin size={18} />}
+                        label="Dirección"
+                        value={datosCompletos?.direccion}
+                      />
+                      <InfoItem
+                        icon={<Clock size={18} />}
+                        label="Fecha de antigüedad"
+                        value={
+                          <span className="flex items-center gap-1">
+                            <span>{formatearFecha(datosCompletos?.fecha_antiguedad)}</span>
+                            {datosCompletos?.fecha_antiguedad && (
+                              <span className="text-emerald-600 dark:text-emerald-400 font-medium ml-1">
+                                {calcularAntiguedad(datosCompletos.fecha_antiguedad)}
+                              </span>
+                            )}
+                          </span>
+                        }
+                      />
+                    </div>
                   </div>
 
                   <div className="flex flex-col mt-6 md:mt-0">

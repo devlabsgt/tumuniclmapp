@@ -306,29 +306,51 @@ export async function obtenerDatosGestor(tipoVista: TipoVistaTareas) {
   const concejoContexto = new Map<string, { punto_titulo: string; agenda_titulo: string; agenda_fecha: string }>();
 
   if (taskIds.length > 0) {
-    const { data: enlacesConcejo } = await supabase
-      .from('tareas_concejo_actividades')
-      .select('task_id, tarea_concejo_id')
-      .in('task_id', taskIds);
+    const clientToUse = tipoVista === 'gestion_rrhh' ? supabaseAdmin : supabase;
+    const chunkSize = 100;
+    const enlaces: any[] = [];
 
-    const enlaces = enlacesConcejo || [];
+    for (let i = 0; i < taskIds.length; i += chunkSize) {
+      const chunk = taskIds.slice(i, i + chunkSize);
+      const { data: enlacesChunk, error: errEnlaces } = await clientToUse
+        .from('tareas_concejo_actividades')
+        .select('task_id, tarea_concejo_id')
+        .in('task_id', chunk);
+
+      if (errEnlaces) console.error('Error fetching concejo enlaces:', errEnlaces);
+      if (enlacesChunk) enlaces.push(...enlacesChunk);
+    }
 
     if (enlaces.length > 0) {
       const puntoIds = Array.from(new Set(enlaces.map((e: any) => e.tarea_concejo_id)));
+      const puntos: any[] = [];
+      for (let i = 0; i < puntoIds.length; i += chunkSize) {
+        const chunk = puntoIds.slice(i, i + chunkSize);
+        const { data: puntosChunk, error: errPuntos } = await clientToUse
+          .from('tareas_concejo')
+          .select('id, titulo_item, agenda_concejo_id')
+          .in('id', chunk);
 
-      const { data: puntos } = await supabase
-        .from('tareas_concejo')
-        .select('id, titulo_item, agenda_concejo_id')
-        .in('id', puntoIds);
+        if (errPuntos) console.error('Error fetching concejo puntos:', errPuntos);
+        if (puntosChunk) puntos.push(...puntosChunk);
+      }
 
       const puntoMap = new Map((puntos || []).map((p: any) => [p.id, p]));
       const agendaIds = Array.from(
         new Set((puntos || []).map((p: any) => p.agenda_concejo_id).filter((id: any): id is string => !!id))
       );
 
-      const { data: agendas } = agendaIds.length
-        ? await supabase.from('agenda_concejo').select('id, titulo, fecha_reunion').in('id', agendaIds)
-        : { data: [] as any[] };
+      const agendas: any[] = [];
+      for (let i = 0; i < agendaIds.length; i += chunkSize) {
+        const chunk = agendaIds.slice(i, i + chunkSize);
+        const { data: agendasChunk, error: errAgendas } = await clientToUse
+          .from('agenda_concejo')
+          .select('id, titulo, fecha_reunion')
+          .in('id', chunk);
+
+        if (errAgendas) console.error('Error fetching concejo agendas:', errAgendas);
+        if (agendasChunk) agendas.push(...agendasChunk);
+      }
 
       const agendaMap = new Map((agendas || []).map((a: any) => [a.id, a]));
 

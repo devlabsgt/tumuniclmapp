@@ -181,7 +181,7 @@ function UsuarioFormTabBar({
   }, [updateIndicator, active]);
 
   return (
-    <div ref={barRef} className={cn("relative grid w-full gap-2 pt-2 pb-2.5", tabs.length === 1 ? "grid-cols-1" : "grid-cols-2")}>
+    <div ref={barRef} className={cn("relative w-full gap-2 pt-2 pb-2.5", tabs.length === 1 ? "flex justify-center" : "grid grid-cols-2")}>
       {tabs.map((tab) => {
         const activa = active === tab.id;
         return (
@@ -196,6 +196,7 @@ function UsuarioFormTabBar({
             className={cn(
               USUARIO_TAB_BTN,
               activa ? USUARIO_TAB_ACTIVA : USUARIO_TAB_INACTIVA,
+              tabs.length === 1 && "!w-auto px-12"
             )}
           >
             {tab.label}
@@ -568,7 +569,7 @@ export default function UserForm({
 
   return (
     <div className="flex flex-col gap-5">
-      <CintilloInstitucional className="rounded-full" />
+      <CintilloInstitucional className="rounded-full w-[90%] md:w-[80%] mx-auto" />
 
       <div className="flex items-center gap-2">
         <div className="min-w-0 flex-1">

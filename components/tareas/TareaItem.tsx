@@ -458,12 +458,17 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                                         {/* Barra del encargado */}
                                         {totalEncargado > 0 && (
                                           <div>
-                                            <div className="flex justify-between items-center mb-0.5">
-                                              <span className="text-[10px] text-slate-500 dark:text-gray-400 font-medium truncate max-w-[65%] flex items-center gap-1">
-                                                {esAsignadoAMi ? `${getNombreCorto(nombreUsuarioActual)} (Yo)` : getNombreCorto(tarea.assignee?.nombre || 'Encargado')} <span className="text-blue-500 dark:text-blue-400">(Encargado)</span>
-                                                {renderConfirmacion(tarea.confirmed_at)}
-                                              </span>
-                                              <span className="text-[10px] font-bold text-slate-600 dark:text-gray-400">
+                                            <div className="flex justify-between items-start sm:items-center mb-1 gap-2">
+                                              <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1 text-[10px] text-slate-500 dark:text-gray-400 font-medium min-w-0 flex-1">
+                                                <div className="flex items-center gap-1 min-w-0">
+                                                  <span className="truncate">{esAsignadoAMi ? `${getNombreCorto(nombreUsuarioActual)} (Yo)` : getNombreCorto(tarea.assignee?.nombre || 'Encargado')}</span>
+                                                  <span className="text-blue-500 dark:text-blue-400 shrink-0">(Encargado)</span>
+                                                </div>
+                                                <div className="sm:ml-1 shrink-0">
+                                                  {renderConfirmacion(tarea.confirmed_at)}
+                                                </div>
+                                              </div>
+                                              <span className="text-[10px] font-bold text-slate-600 dark:text-gray-400 shrink-0 mt-0.5 sm:mt-0">
                                                 {totalEncargado === 0 ? '—' : `${completadosEncargado}/${totalEncargado}`}
                                               </span>
                                             </div>
@@ -483,12 +488,14 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                                             const pct = Math.round((comp / total) * 100);
                                             return (
                                               <div key={m.id}>
-                                                <div className="flex justify-between items-center mb-0.5">
-                                                  <span className="text-[10px] text-slate-500 dark:text-gray-400 font-medium truncate max-w-[65%] flex items-center gap-1">
-                                                    {getNombreCorto(m.nombre_usuario)}
-                                                    {renderConfirmacion(m.confirmed_at)}
-                                                  </span>
-                                                  <span className="text-[10px] font-bold text-slate-600 dark:text-gray-400">{comp}/{total}</span>
+                                                <div className="flex justify-between items-start sm:items-center mb-1 gap-2">
+                                                  <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1 text-[10px] text-slate-500 dark:text-gray-400 font-medium min-w-0 flex-1">
+                                                    <span className="truncate">{getNombreCorto(m.nombre_usuario)}</span>
+                                                    <div className="sm:ml-1 shrink-0">
+                                                      {renderConfirmacion(m.confirmed_at)}
+                                                    </div>
+                                                  </div>
+                                                  <span className="text-[10px] font-bold text-slate-600 dark:text-gray-400 shrink-0 mt-0.5 sm:mt-0">{comp}/{total}</span>
                                                 </div>
                                                 <div className="w-full bg-slate-200 dark:bg-neutral-700 h-1.5 rounded-full overflow-hidden">
                                                   <div

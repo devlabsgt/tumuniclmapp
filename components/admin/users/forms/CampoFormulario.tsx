@@ -24,7 +24,7 @@ export function CampoFormulario({
   error,
 }: {
   icon: LucideIcon;
-  label: string;
+  label: ReactNode;
   children: ReactNode;
   className?: string;
   error?: string;
