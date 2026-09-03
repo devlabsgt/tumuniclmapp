@@ -50,6 +50,7 @@ export interface ActividadConcejo {
   archivos?: ArchivoAdjunto[] | null;
   created_at?: string;
   miembros?: ActMiembro[];
+  revisado_por?: { nombre: string; fecha: string } | null;
 }
 
 export interface ActividadConcejoConContexto extends ActividadConcejo {

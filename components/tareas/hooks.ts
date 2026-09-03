@@ -15,6 +15,7 @@ import {
   actualizarAsignacionesMiembro,
   actualizarComentarioMiembro,
   marcarParteMiembroCompletada,
+  marcarComoRevisado,
 } from "./actions";
 import { TipoVistaTareas, NewTaskState, ChecklistItem, ArchivoAdjunto, AsignacionMiembro } from "./types";
 import { BLOQUEOS_GLOBALES_KEY, useBloqueosGlobales } from "@/components/layout/bloqueos/hooks";
@@ -119,6 +120,11 @@ export const useTareaMutations = () => {
     onSuccess: invalidar,
   });
 
+  const marcarRevisado = useMutation({
+    mutationFn: (id: string) => marcarComoRevisado(id),
+    onSuccess: invalidar,
+  });
+
   return {
     crear,
     actualizar,
@@ -132,6 +138,7 @@ export const useTareaMutations = () => {
     actualizarAsignaciones,
     actualizarComentario,
     completarParteMiembro,
+    marcarRevisado,
   };
 };
 

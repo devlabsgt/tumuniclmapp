@@ -74,6 +74,7 @@ export interface Tarea {
   updated_at?: string | null;
   confirmed_at: string | null;
   archivos: ArchivoAdjunto[] | null;
+  revisado_por?: { nombre: string; fecha: string } | null;
   
   // Relaciones expandidas
   assignee?: { 

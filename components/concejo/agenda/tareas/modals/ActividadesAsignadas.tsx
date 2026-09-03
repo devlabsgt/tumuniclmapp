@@ -16,6 +16,7 @@ import {
   Clock,
   Crown,
   MessageSquare,
+  Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'react-toastify';
@@ -151,11 +152,19 @@ function DetalleActividadPanel({
   indice,
   acciones,
   onVerPdf,
+  onCompletar,
+  onMarcarRevisado,
+  cargandoAccion,
+  onToggleChecklist,
 }: {
   actividad: ActividadConcejo;
   indice?: number;
   acciones?: ReactNode;
   onVerPdf?: (archivo: ArchivoAdjunto) => void;
+  onCompletar?: (id: string) => void;
+  onMarcarRevisado?: (id: string) => void;
+  cargandoAccion?: string | null;
+  onToggleChecklist?: (taskId: string, newChecklist: any[]) => void;
 }) {
   const [tabActivo, setTabActivo] = useState<string>('encargado');
   const miembros = actividad.miembros || [];
@@ -169,6 +178,25 @@ function DetalleActividadPanel({
   const completosGlobal = completadosEncargado + (esGrupal ? completadosMiembros : 0);
   const porcentajeGlobal = totalGlobal === 0 ? 0 : Math.round((completosGlobal / totalGlobal) * 100);
 
+  const formatRetraso = (dueDateStr: string, completedAtStr?: string | null) => {
+    const due = new Date(dueDateStr);
+    const end = completedAtStr ? new Date(completedAtStr) : new Date();
+    const diffMs = end.getTime() - due.getTime();
+    if (diffMs <= 0) return null;
+    
+    const diffMins = Math.floor(diffMs / 60000);
+    const days = Math.floor(diffMins / 1440);
+    const hours = Math.floor((diffMins % 1440) / 60);
+    
+    const parts = [];
+    if (days > 0) parts.push(`${days} día${days !== 1 ? 's' : ''}`);
+    if (hours > 0) parts.push(`${hours} hr${hours !== 1 ? 's' : ''}`);
+    
+    if (parts.length === 0) return 'Menos de 1 hr';
+    return `Atrasada por ${parts.join(', ')}`;
+  };
+
+  const retrasoText = formatRetraso(actividad.due_date, actividad.updated_at);
   const badge = estadoBadge(actividad);
 
   const tabs = useMemo(() => {
@@ -215,6 +243,11 @@ function DetalleActividadPanel({
             </span>
             <span className="flex items-center gap-1">
               <Calendar size={12} /> {formatearFechaActividad(actividad.due_date)}
+              {retrasoText && (
+                <span className="text-red-500 dark:text-red-400 font-semibold ml-1">
+                  {actividad.status === 'Completado' ? `⚠️ Se completó con un tiempo tardío de: ${retrasoText.replace(/^Atrasada por /i, '')}` : `⚠️ ${retrasoText}`}
+                </span>
+              )}
             </span>
           </div>
         </div>
@@ -354,13 +387,35 @@ function DetalleActividadPanel({
                 {checklist.length > 0 ? (
                   <ul className="space-y-1.5">
                     {checklist.map((item, i) => (
-                      <li key={i} className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800/70 p-2 rounded-lg border border-zinc-100 dark:border-zinc-700/50">
-                        {item.is_completed ? (
-                          <CheckCircle2 size={14} className="shrink-0 text-emerald-500" />
-                        ) : (
-                          <Clock size={14} className="shrink-0 text-zinc-400" />
-                        )}
-                        <span>{item.title}</span>
+                      <li 
+                        key={i} 
+                        onClick={() => {
+                          if (!onToggleChecklist) return;
+                          const newChecklist = [...checklist];
+                          newChecklist[i].is_completed = !newChecklist[i].is_completed;
+                          onToggleChecklist(actividad.id, newChecklist);
+                        }}
+                        className={`flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800/70 p-2 rounded-lg border border-zinc-100 dark:border-zinc-700/50 ${onToggleChecklist ? 'cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800' : ''}`}
+                      >
+                        {/* Icono de Checkbox idéntico a TareaChecklist */}
+                        <div 
+                          className={`
+                            min-w-[20px] w-[20px] h-[20px] rounded flex items-center justify-center border shrink-0
+                            transition-all duration-200 ease-in-out transform
+                            ${!onToggleChecklist ? 'cursor-not-allowed opacity-60' : 'cursor-pointer active:scale-75 active:bg-zinc-200'}
+                            ${item.is_completed 
+                                ? 'bg-green-500 border-green-500 shadow-sm rotate-0' 
+                                : 'bg-white dark:bg-neutral-800 border-zinc-300 dark:border-neutral-600 hover:border-blue-400 dark:hover:border-blue-500 rotate-0'
+                            }
+                          `}
+                        >
+                            <Check 
+                                size={14} 
+                                className={`text-white transition-all duration-200 ${item.is_completed ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} 
+                                strokeWidth={4} 
+                            />
+                        </div>
+                        <span className={item.is_completed ? 'line-through text-zinc-400' : ''}>{item.title}</span>
                       </li>
                     ))}
                   </ul>
@@ -429,13 +484,35 @@ function DetalleActividadPanel({
               </div>
               <ul className="space-y-1.5">
                 {checklist.map((item, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-                    {item.is_completed ? (
-                      <CheckCircle2 size={14} className="shrink-0 text-emerald-500" />
-                    ) : (
-                      <Clock size={14} className="shrink-0 text-zinc-400" />
-                    )}
-                    <span>{item.title}</span>
+                  <li 
+                    key={i} 
+                    onClick={() => {
+                      if (!onToggleChecklist) return;
+                      const newChecklist = [...checklist];
+                      newChecklist[i].is_completed = !newChecklist[i].is_completed;
+                      onToggleChecklist(actividad.id, newChecklist);
+                    }}
+                    className={`flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 p-2 rounded-lg border border-transparent ${onToggleChecklist ? 'cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 hover:border-zinc-100 dark:hover:border-zinc-700/50' : ''}`}
+                  >
+                    {/* Icono de Checkbox idéntico a TareaChecklist */}
+                    <div 
+                      className={`
+                        min-w-[20px] w-[20px] h-[20px] rounded flex items-center justify-center border shrink-0
+                        transition-all duration-200 ease-in-out transform
+                        ${!onToggleChecklist ? 'cursor-not-allowed opacity-60' : 'cursor-pointer active:scale-75 active:bg-zinc-200'}
+                        ${item.is_completed 
+                            ? 'bg-green-500 border-green-500 shadow-sm rotate-0' 
+                            : 'bg-white dark:bg-neutral-800 border-zinc-300 dark:border-neutral-600 hover:border-blue-400 dark:hover:border-blue-500 rotate-0'
+                        }
+                      `}
+                    >
+                        <Check 
+                            size={14} 
+                            className={`text-white transition-all duration-200 ${item.is_completed ? 'scale-100 opacity-100' : 'scale-0 opacity-0'}`} 
+                            strokeWidth={4} 
+                        />
+                    </div>
+                    <span className={item.is_completed ? 'line-through text-zinc-400' : ''}>{item.title}</span>
                   </li>
                 ))}
               </ul>
@@ -455,6 +532,44 @@ function DetalleActividadPanel({
             Pendiente de confirmación por el asignado
           </p>
         )}
+
+        {/* Botones de acción y badge de revisión */}
+        <div className="pt-2">
+          {actividad.revisado_por ? (
+            <div className="w-full py-2 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 flex flex-col sm:flex-row items-center justify-center text-center gap-1.5 text-emerald-700 dark:text-emerald-400 text-xs">
+              <div className="flex items-center gap-1.5 font-bold">
+                <CheckCircle2 size={16} />
+                <span>
+                  Revisado por {actividad.revisado_por.nombre}
+                </span>
+              </div>
+              <span className="font-medium opacity-80 text-[11px] sm:ml-1">
+                {formatearFechaActividad(actividad.revisado_por.fecha)}
+              </span>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {actividad.status !== 'Completado' && onCompletar && (
+                <button
+                  onClick={() => onCompletar(actividad.id)}
+                  disabled={cargandoAccion === actividad.id}
+                  className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {cargandoAccion === actividad.id ? 'Procesando...' : 'Finalizar Actividad'}
+                </button>
+              )}
+              {actividad.status === 'Completado' && !actividad.revisado_por && onMarcarRevisado && (
+                <button
+                  onClick={() => onMarcarRevisado(actividad.id)}
+                  disabled={cargandoAccion === actividad.id}
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {cargandoAccion === actividad.id ? 'Procesando...' : 'Marcar como Revisado'}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Archivos adjuntos */}
         <GestorArchivos
@@ -501,6 +616,7 @@ export default function ActividadesAsignadas({ isOpen, onClose, tarea, puedeEdit
   const [checklistInput, setChecklistInput] = useState('');
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [pdfViendo, setPdfViendo] = useState<ArchivoAdjunto | null>(null);
+  const [cargandoAccion, setCargandoAccion] = useState<string | null>(null);
 
   // Menciones @
   const [miembros, setMiembros] = useState<{ userId: string; nombre: string; asignaciones: any[] }[]>([]);
@@ -523,6 +639,53 @@ export default function ActividadesAsignadas({ isOpen, onClose, tarea, puedeEdit
       toast.error('No se pudieron cargar las actividades.');
     } finally {
       setCargando(false);
+    }
+  };
+
+  const handleCompletarActividad = async (id: string) => {
+    try {
+      setCargandoAccion(id);
+      const { cambiarEstado } = await import('@/components/tareas/actions');
+      await cambiarEstado(id, 'Completado');
+      toast.success('Actividad completada');
+      setHasChanged(true);
+      await cargarDatos();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al completar');
+    } finally {
+      setCargandoAccion(null);
+    }
+  };
+
+  const handleMarcarRevisado = async (id: string) => {
+    try {
+      setCargandoAccion(id);
+      const { marcarRevisadoPorConcejo } = await import('@/components/tareas/actions');
+      await marcarRevisadoPorConcejo(id);
+      toast.success('Marcada como revisada');
+      setHasChanged(true);
+      await cargarDatos();
+    } catch (error) {
+      toast.error('Error al marcar revisado');
+    } finally {
+      setCargandoAccion(null);
+    }
+  };
+
+  const handleToggleChecklist = async (taskId: string, newChecklist: any[]) => {
+    try {
+      const { updateChecklist } = await import('@/components/tareas/actions');
+      // Actualizamos optimísticamente el estado local
+      setActividades((prev) => 
+        prev.map(act => act.id === taskId ? { ...act, checklist: newChecklist } : act)
+      );
+      await updateChecklist(taskId, newChecklist);
+      setHasChanged(true);
+      await cargarDatos();
+    } catch (error) {
+      toast.error('Error al actualizar el checklist');
+      // Revertir en caso de error
+      await cargarDatos();
     }
   };
 
@@ -915,6 +1078,10 @@ export default function ActividadesAsignadas({ isOpen, onClose, tarea, puedeEdit
                               actividad={actividad}
                               indice={index + 1}
                               onVerPdf={setPdfViendo}
+                              onCompletar={puedeEditar ? handleCompletarActividad : undefined}
+                              onMarcarRevisado={puedeEditar ? handleMarcarRevisado : undefined}
+                              onToggleChecklist={puedeEditar ? handleToggleChecklist : undefined}
+                              cargandoAccion={cargandoAccion}
                               acciones={
                                 puedeEditar ? (
                                   <>

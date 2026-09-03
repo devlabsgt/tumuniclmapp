@@ -132,6 +132,7 @@ export async function obtenerActividadesDeAgenda(
         archivos: (t.archivos as ActividadConcejo['archivos']) ?? null,
         created_at: t.created_at,
         miembros: miembrosPorTask.get(t.id) || [],
+        revisado_por: t.revisado_por as { nombre: string; fecha: string } | null,
       };
 
       if (!resultado[tareaConcejoId]) resultado[tareaConcejoId] = [];
@@ -232,6 +233,7 @@ export async function obtenerTodasActividadesConcejo(): Promise<ActividadConcejo
       archivos: (t.archivos as ActividadConcejo['archivos']) ?? null,
       created_at: t.created_at,
       miembros: miembrosPorTask.get(t.id) || [],
+      revisado_por: t.revisado_por as { nombre: string; fecha: string } | null,
       punto_id: enlace.tarea_concejo_id,
       punto_titulo: punto?.titulo_item || 'Punto desconocido',
       agenda_id: punto?.agenda_concejo_id || '',
@@ -315,6 +317,7 @@ export async function obtenerActividadesDePunto(
     archivos: (t.archivos as ActividadConcejo['archivos']) ?? null,
     created_at: t.created_at,
     miembros: miembrosPorTask.get(t.id) || [],
+    revisado_por: t.revisado_por as { nombre: string; fecha: string } | null,
   }));
 }
 
@@ -396,6 +399,7 @@ export async function editarActividadConcejo(
     description: input.description ?? null,
     due_date: input.due_date,
     assigned_to: input.assigned_to,
+    revisado_por: null,
   };
 
   if (actual) {

@@ -442,6 +442,34 @@ export async function crearTarea(formData: NewTaskState) {
 
 export async function actualizarTarea(id: string, updates: any) {
   const supabase = await createClient();
+  
+  // Obtener estado actual
+  const { data: actual } = await supabase
+    .from('tasks')
+    .select('due_date, status, assigned_to')
+    .eq('id', id)
+    .single();
+
+  // Si se edita la tarea (ej. cambio de fecha, título, etc), se invalida la revisión anterior
+  updates.revisado_por = null;
+
+  if (actual) {
+    const cambioAsignado = updates.assigned_to && actual.assigned_to !== updates.assigned_to;
+    const cambioFecha = updates.due_date && actual.due_date !== updates.due_date;
+    const estabaCompletada = actual.status === 'Completado';
+
+    if (cambioAsignado) {
+      updates.confirmed_at = null;
+      updates.status = 'Asignado';
+      updates.updated_at = null;
+    } else if (cambioFecha) {
+      if (estabaCompletada) {
+        updates.status = 'Asignado';
+        updates.updated_at = null;
+      }
+    }
+  }
+
   const { error } = await supabase.from('tasks').update(updates).eq('id', id);
   if (error) throw new Error(error.message);
   revalidatePath('/protected/actividades', 'layout'); 
@@ -449,14 +477,38 @@ export async function actualizarTarea(id: string, updates: any) {
 
 export async function actualizarArchivosTarea(taskId: string, nuevosArchivos: any[]) {
   const supabase = await createClient();
-  const { error } = await supabase.from('tasks').update({ archivos: nuevosArchivos }).eq('id', taskId);
+  const { error } = await supabase.from('tasks').update({ 
+    archivos: nuevosArchivos, 
+    revisado_por: null 
+  }).eq('id', taskId);
   if (error) throw new Error(error.message);
   revalidatePath('/protected/actividades', 'layout');
 }
 
 export async function updateChecklist(taskId: string, newChecklist: ChecklistItem[]) {
   const supabase = await createClient();
-  const { error } = await supabase.from('tasks').update({ checklist: newChecklist }).eq('id', taskId);
+
+  // Verificar si la tarea estaba completada
+  const { data: tarea } = await supabase.from('tasks').select('status').eq('id', taskId).single();
+  let newStatus = tarea?.status;
+
+  if (tarea?.status === 'Completado') {
+    const allCompleted = newChecklist.length === 0 || newChecklist.every(c => c.is_completed);
+    if (!allCompleted) {
+      newStatus = 'En Proceso';
+    }
+  }
+
+  const updateData: any = { 
+    checklist: newChecklist,
+    revisado_por: null
+  };
+  
+  if (newStatus !== tarea?.status) {
+    updateData.status = newStatus;
+  }
+
+  const { error } = await supabase.from('tasks').update(updateData).eq('id', taskId);
   if (error) throw new Error(error.message);
   revalidatePath('/protected/actividades', 'layout');
 }
@@ -493,7 +545,7 @@ export async function cambiarEstado(taskId: string, nuevoEstado: string) {
     .update(
       nuevoEstado === 'Completado'
         ? { status: nuevoEstado, updated_at: new Date().toISOString() }
-        : { status: nuevoEstado, updated_at: null },
+        : { status: nuevoEstado, updated_at: null, revisado_por: null },
     )
     .eq('id', taskId);
   if (error) throw new Error(error.message);
@@ -800,4 +852,50 @@ export async function actualizarComentarioMiembro(miembroId: string, comentario:
     .eq('id', miembroId);
   if (error) throw new Error(error.message);
   revalidatePath('/protected/actividades', 'layout');
+}
+
+/**
+ * Marca la actividad como revisada y guarda quién la revisó con fecha y hora.
+ */
+export async function marcarComoRevisado(taskId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('No autenticado');
+  
+  const perfil = await obtenerPerfilCompleto(user.id, supabase);
+  const revisadoPor = {
+    nombre: perfil.nombre,
+    fecha: new Date().toISOString()
+  };
+
+  const { error } = await supabase
+    .from('tasks')
+    .update({ revisado_por: revisadoPor })
+    .eq('id', taskId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/protected/actividades', 'layout');
+}
+
+/**
+ * Marca la actividad como revisada por el Concejo Municipal.
+ */
+export async function marcarRevisadoPorConcejo(taskId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('No autenticado');
+  
+  const revisadoPor = {
+    nombre: "Concejo Municipal",
+    fecha: new Date().toISOString()
+  };
+
+  const { error } = await supabase
+    .from('tasks')
+    .update({ revisado_por: revisadoPor })
+    .eq('id', taskId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath('/protected/actividades', 'layout');
+  revalidatePath('/protected/concejo/agenda', 'layout');
 }

@@ -75,7 +75,7 @@ const renderConfirmacion = (isoString?: string | null) => {
 };
 
 export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe, isRRHH, usuarioActual, nombreUsuarioActual, usuarios }: Props) { 
-  const { cambiarStatus, eliminar } = useTareaMutations(); 
+  const { cambiarStatus, eliminar, marcarRevisado } = useTareaMutations(); 
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
@@ -148,23 +148,24 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
 
   // ── Cálculo de progreso ────────────────────────────────────────────────────
   const checklist = (tarea.checklist as unknown as ChecklistItem[]) || [];
-  const completadosEncargado = checklist.filter(c => c.is_completed).length + (tarea.status === 'Completado' ? 1 : 0);
-  const totalEncargado = checklist.length + 1;
+  const completadosEncargado = checklist.filter(c => c.is_completed).length;
+  const totalEncargado = checklist.length;
 
-  let porcentaje: number;
+  let porcentaje: number = 0;
   if (esGrupal) {
+    // Para los miembros SÍ sumamos +1 que representa el botón final de "Completar parte"
     const totalMiembros = miembros.reduce((s, m) => s + (m.asignaciones?.length || 0) + 1, 0);
     const completadosMiembros = miembros.reduce((s, m) => s + (m.asignaciones?.filter(a => a.is_complete).length || 0) + (m.completed_at ? 1 : 0), 0);
     const totalGlobal = totalEncargado + totalMiembros;
     const completosGlobal = completadosEncargado + completadosMiembros;
-    porcentaje = Math.round((completosGlobal / totalGlobal) * 100);
+    porcentaje = totalGlobal === 0 ? 0 : Math.round((completosGlobal / totalGlobal) * 100);
   } else {
-    porcentaje = Math.round((completadosEncargado / totalEncargado) * 100);
+    porcentaje = totalEncargado === 0 ? 0 : Math.round((completadosEncargado / totalEncargado) * 100);
   }
 
   const fechaLimite = new Date(tarea.due_date);
   const esVencida = new Date() > fechaLimite && tarea.status !== 'Completado';
-  const isReadOnly = esVencida || tarea.status === 'Completado' || !!isRRHH;
+  const isReadOnly = tarea.status === 'Completado' || !!isRRHH;
   const esAutoAsignado = tarea.created_by === tarea.assigned_to;
   const esAsignadoAMi = tarea.assigned_to === usuarioActual;
   const esCreadoPorMi = tarea.created_by === usuarioActual;
@@ -223,7 +224,36 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
     }
   };
 
-  const loading = cambiarStatus.isPending || eliminar.isPending;
+  const handleMarcarRevisado = async () => {
+    try {
+      await marcarRevisado.mutateAsync(tarea.id);
+      toast.success('Actividad marcada como revisada');
+    } catch {
+      toast.error('Error al marcar como revisada');
+    }
+  };
+
+  const loading = cambiarStatus.isPending || eliminar.isPending || marcarRevisado.isPending;
+
+  const formatRetraso = (dueDateStr: string, completedAtStr?: string | null) => {
+    const due = new Date(dueDateStr);
+    const end = completedAtStr ? new Date(completedAtStr) : new Date();
+    const diffMs = end.getTime() - due.getTime();
+    if (diffMs <= 0) return null;
+    
+    const diffMins = Math.floor(diffMs / 60000);
+    const days = Math.floor(diffMins / 1440);
+    const hours = Math.floor((diffMins % 1440) / 60);
+    
+    const parts = [];
+    if (days > 0) parts.push(`${days} día${days !== 1 ? 's' : ''}`);
+    if (hours > 0) parts.push(`${hours} hr${hours !== 1 ? 's' : ''}`);
+    
+    if (parts.length === 0) return 'Menos de 1 hr';
+    return `Atrasada por ${parts.join(', ')}`;
+  };
+
+  const retrasoText = formatRetraso(tarea.due_date, tarea.updated_at);
 
   // ── Estilos de estado ──────────────────────────────────────────────────────
   const getStatusStyles = () => {
@@ -432,10 +462,17 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
 
                     <div className="space-y-4">
                         {/* Fecha */}
-                        <div className={`inline-flex items-center flex-wrap gap-2 px-3 py-2 rounded-lg text-xs font-medium border w-full sm:w-auto ${esVencida ? 'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800' : 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'}`}>
-                            <Calendar size={14} />
-                            <span>Vence: {new Date(tarea.due_date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'long' })}</span>
-                            <span className="border-l pl-2 ml-1 border-current opacity-50"><Clock size={14} className="inline mr-1"/>{new Date(tarea.due_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
+                        <div className="flex flex-col gap-2">
+                          <div className={`inline-flex items-center flex-wrap gap-2 px-3 py-2 rounded-lg text-xs font-medium border w-full sm:w-auto ${esVencida ? 'bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800' : 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'}`}>
+                              <Calendar size={14} />
+                              <span>Vence: {new Date(tarea.due_date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'long' })}</span>
+                              <span className="border-l pl-2 ml-1 border-current opacity-50"><Clock size={14} className="inline mr-1"/>{new Date(tarea.due_date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
+                          </div>
+                          {retrasoText && (
+                            <span className="text-xs font-semibold text-red-500 dark:text-red-400 ml-1">
+                                {tarea.status === 'Completado' ? `⚠️ Se completó con un tiempo tardío de: ${retrasoText.replace(/^Atrasada por /i, '')}` : `⚠️ ${retrasoText}`}
+                            </span>
+                          )}
                         </div>
 
                         {/* Barras de progreso */}
@@ -444,7 +481,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                                   <>
                                     <div className="flex justify-between items-end mb-1.5">
                                         <span className="text-[10px] font-bold text-slate-500 dark:text-gray-500 uppercase tracking-wide">
-                                          {esGrupal ? 'Progreso Global' : 'Progreso Total (Miembros: {miembros.length})'}
+                                          {esGrupal ? 'Progreso Global' : 'Progreso Total'}
                                         </span>
                                         <span className={`text-xs font-bold ${porcentaje === 100 ? 'text-green-600 dark:text-green-400' : 'text-slate-700 dark:text-gray-300'}`}>{porcentaje}%</span>
                                     </div>
@@ -518,15 +555,37 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
                         <div className="mt-auto pt-2">
                             <button
                               onClick={handleTerminar}
-                              disabled={loading || esVencida}
-                              className={`w-full py-3 rounded-xl font-bold text-sm transition-all flex justify-center items-center gap-2 transform active:scale-[0.98] ${
-                                esVencida
-                                  ? 'bg-orange-50 text-orange-600 border border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800 cursor-not-allowed shadow-none'
-                                  : 'text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md shadow-blue-500/20 dark:shadow-none'
-                              }`}
+                              disabled={loading}
+                              className={`w-full py-3 rounded-xl font-bold text-sm transition-all flex justify-center items-center gap-2 transform active:scale-[0.98] text-white bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 shadow-md shadow-green-500/20 dark:shadow-none`}
                             >
-                            {loading ? <Clock size={18} className="animate-spin" /> : esVencida ? 'Actividad Vencida' : 'Finalizar Actividad'}
+                            {loading && cambiarStatus.isPending ? <Clock size={18} className="animate-spin" /> : 'Finalizar Actividad'}
                             </button>
+                        </div>
+                    )}
+
+                    {/* Botón marcar como revisado */}
+                    {tarea.status === 'Completado' && !tarea.revisado_por && (
+                        <div className="mt-auto pt-2">
+                            <button
+                                onClick={handleMarcarRevisado}
+                                disabled={loading}
+                                className="w-full py-3 rounded-xl font-bold text-sm transition-all flex justify-center items-center gap-2 transform active:scale-[0.98] text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md shadow-blue-500/20 dark:shadow-none"
+                            >
+                                {loading && marcarRevisado.isPending ? <Clock size={18} className="animate-spin" /> : 'Marcar como Revisado'}
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Mostrar quién revisó */}
+                    {tarea.status === 'Completado' && tarea.revisado_por && (
+                        <div className="mt-auto pt-2">
+                            <div className="w-full py-2 px-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 flex flex-col items-center justify-center text-center gap-1 text-emerald-700 dark:text-emerald-400 text-xs">
+                                <div className="flex items-center gap-1.5 font-bold">
+                                    <CheckCircle2 size={14} />
+                                    <span>Revisado por {tarea.revisado_por.nombre}</span>
+                                </div>
+                                <span className="font-medium opacity-80 text-[10px]">{formatearSesion(tarea.revisado_por.fecha)}</span>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -752,7 +811,7 @@ export default function TareaItem({ tarea, isExpanded = false, onToggle, isJefe,
       </AnimatePresence>
     </div>
     {isEditModalOpen && ( <EditarTarea isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); if (isExpanded && onToggle) { onToggle(); } }} tarea={tarea} esJefe={isJefe} usuarios={usuarios} /> )}
-    {isDuplicateModalOpen && ( <DuplicateTarea isOpen={isDuplicateModalOpen} onClose={() => setIsDuplicateModalOpen(false)} tareaOriginal={tarea} usuarios={usuarios} esJefe={isJefe} /> )}
+    {isDuplicateModalOpen && ( <DuplicateTarea isOpen={isDuplicateModalOpen} onClose={() => setIsDuplicateModalOpen(false)} tareaOriginal={tarea} usuarios={usuarios} esJefe={isJefe} usuarioActual={usuarioActual} /> )}
     </>
   );
 }
