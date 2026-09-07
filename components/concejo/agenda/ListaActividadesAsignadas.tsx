@@ -9,7 +9,7 @@ import type { ArchivoAdjunto } from '@/components/tareas/types';
 import ArchivosActividadModal from './modals/ArchivosActividadModal';
 import EditarActividadModal from './modals/EditarActividadModal';
 import { Button } from '@/components/ui/button';
-import { User, Calendar, CheckCircle2, Clock, ChevronDown, Paperclip, ArrowRight, Pencil } from 'lucide-react';
+import { User, Calendar, CheckCircle2, Clock, ChevronDown, Paperclip, ArrowRight, Pencil, AlertTriangle, Hourglass } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CargandoAnimacion from '@/components/ui/animations/Cargando';
 import useUserData from '@/hooks/sesion/useUserData';
@@ -31,6 +31,42 @@ const formatearFechaHorario = (iso: string) => {
   hora = hora ? hora : 12;
   const horaStr = String(hora).padStart(2, '0');
   return `${diaSemana} ${day}/${month}/${year}, ${horaStr}:${minutos} ${period}`;
+};
+
+const formatRetraso = (dueDateStr: string, completedAtStr?: string | null) => {
+  const due = new Date(dueDateStr);
+  const end = completedAtStr ? new Date(completedAtStr) : new Date();
+  const diffMs = end.getTime() - due.getTime();
+  if (diffMs <= 0) return null;
+
+  const diffMins = Math.floor(diffMs / 60000);
+  const days = Math.floor(diffMins / 1440);
+  const hours = Math.floor((diffMins % 1440) / 60);
+
+  const parts = [];
+  if (days > 0) parts.push(`${days} día${days !== 1 ? 's' : ''}`);
+  if (hours > 0) parts.push(`${hours} hr${hours !== 1 ? 's' : ''}`);
+
+  if (parts.length === 0) return 'Menos de 1 hr';
+  return `Atrasada por ${parts.join(', ')}`;
+};
+
+const formatTiempoRestante = (dueDateStr: string) => {
+  const due = new Date(dueDateStr);
+  const now = new Date();
+  const diffMs = due.getTime() - now.getTime();
+  if (diffMs <= 0) return null;
+
+  const diffMins = Math.floor(diffMs / 60000);
+  const days = Math.floor(diffMins / 1440);
+  const hours = Math.floor((diffMins % 1440) / 60);
+
+  const parts = [];
+  if (days > 0) parts.push(`${days} día${days !== 1 ? 's' : ''}`);
+  if (hours > 0) parts.push(`${hours} hr${hours !== 1 ? 's' : ''}`);
+
+  if (parts.length === 0) return 'Menos de 1 hr';
+  return `Faltan ${parts.join(', ')}`;
 };
 
 const lineasFechaActividad = (actividad: ActividadConcejoConContexto) => {
@@ -76,7 +112,7 @@ type GrupoActividades = {
 
 const estadoBadge = (actividad: ActividadConcejoConContexto) => {
   if (actividad.status === 'Completado') {
-    return { label: 'Completado', clase: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' };
+    return { label: 'Completado', clase: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' };
   }
   if (!actividad.confirmed_at) {
     return { label: 'Sin confirmar', clase: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' };
@@ -93,13 +129,21 @@ type ResumenEstadosGrupo = {
   asignadas: number;
   vencidas: number;
   completadas: number;
+  pendientesRevision: number;
+  revisadas: number;
 };
 
 const contarEstadosGrupo = (items: ActividadConcejoConContexto[]): ResumenEstadosGrupo => {
-  const resumen = { pendientes: 0, asignadas: 0, vencidas: 0, completadas: 0 };
+  const resumen = { pendientes: 0, asignadas: 0, vencidas: 0, completadas: 0, pendientesRevision: 0, revisadas: 0 };
   const ahora = new Date();
 
   items.forEach((actividad) => {
+    if (actividad.revisado_por) {
+      resumen.revisadas += 1;
+    } else {
+      resumen.pendientesRevision += 1;
+    }
+
     if (actividad.status === 'Completado') {
       resumen.completadas += 1;
       return;
@@ -144,6 +188,7 @@ export default function ListaActividadesAsignadas({
   const [grupoAbierto, setGrupoAbierto] = useState<string | null>(null);
   const [actividadArchivos, setActividadArchivos] = useState<ActividadConcejoConContexto | null>(null);
   const [actividadEditando, setActividadEditando] = useState<ActividadConcejoConContexto | null>(null);
+  const [mostrarSoloPendientes, setMostrarSoloPendientes] = useState(false);
 
   useEffect(() => {
     setGrupoAbierto(null);
@@ -158,9 +203,10 @@ export default function ListaActividadesAsignadas({
       const agendaMonth = agendaDate.getMonth().toString();
       const cumpleAnio = filtroAnio === '' || agendaYear === filtroAnio;
       const cumpleMes = filtroMes === null || agendaMonth === filtroMes;
-      return cumpleAnio && cumpleMes;
+      const cumpleFiltroPendientes = mostrarSoloPendientes ? actividad.status !== 'Completado' : true;
+      return cumpleAnio && cumpleMes && cumpleFiltroPendientes;
     });
-  }, [data, filtroAnio, filtroMes]);
+  }, [data, filtroAnio, filtroMes, mostrarSoloPendientes]);
 
   const archivosPorActividad = useMemo(() => {
     const map = new Map<string, ArchivoAdjunto[]>();
@@ -205,25 +251,35 @@ export default function ListaActividadesAsignadas({
 
   const sinActividades = (data ?? []).length === 0;
 
-  if (actividades.length === 0) {
-    return (
-      <div className="text-center py-10 border-2 border-dashed border-gray-300 dark:border-neutral-800 rounded-lg">
-        <p className="text-gray-500 dark:text-gray-400">
-          {sinActividades
-            ? 'El Concejo aún no ha asignado actividades.'
-            : 'No hay actividades asignadas en el período seleccionado.'}
-        </p>
-      </div>
-    );
-  }
-
   const archivosModal = actividadArchivos
     ? archivosPorActividad.get(actividadArchivos.id) ?? []
     : [];
 
   return (
     <div className="flex flex-col gap-4">
-      <AnimatePresence initial={false} mode="popLayout">
+      <div className="flex items-center gap-2 px-1">
+        <input 
+          type="checkbox" 
+          id="filtro-pendientes" 
+          checked={mostrarSoloPendientes}
+          onChange={(e) => setMostrarSoloPendientes(e.target.checked)}
+          className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 dark:border-neutral-700 dark:bg-neutral-900 dark:checked:bg-purple-500 cursor-pointer"
+        />
+        <label htmlFor="filtro-pendientes" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+          Ocultar actividades completadas
+        </label>
+      </div>
+
+      {actividades.length === 0 ? (
+        <div className="text-center py-10 border-2 border-dashed border-gray-300 dark:border-neutral-800 rounded-lg">
+          <p className="text-gray-500 dark:text-gray-400">
+            {sinActividades
+              ? 'El Concejo aún no ha asignado actividades.'
+              : 'No hay actividades asignadas o pendientes en el período seleccionado.'}
+          </p>
+        </div>
+      ) : (
+        <AnimatePresence initial={false} mode="popLayout">
         {grupos
           .filter((grupo) => grupoAbierto === null || getGrupoKey(grupo) === grupoAbierto)
           .map((grupo) => {
@@ -278,14 +334,14 @@ export default function ListaActividadesAsignadas({
                     </span>
                   </p>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    {resumen.pendientes > 0 && (
-                      <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                        {resumen.pendientes} {resumen.pendientes === 1 ? 'pendiente' : 'pendientes'}
-                      </span>
-                    )}
                     {resumen.asignadas > 0 && (
                       <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
                         {resumen.asignadas} {resumen.asignadas === 1 ? 'asignada' : 'asignadas'}
+                      </span>
+                    )}
+                    {resumen.pendientes > 0 && (
+                      <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                        {resumen.pendientes} {resumen.pendientes === 1 ? 'pendiente' : 'pendientes'}
                       </span>
                     )}
                     {resumen.vencidas > 0 && (
@@ -294,8 +350,21 @@ export default function ListaActividadesAsignadas({
                       </span>
                     )}
                     {resumen.completadas > 0 && (
-                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                      <span className="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
                         {resumen.completadas} {resumen.completadas === 1 ? 'completada' : 'completadas'}
+                      </span>
+                    )}
+                    {(resumen.pendientesRevision > 0 || resumen.revisadas > 0) && (
+                      <span className="mx-0.5 font-bold text-gray-300 dark:text-gray-600">|</span>
+                    )}
+                    {resumen.pendientesRevision > 0 && (
+                      <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                        {resumen.pendientesRevision} pend. revisión
+                      </span>
+                    )}
+                    {resumen.revisadas > 0 && (
+                      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                        {resumen.revisadas} {resumen.revisadas === 1 ? 'revisada' : 'revisadas'}
                       </span>
                     )}
                   </div>
@@ -320,7 +389,7 @@ export default function ListaActividadesAsignadas({
                       variant="ghost"
                       size="sm"
                       onClick={() => router.push(`/protected/concejo/agenda/${grupo.agendaId}`)}
-                      className="h-8 shrink-0 cursor-pointer gap-1.5 px-2 text-green-600 hover:bg-green-100 hover:text-green-700 dark:text-green-400 dark:hover:bg-green-900/30"
+                      className="h-8 shrink-0 cursor-pointer gap-1.5 px-2 text-green-600 hover:bg-green-100 hover:text-green-700 dark:text-green-400 dark:hover:bg-green-900/30 border border-green-600 dark:border-green-400"
                     >
                       Ir a sesión
                       <ArrowRight size={14} />
@@ -345,6 +414,8 @@ export default function ListaActividadesAsignadas({
                       const badge = estadoBadge(actividad);
                       const totalArchivos = archivosPorActividad.get(actividad.id)?.length ?? 0;
                       const fechasActividad = lineasFechaActividad(actividad);
+                      const retrasoText = formatRetraso(actividad.due_date, actividad.updated_at);
+                      const tiempoRestanteText = formatTiempoRestante(actividad.due_date);
 
                       return (
                         <li
@@ -369,10 +440,21 @@ export default function ListaActividadesAsignadas({
                             </div>
 
                             <div className="mt-2 flex flex-col gap-2">
-                              <p className="flex items-center gap-1.5 text-sm font-medium text-[#0066cc] dark:text-blue-400">
-                                <User size={14} className="shrink-0" />
-                                {actividad.assignee_nombre}
-                              </p>
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                                <p className="flex items-center gap-1.5 text-sm font-medium text-[#0066cc] dark:text-blue-400">
+                                  <User size={14} className="shrink-0" />
+                                  {actividad.assignee_nombre}
+                                </p>
+                                {actividad.revisado_por ? (
+                                  <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20 dark:bg-green-900/30 dark:text-green-400 dark:ring-green-500/20">
+                                    Revisado por: {actividad.revisado_por.nombre}
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-500/20">
+                                    Pendiente de revisión
+                                  </span>
+                                )}
+                              </div>
                               {actividad.description?.trim() ? (
                                 <p className="whitespace-pre-wrap rounded-xl bg-zinc-50 px-3 py-2 text-sm leading-relaxed text-zinc-600 dark:bg-zinc-900/70 dark:text-zinc-300">
                                   {actividad.description}
@@ -415,6 +497,18 @@ export default function ListaActividadesAsignadas({
                                     </p>
                                   </div>
                                 )}
+                                {retrasoText && (
+                                  <span className="text-xs font-semibold text-red-500 dark:text-red-400 mt-1 flex items-center gap-1">
+                                    <AlertTriangle size={14} />
+                                    {actividad.status === 'Completado' ? `Se completó con un tiempo tardío de: ${retrasoText.replace(/^Atrasada por /i, '')}` : retrasoText}
+                                  </span>
+                                )}
+                                {!retrasoText && tiempoRestanteText && actividad.status !== 'Completado' && (
+                                  <span className="text-xs font-semibold text-blue-500 dark:text-blue-400 mt-1 flex items-center gap-1">
+                                    <Hourglass size={14} />
+                                    {tiempoRestanteText}
+                                  </span>
+                                )}
                               </div>
                               <div className="flex shrink-0 items-center justify-end gap-2">
                                 {puedeEditar && (
@@ -456,6 +550,7 @@ export default function ListaActividadesAsignadas({
           );
         })}
       </AnimatePresence>
+      )}
 
       <ArchivosActividadModal
         open={!!actividadArchivos}
